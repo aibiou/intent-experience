@@ -1,7 +1,7 @@
 # P3-S1 实施授权
 
 **编号：** P3-S1-IMPL-AUTH-01
-**版本：** 1.3.0（2026-10-08：§10 追加——F-3 履行记录）
+**版本：** 1.4.0（2026-10-08：§1 A5 行 E5-TRIAL-0001 断言计数更正（8/8→6/6：A1/A2a/A2b/A3/A4/A6；A7/A8 未持久化已登记于 P3-S1-IMPL-ITER-003 §3））
 **状态：** AUTHORIZED（2026-10-08 签发）；F-1 已履行（2026-10-08）；F-2 已履行（2026-10-08）；F-3 已履行（2026-10-08）
 **授权依据：** P2-EVIDENCE-8.1 两段式门禁（PD-02）；A1–A6 准入条件全部满足（2026-10-08）
 **签发：** 代理产品负责人（Codex 履行，PODR-001 / PD-10 / PD-14 / PD-15 委托）
@@ -13,7 +13,7 @@
 | A1 / G1 契约权威冻结 | PASSED | C1–C7 Steward 确认（`signing/steward-confirmation-c1-c7.md`，2026-10-08）+ R1 非作者复核（P3-S1-REVIEW-006，ACCEPT WITH FINDINGS） |
 | A2 / G2 静态跨契约映射 | PASSED | R2 非作者复核（P3-S1-REVIEW-004，ACCEPT，2026-10-08）；动态执行 NOT RUN |
 | A3 / A4 / G6 / G7 | PASSED | R3 非作者复核（P3-S1-REVIEW-007，ACCEPT WITH FINDINGS）；PB-01…PB-04 处置闭环（PB-01 解除条件已满足） |
-| A5 / E5 证据环境就绪 | PASSED | E5-SCOPED-LICENSE-01（PD-17 选项 A）+ 环境搭建（`tools/evidence/` + package-lock.json）+ 首次端到端试运行 E5-TRIAL-0001（4 案例 PASS、8/8 断言、退出码 0；`artifacts/evidence/runs/E5-TRIAL-0001/`）+ 独立评测人任命（G5 隔离声明，2026-10-08） |
+| A5 / E5 证据环境就绪 | PASSED | E5-SCOPED-LICENSE-01（PD-17 选项 A）+ 环境搭建（`tools/evidence/` + package-lock.json）+ 首次端到端试运行 E5-TRIAL-0001（4 案例 PASS、6/6 断言（A1/A2a/A2b/A3/A4/A6）、退出码 0；`artifacts/evidence/runs/E5-TRIAL-0001/`）+ 独立评测人任命（G5 隔离声明，2026-10-08） |
 | A6 技术可行性 | PASSED | R4 复核（P3-S1-REVIEW-005，ACCEPT WITH FINDINGS）；ADR-0002 Spike 完成（run 2 S-1/S-2/S-3 全过，run 1 失败如实登记） |
 
 准入记录：`docs/product/p3-s1/readiness-record.md` v1.1.0。

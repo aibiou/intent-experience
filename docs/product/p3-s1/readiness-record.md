@@ -1,7 +1,7 @@
 # P3-S1 实现准入记录
 
 **编号：** P3-S1-READINESS-01
-**版本：** 1.3.0（2026-10-08：实施第三迭代完成——F3-EB-0001 动态证据通过（21/21 案例、28/28 断言、退出码 0），G2 动态跨契约一致性与 G4 工程边界证据已产出；G2–G4 仍 NOT PASSED）
+**版本：** 1.4.0（2026-10-08：E5-TRIAL-0001 断言计数更正——summary.json 权威记录为 6/6 断言（A1/A2a/A2b/A3/A4/A6）；A7/A8 因执行器写入顺序（summary.json 先于 A7/A8 记录写入）未持久化，经独立审计登记于 P3-S1-IMPL-ITER-003 §3；试运行结论与 A5 判定不变）
 **状态：** READY / AUTHORIZED / THIRD ITERATION EVIDENCE PRODUCED（第三迭代动态证据已产出；任何 Gate 均未 PASS）
 **记录日期：** 2026-10-08
 **范围：** 仅检查 P3-S1 产品运行时代码是否已获准启动；本记录不代表 P2 关闭或产品验收通过。
@@ -16,7 +16,7 @@
 | G2 静态跨契约映射 | E8 12 项、CC02 40 项 / 12 项硬检查 / 8 个 GXC / 18 项负向、CC01 20 项均独立映射并由非作者复核 | 全量映射完成；A2 非作者复核已签署（P3-S1-REVIEW-004，ACCEPT，2026-10-08；NEG14/NEG17 已裁定并回写 XCC-MAP v1.4.0）；动态证据已产出三迭代（F1-E2E-0001 / F2-GS-0001 / F3-EB-0001——本行为准入时点记录，动态证据进度见"更新后的总判定"） | A2 复核人（用户本人，角色 8）已签署 | 静态复核完成；A2 准入判定待产品负责人在准入评审确认；G2 动态证据已产出（Gate 判定属 G5 独立评测 NOT RUN） |
 | G6 产品债务处理 | PB-01…PB-04 逐项批准的解决 / 延期 / 阻塞处理 | PODR-001 已裁决；PB-01…PB-04 处置表已建立（decision-register §G6）；PB-01 解除条件已满足（G1 通过 + 各契约 Owner 签署 + C4 独立权威 + 范围指纹获批），PB-01 解除；R3 非作者复核已签署（P3-S1-REVIEW-007，ACCEPT WITH FINDINGS，2026-10-08） | 代理产品负责人已决策；产品负责人 + 各契约 Steward 已确认；R3 非作者复核已签署 | PASSED（PB-01…PB-04 全部闭环，2026-10-08） |
 | G7 S1 范围冻结 | 首体验、标准路径、动作纳入 / 排除 / 延期经批准且可追溯 | PD-05–PD-08 已批准；`../p3-s1/acceptance-mapping.md` 记录范围；R3 非作者复核已签署（P3-S1-REVIEW-007，2026-10-08） | 代理产品负责人已决策；非作者复核人已签署（REVIEW-007） | PASSED（范围冻结证据齐备，2026-10-08） |
-| E5 证据环境就绪 | 版本记录、可复现执行环境、证据存储、独立评测角色与职责 | 操作计划及 G5 16 项交叉表已建立；独立评测人已任命并签署隔离声明（G5 隔离声明，2026-10-08）；E5 环境已搭建（`tools/evidence/` 零依赖执行器 + package-lock.json，PD-17 / E5-SCOPED-LICENSE-01）；首次端到端试运行 E5-TRIAL-0001 完成（4 案例 PASS、8/8 断言、退出码 0；材料 `artifacts/evidence/runs/E5-TRIAL-0001/`，含 SHA256SUMS） | 独立评测负责人已任命（用户本人，角色 5，PD-15）；工程负责人角色已搭建环境并执行试运行；独立评测人对试运行材料保留审阅与否决权（材料 staged 于 run review/ 目录） | PASSED（E5 三项就绪条件完成，2026-10-08；A5 满足） |
+| E5 证据环境就绪 | 版本记录、可复现执行环境、证据存储、独立评测角色与职责 | 操作计划及 G5 16 项交叉表已建立；独立评测人已任命并签署隔离声明（G5 隔离声明，2026-10-08）；E5 环境已搭建（`tools/evidence/` 零依赖执行器 + package-lock.json，PD-17 / E5-SCOPED-LICENSE-01）；首次端到端试运行 E5-TRIAL-0001 完成（4 案例 PASS、6/6 断言（A1/A2a/A2b/A3/A4/A6）、退出码 0；材料 `artifacts/evidence/runs/E5-TRIAL-0001/`，含 SHA256SUMS） | 独立评测负责人已任命（用户本人，角色 5，PD-15）；工程负责人角色已搭建环境并执行试运行；独立评测人对试运行材料保留审阅与否决权（材料 staged 于 run review/ 目录） | PASSED（E5 三项就绪条件完成，2026-10-08；A5 满足） |
 | 技术栈决议 | 唯一选型、产品决策、架构 / 工程审查和部署验证 | ADR-0001 方案 A 已获产品负责人接受；ADR-0002 已会签生效（2026-10-08）；Spike 已执行：run 2 S-1/S-2/S-3 全部通过（run 1 S-3 测试桩缺陷如实登记，证据存档 `spike/cancellation/evidence-run-1-initial/`）；验证报告 `docs/architecture/decisions/ADR-0002-spike-report.md` 已落档并附入 ADR-0001 复核材料；ADR-0001 复核已签署（P3-S1-REVIEW-005，ACCEPT WITH FINDINGS，2026-10-08；F-1 Next.js 取消路径验证转入实施计划首批必验项，F-2 授权日 LTS 重查义务确认） | 产品负责人已批准；架构 / 工程负责人已会签 ADR-0002 并完成 Spike；架构负责人已签署 ADR-0001 复核（REVIEW-005） | 产品决策完成；A6 技术可行性条件满足（PASSED，2026-10-08）；F-1/F-2 为实施阶段义务 |
 | P3-S1 实施授权 | 上述条件的证据包、明确授权人 / 日期 / 版本 | A1–A6 全部满足（A5 于 2026-10-08 经 E5-TRIAL-0001 完成而满足）；授权文件 `../baseline/implementation-authorization-v1.md`（P3-S1-IMPL-AUTH-01 v1.0.0）已签发；首批义务 F-1 / F-2 已界定（F-2 已履行：授权日 Node v24.21.0 Active LTS 重查通过并锁定） | 代理产品负责人（Codex 履行，PD-15 委托）已签发；用户本人（产品负责人，PD-15）裁决 | AUTHORIZED（2026-10-08；首批义务 F-1/F-2） |
 
@@ -24,7 +24,7 @@
 
 1. （已解除，2026-10-08：C1–C7 Steward 确认完成，G1 非作者核验完成，G1 PASSED）
 2. E8 12 项、CC02 40 + 12 + 8 + 18 项、CC01 20 项静态映射已经 A2 非作者复核签署（REVIEW-004）；动态证据已产出三迭代（F1-E2E-0001 流式/取消路径 9/9；F2-GS-0001 GS-01…GS-06 完整 + C6 事件契约 40/40；F3-EB-0001 G2 动态跨契约一致性 + G4 工程边界 EB-01…EB-16 21/21），G2/G4 证据已产出，但 G2–G4 的 Gate 判定属 G5 独立评测范畴，G5 仍 NOT RUN，G2–G4 仍 NOT PASSED。
-3. （已解除，2026-10-08：E5 环境搭建完成（PD-17 / E5-SCOPED-LICENSE-01），首次端到端试运行 E5-TRIAL-0001 通过（4 案例 PASS / 8 断言 / 退出码 0），A5 满足）
+3. （已解除，2026-10-08：E5 环境搭建完成（PD-17 / E5-SCOPED-LICENSE-01），首次端到端试运行 E5-TRIAL-0001 通过（4 案例 PASS / 6 断言 / 退出码 0），A5 满足）
 4. P2 G01–G08 的完整执行仍待真实实现和评测；延期案例不计 PASS；G5 的 16 项评测包尚无实际运行结果。
 5. （已解除，2026-10-08：G5 隔离声明已签署，独立评测人任命生效；G5 评测本身仍 NOT RUN）
 6. P2 状态、S1 范围、技术栈和门禁顺序已有产品负责人决策，但准入 Gate 未完成。
@@ -65,7 +65,7 @@ Runtime Code / Tests / Product Evidence: THIRD ITERATION EVIDENCED（F-1 切片�
 | CR-12 同层动作顺序 | PD-12 限定 WHY > WHAT_IF 仅为同层解释顺序，不改变授权；非作者复核已签署（REVIEW-007，2026-10-08）；CR-12 关闭。 |
 | CR-13 严重度适用范围 | PD-13 适用范围规则经 A2 签署确认（REVIEW-004 §3-D）；NEG14 定 P0/Policy Bypass、NEG17 基础 P1 + 升级条件，已回写 XCC-MAP v1.4.0；CR-13 关闭。 |
 | 独立复核准备 | 独立复核五区块全部签署完成：R2（REVIEW-004，ACCEPT）、R4（REVIEW-005）、R1（REVIEW-006）、R3（REVIEW-007）、R5（REVIEW-008），后四者均 ACCEPT WITH FINDINGS（2026-10-08）；G1 其余项（C1–C7 Steward 确认、非作者核验）已完成。 |
-| E5 | 执行流程已定义；环境已搭建（`tools/evidence/` + package-lock.json）；首次试运行 E5-TRIAL-0001 完成（4 案例 PASS / 8 断言 / 退出码 0）；独立评测人已任命（G5 隔离声明生效）；E5 = PASSED，A5 满足（2026-10-08）。 |
+| E5 | 执行流程已定义；环境已搭建（`tools/evidence/` + package-lock.json）；首次试运行 E5-TRIAL-0001 完成（4 案例 PASS / 6 断言 / 退出码 0）；独立评测人已任命（G5 隔离声明生效）；E5 = PASSED，A5 满足（2026-10-08）。 |
 | 实施授权 | A1–A6 全部满足（2026-10-08）；实施授权已签发（P3-S1-IMPL-AUTH-01 v1.3.0）；F-1 已履行（F1-E2E-0001：9/9 案例、12/12 断言、退出码 0；材料 `artifacts/evidence/runs/F1-E2E-0001/`）；F-2 已履行（Node v24.21.0 Active LTS 授权日重查 + 锁定）；F-2 实施义务已履行（F2-GS-0001：40/40 案例、24/24 断言、退出码 0）；F-3 已履行（F3-EB-0001：21/21 案例、28/28 断言、退出码 0；材料 `artifacts/evidence/runs/F3-EB-0001/`）。 |
 | 实施迭代 1（F-1） | 已完成（P3-S1-IMPL-ITER-001 v1.0.0）：运行时切片 `app/api/experience/stream/route.ts` + `src/experience/`（仅 S1 冻结映射；取消感知生成器；终止事件 emit+yield；追加只写服务端审计汇）；动态证据发现并修复运行时缺陷 D-1/D-2；失败尝试 3 次按 ADR-0002 §5 归档留存。G2–G4 仍 NOT PASSED。 |
 | 实施迭代 2（F-2） | 已完成（P3-S1-IMPL-ITER-002 v1.0.0）：S1 运行时核心（`src/experience/runtime.ts` 1663 行 + 11 模块 + 5 条 HTTP 路由 + `policy.ts` S1 §14 冻结全映射；提交 `2a81d34`）；动态证据 F2-GS-0001（40/40 案例、24/24 断言、退出码 0；覆盖 GS-01…GS-06 含全部登记负向、S1-ACT-WHAT_IF、C6 §7/§22/§23/§25/§27 契约、HTTP 形态端到端与负向、F-1 回归、无真实提供方静态扫描、证据-代码绑定）；动态证据未发现运行时缺陷（案例/执行器侧缺陷 E-1…E-3 已修复登记）；失败尝试 2 次按 ADR-0002 §5 归档留存。事件名称调和表（CR-16）与 policy_decided 发射时机解释（CR-17）待非作者复核。G2–G4 仍 NOT PASSED。 |

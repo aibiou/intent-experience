@@ -1,0 +1,391 @@
+{
+  "manifestId": "EVIDENCE-MANIFEST-01",
+  "version": "1.0.0",
+  "generatedAt": "2026-10-08T16:35:08.546081Z",
+  "generatedBy": "工程负责人角色（代理，Codex 履行，PD-15 委托）",
+  "authority": "E5 证据执行环境与独立评测计划（P2-EVIDENCE-E5.1）§7 只追加布局；G5 第 15 项（Evidence Index）输入",
+  "method": "独立重算生成（不信任执行器自报断言）：每运行 summary.json 计数、SHA256SUMS 逐项重算、run-metadata 代码绑定（code.gitHead）均独立核验",
+  "vocabulary": "退出码 0 / 案例 PASS 只表示本运行中的断言通过；不设置任何 Golden Case、Gate 或产品状态为 PASS（E5 §2）",
+  "runs": [
+    {
+      "runId": "E5-TRIAL-0001",
+      "kind": "trial",
+      "iteration": "E5 环境就绪（A5）",
+      "obligation": "E5-SCOPED-LICENSE-01（PD-17 选项 A）：首次端到端试运行——证据管线可复现性验证（非产品运行时验证）",
+      "path": "artifacts/evidence/runs/E5-TRIAL-0001",
+      "result": {
+        "cases": {
+          "total": 4,
+          "pass": 4
+        },
+        "assertions": {
+          "total": 6,
+          "pass": 6
+        },
+        "exitCode": 0,
+        "allPassed": true,
+        "startedAt": "2026-10-08T13:55:00.907Z",
+        "finishedAt": "2026-10-08T13:55:00.949Z",
+        "durationMs": null
+      },
+      "sha256sums": {
+        "path": "artifacts/evidence/runs/E5-TRIAL-0001/SHA256SUMS",
+        "entries": 11,
+        "independentRecompute": {
+          "verified": 11,
+          "mismatch": 0,
+          "missing": 0
+        },
+        "includesSummaryJson": true,
+        "includesReviewReadme": true
+      },
+      "codeBinding": null,
+      "artifactsIntroducedAtCommit": "a3506a1",
+      "reviewPackage": "artifacts/evidence/runs/E5-TRIAL-0001/review/README.md",
+      "assertionNote": "summary.json 权威记录 6 项断言（A1/A2a/A2b/A3/A4/A6，全部通过）。A7（哈希清单产出）/A8（清单可独立重算）断言因执行器写入顺序（summary.json 先于 A7/A8 记录写入）未持久化到任何产物；其 A7/A8 实质内容经独立重算验证为真（SHA256SUMS 11/11 精确通过）。治理文档原记载\"8/8 断言\"为错误计数，已更正（2026-10-08）。"
+    },
+    {
+      "runId": "F1-E2E-0001",
+      "kind": "iteration-evidence",
+      "iteration": "F-1",
+      "obligation": "P3-S1-IMPL-AUTH-01 §3 F-1：Next.js Route Handler 流式 + AbortSignal 取消端到端动态证据（进程内 + HTTP 双形态）",
+      "path": "artifacts/evidence/runs/F1-E2E-0001",
+      "result": {
+        "cases": {
+          "total": 9,
+          "pass": 9
+        },
+        "assertions": {
+          "total": 12,
+          "pass": 12
+        },
+        "exitCode": 0,
+        "allPassed": true,
+        "startedAt": "2026-10-08T14:25:33.905Z",
+        "finishedAt": "2026-10-08T14:25:38.505Z",
+        "durationMs": 4599
+      },
+      "sha256sums": {
+        "path": "artifacts/evidence/runs/F1-E2E-0001/SHA256SUMS",
+        "entries": 21,
+        "independentRecompute": {
+          "verified": 20,
+          "mismatch": 1,
+          "missing": 0
+        },
+        "includesSummaryJson": true,
+        "includesReviewReadme": false,
+        "note": "summary.json 列入清单但在清单计算之后才定稿——1 项声明哈希与实际不符（独立重算 20/21）；已登记于 F-3 迭代记录 §3 独立审计发现。"
+      },
+      "codeBinding": {
+        "gitHead": "6b3aca78860a894a83102cf18f0538c6780b25c6",
+        "workTreeClean": false,
+        "uncommittedEntries": [
+          "M tools/evidence/package.json",
+          " M tools/evidence/src/hashes.mjs",
+          "?? .gitignore",
+          "?? app/",
+          "?? artifacts/evidence/runs/F1-E2E-0001-attempt-1-failed/",
+          "?? artifacts/evidence/runs/F1-E2E-0001/",
+          "?? next-env.d.ts",
+          "?? next.config.ts",
+          "?? package-lock.json",
+          "?? package.json",
+          "?? src/",
+          "?? tools/evidence/src/f1.mjs",
+          "?? tsconfig.core.json",
+          "?? tsconfig.json"
+        ]
+      },
+      "artifactsIntroducedAtCommit": "ece0ba3",
+      "reviewPackage": "artifacts/evidence/runs/F1-E2E-0001/review/README.md",
+      "failedAttemptArchives": [
+        {
+          "archive": "F1-E2E-0001-attempt-1-failed",
+          "path": "artifacts/evidence/runs/F1-E2E-0001-attempt-1-failed",
+          "result": {
+            "cases": {
+              "total": 9,
+              "pass": 2
+            },
+            "assertions": {
+              "total": 11,
+              "pass": 3
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-08T14:19:51.063Z",
+            "finishedAt": "2026-10-08T14:19:54.798Z",
+            "durationMs": 3735
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/F1-E2E-0001-attempt-1-failed/SHA256SUMS",
+            "entries": 22,
+            "independentRecompute": {
+              "verified": 21,
+              "mismatch": 1,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false
+          },
+          "artifactsIntroducedAtCommit": "ece0ba3",
+          "preservation": "ADR-0002 §5（失败如实登记，留存于仓库）"
+        },
+        {
+          "archive": "F1-E2E-0001-failed-2026-10-08T14-25-36-102Z",
+          "path": "artifacts/evidence/runs/F1-E2E-0001-failed-2026-10-08T14-25-36-102Z",
+          "result": {
+            "cases": {
+              "total": 9,
+              "pass": 8
+            },
+            "assertions": {
+              "total": 11,
+              "pass": 9
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-08T14:24:27.450Z",
+            "finishedAt": "2026-10-08T14:24:32.011Z",
+            "durationMs": 4560
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/F1-E2E-0001-failed-2026-10-08T14-25-36-102Z/SHA256SUMS",
+            "entries": 24,
+            "independentRecompute": {
+              "verified": 21,
+              "mismatch": 3,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": true
+          },
+          "artifactsIntroducedAtCommit": "ece0ba3",
+          "preservation": "ADR-0002 §5（失败如实登记，留存于仓库）"
+        }
+      ]
+    },
+    {
+      "runId": "F2-GS-0001",
+      "kind": "iteration-evidence",
+      "iteration": "F-2",
+      "obligation": "P3-S1-IMPL-AUTH-01 §2 / P2-EVIDENCE-8.1 §B：GS-01…GS-06 完整动态执行 + S1 启用动作契约测试 + C6 事件证据 + F-1 回归",
+      "path": "artifacts/evidence/runs/F2-GS-0001",
+      "result": {
+        "cases": {
+          "total": 40,
+          "pass": 40
+        },
+        "assertions": {
+          "total": 24,
+          "pass": 24
+        },
+        "exitCode": 0,
+        "allPassed": true,
+        "startedAt": "2026-10-08T15:21:14.543Z",
+        "finishedAt": "2026-10-08T15:21:29.119Z",
+        "durationMs": 14574
+      },
+      "sha256sums": {
+        "path": "artifacts/evidence/runs/F2-GS-0001/SHA256SUMS",
+        "entries": 85,
+        "independentRecompute": {
+          "verified": 84,
+          "mismatch": 1,
+          "missing": 0
+        },
+        "includesSummaryJson": true,
+        "includesReviewReadme": false,
+        "note": "summary.json 列入清单但在清单计算之后才定稿——1 项声明哈希与实际不符（独立重算 84/85）；已登记于 F-3 迭代记录 §3 独立审计发现。"
+      },
+      "codeBinding": {
+        "gitHead": "98f9a8fe5905ad4c3a6022ea98651f8ae90d8f30",
+        "workTreeClean": true,
+        "uncommittedEntries": []
+      },
+      "artifactsIntroducedAtCommit": "d957d39",
+      "reviewPackage": "artifacts/evidence/runs/F2-GS-0001/review/README.md",
+      "failedAttemptArchives": [
+        {
+          "archive": "F2-GS-0001-attempt-2026-10-08T15-19-59-851Z",
+          "path": "artifacts/evidence/runs/F2-GS-0001-attempt-2026-10-08T15-19-59-851Z",
+          "result": {
+            "cases": {
+              "total": 40,
+              "pass": 38
+            },
+            "assertions": {
+              "total": 24,
+              "pass": 21
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-08T15:17:58.506Z",
+            "finishedAt": "2026-10-08T15:18:13.046Z",
+            "durationMs": 14536
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/F2-GS-0001-attempt-2026-10-08T15-19-59-851Z/SHA256SUMS",
+            "entries": 85,
+            "independentRecompute": {
+              "verified": 84,
+              "mismatch": 1,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false
+          },
+          "artifactsIntroducedAtCommit": "c69d4f1",
+          "preservation": "ADR-0002 §5（失败如实登记，留存于仓库）"
+        },
+        {
+          "archive": "F2-GS-0001-attempt-2026-10-08T15-21-16-354Z",
+          "path": "artifacts/evidence/runs/F2-GS-0001-attempt-2026-10-08T15-21-16-354Z",
+          "result": {
+            "cases": {
+              "total": 40,
+              "pass": 39
+            },
+            "assertions": {
+              "total": 24,
+              "pass": 22
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-08T15:19:57.824Z",
+            "finishedAt": "2026-10-08T15:20:12.574Z",
+            "durationMs": 14750
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/F2-GS-0001-attempt-2026-10-08T15-21-16-354Z/SHA256SUMS",
+            "entries": 85,
+            "independentRecompute": {
+              "verified": 84,
+              "mismatch": 1,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false
+          },
+          "artifactsIntroducedAtCommit": "98f9a8f",
+          "preservation": "ADR-0002 §5（失败如实登记，留存于仓库）"
+        }
+      ]
+    },
+    {
+      "runId": "F3-EB-0001",
+      "kind": "iteration-evidence",
+      "iteration": "F-3",
+      "obligation": "P3-S1-IMPL-AUTH-01 §2 / P2-EVIDENCE-8.1 §B：G2 动态跨契约一致性案例与故障链路 + G4 工程边界 EB-01…EB-16",
+      "path": "artifacts/evidence/runs/F3-EB-0001",
+      "result": {
+        "cases": {
+          "total": 21,
+          "pass": 21
+        },
+        "assertions": {
+          "total": 28,
+          "pass": 28
+        },
+        "exitCode": 0,
+        "allPassed": true,
+        "startedAt": "2026-10-08T16:07:28.530Z",
+        "finishedAt": "2026-10-08T16:07:37.543Z",
+        "durationMs": 9012
+      },
+      "sha256sums": {
+        "path": "artifacts/evidence/runs/F3-EB-0001/SHA256SUMS",
+        "entries": 46,
+        "independentRecompute": {
+          "verified": 46,
+          "mismatch": 0,
+          "missing": 0
+        },
+        "includesSummaryJson": false,
+        "includesReviewReadme": false,
+        "note": "summary.json 不列入清单（F3 执行器改进）；46 项全部精确通过。"
+      },
+      "codeBinding": {
+        "gitHead": "4b5f1d62a880da6c5b7e551b6f2aae22a8211e4e",
+        "workTreeClean": true,
+        "uncommittedEntries": []
+      },
+      "artifactsIntroducedAtCommit": "64a1391",
+      "reviewPackage": "artifacts/evidence/runs/F3-EB-0001/review/README.md",
+      "caseRecordBindingNote": "案例记录 evidence.traceSha256 绑定轨迹文件除末行 trace_completed 信封外的内容（执行器系统性行为，F1/F2/F3 一致；\"除末行外\"重算全部匹配）——已登记于 F-3 迭代记录 §3 独立审计发现。",
+      "failedAttemptArchives": [
+        {
+          "archive": "F3-EB-0001-attempt-2026-10-08T16-06-20-267Z",
+          "path": "artifacts/evidence/runs/F3-EB-0001-attempt-2026-10-08T16-06-20-267Z",
+          "result": {
+            "cases": {
+              "total": 21,
+              "pass": 11
+            },
+            "assertions": {
+              "total": 28,
+              "pass": 17
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-08T15:59:50.688Z",
+            "finishedAt": "2026-10-08T15:59:59.494Z",
+            "durationMs": 8805
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/F3-EB-0001-attempt-2026-10-08T16-06-20-267Z/SHA256SUMS",
+            "entries": 46,
+            "independentRecompute": {
+              "verified": 46,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": false,
+            "includesReviewReadme": false
+          },
+          "artifactsIntroducedAtCommit": "4b5f1d6",
+          "preservation": "ADR-0002 §5（失败如实登记，留存于仓库）"
+        },
+        {
+          "archive": "F3-EB-0001-attempt-2026-10-08T16-07-30-452Z",
+          "path": "artifacts/evidence/runs/F3-EB-0001-attempt-2026-10-08T16-07-30-452Z",
+          "result": {
+            "cases": {
+              "total": 21,
+              "pass": 21
+            },
+            "assertions": {
+              "total": 28,
+              "pass": 27
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-08T16:06:18.192Z",
+            "finishedAt": "2026-10-08T16:06:27.405Z",
+            "durationMs": 9213
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/F3-EB-0001-attempt-2026-10-08T16-07-30-452Z/SHA256SUMS",
+            "entries": 46,
+            "independentRecompute": {
+              "verified": 46,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": false,
+            "includesReviewReadme": false
+          },
+          "artifactsIntroducedAtCommit": "0fe8011",
+          "preservation": "ADR-0002 §5（失败如实登记，留存于仓库）"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "全部运行均为合成数据；无真实 LLM 提供方调用；无真实用户数据（隐私六要素批准前禁收护栏持续生效）。",
+    "F1/F2 的 summary.json 列入其 SHA256SUMS 但在清单计算之后才定稿（各 1 项声明哈希不符，实质内容经交叉核验为真）；F3 执行器已改进（summary.json 不列入清单）。",
+    "案例记录 evidence.traceSha256 绑定轨迹文件除末行 trace_completed 信封外的内容（三迭代系统性行为，\"除末行外\"重算全部匹配）；完整产物核验以各运行 SHA256SUMS 为准。",
+    "本清单不产生任何 Gate 结论；G5 16 项评测包均 NOT RUN（独立评测人：用户本人，角色 5，PD-15）。"
+  ]
+}

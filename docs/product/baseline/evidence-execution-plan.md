@@ -1,7 +1,7 @@
 # E5 证据执行环境与独立评测计划
 
 **编号：** P2-EVIDENCE-E5.1
-**版本：** 1.6.0（2026-10-08：§6.2 追加——G5 输入材料就绪度矩阵（三迭代 staged 输入逐项映射至 16 项必需评测包；16 项评测结论均 NOT RUN）；CR-18 已登记于 decision-register v0.10.0）
+**版本：** 1.7.0（2026-10-08：§6.1 准备项 E5-TRIAL-0001 断言计数更正（6/6：A1/A2a/A2b/A3/A4/A6）；§6.2 第 15 项更新——`artifacts/evidence/manifest/` 已建（MANIFEST.json + INDEX.md，独立重算生成）；§7 布局说明更新）
 **状态：** 流程已定义；环境已搭建；E5 = PASSED（A5 满足）；动态证据执行三迭代完成（F-1/F-2/F-3 迭代证据已产出；G2/G4 证据已产出，但其 Gate 判定属 G5 独立评测 NOT RUN；G5 输入材料就绪度矩阵见 §6.2）
 **依据：** E8、E1、PODR-001 / PD-02 / PD-10 / PD-11
 
@@ -132,12 +132,12 @@ G5 只有在上述 16 项均有适用的、版本化的真实材料，并由独�
 | 12 | Product Debt | decision-register v0.10.0 快照（CR-16/CR-17/CR-18 OPEN；PB-01…PB-04 RESOLVED） | 按运行版本封存待办 |
 | 13 | Risk Assessment | — | NOT RUN——评测人执行 |
 | 14 | Release Recommendation | — | NOT RUN——评测人执行 |
-| 15 | Evidence Index | `artifacts/evidence/runs/` 只追加布局；三运行 SHA256SUMS；本矩阵 | `artifacts/evidence/manifest/` 待建 |
+| 15 | Evidence Index | `artifacts/evidence/runs/` 只追加布局；四运行 + 六失败尝试归档；各运行 SHA256SUMS；`artifacts/evidence/manifest/`（MANIFEST.json + INDEX.md，独立重算生成：各运行案例/断言计数、SHA256SUMS 独立重算状态、代码绑定 gitHead、产物提交哈希） | 索引已建（2026-10-08）；索引内容的 G5 评测 NOT RUN |
 | 16 | Evaluator Sign-off | G5 隔离声明（2026-10-08 签署生效，独立评测人任命） | 16 项最终签署 NOT RUN |
 
 ## 7. 保存与审计布局
 
-实施时建议在仓库使用如下只追加的路径；当前尚未创建执行产物：
+实施时建议在仓库使用如下只追加的路径；`artifacts/evidence/manifest/` 已创建（MANIFEST.json + INDEX.md，2026-10-08，独立重算生成，G5 第 15 项输入）；运行产物位于 `artifacts/evidence/runs/`：
 
 artifacts/evidence/manifest/
 artifacts/evidence/runs/<run-id>/run-metadata.json
@@ -156,7 +156,7 @@ artifacts/evidence/runs/<run-id>/review/
 | 版本矩阵和运行记录字段 | 已定义；自动化已实现并验证（E5-TRIAL-0001 与 F1-E2E-0001 均产出 run-metadata E5 §3 版本矩阵） |
 | S1 / P2 案例目录及预期冻结 | 映射已起草；非作者复核待办 |
 | 可复现 Node / Web / DB 环境与锁文件 | 已搭建（2026-10-08：`tools/evidence/` 零依赖 Node ESM 执行器 + package-lock.json lockfileVersion 3；Node v24.21.0 Active LTS 锁定；DB = node:sqlite） |
-| 自动化执行器、trace 与证据哈希产出 | 已搭建并验证（E5-TRIAL-0001：run-metadata 版本矩阵 / 案例记录 §4 全字段 / trace JSONL / SHA-256 清单产出；8/8 断言通过） |
+| 自动化执行器、trace 与证据哈希产出 | 已搭建并验证（E5-TRIAL-0001：run-metadata 版本矩阵 / 案例记录 §4 全字段 / trace JSONL / SHA-256 清单产出；6/6 断言通过（A1/A2a/A2b/A3/A4/A6）；A7/A8 未持久化经独立审计登记于 P3-S1-IMPL-ITER-003 §3） |
 | 私有数据、脱敏与证据保留策略 | 已冻结真实用户数据禁收护栏；保留期限 / 存储位置 / 访问 / 加密 / 删除规则须在收集前由产品与安全负责人批准 |
 | E8 G5 16 项评测包交叉表 | 已逐项映射到证据字段；所有执行材料仍 NOT RUN，指标阈值与独立评测人待办 |
 | 独立评测人 | 已指定（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效） |
