@@ -1,0 +1,14 @@
+{
+  "name": "intent-experience-evidence-tooling",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "E5 evidence pipeline executor (scoped license E5-SCOPED-LICENSE-01, PD-17 option A). Zero external dependencies: Node built-ins only.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "trial": "node src/trial.mjs"
+  }
+}

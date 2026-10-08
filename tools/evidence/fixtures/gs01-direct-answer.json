@@ -1,0 +1,25 @@
+{
+  "caseId": "GS-01",
+  "kind": "policy-action",
+  "title": "Direct Answer（直接回答）",
+  "sourceClause": "P3-S1｜Runtime Vertical Slice Specification §26 GS-01；Evaluation System V1 Golden Cases / Direct Answer；API V1 Case 01",
+  "scope": "S1 核心（Golden Subset）",
+  "precondition": "无活跃生成；状态版本任意；输入为合成 fixture（标记 simulated）",
+  "inputFault": "用户输入（合成）：\"直接告诉我答案。\"",
+  "simulatedModelOutput": {
+    "semanticAction": "DIRECT_ANSWER",
+    "confidence": 0.98
+  },
+  "expected": "策略动作 = ANSWER；直接回答，不强迫进入探索体验；无状态转换",
+  "expectedPolicyAction": "ANSWER",
+  "expectedOutcome": {
+    "matchedExpectedPolicyAction": true,
+    "stateTransition": null,
+    "generationCancelled": false
+  },
+  "invariants": [
+    "DIRECT_ANSWER → ANSWER（C3 §8 默认映射）",
+    "不应继续生成体验或隐式推荐",
+    "模型异常时不得改写用户意图"
+  ]
+}
