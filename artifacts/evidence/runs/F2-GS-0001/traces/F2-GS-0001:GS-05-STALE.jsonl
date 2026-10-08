@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:GS-05-STALE","event":"trace_started","at":"2026-10-08T15:20:04.312Z","form":"in-process","sourceClause":"S1 §26 GS-05；S1 state-version / stale-write contract；CC02 stale-write cases；API V1 Case 05；S1 §12"}
-{"caseId":"F2-GS-0001:GS-05-STALE","event":"trace_completed","at":"2026-10-08T15:20:04.694Z","startedAt":"2026-10-08T15:20:04.312Z","durationMs":382,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:GS-05-STALE","event":"trace_started","at":"2026-10-08T15:21:20.828Z","form":"in-process","sourceClause":"S1 §26 GS-05；S1 state-version / stale-write contract；CC02 stale-write cases；API V1 Case 05；S1 §12"}
+{"caseId":"F2-GS-0001:GS-05-STALE","event":"trace_completed","at":"2026-10-08T15:21:21.213Z","startedAt":"2026-10-08T15:21:20.828Z","durationMs":385,"result":"PASS","pass":true}

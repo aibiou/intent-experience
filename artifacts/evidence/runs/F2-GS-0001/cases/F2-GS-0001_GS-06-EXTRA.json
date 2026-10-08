@@ -24,7 +24,7 @@
   ],
   "evidence": {
     "trace": "traces/F2-GS-0001:GS-06-EXTRA.jsonl",
-    "traceSha256": "9baa75dbf1c9001ce32189dd5ab1129917263d78f7ae030cc7ecf99bbb9fc402",
+    "traceSha256": "3ccd41ab3df4fc28d0c4c2191c8c16f95a38f1a62438c58dac265239470bea8f",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

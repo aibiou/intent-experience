@@ -180,7 +180,7 @@
     "note": "G5 16 项评测包仍 NOT RUN"
   },
   "code": {
-    "gitHead": "c69d4f1f33ea7ea207ab68c871f28d92cd2aee00",
+    "gitHead": "98f9a8fe5905ad4c3a6022ea98651f8ae90d8f30",
     "workTreeClean": true,
     "uncommittedEntries": [],
     "runtimeFiles": {
@@ -288,10 +288,10 @@
     "npmRegistryReachable": "via proxy 127.0.0.1:7890（2026-10-08 验证）"
   },
   "run": {
-    "startedAt": "2026-10-08T15:19:57.824Z",
-    "finishedAt": "2026-10-08T15:20:12.574Z",
+    "startedAt": "2026-10-08T15:21:14.543Z",
+    "finishedAt": "2026-10-08T15:21:29.119Z",
     "command": "npm run f2 (node tools/evidence/src/f2.mjs, from tools/evidence)",
-    "exitCode": 1,
+    "exitCode": 0,
     "executor": {
       "executedBy": "工程负责人角色（代理）",
       "independentEvaluator": "独立评测负责人（用户本人，角色 5，PD-15）"

@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:GS-05-CONC","event":"trace_started","at":"2026-10-08T15:20:04.695Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-05 负向：并发两个写入；S1 §12 示例语义"}
+{"caseId":"F2-GS-0001:GS-05-CONC","event":"trace_completed","at":"2026-10-08T15:20:05.078Z","startedAt":"2026-10-08T15:20:04.694Z","durationMs":384,"result":"PASS","pass":true}

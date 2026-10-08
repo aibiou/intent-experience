@@ -26,7 +26,7 @@
   ],
   "evidence": {
     "trace": "traces/F2-GS-0001:GS-06-FORGED.jsonl",
-    "traceSha256": "898e1b95be4d21c928d85bfb58eee853dd26acb7f88b2661a70cb1c3237389c9",
+    "traceSha256": "90da1104ebef0c5968dd40f1b8deccd46e1f9a45a8f64dbfe1b29b24b02d2827",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

@@ -25,7 +25,7 @@
   ],
   "evidence": {
     "trace": "traces/F2-GS-0001:SESSION-ENDED.jsonl",
-    "traceSha256": "964f3a439f7c82a0fd041f341e595a014962637e0712e05a998a3840c941030b",
+    "traceSha256": "7432027a4fe51639d14900946650ce07d32eb89de39ee28d2b0702c0dc9d2981",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

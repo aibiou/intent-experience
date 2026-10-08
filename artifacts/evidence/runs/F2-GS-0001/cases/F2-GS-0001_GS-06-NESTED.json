@@ -25,7 +25,7 @@
   ],
   "evidence": {
     "trace": "traces/F2-GS-0001:GS-06-NESTED.jsonl",
-    "traceSha256": "ae4b5acebb6e7cdb4ad2789deceb101f30a594aa5d6c74a51376fcf76eefdd9e",
+    "traceSha256": "459828a1e5d0eb0a1a0145f7dfb014779e6665010553822515d899dbfcbaeb2d",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

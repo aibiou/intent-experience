@@ -69,7 +69,7 @@
   ],
   "evidence": {
     "trace": "traces/F2-GS-0001:C6-ORDER.jsonl",
-    "traceSha256": "b8e08d2af9bf7b396a61c2f95b96389a89f8a6d9e96f60cac31a43118bf107ed",
+    "traceSha256": "34e8486b17caf8d174158b2a8f3f8d085bab84c9c3fa86a3879f47814ae4e211",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

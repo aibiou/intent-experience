@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:GS-06-MUT","event":"trace_started","at":"2026-10-08T15:20:05.839Z","form":"in-process","sourceClause":"S1 §26 GS-06；C07–C08 / C07–C09；S1-CC01、S1-CC02-H01/H05；CC02 Runtime single-writer 约束；S1 §17"}
-{"caseId":"F2-GS-0001:GS-06-MUT","event":"trace_completed","at":"2026-10-08T15:20:05.841Z","startedAt":"2026-10-08T15:20:05.839Z","durationMs":2,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:GS-06-MUT","event":"trace_started","at":"2026-10-08T15:21:22.358Z","form":"in-process","sourceClause":"S1 §26 GS-06；C07–C08 / C07–C09；S1-CC01、S1-CC02-H01/H05；CC02 Runtime single-writer 约束；S1 §17"}
+{"caseId":"F2-GS-0001:GS-06-MUT","event":"trace_completed","at":"2026-10-08T15:21:22.361Z","startedAt":"2026-10-08T15:21:22.358Z","durationMs":3,"result":"PASS","pass":true}

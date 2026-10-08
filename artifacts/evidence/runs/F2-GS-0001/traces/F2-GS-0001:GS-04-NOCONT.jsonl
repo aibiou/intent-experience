@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:GS-04-NOCONT","event":"trace_started","at":"2026-10-08T15:20:03.879Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-04 负向：后台 retry / continuation；CC02 H02（STOP 后未授权 continuation 为 P0）"}
-{"caseId":"F2-GS-0001:GS-04-NOCONT","event":"trace_completed","at":"2026-10-08T15:20:04.263Z","startedAt":"2026-10-08T15:20:03.879Z","durationMs":384,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:GS-04-NOCONT","event":"trace_started","at":"2026-10-08T15:21:20.393Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-04 负向：后台 retry / continuation；CC02 H02（STOP 后未授权 continuation 为 P0）"}
+{"caseId":"F2-GS-0001:GS-04-NOCONT","event":"trace_completed","at":"2026-10-08T15:21:20.778Z","startedAt":"2026-10-08T15:21:20.393Z","durationMs":385,"result":"PASS","pass":true}

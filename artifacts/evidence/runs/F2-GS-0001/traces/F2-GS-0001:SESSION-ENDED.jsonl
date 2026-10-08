@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:SESSION-ENDED","event":"trace_started","at":"2026-10-08T15:20:06.444Z","form":"in-process","sourceClause":"S1-01（ended 后旧操作拒绝）；状态机 §4.4；S1 §27 API"}
-{"caseId":"F2-GS-0001:SESSION-ENDED","event":"trace_completed","at":"2026-10-08T15:20:06.824Z","startedAt":"2026-10-08T15:20:06.444Z","durationMs":380,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:SESSION-ENDED","event":"trace_started","at":"2026-10-08T15:21:22.970Z","form":"in-process","sourceClause":"S1-01（ended 后旧操作拒绝）；状态机 §4.4；S1 §27 API"}
+{"caseId":"F2-GS-0001:SESSION-ENDED","event":"trace_completed","at":"2026-10-08T15:21:23.353Z","startedAt":"2026-10-08T15:21:22.970Z","durationMs":383,"result":"PASS","pass":true}

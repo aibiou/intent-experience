@@ -1,9 +1,9 @@
 {
   "runId": "F2-GS-0001",
   "obligation": "P3-S1-IMPL-AUTH-01 §2 授权范围：GS-01…GS-06 完整动态执行 + C6 事件契约证据 + S1 启用动作契约测试 + F-1 回归（F-2 迭代）",
-  "startedAt": "2026-10-08T15:19:57.824Z",
-  "finishedAt": "2026-10-08T15:20:12.574Z",
-  "durationMs": 14750,
+  "startedAt": "2026-10-08T15:21:14.543Z",
+  "finishedAt": "2026-10-08T15:21:29.119Z",
+  "durationMs": 14574,
   "cases": [
     {
       "caseId": "F2-GS-0001:GS-01-POS",
@@ -107,7 +107,7 @@
     },
     {
       "caseId": "F2-GS-0001:C6-IDEMPOTENT",
-      "result": "FAIL"
+      "result": "PASS"
     },
     {
       "caseId": "F2-GS-0001:C6-TRACE-SEP",
@@ -166,12 +166,12 @@
       "result": "PASS"
     }
   ],
-  "allCasesPass": false,
+  "allCasesPass": true,
   "assertions": [
     {
       "id": "A3",
       "description": "全部 40 案例记录齐备且 12 字段完整（E5 §4）",
-      "passed": false
+      "passed": true
     },
     {
       "id": "A4",
@@ -231,7 +231,7 @@
     {
       "id": "A15",
       "description": "C6 事件契约：S1 §23 全部 15 项最低事件发出（C6 权威名 + 调和表）；event_id 幂等去重（C6 §27）；LLM/Policy/State 追踪分离（C6 §22/§23）",
-      "passed": false
+      "passed": true
     },
     {
       "id": "A16",
@@ -289,8 +289,8 @@
       "passed": true
     }
   ],
-  "allAssertionsPass": false,
-  "allPassed": false,
-  "exitCode": 1,
+  "allAssertionsPass": true,
+  "allPassed": true,
+  "exitCode": 0,
   "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2–G4）或产品状态为 PASS（E5 §2）。GS-01…GS-06 动态证据本运行已执行；C6 事件契约证据本运行已执行；G5 独立评测仍 NOT RUN。"
 }

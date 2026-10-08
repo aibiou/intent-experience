@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:GS-04-POS","event":"trace_started","at":"2026-10-08T15:20:03.116Z","form":"in-process","sourceClause":"S1 §26 GS-04；S1-CC19 / S1-CC02-H02；Evaluation System P0 STOP blocker；API V1 Case 04；S1 §20"}
+{"caseId":"F2-GS-0001:GS-04-POS","event":"trace_completed","at":"2026-10-08T15:20:03.498Z","startedAt":"2026-10-08T15:20:03.115Z","durationMs":383,"result":"PASS","pass":true}

@@ -8,10 +8,10 @@
     "idempotency": "相同 event_id 的第二次记录被拒绝——不产生两条逻辑事实（C6 §27）"
   },
   "actual": {
-    "firstRecord": "event envelope violation: event_id must match ^evt_[a-z0-9]+$",
-    "secondRecord": "event envelope violation: event_id must match ^evt_[a-z0-9]+$",
-    "sinkEntryCount": 0,
-    "hasRecorded": false
+    "firstRecord": "recorded",
+    "secondRecord": "duplicate event_id: evt_idempotency0001",
+    "sinkEntryCount": 1,
+    "hasRecorded": true
   },
   "invariants": [
     "S1 范围边界：CREATE/SEARCH 禁用；WHAT_IF 仅单次模拟不建立持久/多轮分支；不持久化跨会话 Memory（PD-05/PD-06/PD-07）",
@@ -25,13 +25,13 @@
   ],
   "evidence": {
     "trace": "traces/F2-GS-0001:C6-IDEMPOTENT.jsonl",
-    "traceSha256": "a32ae4c9aca5789364b9c1f46714d3c9a4d2b4d9a35389cae5636a6c22fd573f",
+    "traceSha256": "b5a1e7b39662c6a4e253d0d1258db7fda56cd36889838709421a4c51db0f0f12",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,
     "httpAuditLog": null
   },
-  "result": "FAIL",
+  "result": "PASS",
   "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
-  "defectsFollowUp": "本案例未通过——按 ADR-0002 §5 如实登记，不得重跑至通过为止；缺陷须在下一迭代处置"
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
 }

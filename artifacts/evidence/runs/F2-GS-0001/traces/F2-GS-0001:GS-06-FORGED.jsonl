@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:GS-06-FORGED","event":"trace_started","at":"2026-10-08T15:20:05.841Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-06 负向：伪造合法字段"}
-{"caseId":"F2-GS-0001:GS-06-FORGED","event":"trace_completed","at":"2026-10-08T15:20:05.841Z","startedAt":"2026-10-08T15:20:05.841Z","durationMs":0,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:GS-06-FORGED","event":"trace_started","at":"2026-10-08T15:21:22.362Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-06 负向：伪造合法字段"}
+{"caseId":"F2-GS-0001:GS-06-FORGED","event":"trace_completed","at":"2026-10-08T15:21:22.363Z","startedAt":"2026-10-08T15:21:22.361Z","durationMs":2,"result":"PASS","pass":true}

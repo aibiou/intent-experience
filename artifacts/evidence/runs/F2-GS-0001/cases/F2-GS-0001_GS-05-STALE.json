@@ -31,7 +31,7 @@
   ],
   "evidence": {
     "trace": "traces/F2-GS-0001:GS-05-STALE.jsonl",
-    "traceSha256": "b08e07b3fa531f8c1ebd684c5a9c13be7e49aaeacdb3dec6569b89a3a6206209",
+    "traceSha256": "7dca5818d9c09ec6d253e4e440c3c4bda258bc6144040c801960b05e20cd74cd",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

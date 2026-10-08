@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:GS-03-DUP","event":"trace_started","at":"2026-10-08T15:20:02.731Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-03 负向：重复请求；C6 §27；API §2.4 幂等"}
-{"caseId":"F2-GS-0001:GS-03-DUP","event":"trace_completed","at":"2026-10-08T15:20:03.115Z","startedAt":"2026-10-08T15:20:02.731Z","durationMs":384,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:GS-03-DUP","event":"trace_started","at":"2026-10-08T15:21:19.241Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-03 负向：重复请求；C6 §27；API §2.4 幂等"}
+{"caseId":"F2-GS-0001:GS-03-DUP","event":"trace_completed","at":"2026-10-08T15:21:19.622Z","startedAt":"2026-10-08T15:21:19.241Z","durationMs":381,"result":"PASS","pass":true}

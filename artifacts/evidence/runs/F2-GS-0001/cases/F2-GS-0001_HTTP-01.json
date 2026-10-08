@@ -14,7 +14,7 @@
     "payload": {
       "session_id": "session_synthetic_0001",
       "state": "SESSION_IDLE",
-      "created_at": "2026-10-08T15:20:10.374Z"
+      "created_at": "2026-10-08T15:21:26.910Z"
     },
     "newEventTypes": [
       "session_started"
@@ -32,7 +32,7 @@
   ],
   "evidence": {
     "trace": "traces/F2-GS-0001:HTTP-01.jsonl",
-    "traceSha256": "ece2242facec6078b1de291d1c78aca831ce65490c6a845bb229be7010d1f127",
+    "traceSha256": "972b23a7c9503905d2da8bc6521a8738d06da81a89bb1a52a1e86dcc12a0b39c",
     "form": "http",
     "httpEventLog": "traces/http-events.jsonl",
     "httpDecisionTraceLog": "traces/http-decision-traces.jsonl",
