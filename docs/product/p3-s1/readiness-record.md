@@ -1,7 +1,7 @@
 # P3-S1 实现准入记录
 
 **编号：** P3-S1-READINESS-01
-**版本：** 0.5.0（2026-10-08：K-4/K-5 签署——C4 正式文件 C4-LLM-Contract-v1.0.0 批准 + 范围指纹登记（CR-11 关闭）；实施授权仍 NOT AUTHORIZED）
+**版本：** 0.6.0（2026-10-08：ADR-0002 Spike 执行完成——run 2 S-1/S-2/S-3 全部通过；run 1 S-3 测试桩缺陷已按 §5 如实登记并存档；验证报告 ADR-0002-spike-report.md 附入 ADR-0001 复核材料；实施授权仍 NOT AUTHORIZED）
 **状态：** NOT READY / NOT AUTHORIZED
 **记录日期：** 2026-10-08
 **范围：** 仅检查 P3-S1 产品运行时代码是否已获准启动；本记录不代表 P2 关闭或产品验收通过。
@@ -17,7 +17,7 @@
 | G6 产品债务处理 | PB-01…PB-04 逐项批准的解决 / 延期 / 阻塞处理 | PODR-001 已裁决；PB-01…PB-04 处置表已建立（decision-register §G6）；责任确认、CR-08 和 Gate 证据归档待办 | 代理产品负责人已决策；相关角色复核待办 | 决策已作；Gate 证据待复核 |
 | G7 S1 范围冻结 | 首体验、标准路径、动作纳入 / 排除 / 延期经批准且可追溯 | PD-05–PD-08 已批准；`../p3-s1/acceptance-mapping.md` 记录范围；非作者复核和 Gate 证据待办 | 代理产品负责人已决策；评测复核人 PENDING | 范围决策已作；Gate NOT PASSED |
 | E5 证据环境就绪 | 版本记录、可复现执行环境、证据存储、独立评测角色与职责 | 操作计划及 G5 16 项交叉表已建立；工具环境未建、评测人未指定、运行 NOT RUN | 评测 / 工程负责人 PENDING | NOT PASSED |
-| 技术栈决议 | 唯一选型、产品决策、架构 / 工程审查和部署验证 | ADR-0001 方案 A 已获产品负责人接受；ADR-0002 已会签生效（2026-10-08），取消 / stale 原型（Spike）可执行；ADR-0001 架构复核待 Spike 报告 | 产品负责人已批准；架构 / 工程负责人已会签 ADR-0002 | 产品决策完成；ADR-0001 复核未通过（待 Spike 结果） |
+| 技术栈决议 | 唯一选型、产品决策、架构 / 工程审查和部署验证 | ADR-0001 方案 A 已获产品负责人接受；ADR-0002 已会签生效（2026-10-08）；Spike 已执行：run 2 S-1/S-2/S-3 全部通过（run 1 S-3 测试桩缺陷如实登记，证据存档 `spike/cancellation/evidence-run-1-initial/`）；验证报告 `docs/architecture/decisions/ADR-0002-spike-report.md` 已落档并附入 ADR-0001 复核材料 | 产品负责人已批准；架构 / 工程负责人已会签 ADR-0002；Spike 已由工程负责人角色执行 | 产品决策完成；Spike 报告仅作 ADR-0001 复核输入；ADR-0001 独立复核本身未执行；ADR-0001 复核未通过 |
 | P3-S1 实施授权 | 上述条件的证据包、明确授权人 / 日期 / 版本 | 当前无授权签署材料 | 产品负责人 PENDING | NOT AUTHORIZED |
 
 ## 阻塞项
@@ -66,10 +66,10 @@ Runtime Code / Tests / Product Evidence: NOT STARTED
 | CR-13 严重度适用范围 | PD-13 适用范围规则经 A2 签署确认（REVIEW-004 §3-D）；NEG14 定 P0/Policy Bypass、NEG17 基础 P1 + 升级条件，已回写 XCC-MAP v1.4.0；CR-13 关闭。 |
 | 独立复核准备 | R2 已有复核者 / 结论 / 签署（P3-S1-REVIEW-004，ACCEPT）；C4 正式文件已经 K-4/K-5 批准；R1 复核结论登记与 G1 其余项（C1–C7 Steward 确认、非作者核验）待办；其余区块复核待办。 |
 | E5 | 执行流程已定义；工具环境、锁文件、自动化和试运行未完成；NOT PASSED。 |
-| 技术栈 | Next.js + TypeScript / Node.js 24 LTS 基线已由产品负责人采用；ADR-0002 已会签生效，Spike（S-1/S-2/S-3）可执行；实现授权时须重查 Active LTS 并锁定补丁；ADR-0001 复核待 Spike 报告。 |
-| ADR-0002 Spike | 已生效（2026-10-08 产品批准 + 架构 / 工程会签）；Spike 可开写，仅限 S-1/S-2/S-3 与 §3 硬边界；结果仅作 ADR-0001 复核输入，非 Gate 证据。 |
+| 技术栈 | Next.js + TypeScript / Node.js 24 LTS 基线已由产品负责人采用；ADR-0002 已会签生效；Spike 已完成（run 2 S-1/S-2/S-3 全过，Node v24.21.0 锁定，报告已落档）；实现授权时须重查 Active LTS 并锁定补丁；ADR-0001 独立复核待执行（Spike 报告已可作输入）。 |
+| ADR-0002 Spike | 已完成：run 1 S-3 测试桩缺陷（`PRAGMA busy_timeout` 遗漏致 SQLITE_BUSY）按 §5 如实登记并存档；run 2 S-1/S-2/S-3 全部通过；报告 `docs/architecture/decisions/ADR-0002-spike-report.md`（含环境、版本锁定、原始记录 SHA-256、硬边界合规声明）；结果仅作 ADR-0001 复核输入，非 Gate 证据，不改变任何门禁状态。 |
 | 负责人安排（CR-08） | 角色 2–8 用户本人兼任（PD-15 / owner-roster-v1 v0.2.3）；首批签署已执行（ADR-0002 会签、C4 逐章 + K-1…K-5、A2 复核），剩余签署与 G5 隔离声明待办，CR-08 未关闭。 |
 | 状态版本字段命名 | 已由 PD-16 统一规范名为 `expected_state_version`（CR-14）；`expected_version`（SRC-27 §22）与 `state_version`（SRC-07 §30 Case 05）为别名；实现与测试须同时记录规范名与来源表述。 |
 | 文档状态声明中和 | SRC-27 §39"Implementation READY TO START"与头部"IMPLEMENTATION PREPARATION"为文档内部状态声明，不产生任何实施授权效力；实施授权以本记录"授权判定"节为准。 |
 
-**更新后的总判定：** 产品负责人范围决策已作出；负责人首批签署已执行（ADR-0002 生效、CR-10 / CR-11 关闭、A2 静态复核 ACCEPT）；G1（C1–C7 Steward 确认与非作者核验）、G2 动态、E5 环境准备及准入授权仍未通过。P3-S1 Runtime Implementation = NOT AUTHORIZED。
+**更新后的总判定：** 产品负责人范围决策已作出；负责人首批签署已执行（ADR-0002 生效、CR-10 / CR-11 关闭、A2 静态复核 ACCEPT）；ADR-0002 Spike 已完成（run 2 全过，报告已落档，仅作 ADR-0001 复核输入）；G1（C1–C7 Steward 确认与非作者核验）、G2 动态、E5 环境准备、ADR-0001 独立复核及准入授权仍未通过。P3-S1 Runtime Implementation = NOT AUTHORIZED。

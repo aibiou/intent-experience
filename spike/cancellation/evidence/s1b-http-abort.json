@@ -1,0 +1,72 @@
+{
+  "name": "S-1b 常驻 HTTP 流式服务中止传播",
+  "pass": true,
+  "criteria": [
+    {
+      "name": "客户端中止后服务端生成确定性停止（generation_stopped 存在）",
+      "pass": true
+    },
+    {
+      "name": "停止原因为客户端断开（request_closed / response_closed）",
+      "pass": true
+    },
+    {
+      "name": "取消后服务端无新 chunk 写出（停止事件后零 chunk）",
+      "pass": true
+    },
+    {
+      "name": "服务端提前终止（chunks_written < 总 chunks）",
+      "pass": true
+    },
+    {
+      "name": "客户端中止后至多收到 1 个在途 chunk（postAbortReads <= 1）",
+      "pass": true
+    },
+    {
+      "name": "客户端实际收到 >= 2 个 chunk（中止前流已进行）",
+      "pass": true
+    },
+    {
+      "name": "终止有日志与时间戳证据（generation_stopped + ISO at）",
+      "pass": true
+    }
+  ],
+  "stopEvent": {
+    "event": "generation_stopped",
+    "reason": "response_closed",
+    "chunks_written": 2,
+    "at": "2026-10-08T10:46:26.943Z"
+  },
+  "postAbortReads": 0,
+  "receivedChunks": 2,
+  "serverEvents": [
+    {
+      "event": "chunk_written",
+      "index": 1,
+      "at": "2026-10-08T10:46:26.892Z"
+    },
+    {
+      "event": "chunk_written",
+      "index": 2,
+      "at": "2026-10-08T10:46:26.934Z"
+    },
+    {
+      "event": "generation_stopped",
+      "reason": "response_closed",
+      "chunks_written": 2,
+      "at": "2026-10-08T10:46:26.943Z"
+    }
+  ],
+  "clientEvents": [
+    {
+      "event": "client_aborted",
+      "at": "2026-10-08T10:46:26.935Z",
+      "chunks_received": 2
+    },
+    {
+      "event": "client_read_rejected",
+      "error": "AbortError",
+      "at": "2026-10-08T10:46:26.939Z"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{"event":"chunk_written","index":1,"at":"2026-10-08T10:45:20.638Z"}
+{"event":"chunk_written","index":2,"at":"2026-10-08T10:45:20.665Z"}
+{"event":"chunk_written","index":3,"at":"2026-10-08T10:45:20.692Z"}
+{"event":"task_terminated","chunks_written":3,"at":"2026-10-08T10:45:20.720Z"}

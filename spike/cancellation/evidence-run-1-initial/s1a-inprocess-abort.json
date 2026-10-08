@@ -1,0 +1,36 @@
+{
+  "name": "S-1a 进程内中止传播",
+  "pass": true,
+  "criteria": [
+    {
+      "name": "abort 后任务确定性终止（aborted=true）",
+      "pass": true
+    },
+    {
+      "name": "取消后无新 chunk 写出（终止事件前无 chunk，终止后零 chunk）",
+      "pass": true
+    },
+    {
+      "name": "提前终止（chunksWritten < 总 chunks）",
+      "pass": true
+    },
+    {
+      "name": "生成已启动（chunksWritten >= 2）",
+      "pass": true
+    },
+    {
+      "name": "终止有日志与时间戳证据（task_terminated + ISO at）",
+      "pass": true
+    },
+    {
+      "name": "耗时远小于完整生成（提前终止）",
+      "pass": true
+    }
+  ],
+  "result": {
+    "aborted": true,
+    "chunksWritten": 3,
+    "terminatedAt": "2026-10-08T10:45:20.720Z"
+  },
+  "elapsedMs": 109
+}

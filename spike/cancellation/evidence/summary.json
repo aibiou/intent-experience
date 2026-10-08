@@ -1,0 +1,131 @@
+{
+  "environment": {
+    "nodeVersion": "v24.21.0",
+    "nodeExec": "/Users/pg014/.nvm/versions/node/v24.21.0/bin/node",
+    "nodeExecArgv": [],
+    "platform": "darwin",
+    "arch": "arm64",
+    "recordedAt": "2026-10-08T10:46:26.712Z",
+    "note": "Node 版本由 run.sh 按 ADR-0001 生命周期规则锁定；node:sqlite 在 Node 22 需 --experimental-sqlite（Node 24 起内置可用）"
+  },
+  "overallPass": true,
+  "results": [
+    {
+      "name": "S-1a 进程内中止传播",
+      "pass": true,
+      "criteria": [
+        {
+          "name": "abort 后任务确定性终止（aborted=true）",
+          "pass": true
+        },
+        {
+          "name": "取消后无新 chunk 写出（终止事件前无 chunk，终止后零 chunk）",
+          "pass": true
+        },
+        {
+          "name": "提前终止（chunksWritten < 总 chunks）",
+          "pass": true
+        },
+        {
+          "name": "生成已启动（chunksWritten >= 2）",
+          "pass": true
+        },
+        {
+          "name": "终止有日志与时间戳证据（task_terminated + ISO at）",
+          "pass": true
+        },
+        {
+          "name": "耗时远小于完整生成（提前终止）",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "S-1b 常驻 HTTP 流式服务中止传播",
+      "pass": true,
+      "criteria": [
+        {
+          "name": "客户端中止后服务端生成确定性停止（generation_stopped 存在）",
+          "pass": true
+        },
+        {
+          "name": "停止原因为客户端断开（request_closed / response_closed）",
+          "pass": true
+        },
+        {
+          "name": "取消后服务端无新 chunk 写出（停止事件后零 chunk）",
+          "pass": true
+        },
+        {
+          "name": "服务端提前终止（chunks_written < 总 chunks）",
+          "pass": true
+        },
+        {
+          "name": "客户端中止后至多收到 1 个在途 chunk（postAbortReads <= 1）",
+          "pass": true
+        },
+        {
+          "name": "客户端实际收到 >= 2 个 chunk（中止前流已进行）",
+          "pass": true
+        },
+        {
+          "name": "终止有日志与时间戳证据（generation_stopped + ISO at）",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "S-2 stale 响应拒绝",
+      "pass": true,
+      "criteria": [
+        {
+          "name": "正常写入被接受（gen-A：1→2）",
+          "pass": true
+        },
+        {
+          "name": "旧版本迟到写入 100% 拒绝（50/50）",
+          "pass": true
+        },
+        {
+          "name": "拒绝语义为 STATE_VERSION_CONFLICT",
+          "pass": true
+        },
+        {
+          "name": "未覆盖新状态（最终 version=2 且 payload 不变）",
+          "pass": true
+        },
+        {
+          "name": "拒绝路径全部可审计（audit 行数与字段完整，含 generation_id / 原版本 / 当前版本 / rejected_at）",
+          "pass": true
+        },
+        {
+          "name": "无自动合并 / 静默丢弃（拒绝均显式记录，无其他副作用行）",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "S-3 持久层条件写（多进程并发竞争）",
+      "pass": true,
+      "criteria": [
+        {
+          "name": "每轮恰有一个成功（5 轮 × 20 进程）",
+          "pass": true
+        },
+        {
+          "name": "失败方均读到最新版本（baseVersion + 1）",
+          "pass": true
+        },
+        {
+          "name": "最终状态版本正确（每轮 +1）",
+          "pass": true
+        },
+        {
+          "name": "无进程内锁（竞争跨独立 OS 进程与独立连接，原子性来自存储引擎）",
+          "pass": true
+        }
+      ]
+    }
+  ],
+  "generatedAt": "2026-10-08T10:46:28.246Z"
+}

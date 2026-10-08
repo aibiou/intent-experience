@@ -1,0 +1,99 @@
+{
+  "name": "S-3 持久层条件写（多进程并发竞争）",
+  "pass": false,
+  "criteria": [
+    {
+      "name": "每轮恰有一个成功（5 轮 × 20 进程）",
+      "pass": false
+    },
+    {
+      "name": "失败方均读到最新版本（baseVersion + 1）",
+      "pass": true
+    },
+    {
+      "name": "最终状态版本正确（每轮 +1）",
+      "pass": true
+    },
+    {
+      "name": "无进程内锁（竞争跨独立 OS 进程与独立连接，原子性来自存储引擎）",
+      "pass": true
+    }
+  ],
+  "rounds": [
+    {
+      "round": 0,
+      "baseVersion": 100,
+      "workers": 20,
+      "accepted": {
+        "worker": 0,
+        "accepted": true,
+        "newVersion": 101
+      },
+      "conflictCount": 18,
+      "errorCount": 1,
+      "finalVersion": 101,
+      "losersReadLatest": true,
+      "pass": false
+    },
+    {
+      "round": 1,
+      "baseVersion": 101,
+      "workers": 20,
+      "accepted": {
+        "worker": 10,
+        "accepted": true,
+        "newVersion": 102
+      },
+      "conflictCount": 17,
+      "errorCount": 2,
+      "finalVersion": 102,
+      "losersReadLatest": true,
+      "pass": false
+    },
+    {
+      "round": 2,
+      "baseVersion": 102,
+      "workers": 20,
+      "accepted": {
+        "worker": 7,
+        "accepted": true,
+        "newVersion": 103
+      },
+      "conflictCount": 15,
+      "errorCount": 4,
+      "finalVersion": 103,
+      "losersReadLatest": true,
+      "pass": false
+    },
+    {
+      "round": 3,
+      "baseVersion": 103,
+      "workers": 20,
+      "accepted": {
+        "worker": 3,
+        "accepted": true,
+        "newVersion": 104
+      },
+      "conflictCount": 18,
+      "errorCount": 1,
+      "finalVersion": 104,
+      "losersReadLatest": true,
+      "pass": false
+    },
+    {
+      "round": 4,
+      "baseVersion": 104,
+      "workers": 20,
+      "accepted": {
+        "worker": 3,
+        "accepted": true,
+        "newVersion": 105
+      },
+      "conflictCount": 19,
+      "errorCount": 0,
+      "finalVersion": 105,
+      "losersReadLatest": true,
+      "pass": true
+    }
+  ]
+}
