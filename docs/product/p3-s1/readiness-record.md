@@ -1,8 +1,8 @@
 # P3-S1 实现准入记录
 
 **编号：** P3-S1-READINESS-01
-**版本：** 1.0.0（2026-10-08：A5 满足——E5 环境搭建完成（PD-17 / E5-SCOPED-LICENSE-01）+ 首次端到端试运行 E5-TRIAL-0001 通过（4 案例 PASS / 8 断言 / 退出码 0）；A1–A6 全部满足；P3-S1 实施授权已签发（P3-S1-IMPL-AUTH-01 v1.0.0））
-**状态：** READY / AUTHORIZED（A1–A6 满足，2026-10-08 签发实施授权）
+**版本：** 1.1.0（2026-10-08：实施首个迭代完成——F-1 运行时切片（Next.js Route Handler 流式 + AbortSignal 取消）已实施，F1-E2E-0001 端到端动态证据通过（9/9 案例、12/12 断言、退出码 0）；G2–G4 仍 NOT PASSED）
+**状态：** READY / AUTHORIZED / FIRST ITERATION EVIDENCE PRODUCED（首个迭代动态证据已产出；任何 Gate 均未 PASS）
 **记录日期：** 2026-10-08
 **范围：** 仅检查 P3-S1 产品运行时代码是否已获准启动；本记录不代表 P2 关闭或产品验收通过。
 
@@ -34,8 +34,8 @@
 ```text
 P2 Closure: CLOSURE CANDIDATE / BLOCKED; NOT CLOSED
 P3-S1 Readiness: READY（A1–A6 全部满足，2026-10-08）
-P3-S1 Runtime Implementation: AUTHORIZED（2026-10-08 签发，P3-S1-IMPL-AUTH-01 v1.0.0；首批义务 F-1/F-2）
-Runtime Code / Tests / Product Evidence: STARTED（首个迭代：F-1 Next.js Route Handler 流式 + AbortSignal 取消端到端动态证据；F-2 已履行）
+P3-S1 Runtime Implementation: AUTHORIZED（2026-10-08 签发，P3-S1-IMPL-AUTH-01 v1.1.0；F-1 已履行，F-2 已履行）
+Runtime Code / Tests / Product Evidence: FIRST ITERATION EVIDENCED（F-1 切片动态证据 F1-E2E-0001：9/9 案例、12/12 断言、退出码 0；G2–G4 完整动态执行进行中，其余案例 NOT RUN）
 ```
 
 不得将 Markdown 格式检查、资料哈希校验、计划完成或未来测试跑绿解释为任何产品 Gate 的 PASS。只有真实运行证据、独立评测和正式签署，才能更新相应状态。
@@ -47,7 +47,7 @@ Runtime Code / Tests / Product Evidence: STARTED（首个迭代：F-1 Next.js Ro
 | 产品负责人 | 代理产品负责人（Codex 履行，用户本人 PD-15 委托） | 签发实施授权（A1–A6 已满足） | 2026-10-08 | P3-S1-IMPL-AUTH-01 v1.0.0 |
 | 架构负责人 | PENDING | PENDING | PENDING | PENDING |
 | 独立评测负责人 | PENDING | PENDING | PENDING | PENDING |
-| 工程负责人 | PENDING | PENDING | PENDING | PENDING |
+| 工程负责人 | 用户本人（角色 4，PD-15；执行由代理履行） | 首个迭代（F-1）已实施并执行 F1-E2E-0001（9/9 案例、12/12 断言、退出码 0）；缺陷 D-1/D-2 已修复并登记 | 2026-10-08 | P3-S1-IMPL-ITER-001 v1.0.0；`artifacts/evidence/runs/F1-E2E-0001/` |
 
 ## 产品负责人裁决后的当前状态
 
@@ -66,12 +66,13 @@ Runtime Code / Tests / Product Evidence: STARTED（首个迭代：F-1 Next.js Ro
 | CR-13 严重度适用范围 | PD-13 适用范围规则经 A2 签署确认（REVIEW-004 §3-D）；NEG14 定 P0/Policy Bypass、NEG17 基础 P1 + 升级条件，已回写 XCC-MAP v1.4.0；CR-13 关闭。 |
 | 独立复核准备 | 独立复核五区块全部签署完成：R2（REVIEW-004，ACCEPT）、R4（REVIEW-005）、R1（REVIEW-006）、R3（REVIEW-007）、R5（REVIEW-008），后四者均 ACCEPT WITH FINDINGS（2026-10-08）；G1 其余项（C1–C7 Steward 确认、非作者核验）已完成。 |
 | E5 | 执行流程已定义；环境已搭建（`tools/evidence/` + package-lock.json）；首次试运行 E5-TRIAL-0001 完成（4 案例 PASS / 8 断言 / 退出码 0）；独立评测人已任命（G5 隔离声明生效）；E5 = PASSED，A5 满足（2026-10-08）。 |
-| 实施授权 | A1–A6 全部满足（2026-10-08）；实施授权已签发（P3-S1-IMPL-AUTH-01 v1.0.0）；首个迭代义务 F-1（Next.js Route Handler 流式 + AbortSignal 取消端到端动态证据）与 F-2（已履行：Node v24.21.0 Active LTS 授权日重查 + 锁定）。 |
-| 技术栈 | Next.js + TypeScript / Node.js 24 LTS 基线已由产品负责人采用；ADR-0002 已会签生效；Spike 已完成（run 2 S-1/S-2/S-3 全过，Node v24.21.0 锁定，报告已落档）；F-2 已履行：授权日（2026-10-08）重查 nodejs.org——v24.21.0 为当前 Active LTS（Latest LTS），与 Spike 锁定版本一致，产品运行时锁定 Node v24.21.0；ADR-0001 独立复核已签署（REVIEW-005，ACCEPT WITH FINDINGS，2026-10-08；F-1 转入实施首批必验项）。 |
+| 实施授权 | A1–A6 全部满足（2026-10-08）；实施授权已签发（P3-S1-IMPL-AUTH-01 v1.1.0）；F-1 已履行（F1-E2E-0001：9/9 案例、12/12 断言、退出码 0；材料 `artifacts/evidence/runs/F1-E2E-0001/`）；F-2 已履行（Node v24.21.0 Active LTS 授权日重查 + 锁定）。 |
+| 实施迭代 1（F-1） | 已完成（P3-S1-IMPL-ITER-001 v1.0.0）：运行时切片 `app/api/experience/stream/route.ts` + `src/experience/`（仅 S1 冻结映射；取消感知生成器；终止事件 emit+yield；追加只写服务端审计汇）；动态证据发现并修复运行时缺陷 D-1/D-2；失败尝试 3 次按 ADR-0002 §5 归档留存。G2–G4 仍 NOT PASSED。 |
+| 技术栈 | Next.js + TypeScript / Node.js 24 LTS 基线已由产品负责人采用；ADR-0002 已会签生效；Spike 已完成（run 2 S-1/S-2/S-3 全过，Node v24.21.0 锁定，报告已落档）；F-2 已履行：授权日（2026-10-08）重查 nodejs.org——v24.21.0 为当前 Active LTS（Latest LTS），与 Spike 锁定版本一致，产品运行时锁定 Node v24.21.0；F-1 已实施（Next.js 16.4.0 / React 19.3.0 / TypeScript 7.0.2，package-lock.json lockfileVersion 3）；ADR-0001 独立复核已签署（REVIEW-005，ACCEPT WITH FINDINGS，2026-10-08）。 |
 | ADR-0002 Spike | 已完成：run 1 S-3 测试桩缺陷（`PRAGMA busy_timeout` 遗漏致 SQLITE_BUSY）按 §5 如实登记并存档；run 2 S-1/S-2/S-3 全部通过；报告 `docs/architecture/decisions/ADR-0002-spike-report.md`（含环境、版本锁定、原始记录 SHA-256、硬边界合规声明）；结果仅作 ADR-0001 复核输入，非 Gate 证据，不改变任何门禁状态。 |
 | 负责人安排（CR-08） | 角色 2–8 用户本人兼任（PD-15 / owner-roster-v1 v0.2.5）；签署会（2026-10-08）已执行：C1–C7 Steward 确认、G5 隔离声明、四份独立复核记录签署；剩余仅隐私六要素批准，CR-08 未关闭。 |
 | CR-15 E5 环境授权 | 产品负责人已经 PD-17 裁决：选项 A（签发 scoped 预授权许可）；E5-SCOPED-LICENSE-01 已签发（2026-10-08）；环境搭建按附录 A 设计蓝图进行中；A5 仍 NOT PASSED 直至三项就绪条件（环境、评测人、试运行）完成。 |
 | 状态版本字段命名 | 已由 PD-16 统一规范名为 `expected_state_version`（CR-14）；`expected_version`（SRC-27 §22）与 `state_version`（SRC-07 §30 Case 05）为别名；实现与测试须同时记录规范名与来源表述。 |
 | 文档状态声明中和 | SRC-27 §39"Implementation READY TO START"与头部"IMPLEMENTATION PREPARATION"为文档内部状态声明，不产生任何实施授权效力；实施授权以本记录"授权判定"节为准。 |
 
-**更新后的总判定：** 2026-10-08：A1–A6 准入条件全部满足（A5 经 E5 环境搭建 + E5-TRIAL-0001 首次端到端试运行完成而满足）；P3-S1 实施授权已签发（P3-S1-IMPL-AUTH-01 v1.0.0，代理产品负责人依 PD-15 委托签发）；首个迭代含 F-1（Next.js Route Handler 流式 + AbortSignal 取消端到端动态证据）与 F-2（Node v24.21.0 Active LTS 授权日重查 + 锁定，已履行）。隐私六要素仍待批准（真实用户数据禁收护栏持续生效）；G2–G8 仍 NOT RUN / NOT PASSED；P2 仍 CLOSURE CANDIDATE / BLOCKED。
+**更新后的总判定：** 2026-10-08：A1–A6 准入条件全部满足；P3-S1 实施授权已签发（P3-S1-IMPL-AUTH-01 v1.1.0）；首个迭代（F-1）已实施并产出端到端动态证据（F1-E2E-0001：9/9 案例、12/12 断言、退出码 0——只表示本运行断言通过，不设置任何 Gate 为 PASS）。隐私六要素仍待批准（真实用户数据禁收护栏持续生效）；GS-01–GS-06 完整动态执行与 C6 事件证据属后续迭代（NOT RUN）；G2–G8 仍 NOT PASSED；P2 仍 CLOSURE CANDIDATE / BLOCKED。

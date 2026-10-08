@@ -1,8 +1,8 @@
 # P3-S1 实施授权
 
 **编号：** P3-S1-IMPL-AUTH-01
-**版本：** 1.0.0
-**状态：** AUTHORIZED（2026-10-08 签发）
+**版本：** 1.1.0（2026-10-08：§8 追加——F-1 首批义务履行记录）
+**状态：** AUTHORIZED（2026-10-08 签发）；F-1 已履行（2026-10-08）
 **授权依据：** P2-EVIDENCE-8.1 两段式门禁（PD-02）；A1–A6 准入条件全部满足（2026-10-08）
 **签发：** 代理产品负责人（Codex 履行，PODR-001 / PD-10 / PD-14 / PD-15 委托）
 
@@ -16,7 +16,7 @@
 | A5 / E5 证据环境就绪 | PASSED | E5-SCOPED-LICENSE-01（PD-17 选项 A）+ 环境搭建（`tools/evidence/` + package-lock.json）+ 首次端到端试运行 E5-TRIAL-0001（4 案例 PASS、8/8 断言、退出码 0；`artifacts/evidence/runs/E5-TRIAL-0001/`）+ 独立评测人任命（G5 隔离声明，2026-10-08） |
 | A6 技术可行性 | PASSED | R4 复核（P3-S1-REVIEW-005，ACCEPT WITH FINDINGS）；ADR-0002 Spike 完成（run 2 S-1/S-2/S-3 全过，run 1 失败如实登记） |
 
-准入记录：`docs/product/p3-s1/readiness-record.md` v1.0.0。
+准入记录：`docs/product/p3-s1/readiness-record.md` v1.1.0。
 
 ## 2. 授权范围
 
@@ -65,3 +65,15 @@ P3-S1 Runtime Implementation：运行时首个完整产品切片（S1）运行�
 | 架构负责人（用户本人，PD-15） | 准入条件 A1–A6 满足确认（见 readiness-record v1.0.0） | 2026-10-08 |
 
 **注意：** 本授权是 P2-EVIDENCE-8.1 两段式门禁的第二段起点。首个迭代完成后，动态证据（G2–G4）与独立评测（G5）按 E5 计划执行；任何 P0 失败直接阻断。
+
+## 8. F-1 首批义务履行记录（2026-10-08）
+
+| 项 | 记录 |
+|---|---|
+| 义务 | §3 F-1：Next.js Route Handler 流式 + AbortSignal 取消端到端动态证据（进程内 + HTTP 双形态） |
+| 实施 | P3-S1 运行时切片：`app/api/experience/stream/route.ts`（POST NDJSON 流 + 显式 GET 405）+ `src/experience/`（policy 仅 S1 冻结映射、chunks 合成语料、stream 取消感知生成器、audit 追加只写服务端审计汇、http 框架无关处理核心）；Node v24.21.0 精确锁定；Next.js 16.4.0 / React 19.3.0 |
+| 动态证据 | F1-E2E-0001：**9/9 案例 PASS、12/12 断言 PASS、退出码 0**（材料 `artifacts/evidence/runs/F1-E2E-0001/`，含 §4 案例记录、trace、服务端审计汇、run-metadata E5 §3 版本矩阵、SHA256SUMS） |
+| 动态证据发现的缺陷 | D-1：STOP 策略被要求加载内容语料致 500（已修复：STOP 无内容分块，跳过语料加载）；D-2：终止事件仅写审计汇未 yield 给流（已修复：终止事件 emit + yield）。均按 ADR-0002 §5 登记，失败尝试归档留存（`F1-E2E-0001-attempt-1-failed/`、`F1-E2E-0001-failed-2026-10-08T14-25-36-102Z/`） |
+| 迭代记录 | `docs/product/p3-s1/implementation-iteration-f1.md`（P3-S1-IMPL-ITER-001 v1.0.0） |
+| 非结论 | 退出码 0 不设置任何 Gate 为 PASS；GS-01–GS-06 完整动态执行与 C6 事件证据属后续迭代（NOT RUN）；G2–G4 仍 NOT PASSED；S1 未验收 |
+| 独立评测 | 材料 staged 于 `F1-E2E-0001/review/README.md`；独立评测负责人（用户本人，角色 5）保留审阅与否决权 |
