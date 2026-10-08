@@ -1,8 +1,8 @@
 # C4 逐章对照简报（SRC-23 → SRC-24 等价性分析）
 
 **编号：** C4-SIGNOFF-BRIEF-01
-**版本：** 0.1.0
-**状态：** DRAFT——AI 架构负责人（用户本人，角色 3）签署 `C4-signoff-checklist-v1.md` 前的对照支持材料；本文件不是治理工具，不改变处置表内容，不构成 C4 成立
+**版本：** 0.1.1（2026-10-08：§4 状态块更新——逐章签署已完成、D1–D10 已裁定并落实于 C4-LLM-Contract v0.2.0 DRAFT；对照分析内容不变）
+**状态：** 签署支持材料（事后状态登记）——AI 架构负责人（用户本人，角色 3）签署 `C4-signoff-checklist-v1.md` 前的对照支持材料；本文件不是治理工具，不改变处置表内容，不构成 C4 成立
 **编制：** 本会话代理（只读分析）；裁定权归 AI 架构负责人
 **对象：** SRC-23（`P3-S1-C07～C08`，SHA-256 `e3d19f98…`）32 章 vs SRC-24（`P3-S1-C07～C09`，SHA-256 `be86a386…`）30 章
 **用途：** 支撑 C4-signoff-checklist §2 逐章签署与 §1 K-1…K-5 确认；每章给出等价性评估与签署建议，SRC-23 原文条款效力不因本简报改变
@@ -66,8 +66,8 @@
 ## 4. 状态
 
 ```text
-C4 formal contract: NOT ESTABLISHED（本简报不改变此状态）
-逐章签署: PENDING（32 章 + K-1…K-5）
-D1–D10 裁定: PENDING（AI 架构负责人）
-G1 / A1: NOT PASSED
+C4 formal contract: DRAFT v0.2.0（K-4 审定补齐后；本简报不改变其状态；K-4/K-5 待执行）
+逐章签署: 已完成（C4-signoff-checklist v1.0.0，§1–§32 + K-1…K-3，CR-10 关闭）
+D1–D10 裁定: 已裁定并落实于 C4-LLM-Contract v0.2.0 DRAFT（§2/§3/§4/§12/§13/§14/§15/§16/§17）
+K-4 / K-5: PENDING（G1 / A1 保持 NOT PASSED）
 ```
