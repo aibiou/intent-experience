@@ -1,7 +1,7 @@
 # 产品冲突与未决决策登记册
 
 **编号：** BASELINE-DECISIONS-01
-**版本：** 0.7.4（2026-10-08：实施迭代 1（F-1）完成登记——F1-E2E-0001 动态证据通过（9/9 案例、12/12 断言、退出码 0）；CR-02 动态证据阶段状态更新）
+**版本：** 0.8.0（2026-10-08：实施迭代 2（F-2）完成登记——F2-GS-0001 动态证据通过（40/40 案例、24/24 断言、退出码 0）；CR-16/CR-17 待非作者复核登记）
 **状态：** PODR-001 v1.0.4 已裁决 CR-01…CR-07、CR-09、CR-12、CR-13、CR-14，并增补 PD-14 / PD-15 / PD-16 / PD-17；CR-07 / CR-09 / CR-10 / CR-11 / CR-12 / CR-13 / CR-15 已关闭（CR-12 于 2026-10-08 经 REVIEW-007 非作者复核签署关闭；CR-15 于 2026-10-08 经 PD-17 裁决关闭：选项 A，scoped 预授权许可签发）；CR-08 部分解决——剩余仅隐私六要素批准；G6 处置表（PB-01…PB-04）已建立，PB-01 解除条件已满足（2026-10-08）。
 **规则：** 执行团队不得自行把产品决策解释为运行证据或 Gate PASS。
 
@@ -141,6 +141,26 @@
 - **所需变更：** 签发 scoped 许可（选项 A）或将 E5 环境搭建列为实施阶段首个迭代任务（选项 B）；版本化记录并同步 readiness-record 与 owner-roster。
 - **状态：** RESOLVED BY PRODUCT DECISION PD-17（2026-10-08：选项 A——签发 scoped 预授权许可，许可文本见 E5-LICENSE-PROPOSAL-01 §2，许可编号 E5-SCOPED-LICENSE-01 已签发；搭建执行蓝图见该提案附录 A）；E5 环境搭建完成、E5-TRIAL-0001 试运行通过、E5 = PASSED（2026-10-08）；许可由实施授权 P3-S1-IMPL-AUTH-01 接续（superseded）。
 
+## CR-16｜S1 §23 最低事件名称与 C6 权威事件名称调和
+
+- **证据：** S1 §23 最低事件清单使用 intent_created / semantic_action_detected / user_action / version_conflict 等名称；C6 事件契约（SRC-06）使用权威名称 intent_received / intent_parsed / C6 §14 交互事件（question_asked / why_requested / what_if_requested / change_direction_requested / stop_requested）/ state_version_conflict。两者指同一事实类别但命名不同。
+- **影响：** C6-MINSET 案例与 G2 跨契约一致性检查无法定稿；实现侧必须选择权威名称并记录调和依据，否则最低事件集验证不可判定。
+- **建议：** 实施侧调和表（intent_created→intent_received；semantic_action_detected→intent_parsed（properties.semantic_action）；user_action→C6 §14 交互事件五项；version_conflict→state_version_conflict；其余 10 项同名）已建立并 staged 于 `artifacts/evidence/runs/F2-GS-0001/review/README.md`；本登记不作默认——须 R2 非作者复核确认后方可作为契约结论。
+- **严重度：** Important。
+- **决策负责人：** 非作者复核人（角色 8 流程，R2）。
+- **所需变更：** 非作者复核签署确认调和表，或裁定替代映射并回写 XCC-MAP。
+- **状态：** OPEN（PENDING NON-AUTHOR REVIEW，2026-10-08：调和表已随 F2-GS-0001 执行并用于 C6-MINSET 案例；未确认前不作为契约结论）。
+
+## CR-17｜policy_decided 事件发射时机与内容解释
+
+- **证据：** C6 §18 定义 policy_decided 事件；S1 执行链（GS-04 NOCONT 案例）观测到实现于分支派发完成后发出 policy_decided，state_after 携带已应用效果（如 STOP 后 state_after.status=COMPLETED），被拒绝的决策 state_after 为 null；决策链本身在决策追踪（C6 §22/§23）中权威记录。
+- **影响：** GS-04-NOCONT 案例断言与 G2 事件次序一致性检查依赖该解释；若解释错误，事件次序契约验证不可判定。
+- **建议：** 实施侧解释（policy_decided 在分支派发完成后发出、携带已应用效果；决策链在决策追踪中权威记录；拒绝决策 state_after=null）已用于 F2-GS-0001；本登记不作默认——须非作者复核确认。
+- **严重度：** Important。
+- **决策负责人：** 非作者复核人（角色 8 流程，R2）。
+- **所需变更：** 非作者复核签署确认该解释，或裁定替代语义并回写案例与 XCC-MAP。
+- **状态：** OPEN（PENDING NON-AUTHOR REVIEW，2026-10-08：解释已随 F2-GS-0001 执行；未确认前不作为契约结论）。
+
 ## 实施迭代记录（首批义务 F-1）
 
 - **证据：** P3-S1-IMPL-ITER-001 v1.0.0（`../p3-s1/implementation-iteration-f1.md`）；运行时切片 `app/api/experience/stream/route.ts` + `src/experience/`；动态证据 F1-E2E-0001（`artifacts/evidence/runs/F1-E2E-0001/`：9/9 案例 PASS、12/12 断言 PASS、退出码 0；进程内 + HTTP 双形态）；失败尝试 3 次按 ADR-0002 §5 归档（F1-E2E-0001-attempt-1-failed/、F1-E2E-0001-failed-2026-10-08T14-25-36-102Z/）；动态证据发现运行时缺陷 D-1（STOP 策略被要求加载内容语料致 500）与 D-2（终止事件仅写审计汇未 yield 给流），均已修复并登记。
@@ -149,7 +169,17 @@
 - **严重度：** N/A（履行记录，非冲突）。
 - **决策负责人：** 工程负责人（执行）；独立评测负责人（审阅与否决）。
 - **所需变更：** 无（义务履行登记）；后续迭代按 E5 计划继续。
-- **状态：** RECORDED（2026-10-08：F-1 已履行；退出码 0 不设置任何 Gate 为 PASS；G2–G4 仍 NOT PASSED；S1 未验收）。
+- **状态：** RECORDED（2026-10-08：F-1 已履行；退出码 0 不设置任何 Gate 为 PASS；G2–G4 仍 NOT PASSED；S1 未验收）
+
+## 实施迭代记录（第二批义务 F-2）
+
+- **证据：** P3-S1-IMPL-ITER-002 v1.0.0（`../p3-s1/implementation-iteration-f2.md`）；S1 运行时核心 `src/experience/runtime.ts`（1663 行）+ session / state-store / state-machine / classifier / validator / llm-gateway / events / decision-trace / server-runtime / chunks / fixtures（提交 `2a81d34`，20 文件、+6334/−10）+ 5 条 HTTP 路由 + `policy.ts` S1 §14 冻结全映射；动态证据 F2-GS-0001（`artifacts/evidence/runs/F2-GS-0001/`：40/40 案例 PASS、24/24 断言 PASS、退出码 0、14.6s；覆盖 GS-01…GS-06 含全部登记负向、S1-ACT-WHAT_IF、S1 §23/C6 最低事件集、C6 §7/§22/§23/§25/§27 契约校验、HTTP 形态端到端与负向、F-1 回归双形态、无真实提供方静态扫描、36 项归档哈希 + C1–C7 契约指纹、证据-代码绑定干净工作树）；失败尝试 2 次按 ADR-0002 §5 归档（`F2-GS-0001-attempt-2026-10-08T15-19-59-851Z/`、`F2-GS-0001-attempt-2026-10-08T15-21-16-354Z/`）；动态证据未发现运行时缺陷（案例/执行器侧缺陷 E-1…E-3 已修复登记）；F-1 切片文件（`http.ts`/`stream.ts`/`audit.ts`）本迭代零改动。
+- **影响：** P3-S1 实施授权 §2 授权范围内 GS-01…GS-06 完整动态执行与 C6 事件证据履行；G2 动态跨契约一致性案例与 G4 工程边界专项仍 NOT RUN；CR-16（事件名称调和）与 CR-17（policy_decided 发射时机解释）待非作者复核。
+- **建议：** 下一迭代执行 G2 动态跨契约一致性案例 + G4 工程边界证据；G5 16 项评测包执行前由独立评测人（角色 5）先审阅 F-1 与 F-2 迭代材料；CR-16/CR-17 提交 R2 非作者复核。
+- **严重度：** N/A（履行记录，非冲突）。
+- **决策负责人：** 工程负责人（执行）；独立评测负责人（审阅与否决）。
+- **所需变更：** 无（义务履行登记）；后续迭代按 E5 计划继续。
+- **状态：** RECORDED（2026-10-08：F-2 已履行；退出码 0 不设置任何 Gate 为 PASS；G2–G4 仍 NOT PASSED；S1 未验收）。。
 
 ## G6 产品债务处置表（PB-01…PB-04）
 

@@ -1,8 +1,8 @@
 # P3-S1 实现准入记录
 
 **编号：** P3-S1-READINESS-01
-**版本：** 1.1.0（2026-10-08：实施首个迭代完成——F-1 运行时切片（Next.js Route Handler 流式 + AbortSignal 取消）已实施，F1-E2E-0001 端到端动态证据通过（9/9 案例、12/12 断言、退出码 0）；G2–G4 仍 NOT PASSED）
-**状态：** READY / AUTHORIZED / FIRST ITERATION EVIDENCE PRODUCED（首个迭代动态证据已产出；任何 Gate 均未 PASS）
+**版本：** 1.2.0（2026-10-08：实施第二迭代完成——S1 运行时核心已实施（`2a81d34`），F2-GS-0001 动态证据通过（40/40 案例、24/24 断言、退出码 0），覆盖 GS-01…GS-06 完整 + C6 事件契约 + F-1 回归；G2–G4 仍 NOT PASSED）
+**状态：** READY / AUTHORIZED / SECOND ITERATION EVIDENCE PRODUCED（第二迭代动态证据已产出；任何 Gate 均未 PASS）
 **记录日期：** 2026-10-08
 **范围：** 仅检查 P3-S1 产品运行时代码是否已获准启动；本记录不代表 P2 关闭或产品验收通过。
 
@@ -23,7 +23,7 @@
 ## 阻塞项
 
 1. （已解除，2026-10-08：C1–C7 Steward 确认完成，G1 非作者核验完成，G1 PASSED）
-2. E8 12 项、CC02 40 + 12 + 8 + 18 项、CC01 20 项静态映射已经 A2 非作者复核签署（REVIEW-004）；动态 G2–G4 尚无代码证据。
+2. E8 12 项、CC02 40 + 12 + 8 + 18 项、CC01 20 项静态映射已经 A2 非作者复核签署（REVIEW-004）；动态证据已产出两迭代（F1-E2E-0001 流式/取消路径 9/9；F2-GS-0001 GS-01…GS-06 完整 + C6 事件契约 40/40），但 G2 动态跨契约一致性案例与 G4 工程边界证据专项仍 NOT RUN，G2–G4 仍 NOT PASSED。
 3. （已解除，2026-10-08：E5 环境搭建完成（PD-17 / E5-SCOPED-LICENSE-01），首次端到端试运行 E5-TRIAL-0001 通过（4 案例 PASS / 8 断言 / 退出码 0），A5 满足）
 4. P2 G01–G08 的完整执行仍待真实实现和评测；延期案例不计 PASS；G5 的 16 项评测包尚无实际运行结果。
 5. （已解除，2026-10-08：G5 隔离声明已签署，独立评测人任命生效；G5 评测本身仍 NOT RUN）
@@ -34,8 +34,8 @@
 ```text
 P2 Closure: CLOSURE CANDIDATE / BLOCKED; NOT CLOSED
 P3-S1 Readiness: READY（A1–A6 全部满足，2026-10-08）
-P3-S1 Runtime Implementation: AUTHORIZED（2026-10-08 签发，P3-S1-IMPL-AUTH-01 v1.1.0；F-1 已履行，F-2 已履行）
-Runtime Code / Tests / Product Evidence: FIRST ITERATION EVIDENCED（F-1 切片动态证据 F1-E2E-0001：9/9 案例、12/12 断言、退出码 0；G2–G4 完整动态执行进行中，其余案例 NOT RUN）
+P3-S1 Runtime Implementation: AUTHORIZED（2026-10-08 签发，P3-S1-IMPL-AUTH-01 v1.2.0；F-1 已履行，F-2 已履行）
+Runtime Code / Tests / Product Evidence: SECOND ITERATION EVIDENCED（F-1 切片动态证据 F1-E2E-0001：9/9 案例、12/12 断言、退出码 0；F-2 运行时核心动态证据 F2-GS-0001：40/40 案例、24/24 断言、退出码 0，覆盖 GS-01…GS-06 完整 + C6 事件契约 + F-1 回归；G2 动态跨契约一致性案例与 G4 工程边界专项 NOT RUN，G2–G4 仍 NOT PASSED）
 ```
 
 不得将 Markdown 格式检查、资料哈希校验、计划完成或未来测试跑绿解释为任何产品 Gate 的 PASS。只有真实运行证据、独立评测和正式签署，才能更新相应状态。
@@ -47,7 +47,7 @@ Runtime Code / Tests / Product Evidence: FIRST ITERATION EVIDENCED（F-1 切片�
 | 产品负责人 | 代理产品负责人（Codex 履行，用户本人 PD-15 委托） | 签发实施授权（A1–A6 已满足） | 2026-10-08 | P3-S1-IMPL-AUTH-01 v1.0.0 |
 | 架构负责人 | PENDING | PENDING | PENDING | PENDING |
 | 独立评测负责人 | PENDING | PENDING | PENDING | PENDING |
-| 工程负责人 | 用户本人（角色 4，PD-15；执行由代理履行） | 首个迭代（F-1）已实施并执行 F1-E2E-0001（9/9 案例、12/12 断言、退出码 0）；缺陷 D-1/D-2 已修复并登记 | 2026-10-08 | P3-S1-IMPL-ITER-001 v1.0.0；`artifacts/evidence/runs/F1-E2E-0001/` |
+| 工程负责人 | 用户本人（角色 4，PD-15；执行由代理履行） | 首个迭代（F-1）已实施并执行 F1-E2E-0001（9/9 案例、12/12 断言、退出码 0）；缺陷 D-1/D-2 已修复并登记；第二迭代（F-2）运行时核心已实施并执行 F2-GS-0001（40/40 案例、24/24 断言、退出码 0；无运行时缺陷） | 2026-10-08 | P3-S1-IMPL-ITER-001 v1.0.0；P3-S1-IMPL-ITER-002 v1.0.0；`artifacts/evidence/runs/F1-E2E-0001/`；`artifacts/evidence/runs/F2-GS-0001/` |
 
 ## 产品负责人裁决后的当前状态
 
@@ -66,8 +66,9 @@ Runtime Code / Tests / Product Evidence: FIRST ITERATION EVIDENCED（F-1 切片�
 | CR-13 严重度适用范围 | PD-13 适用范围规则经 A2 签署确认（REVIEW-004 §3-D）；NEG14 定 P0/Policy Bypass、NEG17 基础 P1 + 升级条件，已回写 XCC-MAP v1.4.0；CR-13 关闭。 |
 | 独立复核准备 | 独立复核五区块全部签署完成：R2（REVIEW-004，ACCEPT）、R4（REVIEW-005）、R1（REVIEW-006）、R3（REVIEW-007）、R5（REVIEW-008），后四者均 ACCEPT WITH FINDINGS（2026-10-08）；G1 其余项（C1–C7 Steward 确认、非作者核验）已完成。 |
 | E5 | 执行流程已定义；环境已搭建（`tools/evidence/` + package-lock.json）；首次试运行 E5-TRIAL-0001 完成（4 案例 PASS / 8 断言 / 退出码 0）；独立评测人已任命（G5 隔离声明生效）；E5 = PASSED，A5 满足（2026-10-08）。 |
-| 实施授权 | A1–A6 全部满足（2026-10-08）；实施授权已签发（P3-S1-IMPL-AUTH-01 v1.1.0）；F-1 已履行（F1-E2E-0001：9/9 案例、12/12 断言、退出码 0；材料 `artifacts/evidence/runs/F1-E2E-0001/`）；F-2 已履行（Node v24.21.0 Active LTS 授权日重查 + 锁定）。 |
+| 实施授权 | A1–A6 全部满足（2026-10-08）；实施授权已签发（P3-S1-IMPL-AUTH-01 v1.2.0）；F-1 已履行（F1-E2E-0001：9/9 案例、12/12 断言、退出码 0；材料 `artifacts/evidence/runs/F1-E2E-0001/`）；F-2 已履行（Node v24.21.0 Active LTS 授权日重查 + 锁定）；F-2 实施义务已履行（F2-GS-0001：40/40 案例、24/24 断言、退出码 0）。 |
 | 实施迭代 1（F-1） | 已完成（P3-S1-IMPL-ITER-001 v1.0.0）：运行时切片 `app/api/experience/stream/route.ts` + `src/experience/`（仅 S1 冻结映射；取消感知生成器；终止事件 emit+yield；追加只写服务端审计汇）；动态证据发现并修复运行时缺陷 D-1/D-2；失败尝试 3 次按 ADR-0002 §5 归档留存。G2–G4 仍 NOT PASSED。 |
+| 实施迭代 2（F-2） | 已完成（P3-S1-IMPL-ITER-002 v1.0.0）：S1 运行时核心（`src/experience/runtime.ts` 1663 行 + 11 模块 + 5 条 HTTP 路由 + `policy.ts` S1 §14 冻结全映射；提交 `2a81d34`）；动态证据 F2-GS-0001（40/40 案例、24/24 断言、退出码 0；覆盖 GS-01…GS-06 含全部登记负向、S1-ACT-WHAT_IF、C6 §7/§22/§23/§25/§27 契约、HTTP 形态端到端与负向、F-1 回归、无真实提供方静态扫描、证据-代码绑定）；动态证据未发现运行时缺陷（案例/执行器侧缺陷 E-1…E-3 已修复登记）；失败尝试 2 次按 ADR-0002 §5 归档留存。事件名称调和表（CR-16）与 policy_decided 发射时机解释（CR-17）待非作者复核。G2–G4 仍 NOT PASSED。 |
 | 技术栈 | Next.js + TypeScript / Node.js 24 LTS 基线已由产品负责人采用；ADR-0002 已会签生效；Spike 已完成（run 2 S-1/S-2/S-3 全过，Node v24.21.0 锁定，报告已落档）；F-2 已履行：授权日（2026-10-08）重查 nodejs.org——v24.21.0 为当前 Active LTS（Latest LTS），与 Spike 锁定版本一致，产品运行时锁定 Node v24.21.0；F-1 已实施（Next.js 16.4.0 / React 19.3.0 / TypeScript 7.0.2，package-lock.json lockfileVersion 3）；ADR-0001 独立复核已签署（REVIEW-005，ACCEPT WITH FINDINGS，2026-10-08）。 |
 | ADR-0002 Spike | 已完成：run 1 S-3 测试桩缺陷（`PRAGMA busy_timeout` 遗漏致 SQLITE_BUSY）按 §5 如实登记并存档；run 2 S-1/S-2/S-3 全部通过；报告 `docs/architecture/decisions/ADR-0002-spike-report.md`（含环境、版本锁定、原始记录 SHA-256、硬边界合规声明）；结果仅作 ADR-0001 复核输入，非 Gate 证据，不改变任何门禁状态。 |
 | 负责人安排（CR-08） | 角色 2–8 用户本人兼任（PD-15 / owner-roster-v1 v0.2.5）；签署会（2026-10-08）已执行：C1–C7 Steward 确认、G5 隔离声明、四份独立复核记录签署；剩余仅隐私六要素批准，CR-08 未关闭。 |
@@ -75,4 +76,4 @@ Runtime Code / Tests / Product Evidence: FIRST ITERATION EVIDENCED（F-1 切片�
 | 状态版本字段命名 | 已由 PD-16 统一规范名为 `expected_state_version`（CR-14）；`expected_version`（SRC-27 §22）与 `state_version`（SRC-07 §30 Case 05）为别名；实现与测试须同时记录规范名与来源表述。 |
 | 文档状态声明中和 | SRC-27 §39"Implementation READY TO START"与头部"IMPLEMENTATION PREPARATION"为文档内部状态声明，不产生任何实施授权效力；实施授权以本记录"授权判定"节为准。 |
 
-**更新后的总判定：** 2026-10-08：A1–A6 准入条件全部满足；P3-S1 实施授权已签发（P3-S1-IMPL-AUTH-01 v1.1.0）；首个迭代（F-1）已实施并产出端到端动态证据（F1-E2E-0001：9/9 案例、12/12 断言、退出码 0——只表示本运行断言通过，不设置任何 Gate 为 PASS）。隐私六要素仍待批准（真实用户数据禁收护栏持续生效）；GS-01–GS-06 完整动态执行与 C6 事件证据属后续迭代（NOT RUN）；G2–G8 仍 NOT PASSED；P2 仍 CLOSURE CANDIDATE / BLOCKED。
+**更新后的总判定：** 2026-10-08：A1–A6 准入条件全部满足；P3-S1 实施授权已签发（P3-S1-IMPL-AUTH-01 v1.2.0）；首个迭代（F-1）已实施并产出端到端动态证据（F1-E2E-0001：9/9 案例、12/12 断言、退出码 0）；第二迭代（F-2）运行时核心已实施并产出完整动态证据（F2-GS-0001：40/40 案例、24/24 断言、退出码 0，覆盖 GS-01…GS-06 完整 + C6 事件契约 + F-1 回归——只表示本运行断言通过，不设置任何 Gate 为 PASS）。隐私六要素仍待批准（真实用户数据禁收护栏持续生效）；G2 动态跨契约一致性案例与 G4 工程边界专项仍 NOT RUN；G5 16 项评测包 NOT RUN（独立评测人须先审阅 F-1/F-2 staged 材料）；G2–G8 仍 NOT PASSED；P2 仍 CLOSURE CANDIDATE / BLOCKED。

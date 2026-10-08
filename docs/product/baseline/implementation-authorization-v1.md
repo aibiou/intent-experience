@@ -1,8 +1,8 @@
 # P3-S1 实施授权
 
 **编号：** P3-S1-IMPL-AUTH-01
-**版本：** 1.1.0（2026-10-08：§8 追加——F-1 首批义务履行记录）
-**状态：** AUTHORIZED（2026-10-08 签发）；F-1 已履行（2026-10-08）
+**版本：** 1.2.0（2026-10-08：§9 追加——F-2 履行记录）
+**状态：** AUTHORIZED（2026-10-08 签发）；F-1 已履行（2026-10-08）；F-2 已履行（2026-10-08）
 **授权依据：** P2-EVIDENCE-8.1 两段式门禁（PD-02）；A1–A6 准入条件全部满足（2026-10-08）
 **签发：** 代理产品负责人（Codex 履行，PODR-001 / PD-10 / PD-14 / PD-15 委托）
 
@@ -77,3 +77,16 @@ P3-S1 Runtime Implementation：运行时首个完整产品切片（S1）运行�
 | 迭代记录 | `docs/product/p3-s1/implementation-iteration-f1.md`（P3-S1-IMPL-ITER-001 v1.0.0） |
 | 非结论 | 退出码 0 不设置任何 Gate 为 PASS；GS-01–GS-06 完整动态执行与 C6 事件证据属后续迭代（NOT RUN）；G2–G4 仍 NOT PASSED；S1 未验收 |
 | 独立评测 | 材料 staged 于 `F1-E2E-0001/review/README.md`；独立评测负责人（用户本人，角色 5）保留审阅与否决权 |
+
+## 9. F-2 履行记录（2026-10-08）
+
+| 项 | 记录 |
+|---|---|
+| 义务 | §2 授权范围 / P2-EVIDENCE-8.1 §B：GS-01…GS-06 完整动态执行 + S1 启用动作契约测试 + C6 事件证据 |
+| 实施 | S1 运行时核心（`src/experience/runtime.ts` 1663 行 + session / state-store / state-machine / classifier / validator / llm-gateway / events / decision-trace / server-runtime / chunks + fixtures）+ 5 条 HTTP 路由（session/start、intent/resolve、experience/start、state GET、event POST）+ `policy.ts` 扩展为 S1 §14 冻结全映射（`POLICY_VERSION='policy_v1.0.0'`）；F-1 切片（`http.ts`/`stream.ts`/`audit.ts`）零改动；提交 `2a81d34`（20 文件、+6334/−10） |
+| 动态证据 | F2-GS-0001：**40/40 案例 PASS、24/24 断言 PASS、退出码 0**（14.6s；材料 `artifacts/evidence/runs/F2-GS-0001/`：cases/ 40 份 E5 §4 记录、traces/、run-metadata.json E5 §3 版本矩阵、SHA256SUMS）；覆盖 GS-01…GS-06（含全部登记负向）、S1-ACT-WHAT_IF、S1 §23/C6 最低事件集、C6 §7/§25/§27/§22/§23 契约校验、F-1 回归（进程内 + HTTP）、HTTP 形态端到端与负向、无真实提供方静态扫描、完整性（36 项归档哈希 + C1–C7 契约指纹）、证据-代码绑定（干净工作树，绑定提交 `d957d39`） |
+| 动态证据发现的缺陷 | 运行时缺陷：**无**。案例/执行器侧缺陷 3 项（E-1 event_id 格式、E-2 GS-04-NOCONT 断言次序假设、E-3 event_id 前缀修复过度），均已修复并登记于迭代记录 §3；失败尝试按 ADR-0002 §5 归档（`F2-GS-0001-attempt-2026-10-08T15-19-59-851Z/`、`F2-GS-0001-attempt-2026-10-08T15-21-16-354Z/`） |
+| 迭代记录 | `docs/product/p3-s1/implementation-iteration-f2.md`（P3-S1-IMPL-ITER-002 v1.0.0） |
+| 待复核项 | 事件名称调和表（S1 §23 → C6 权威名，CR-16）与 policy_decided 发射时机解释（CR-17）——编码时契约解释，**待非作者复核**，未确认前不作为契约结论 |
+| 非结论 | 退出码 0 不设置任何 Gate 为 PASS；G2 动态跨契约一致性案例与 G4 工程边界证据专项仍 NOT RUN；G2–G4 仍 NOT PASSED；S1 未验收 |
+| 独立评测 | 材料 staged 于 `F2-GS-0001/review/README.md`；独立评测负责人（用户本人，角色 5）保留审阅与否决权；G5 16 项评测包执行前须先审阅 F-1 与 F-2 材料 |
