@@ -1,7 +1,7 @@
 # E5 证据执行环境与独立评测计划
 
 **编号：** P2-EVIDENCE-E5.1
-**版本：** 1.7.0（2026-10-08：§6.1 准备项 E5-TRIAL-0001 断言计数更正（6/6：A1/A2a/A2b/A3/A4/A6）；§6.2 第 15 项更新——`artifacts/evidence/manifest/` 已建（MANIFEST.json + INDEX.md，独立重算生成）；§7 布局说明更新）
+**版本：** 1.8.0（2026-10-09：§6.1 / §6.2 第 8 项回写 CR-18 裁决（选项 B）——HTTP 形态 LLM 故障 503 登记 DEFERRED TO 后续切片）
 **状态：** 流程已定义；环境已搭建；E5 = PASSED（A5 满足）；动态证据执行三迭代完成（F-1/F-2/F-3 迭代证据已产出；G2/G4 证据已产出，但其 Gate 判定属 G5 独立评测 NOT RUN；G5 输入材料就绪度矩阵见 §6.2）
 **依据：** E8、E1、PODR-001 / PD-02 / PD-10 / PD-11
 
@@ -100,7 +100,7 @@ Product Decision → Contract Clause → Case ID → Version Set → Input / Fau
 | 5 | Scenario Matrix Result（场景矩阵结果） | S1-CC02-GXC01…GXC08 的逐案执行与 trace | NOT RUN |
 | 6 | AI Evaluation Result（AI 评测结果） | 冻结模型 / Prompt / Corpus / rubric 版本、逐项输出和评测者理由 | 评测 rubric 与责任人须在 G5 前批准；NOT RUN |
 | 7 | Regression Result（回归结果） | Change ID、前后版本、受影响案例、基线 Run ID 与重跑结果 | 结构已要求；尚无代码或运行基线，NOT RUN |
-| 8 | Fault Injection Result（故障注入结果） | §5 Provider、非法输出、取消、迟到结果、并发和状态冲突案例 | 场景已定义；NOT RUN |
+| 8 | Fault Injection Result（故障注入结果） | §5 Provider、非法输出、取消、迟到结果、并发和状态冲突案例 | 场景已定义；进程内形态经 `LlmGateway` 接口注入已执行（EB-02 / EB-05 / EB-06 / EB-06-NO-RETRY-STOP / EB-07，F3-EB-0001 动态证据）；HTTP 形态 503 登记 DEFERRED（CR-18 选项 B，2026-10-09 产品负责人裁决：S1 服务端运行时未暴露网关注入缝，DEFERRED TO 后续切片） |
 | 9 | Latency Result（延迟结果） | 环境 / 模型 / 请求类别分层的原始测量、样本窗口及计算方法 | 统计阈值仍须产品负责人按 E3 批准；未批准前不得宣告指标达标或发布 PASS |
 | 10 | Agency Result（用户自主权结果） | STOP、CHANGE、拒绝、直接回答、无自主续行等案例的预期 / 实际 / trace | P0 违规零容忍；独立评测 NOT RUN |
 | 11 | Known Failures（已知失败） | §4 Defects / Follow-up 与完整 FAIL / BLOCKED 记录 | 实际清单待运行生成；不得隐藏或覆盖失败 |
@@ -125,7 +125,7 @@ G5 只有在上述 16 项均有适用的、版本化的真实材料，并由独�
 | 5 | Scenario Matrix Result | F2-GS-0001 GS-01…GS-06 场景案例 40 个（含全部登记负向）+ S1-ACT-WHAT_IF | GXC01…GXC08 逐案映射确认与评测 NOT RUN |
 | 6 | AI Evaluation Result | —（S1 无真实 LLM 提供方接入；合成 fixtures；评测 rubric 与责任人须在 G5 前批准） | NOT RUN |
 | 7 | Regression Result | F-1 回归双形态（F2-GS-0001：F1-REG-INPROC、HTTP-12；基线 F1-E2E-0001 9/9） | 正式回归基线重跑与 Change ID 关联 NOT RUN |
-| 8 | Fault Injection Result | F3 故障注入案例：EB-02（失败不消耗版本号）、EB-05（过期结果拒绝）、EB-06/EB-06-NO-RETRY-STOP（LLM 故障 + 失败后 STOP）、EB-07（超时边界）——经 `LlmGateway` 接口注入；HTTP 形态 503 NOT RUN（CR-18 待产品负责人决策） | 故障注入逐案评测 NOT RUN；HTTP 形态 503 缺口处置待 CR-18 裁决 |
+| 8 | Fault Injection Result | F3 故障注入案例：EB-02（失败不消耗版本号）、EB-05（过期结果拒绝）、EB-06/EB-06-NO-RETRY-STOP（LLM 故障 + 失败后 STOP）、EB-07（超时边界）——经 `LlmGateway` 接口注入；HTTP 形态 503 登记 DEFERRED（CR-18 选项 B，2026-10-09 产品负责人裁决） | 故障注入逐案评测 NOT RUN；HTTP 形态 503 DEFERRED TO 后续切片（产品负责人批准） |
 | 9 | Latency Result | F3 运行耗时 9.0s（参考值，非指标） | NOT RUN——统计阈值须产品负责人按 E3 批准后测量 |
 | 10 | Agency Result | F3 EB-04/EB-06s/EB-13（可中断性、失败后 STOP、完成边界用户主权）+ F2 GS-04 系列（STOP 终止四事件齐备、零续行） | 用户自主权逐案评测 NOT RUN（P0 违规零容忍） |
 | 11 | Known Failures | 三迭代失败尝试如实归档（F1 3 次、F2 2 次、F3 2 次，ADR-0002 §5）+ 缺陷登记 D-1/D-2（运行时，已修复）、E-1…E-3 与 F3-E-1…F3-E-9（案例/执行器侧，已修复） | G5 汇总与残余风险关联 NOT RUN |

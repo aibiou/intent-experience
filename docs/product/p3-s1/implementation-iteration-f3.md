@@ -1,7 +1,7 @@
 # P3-S1 实施迭代记录：迭代 3（F-3 G2 动态跨契约一致性 + G4 工程边界证据）
 
 **编号：** P3-S1-IMPL-ITER-003
-**版本：** 1.0.0（2026-10-08：第三迭代完成——F3-EB-0001 动态证据通过（21/21 案例、28/28 断言、退出码 0）；G2 动态跨契约一致性与 G4 工程边界证据已产出）
+**版本：** 1.1.0（2026-10-09：§3.4 第 4 项 HTTP 形态 LLM 故障 503 子项经 CR-18 裁决（选项 B）登记 DEFERRED TO 后续切片；§5 / §6 同步；CR-16 / CR-17 非作者复核关闭状态同步）
 **状态：** THIRD ITERATION EVIDENCE PRODUCED（G2–G4 仍 NOT PASSED；S1 未验收）
 **义务来源：** P3-S1-IMPL-AUTH-01 §2 授权范围；P2-EVIDENCE-8.1 §B 实施后动态证据段（G2 动态跨契约一致性案例与故障链路 + G4 工程边界/并发/重复请求/取消/陈旧响应/恢复/数据完整性验证）；P2-EVIDENCE-4.0 EB-01…EB-16
 **记录日期：** 2026-10-08
@@ -13,7 +13,7 @@
 | 运行时核心 | 本迭代零改动（F-2 运行时核心 `src/experience/runtime.ts` 1663 行 + 11 模块 + 5 路由 + `policy.ts` 冻结映射为已实施基线；`git diff 67aac55..64a1391` 对产品源码为空——本迭代仅新增证据执行器） |
 | 证据执行器 | `tools/evidence/src/f3.mjs`（2645 行，自包含；RUN_ID `F3-EB-0001`，端口 4323，Node v24.21.0 精确锁定）：21 案例（5 G2 动态跨契约一致性 + 16 G4 工程边界）+ 28 断言（B1–B28）+ E5 §3 版本矩阵（含 engineeringBoundaries 专项：EB-01…EB-16 证据映射、S2 范围项处置、HTTP 503 NOT RUN 登记） |
 | 案例形态 | 进程内形态（注入网关/内存汇，真实运行时方法调用）+ 静态形态（产品源码导入图/属性访问/路由面扫描）+ HTTP 形态（真实 Next.js 生产服务器 `next start -p 4323`，真实 HTTP 请求与 NDJSON 流） |
-| 故障注入 | 经 `LlmGateway` 接口注入失败网关（throw / 延迟 50ms 超时类 / 首次成功后失败队列）——进程内形态；HTTP 形态 503 无注入缝（NOT RUN，见 §3） |
+| 故障注入 | 经 `LlmGateway` 接口注入失败网关（throw / 延迟 50ms 超时类 / 首次成功后失败队列）——进程内形态；HTTP 形态 503 无注入缝（执行时 NOT RUN；2026-10-09 经 CR-18 选项 B 裁决登记 DEFERRED，见 §3.4） |
 | 迟到达提交 | 经公共方法 `runtime.completeGeneration(experienceId, generationId)` 人为制造"旧请求晚于新请求返回"（EB-05 P2 强制测试） |
 | 环境锁定 | Node v24.21.0（引擎门禁 + engines 绑定）；Next.js 16.4.0 / React 19.3.0 / TypeScript 7.0.2 |
 | 范围边界 | PD-05/PD-06/PD-07 持续生效；EB-10/EB-11 S2 范围项（记忆生命周期、工具授权链）属 S2 范围，本迭代仅 S1 缺席证明 + 动态拒绝 |
@@ -43,7 +43,7 @@
 | EB09-FRONTEND | EB-09 前端边界：app/api 路由仅导入 server-runtime / http / audit（无状态层直接导入）；前端文件（app/*.tsx）无状态变更（Frontend → Product API 为唯一产品面） | PASS |
 | EB10-MEMORY | EB-10 记忆写入边界：S1 无记忆模块/导入（PD-07 缺席证明：文件名与导入说明符双扫描）；携带 memory_* 字段的提案 → POLICY_REJECTED + llm_output_rejected + state_write_rejected(llm_state_mutation_forbidden)，零状态写入（v2 不变） | PASS |
 | EB11-TOOL | EB-11 工具授权边界：S1 无工具模块/导入（缺席证明）；全部决策追踪 execution.tool_used === false（LLM 不得直接执行工具）；WHY 决策 llm_used === true，STOP 决策 llm_used === false（用户主权动作不经 LLM） | PASS |
-| EB12-ERROR-MAP | EB-12 API 边界：错误→HTTP 状态映射可区分且完备（409 STATE_VERSION_CONFLICT/REQUEST_DUPLICATE、503 LLM_UNAVAILABLE、500 INTERNAL_ERROR、400 其余——工程映射，非错误契约规定）；HTTP 错误体 {code, message, retryable} 齐备（400/409 形态验证；405 方法约束体为 {error, allowed} 路由级工程约束）；HTTP 形态 503 NOT RUN 明示登记（服务端运行时未暴露网关注入缝——非结论，见 §3） | PASS |
+| EB12-ERROR-MAP | EB-12 API 边界：错误→HTTP 状态映射可区分且完备（409 STATE_VERSION_CONFLICT/REQUEST_DUPLICATE、503 LLM_UNAVAILABLE、500 INTERNAL_ERROR、400 其余——工程映射，非错误契约规定）；HTTP 错误体 {code, message, retryable} 齐备（400/409 形态验证；405 方法约束体为 {error, allowed} 路由级工程约束）；HTTP 形态 503 执行时 NOT RUN 明示登记（服务端运行时未暴露网关注入缝——非结论，见 §3；2026-10-09 经 CR-18 选项 B 裁决，该子项登记 DEFERRED TO 后续切片，见 §3.4） | PASS |
 | EB13-COMPLETION | EB-13 完成边界：用户"好了"/"先这样"确定性分类为 STOP（用户主权，非 LLM 判断"用户应该还想继续"）；LLM 提案携带 is_complete 完成字段 → POLICY_REJECTED + llm_output_rejected + state_write_rejected(llm_state_mutation_forbidden)（版本不消耗）；STOP 从 WAITING 合法终止；STOP 决策追踪 user_override === true、selected_action === STOP | PASS |
 | EB14-APPEND-ONLY | EB-14 分析边界（HTTP 形态）：事件日志追加只写——第二次交互后前缀字节逐字节不变、长度严格递增（分析只能观察，不能修改 Runtime State）；第二次交互终态 v6 | PASS |
 | EB15-REPLAY | EB-15 可回放性：仅使用记录的事件流 + 决策追踪重建版本链（每次提交 +1、trace 链与事件链一致）、终态与运行时视图一致（COMPLETED/COMPLETION v5）、sequence_number 单调、全部版本化事件 ≤ 最终版本 | PASS |
@@ -76,7 +76,7 @@
 1. **事件名称调和表（S1 §23 最低事件 → C6 权威名）：** 同 F-2 §3.1（intent_created → intent_received；semantic_action_detected → intent_parsed；user_action → C6 §14 交互事件；version_conflict → state_version_conflict），本迭代动态证据与之一致，未新增解释。
 2. **policy_decided 发射时机：** 同 F-2 §3.2（分支派发完成后发出；被拒绝的决策 state_after 为 null——EB-06/EB-07 动态证据再次确认）。
 3. **HTTP 状态码映射：** 同 F-2 §3.3（工程映射：409/503/500/400；405 方法约束体为路由级 {error, allowed} 结构，非错误契约结构——EB-12 动态验证）。
-4. **HTTP 形态 LLM 故障 503（EB-12 子项）NOT RUN：** S1 服务端运行时（`server-runtime.ts`）以合成模式构造运行时，未暴露 `LlmGateway` 注入缝，LLM 故障无法经真实 HTTP 触发；进程内形态经接口注入失败网关已覆盖（EB-06/EB-07）。HTTP 形态 503 须待"服务端运行时是否暴露网关注入缝"决策（产品负责人）后执行——登记为 NOT RUN，非结论。
+4. **HTTP 形态 LLM 故障 503（EB-12 子项）DEFERRED（CR-18 选项 B，2026-10-09 产品负责人裁决）：** S1 服务端运行时（`server-runtime.ts`）以合成模式构造运行时，未暴露 `LlmGateway` 注入缝，LLM 故障无法经真实 HTTP 触发；进程内形态经接口注入失败网关已覆盖（EB-06/EB-07）。产品负责人裁决：维持不暴露网关注入缝，本子项登记 DEFERRED TO 后续切片（产品负责人批准，并回写 evidence-execution-plan §6.1 / §6.2 第 8 项）；执行时 NOT RUN 登记保留为本条时点事实，非结论。
 
 **独立审计发现（证据绑定，2026-10-08；如实登记，不修改已提交证据）：** 对已提交证据产物做独立核验（不信任执行器自报断言）发现三处执行器时序行为导致的绑定说明——均为系统性行为、非证据损坏、非本迭代回归（git 历史确认 F1/F2 产物单次提交后未再修改）：
 
@@ -101,18 +101,18 @@
 - 退出码 0 与 28/28 断言通过只表示本运行中的断言通过；不设置 G2 / G4 或任何 Gate 为 PASS（E5 §2 状态词汇规则）。
 - G2 动态跨契约一致性案例与 G4 工程边界证据本运行已执行（证据已产出）；G2–G4 的 Gate 判定属 G5 独立评测范畴，NOT RUN。
 - G5 16 项评测包 NOT RUN；独立评测人（用户本人，角色 5，PD-15）须先审阅 F-1、F-2 与 F-3 staged 材料（`F1-E2E-0001/review/README.md`、`F2-GS-0001/review/README.md`、`F3-EB-0001/review/README.md`）后方可执行评测。
-- 事件名称调和表与 policy_decided 发射时机解释待非作者复核（CR-16 / CR-17）；未确认前不作为契约结论。
-- HTTP 形态 LLM 故障 503 NOT RUN（非结论登记，见 §3.4）。
+- 事件名称调和表与 policy_decided 发射时机解释已经非作者复核签署关闭（P3-S1-REVIEW-009，ACCEPT，2026-10-09），作为契约结论生效。
+- HTTP 形态 LLM 故障 503 DEFERRED TO 后续切片（CR-18 选项 B，2026-10-09 产品负责人裁决，见 §3.4；执行时 NOT RUN 登记保留为时点事实）。
 - EB-10/EB-11 的 S2 范围项（记忆生命周期、工具授权链）属 S2 范围，本运行仅 S1 缺席证明。
 - S1 未验收；P2 仍 CLOSURE CANDIDATE / BLOCKED。
 - 独立评测人对本运行材料保留审阅与否决权；评测人不得由本运行执行者担任（角色分离见各案例记录 evaluator 字段）。
 
 ## 6. 后续义务
 
-- 非作者复核：事件名称调和表（CR-16）与 policy_decided 发射时机解释（CR-17）按 R2/R3 流程确认（用户本人，角色 8）。
+- 非作者复核：事件名称调和表（CR-16）与 policy_decided 发射时机解释（CR-17）已经非作者复核签署关闭（P3-S1-REVIEW-009，2026-10-09）。
 - G5 16 项评测包执行前，独立评测人须先审阅 F-1/F-2/F-3 迭代材料（三份 review/README.md）。
-- 产品负责人决策：服务端运行时是否暴露 LlmGateway 注入缝（决定 HTTP 形态 503 证据可否执行；已登记 CR-18 OPEN，decision-register v0.10.0，选项 A/B/C 待产品负责人裁决）。
-- 隐私六要素批准前不得收集或保存任何真实用户数据（本运行仅合成数据；隐私六要素待产品/安全负责人批准——阻塞真实用户数据收集，不阻塞合成数据证据流）。
+- 产品负责人决策：服务端运行时是否暴露 LlmGateway 注入缝——已裁决（CR-18 选项 B，2026-10-09，decision-register v0.12.0）：维持不暴露，HTTP 形态 503 登记 DEFERRED TO 后续切片。
+- 隐私六要素部分裁决（2026-10-09：留存期限至少 6 个月；存储位置 / 访问控制 / 加密 / 删除机制待裁决）——六要素全部批准前不得收集或保存任何真实用户数据（本运行仅合成数据；护栏不阻塞合成数据证据流）。
 
 ## 7. 签署
 

@@ -1,8 +1,8 @@
 # 产品冲突与未决决策登记册
 
 **编号：** BASELINE-DECISIONS-01
-**版本：** 0.11.0（2026-10-09：CR-16 / CR-17 经 P3-S1-REVIEW-009 非作者复核签署关闭；F-009-1 编号笔误登记）
-**状态：** PODR-001 v1.0.4 已裁决 CR-01…CR-07、CR-09、CR-12、CR-13、CR-14，并增补 PD-14 / PD-15 / PD-16 / PD-17；CR-07 / CR-09 / CR-10 / CR-11 / CR-12 / CR-13 / CR-15 / CR-16 / CR-17 已关闭（CR-16 / CR-17 于 2026-10-09 经 REVIEW-009 非作者复核签署关闭；CR-15 于 2026-10-08 经 PD-17 裁决关闭：选项 A，scoped 预授权许可签发）；CR-08 部分解决——剩余仅隐私六要素批准；G6 处置表（PB-01…PB-04）已建立，PB-01 解除条件已满足（2026-10-08）；CR-18 OPEN（HTTP 形态 LLM 故障 503 证据的网关注入缝决策待产品负责人）。
+**版本：** 0.12.0（2026-10-09：CR-18 经产品负责人裁决关闭——选项 B，HTTP 形态 LLM 故障 503 登记 DEFERRED TO 后续切片；F-009-1 编号笔误更正为 SRC-08；隐私六要素部分裁决登记——留存期限至少 6 个月）
+**状态：** PODR-001 v1.0.4 已裁决 CR-01…CR-07、CR-09、CR-12、CR-13、CR-14，并增补 PD-14 / PD-15 / PD-16 / PD-17；CR-07 / CR-09 / CR-10 / CR-11 / CR-12 / CR-13 / CR-15 / CR-16 / CR-17 / CR-18 已关闭（CR-16 / CR-17 于 2026-10-09 经 REVIEW-009 非作者复核签署关闭；CR-18 于 2026-10-09 经产品负责人裁决关闭：选项 B——维持不暴露网关注入缝，HTTP 形态 LLM 故障 503 登记 DEFERRED TO 后续切片；CR-15 于 2026-10-08 经 PD-17 裁决关闭：选项 A，scoped 预授权许可签发）；CR-08 部分解决——隐私六要素部分裁决（留存期限至少 6 个月，2026-10-09；存储位置 / 访问控制 / 加密 / 删除机制待裁决）；G6 处置表（PB-01…PB-04）已建立，PB-01 解除条件已满足（2026-10-08）。
 **规则：** 执行团队不得自行把产品决策解释为运行证据或 Gate PASS。
 
 ## CR-01｜P2 已关闭与仍阻塞的状态冲突
@@ -149,7 +149,7 @@
 - **严重度：** Important。
 - **决策负责人：** 非作者复核人（角色 8 流程，R2）。
 - **所需变更：** 非作者复核签署确认调和表，或裁定替代映射并回写 XCC-MAP。
-- **状态：** RESOLVED（2026-10-09：调和表经非作者复核签署确认，P3-S1-REVIEW-009 §2-A——作为契约结论生效；C6-MINSET 与 G2 事件次序检查依据成立；F-009-1 编号笔误（C6 应为 SRC-08）待下次修订更正，不影响映射实质）。
+- **状态：** RESOLVED（2026-10-09：调和表经非作者复核签署确认，P3-S1-REVIEW-009 §2-A——作为契约结论生效；C6-MINSET 与 G2 事件次序检查依据成立；F-009-1 编号笔误已于本版本（v0.12.0）更正为 SRC-08，不影响映射实质）。
 
 ## CR-17｜policy_decided 事件发射时机与内容解释
 
@@ -169,7 +169,7 @@
 - **严重度：** Important（证据完整性；非 P0——进程内形态已覆盖故障路径语义，用户主权与状态完整性不受影响）。
 - **决策负责人：** 产品负责人（用户本人，PD-15）。
 - **所需变更：** 产品负责人裁定选项 A/B/C；若 A，确认 P3-S1-IMPL-AUTH-01 实施授权范围扩展后实施；若 B/C，登记 DEFERRED 并回写 evidence-execution-plan §6.1 第 8 项与 F3 迭代记录 §3.4 的 NOT RUN 登记状态。
-- **状态：** OPEN（2026-10-08 登记；F3-EB-0001 EB-12 子项 NOT RUN 如实登记于迭代记录 §3.4 与审阅包"未执行"节）。
+- **状态：** RESOLVED（2026-10-09：产品负责人裁决选项 B——维持不暴露网关注入缝，HTTP 形态 LLM 故障 503 登记 DEFERRED TO 后续切片；G4 证据链该子项按产品负责人批准登记 DEFERRED；已回写 evidence-execution-plan §6.1 / §6.2 第 8 项（v1.8.0）与 P3-S1-IMPL-ITER-003 §3.4（v1.1.0）；F3-EB-0001 EB-12 子项执行时 NOT RUN 登记保留于迭代记录 §3.4 与审阅包"未执行"节作为时点事实——审阅包为哈希锁定证据，不因本裁决修改）。
 
 ## 实施迭代记录（首批义务 F-1）
 
@@ -184,7 +184,7 @@
 ## 实施迭代记录（第二批义务 F-2）
 
 - **证据：** P3-S1-IMPL-ITER-002 v1.0.0（`../p3-s1/implementation-iteration-f2.md`）；S1 运行时核心 `src/experience/runtime.ts`（1663 行）+ session / state-store / state-machine / classifier / validator / llm-gateway / events / decision-trace / server-runtime / chunks / fixtures（提交 `2a81d34`，20 文件、+6334/−10）+ 5 条 HTTP 路由 + `policy.ts` S1 §14 冻结全映射；动态证据 F2-GS-0001（`artifacts/evidence/runs/F2-GS-0001/`：40/40 案例 PASS、24/24 断言 PASS、退出码 0、14.6s；覆盖 GS-01…GS-06 含全部登记负向、S1-ACT-WHAT_IF、S1 §23/C6 最低事件集、C6 §7/§22/§23/§25/§27 契约校验、HTTP 形态端到端与负向、F-1 回归双形态、无真实提供方静态扫描、36 项归档哈希 + C1–C7 契约指纹、证据-代码绑定干净工作树）；失败尝试 2 次按 ADR-0002 §5 归档（`F2-GS-0001-attempt-2026-10-08T15-19-59-851Z/`、`F2-GS-0001-attempt-2026-10-08T15-21-16-354Z/`）；动态证据未发现运行时缺陷（案例/执行器侧缺陷 E-1…E-3 已修复登记）；F-1 切片文件（`http.ts`/`stream.ts`/`audit.ts`）本迭代零改动。
-- **影响：** P3-S1 实施授权 §2 授权范围内 GS-01…GS-06 完整动态执行与 C6 事件证据履行；G2 动态跨契约一致性案例与 G4 工程边界专项仍 NOT RUN；CR-16（事件名称调和）与 CR-17（policy_decided 发射时机解释）待非作者复核。
+- **影响：** P3-S1 实施授权 §2 授权范围内 GS-01…GS-06 完整动态执行与 C6 事件证据履行；G2 动态跨契约一致性案例与 G4 工程边界专项仍 NOT RUN；CR-16（事件名称调和）与 CR-17（policy_decided 发射时机解释）已经非作者复核签署关闭（P3-S1-REVIEW-009，2026-10-09）。
 - **建议：** 下一迭代执行 G2 动态跨契约一致性案例 + G4 工程边界证据；G5 16 项评测包执行前由独立评测人（角色 5）先审阅 F-1 与 F-2 迭代材料；CR-16/CR-17 提交 R2 非作者复核。
 - **严重度：** N/A（履行记录，非冲突）。
 - **决策负责人：** 工程负责人（执行）；独立评测负责人（审阅与否决）。
@@ -193,8 +193,8 @@
 
 ## 实施迭代记录（第三批义务 F-3）
 
-- **证据：** P3-S1-IMPL-ITER-003 v1.0.0（`../p3-s1/implementation-iteration-f3.md`）；本迭代产品源码零改动（F-2 运行时核心为已实施基线，`git diff 67aac55..64a1391` 对产品源码为空）；证据执行器 `tools/evidence/src/f3.mjs`（2645 行；21 案例 = 5 G2 动态跨契约一致性 + 16 G4 工程边界；28 断言 B1–B28；E5 §3 版本矩阵含 engineeringBoundaries 专项；提交 `69c49f2` 执行器、`67aac55` 执行器侧缺陷修复）；动态证据 F3-EB-0001（`artifacts/evidence/runs/F3-EB-0001/`：21/21 案例 PASS、28/28 断言 PASS、退出码 0、9.0s；G2 动态跨契约一致性——WHY/CHANGE 完整链路（含复合步骤 [CHANGE_DIRECTION, EXPERIENCE_STARTED, USER_ACTION] v3→v4）、generation 归属（experience_interrupted + generation_cancelled）与迟到达旧 generation 提交 STALE_GENERATION 拒绝、UNKNOWN 升级（INVALID_ACTION）与语义不匹配（INVALID_REQUEST）故障链、版本链每次合法提交恰好 +1 不变式；G4 工程边界 EB-01…EB-15 动态/静态证据——单一写入者导入图、失败不消耗版本号、HTTP 重复 request_id 幂等、I1–I4 可中断性、过期结果拒绝、重试边界恰好一次、超时有界恢复、confidence 决策不变性（含决策路径静态扫描）、前端边界、记忆/工具 S1 缺席证明与动态拒绝、API 错误映射可区分、完成边界用户主权、事件日志追加只写、可回放性；EB-16 由 E5 §3 版本矩阵覆盖；HTTP 形态 LLM 故障 503 NOT RUN 登记——S1 服务端运行时未暴露 LlmGateway 注入缝，是否暴露待产品负责人决策）；失败尝试 2 次按 ADR-0002 §5 归档（`F3-EB-0001-attempt-2026-10-08T16-06-20-267Z/` 提交 `4b5f1d6`、`F3-EB-0001-attempt-2026-10-08T16-07-30-452Z/` 提交 `0fe8011`）；运行产物提交 `64a1391`，运行绑定至 git 提交 `4b5f1d6`（尝试 3 启动时 HEAD，记录于 run-metadata.json code.gitHead；相对 `67aac55` 仅追加证据归档，产品源码一致；A23/B27 干净工作树）；动态证据未发现运行时缺陷（案例/执行器侧缺陷 F3-E-1…F3-E-9 已修复登记）。
-- **影响：** P3-S1 实施授权 §2 授权范围内 G2 动态跨契约一致性与 G4 工程边界证据履行；G2–G4 的 Gate 判定属 G5 独立评测范畴（NOT RUN）；CR-16/CR-17 与 F-3 实施侧解释（事件名称调和表、policy_decided 发射时机、HTTP 状态码映射）待非作者复核；HTTP 形态 503 证据须产品负责人决策网关注入缝后执行。
+- **证据：** P3-S1-IMPL-ITER-003 v1.0.0（`../p3-s1/implementation-iteration-f3.md`）；本迭代产品源码零改动（F-2 运行时核心为已实施基线，`git diff 67aac55..64a1391` 对产品源码为空）；证据执行器 `tools/evidence/src/f3.mjs`（2645 行；21 案例 = 5 G2 动态跨契约一致性 + 16 G4 工程边界；28 断言 B1–B28；E5 §3 版本矩阵含 engineeringBoundaries 专项；提交 `69c49f2` 执行器、`67aac55` 执行器侧缺陷修复）；动态证据 F3-EB-0001（`artifacts/evidence/runs/F3-EB-0001/`：21/21 案例 PASS、28/28 断言 PASS、退出码 0、9.0s；G2 动态跨契约一致性——WHY/CHANGE 完整链路（含复合步骤 [CHANGE_DIRECTION, EXPERIENCE_STARTED, USER_ACTION] v3→v4）、generation 归属（experience_interrupted + generation_cancelled）与迟到达旧 generation 提交 STALE_GENERATION 拒绝、UNKNOWN 升级（INVALID_ACTION）与语义不匹配（INVALID_REQUEST）故障链、版本链每次合法提交恰好 +1 不变式；G4 工程边界 EB-01…EB-15 动态/静态证据——单一写入者导入图、失败不消耗版本号、HTTP 重复 request_id 幂等、I1–I4 可中断性、过期结果拒绝、重试边界恰好一次、超时有界恢复、confidence 决策不变性（含决策路径静态扫描）、前端边界、记忆/工具 S1 缺席证明与动态拒绝、API 错误映射可区分、完成边界用户主权、事件日志追加只写、可回放性；EB-16 由 E5 §3 版本矩阵覆盖；HTTP 形态 LLM 故障 503 执行时 NOT RUN 登记——S1 服务端运行时未暴露 LlmGateway 注入缝；2026-10-09 经产品负责人裁决（CR-18 选项 B）登记 DEFERRED TO 后续切片）；失败尝试 2 次按 ADR-0002 §5 归档（`F3-EB-0001-attempt-2026-10-08T16-06-20-267Z/` 提交 `4b5f1d6`、`F3-EB-0001-attempt-2026-10-08T16-07-30-452Z/` 提交 `0fe8011`）；运行产物提交 `64a1391`，运行绑定至 git 提交 `4b5f1d6`（尝试 3 启动时 HEAD，记录于 run-metadata.json code.gitHead；相对 `67aac55` 仅追加证据归档，产品源码一致；A23/B27 干净工作树）；动态证据未发现运行时缺陷（案例/执行器侧缺陷 F3-E-1…F3-E-9 已修复登记）。
+- **影响：** P3-S1 实施授权 §2 授权范围内 G2 动态跨契约一致性与 G4 工程边界证据履行；G2–G4 的 Gate 判定属 G5 独立评测范畴（NOT RUN）；CR-16/CR-17 与 F-3 实施侧解释（事件名称调和表、policy_decided 发射时机、HTTP 状态码映射）已经非作者复核签署关闭（P3-S1-REVIEW-009，2026-10-09）；HTTP 形态 503 证据经产品负责人裁决（CR-18 选项 B，2026-10-09）登记 DEFERRED TO 后续切片。
 - **建议：** G5 16 项评测包执行前由独立评测人（角色 5）先审阅 F-1、F-2 与 F-3 迭代材料；CR-16/CR-17 提交 R2 非作者复核；产品负责人就服务端运行时是否暴露 LlmGateway 注入缝作出决策。
 - **严重度：** N/A（履行记录，非冲突）。
 - **决策负责人：** 工程负责人（执行）；独立评测负责人（审阅与否决）。
