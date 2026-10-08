@@ -1,7 +1,7 @@
 # E5 证据执行环境与独立评测计划
 
 **编号：** P2-EVIDENCE-E5.1
-**版本：** 1.8.0（2026-10-09：§6.1 / §6.2 第 8 项回写 CR-18 裁决（选项 B）——HTTP 形态 LLM 故障 503 登记 DEFERRED TO 后续切片）
+**版本：** 1.9.0（2026-10-09：§6.2 第 1 项 SHA256SUMS 独立重算状态更正（F3 46/46 精确匹配；F1 20/21、F2 84/85——各 1 项时点性不匹配，summary.json 于清单计算后定稿，经独立审计登记为非篡改，git e03e6b9）；§6.2 第 12 项登记册快照引用更正（v0.10.0→v0.13.0，CR-16/CR-17/CR-18 已关闭））
 **状态：** 流程已定义；环境已搭建；E5 = PASSED（A5 满足）；动态证据执行三迭代完成（F-1/F-2/F-3 迭代证据已产出；G2/G4 证据已产出，但其 Gate 判定属 G5 独立评测 NOT RUN；G5 输入材料就绪度矩阵见 §6.2）
 **依据：** E8、E1、PODR-001 / PD-02 / PD-10 / PD-11
 
@@ -118,7 +118,7 @@ G5 只有在上述 16 项均有适用的、版本化的真实材料，并由独�
 
 | # | G5 必需项 | 已产出的输入材料（staged，供评测人复核） | G5 评测人仍须执行 |
 |---|---|---|---|
-| 1 | Version Matrix | 三运行 `run-metadata.json`（E5 §3 矩阵；F3 含 engineeringBoundaries 专项 + 31 项运行时文件哈希 + 执行器哈希；三运行 SHA256SUMS 独立重算 46/46×3 通过） | 矩阵完备性复核与版本关联确认 |
+| 1 | Version Matrix | 三运行 `run-metadata.json`（E5 §3 矩阵；F3 含 engineeringBoundaries 专项 + 31 项运行时文件哈希 + 执行器哈希；SHA256SUMS 独立重算：F3 46/46 精确匹配，F1 20/21、F2 84/85——各 1 项时点性不匹配（summary.json 于清单计算后定稿，经独立审计登记为非篡改，git e03e6b9）） | 矩阵完备性复核与版本关联确认 |
 | 2 | Test Scope | acceptance-mapping（范围冻结，PD-05…PD-08）+ XCC-MAP v1.4.0（A2 非作者复核 REVIEW-004）+ F3 案例范围声明（G2 5 案例 + EB-01…EB-16；S2 范围项 EB-10/EB-11 仅 S1 缺席证明） | 适用 / 延期 / 非适用理由的逐案确认 |
 | 3 | Golden Case Result | —（无黄金案例执行产物） | NOT RUN——评测人执行 |
 | 4 | Contract Test Result | F3-EB-0001 G2 动态跨契约一致性 5 案例记录与轨迹（G2-CHAIN-01/02、G2-FAULT-01/02、G2-VERSION-01） | 逐案动态评测 NOT RUN |
@@ -129,7 +129,7 @@ G5 只有在上述 16 项均有适用的、版本化的真实材料，并由独�
 | 9 | Latency Result | F3 运行耗时 9.0s（参考值，非指标） | NOT RUN——统计阈值须产品负责人按 E3 批准后测量 |
 | 10 | Agency Result | F3 EB-04/EB-06s/EB-13（可中断性、失败后 STOP、完成边界用户主权）+ F2 GS-04 系列（STOP 终止四事件齐备、零续行） | 用户自主权逐案评测 NOT RUN（P0 违规零容忍） |
 | 11 | Known Failures | 三迭代失败尝试如实归档（F1 3 次、F2 2 次、F3 2 次，ADR-0002 §5）+ 缺陷登记 D-1/D-2（运行时，已修复）、E-1…E-3 与 F3-E-1…F3-E-9（案例/执行器侧，已修复） | G5 汇总与残余风险关联 NOT RUN |
-| 12 | Product Debt | decision-register v0.10.0 快照（CR-16/CR-17/CR-18 OPEN；PB-01…PB-04 RESOLVED） | 按运行版本封存待办 |
+| 12 | Product Debt | decision-register v0.13.0（CR-01…CR-18 已关闭；G6 处置表 PB-01…PB-04 RESOLVED；隐私六要素部分裁决见 P3-S1-PRIVACY-SIX-01 v0.2.0——本矩阵 2026-10-08 登记时登记册为 v0.10.0，CR-16/CR-17/CR-18 现已关闭） | 按运行版本封存待办 |
 | 13 | Risk Assessment | — | NOT RUN——评测人执行 |
 | 14 | Release Recommendation | — | NOT RUN——评测人执行 |
 | 15 | Evidence Index | `artifacts/evidence/runs/` 只追加布局；四运行 + 六失败尝试归档；各运行 SHA256SUMS；`artifacts/evidence/manifest/`（MANIFEST.json + INDEX.md，独立重算生成：各运行案例/断言计数、SHA256SUMS 独立重算状态、代码绑定 gitHead、产物提交哈希） | 索引已建（2026-10-08）；索引内容的 G5 评测 NOT RUN |
