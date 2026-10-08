@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB03-HTTP-DUP","event":"trace_started","at":"2026-10-08T15:59:54.955Z","form":"http","sourceClause":"P2-EVIDENCE-4.0 EB-03（Idempotency）；API §2.4；C6 §27"}
+{"caseId":"F3-EB-0001:EB03-HTTP-DUP","event":"trace_completed","at":"2026-10-08T15:59:55.395Z","startedAt":"2026-10-08T15:59:54.955Z","durationMs":440,"result":"FAIL","pass":false}

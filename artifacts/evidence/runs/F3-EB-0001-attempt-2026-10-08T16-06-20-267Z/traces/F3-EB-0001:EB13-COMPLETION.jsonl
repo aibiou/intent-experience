@@ -1,0 +1,3 @@
+{"caseId":"F3-EB-0001:EB13-COMPLETION","event":"trace_started","at":"2026-10-08T15:59:58.278Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-13（Completion Boundary：完成不属于 LLM 自主权限）；S1 §20"}
+{"caseId":"F3-EB-0001:EB13-COMPLETION","event":"executor-error","at":"2026-10-08T15:59:58.279Z","error":"TypeError: Cannot read properties of undefined (reading 'Symbol(Symbol.asyncIterator)')"}
+{"caseId":"F3-EB-0001:EB13-COMPLETION","event":"trace_completed","at":"2026-10-08T15:59:58.280Z","startedAt":"2026-10-08T15:59:58.278Z","durationMs":2,"result":"FAIL","pass":false}

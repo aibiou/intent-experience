@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB15-REPLAY","event":"trace_started","at":"2026-10-08T15:59:59.084Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-15（Replayability：从 Event + Decision Trace + State Snapshot 重建关键行为）"}
+{"caseId":"F3-EB-0001:EB15-REPLAY","event":"trace_completed","at":"2026-10-08T15:59:59.467Z","startedAt":"2026-10-08T15:59:59.084Z","durationMs":383,"result":"PASS","pass":true}

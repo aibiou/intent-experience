@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB14-APPEND-ONLY","event":"trace_started","at":"2026-10-08T16:06:26.169Z","form":"http","sourceClause":"P2-EVIDENCE-4.0 EB-14（Analytics Boundary：分析只能观察，不能修改 Runtime State）"}
+{"caseId":"F3-EB-0001:EB14-APPEND-ONLY","event":"trace_completed","at":"2026-10-08T16:06:26.975Z","startedAt":"2026-10-08T16:06:26.169Z","durationMs":806,"result":"PASS","pass":true}

@@ -1,0 +1,339 @@
+{
+  "runId": "F3-EB-0001",
+  "obligation": "P3-S1-IMPL-AUTH-01 §2 授权范围 / P2-EVIDENCE-8.1 §B：G2 动态跨契约一致性案例与故障链路 + G4 工程边界 EB-01…EB-16（F-3 迭代）",
+  "startedAt": "2026-10-08T15:59:50.688Z",
+  "finishedAt": "2026-10-08T15:59:59.494Z",
+  "durationMs": 8805,
+  "cases": [
+    {
+      "caseId": "G2-CHAIN-01",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "G2-CHAIN-02",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "G2-FAULT-01",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G2-FAULT-02",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G2-VERSION-01",
+      "result": "PASS"
+    },
+    {
+      "caseId": "EB01-SINGLE-WRITER",
+      "result": "PASS"
+    },
+    {
+      "caseId": "EB02-FAIL-NO-BUMP",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "EB03-HTTP-DUP",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "EB04-INTERRUPT",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "EB05-STALE-LATE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "EB06-RETRY",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "EB06-NO-RETRY-STOP",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "EB07-TIMEOUT-RECOVERY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "EB08-CONFIDENCE",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "EB09-FRONTEND",
+      "result": "PASS"
+    },
+    {
+      "caseId": "EB10-MEMORY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "EB11-TOOL",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "EB12-ERROR-MAP",
+      "result": "PASS"
+    },
+    {
+      "caseId": "EB13-COMPLETION",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "EB14-APPEND-ONLY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "EB15-REPLAY",
+      "result": "PASS"
+    }
+  ],
+  "allCasesPass": false,
+  "assertions": [
+    {
+      "id": "B3",
+      "description": "全部 21 案例记录齐备且 12 字段完整（E5 §4）",
+      "passed": false,
+      "detail": {
+        "recordFiles": 21,
+        "expected": 21,
+        "allCasesPass": false
+      }
+    },
+    {
+      "id": "B4",
+      "description": "全部 21 案例轨迹文件齐备且非空",
+      "passed": true,
+      "detail": {
+        "traceFiles": 21
+      }
+    },
+    {
+      "id": "B5",
+      "description": "G2-CHAIN-01：WHY 完整链路跨契约一致性（C1 会话 / C2 意图 / C4 状态机 / C5 语义动作 / C6 策略 / C7/C8 提案内容 / C9 终态 + 信封全量 + sequence 单调 + 决策追踪分离）",
+      "passed": false,
+      "detail": {
+        "g2c1": false
+      }
+    },
+    {
+      "id": "B6",
+      "description": "G2-CHAIN-02：CHANGE 完整链路（复合步骤 [CHANGE_DIRECTION, EXPERIENCE_STARTED, USER_ACTION]、单次提交 v3→v4、generation 归属正确、迟到达旧 generation 提交 STALE_GENERATION 拒绝）",
+      "passed": false,
+      "detail": {
+        "g2c2": false
+      }
+    },
+    {
+      "id": "B7",
+      "description": "G2 故障链：不可分类输入 → INVALID_ACTION 升级（零事件/零追踪/零版本消耗）；语义不匹配 → INVALID_REQUEST（零副作用）",
+      "passed": true,
+      "detail": {
+        "g2f1": true,
+        "g2f2": true
+      }
+    },
+    {
+      "id": "B8",
+      "description": "G2-VERSION-01：版本链完整性（每次合法提交恰好 +1；陈旧写入拒绝且不消耗版本号；最终版本 = 全部事件 context.state_version 最大值）",
+      "passed": true,
+      "detail": {
+        "g2v1": true
+      }
+    },
+    {
+      "id": "B9",
+      "description": "EB-01 Runtime 单一写入者：state-store 仅被 runtime.ts 导入；.commit( 仅在 runtime.ts 调用；API 路由不直接导入状态层（未授权写入测试 + 模块权限测试 + 写入所有权）",
+      "passed": true,
+      "detail": {
+        "eb01": true
+      }
+    },
+    {
+      "id": "B10",
+      "description": "EB-02 状态版本：失败写入（陈旧 + 非法转换双路径）不消耗版本号——v2 → v2，零 state_transitioned",
+      "passed": false,
+      "detail": {
+        "eb02": false
+      }
+    },
+    {
+      "id": "B11",
+      "description": "EB-03 幂等（HTTP 形态）：重复 request_id → 409 REQUEST_DUPLICATE（{code,message,retryable} 结构），事件日志长度不变（仅一次执行）",
+      "passed": false,
+      "detail": {
+        "eb03": false
+      }
+    },
+    {
+      "id": "B12",
+      "description": "EB-04 可中断性（I1–I4 组合）：生成中常规输入拒绝（retryable）；CHANGE 取消旧 generation（superseded_by_change）；旧 generation 迟到达提交 STALE_GENERATION 拒绝；STOP 终止（零内容分块、COMPLETED、ENDED）；网关恰好 2 次调用",
+      "passed": false,
+      "detail": {
+        "eb04": false
+      }
+    },
+    {
+      "id": "B13",
+      "description": "EB-05 过期结果拒绝（P2 强制测试）：旧请求晚于新请求返回 → STALE_GENERATION；state_write_rejected 携带 attempted/active generation_id；新状态（v5 WAITING）未被污染",
+      "passed": true,
+      "detail": {
+        "eb05": true
+      }
+    },
+    {
+      "id": "B14",
+      "description": "EB-06 重试边界：网关失败 → 恰好 1 次调用（无自动重试）、LLM_UNAVAILABLE retryable=true、零状态写入、policy_decided.state_after=null；失败后 STOP 不触发网关调用（重试是工程恢复机制而非产品决策机制）",
+      "passed": false,
+      "detail": {
+        "eb06": false,
+        "eb06s": false
+      }
+    },
+    {
+      "id": "B15",
+      "description": "EB-07 超时边界：延迟拒绝 → 有界恢复（版本不变、无隐藏续行——失败事件恰 4 个）；用户控制保留（同一体验后续合法 WHY 输入成功，WAITING v4，内容逐字节等于语料）；不因超时而自行决定新方向",
+      "passed": true,
+      "detail": {
+        "eb07": true
+      }
+    },
+    {
+      "id": "B16",
+      "description": "EB-08 LLM 边界：confidence 0.0 与 1.0 提案决策完全一致（EXPLAIN / 同终态 / 同版本 / 同内容）；决策路径（运行时 + 策略）源码不读 proposal.confidence（静态断言）",
+      "passed": false,
+      "detail": {
+        "eb08": false
+      }
+    },
+    {
+      "id": "B17",
+      "description": "EB-09 前端边界：app/api 路由仅导入 server-runtime / http / audit（无状态层直接导入）；前端文件无状态变更（Frontend → Product API 为唯一产品面）",
+      "passed": true,
+      "detail": {
+        "eb09": true
+      }
+    },
+    {
+      "id": "B18",
+      "description": "EB-10 记忆写入边界：S1 无记忆模块/导入（PD-07 缺席证明）；携带 memory_* 字段的提案 → POLICY_REJECTED + llm_output_rejected + state_write_rejected(llm_state_mutation_forbidden)，零状态写入",
+      "passed": true,
+      "detail": {
+        "eb10": true
+      }
+    },
+    {
+      "id": "B19",
+      "description": "EB-11 工具授权边界：S1 无工具模块/导入（缺席证明）；全部决策追踪 execution.tool_used === false（LLM 不得直接执行工具）",
+      "passed": false,
+      "detail": {
+        "eb11": false
+      }
+    },
+    {
+      "id": "B20",
+      "description": "EB-12 API 边界：错误→状态映射可区分且完备（409/503/500/400，禁止统一 500）；HTTP 错误体 {code,message,retryable} 齐备（405/400/409 形态验证）；HTTP 形态 503 NOT RUN 明示（服务端运行时未暴露网关注入缝——非结论登记）",
+      "passed": true,
+      "detail": {
+        "eb12": true
+      }
+    },
+    {
+      "id": "B21",
+      "description": "EB-13 完成边界：用户\"好了\"/\"先这样\"确定性分类为 STOP（用户主权，非 LLM 判断）；LLM 提案携带 is_complete → POLICY_REJECTED（零状态写入）；STOP 决策追踪 user_override === true",
+      "passed": false,
+      "detail": {
+        "eb13": false
+      }
+    },
+    {
+      "id": "B22",
+      "description": "EB-14 分析边界：HTTP 事件日志追加只写——第二次交互后前缀字节逐字节不变、长度严格递增（分析只能观察，不能修改 Runtime State）",
+      "passed": true,
+      "detail": {
+        "eb14": true
+      }
+    },
+    {
+      "id": "B23",
+      "description": "EB-15 可回放性：从事件流 + 决策追踪重建版本链（每次提交 +1、链连续、trace 链与事件链一致）、终态与运行时视图一致（COMPLETED/COMPLETION v5）、sequence_number 单调、全部版本化事件 ≤ 最终版本",
+      "passed": true,
+      "detail": {
+        "eb15": true
+      }
+    },
+    {
+      "id": "B25",
+      "description": "无真实提供方调用：产品运行时源码（src/experience/** + app/api/**）静态扫描无 fetch/网络/LLM 提供方/凭据引用",
+      "passed": true,
+      "detail": {
+        "files": 25,
+        "violations": []
+      }
+    },
+    {
+      "id": "B26",
+      "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配",
+      "passed": true,
+      "detail": {
+        "typecheckExitCode": 0,
+        "buildExitCode": 0,
+        "referenceVerified": "36/36",
+        "fingerprintsAllMatch": true
+      }
+    },
+    {
+      "id": "B27",
+      "description": "证据-代码绑定：运行于干净工作树（HEAD 记录于版本矩阵）；运行时文件哈希逐文件登记于 run-metadata.json",
+      "passed": true,
+      "detail": {
+        "head": "69c49f2c7ebc330cd994586df87bd748b83dd425",
+        "workTreeClean": true,
+        "uncommittedEntries": []
+      }
+    },
+    {
+      "id": "B1",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段）",
+      "passed": true,
+      "detail": {
+        "missingSections": []
+      }
+    },
+    {
+      "id": "B2",
+      "description": "环境锁定：engines.node === \"24.21.0\"（F-2 精确锁定）且执行于 Node v24.21.0；Next.js / React / TypeScript 版本登记",
+      "passed": true,
+      "detail": {
+        "enginesNode": "24.21.0",
+        "processVersion": "v24.21.0",
+        "next": "16.4.0",
+        "react": "19.3.0",
+        "typescript": "7.0.2"
+      }
+    },
+    {
+      "id": "B24",
+      "description": "EB-16 版本可追溯：一次产品行为可关联 Product Version / Contract Versions / Schema Version / Policy Version / Code Revision / Corpus 版本（本矩阵全部登记）；运行时文件逐文件哈希；执行器自身哈希登记",
+      "passed": true,
+      "detail": {
+        "runtimeFileCount": 32,
+        "executorSha256Registered": true
+      }
+    },
+    {
+      "id": "B28",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
+      "detail": {
+        "entries": null,
+        "mismatches": null
+      }
+    }
+  ],
+  "allAssertionsPass": false,
+  "allPassed": false,
+  "exitCode": 1,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2/G4）或产品状态为 PASS（E5 §2）。G2 动态跨契约一致性与 G4 工程边界证据本运行已执行；G5 独立评测 NOT RUN（独立评测人须先审阅 F-1/F-2/F-3 staged 材料）；CR-16/CR-17 待非作者复核。"
+}

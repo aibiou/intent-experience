@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB05-STALE-LATE","event":"trace_started","at":"2026-10-08T15:59:55.820Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-05（Stale Result Rejection：P2 强制测试——旧请求晚于新请求返回）"}
+{"caseId":"F3-EB-0001:EB05-STALE-LATE","event":"trace_completed","at":"2026-10-08T15:59:56.247Z","startedAt":"2026-10-08T15:59:55.820Z","durationMs":427,"result":"PASS","pass":true}

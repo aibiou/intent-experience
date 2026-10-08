@@ -1,0 +1,67 @@
+{
+  "caseIdNamespace": "F3-EB-0001:G2-CHAIN-01",
+  "sourceClause": "P2-EVIDENCE-8.1 §B.1（G2 动态跨契约一致性）；门禁转换表\"编码后 G\"（真实请求、状态前后、决策轨迹、事件及版本）；C1/C2/C4/C5/C6/C7/C8/C9 一致性",
+  "scope": "G2 动态（跨契约链路）",
+  "precondition": "标准链路（Session → WHY 意图 → 体验启动 v2）",
+  "inputFault": "无（正向链路一致性验证）",
+  "expected": {
+    "crossContractAgreement": "C1 会话 ACTIVE；C2 intent.semanticAction=WHY；C5 intent_parsed.semantic_action=WHY；C6 policy_decided.selected_action=EXPLAIN（冻结映射 WHY→EXPLAIN）；C7/C8 流内容逐字节等于合成语料；C9 终态 WAITING v4；决策追踪 state_before=v2→state_after=v3 与 state_transitioned 一致；信封全量通过；sequence_number 严格单调"
+  },
+  "actual": {
+    "sessionStateAfter": "SESSION_ACTIVE",
+    "intentSemanticAction": "WHY",
+    "intentParsedSemanticAction": "WHY",
+    "decisionTraceSemanticAction": "WHY",
+    "headerSelectedAction": "EXPLAIN",
+    "traceSelectedAction": "EXPLAIN",
+    "streamContent": "为什么推荐这条路线：因为当前路况（合成数据）显示北山街拥堵，而杨公堤畅通且风景更契合你的首体验目标。（流式结束）",
+    "fixtureContent": "为什么推荐这条路线：因为当前路况（合成数据）显示北山街拥堵，而杨公堤畅通且风景更契合你的首体验目标。（流式结束）",
+    "finalState": "WAITING/UNDERSTANDING v4",
+    "traceStateBefore": {
+      "status": "READY",
+      "stage": "UNDERSTANDING",
+      "state_version": 2
+    },
+    "traceStateAfter": {
+      "status": "ACTIVE",
+      "stage": "UNDERSTANDING",
+      "state_version": 3
+    },
+    "stateTransitionedVersions": {
+      "before": 2,
+      "after": 3,
+      "steps": [
+        "USER_ACTION"
+      ]
+    },
+    "stateUpdatedVersion": 4,
+    "envelopeViolations": 0,
+    "sequenceMonotonic": true,
+    "decisionTraceSeparation": {
+      "llm_used": true,
+      "tool_used": false
+    }
+  },
+  "invariants": [
+    "S1 范围边界：CREATE/SEARCH 禁用；WHAT_IF 仅单次模拟不建立持久/多轮分支；不持久化跨会话 Memory（PD-05/PD-06/PD-07）",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "旧 operation 不得提交（generation epoch 守卫 + 版本双重检查，S1-10；CC02 H03）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）",
+    "工程边界（P2-EVIDENCE-4.0）：重试是工程恢复机制而非产品决策机制（EB-06）；超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/F3-EB-0001:G2-CHAIN-01.jsonl",
+    "traceSha256": "3d21aa515837f8111077a8181efe0e31ca4d6910c52ba52daebc030b6d771e72",
+    "form": "in-process",
+    "httpEventLog": null,
+    "httpDecisionTraceLog": null,
+    "httpAuditLog": null
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

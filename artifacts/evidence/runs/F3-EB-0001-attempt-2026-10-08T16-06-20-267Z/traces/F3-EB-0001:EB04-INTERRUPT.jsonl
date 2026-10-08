@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB04-INTERRUPT","event":"trace_started","at":"2026-10-08T15:59:55.395Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-04（Interruptibility：I1–I4 必需中断案例）"}
+{"caseId":"F3-EB-0001:EB04-INTERRUPT","event":"trace_completed","at":"2026-10-08T15:59:55.819Z","startedAt":"2026-10-08T15:59:55.395Z","durationMs":424,"result":"FAIL","pass":false}
