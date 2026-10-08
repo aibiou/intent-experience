@@ -1,0 +1,6 @@
+{"caseId":"F1-E2E-0001:F1-STREAM-02-HTTP","event":"trace_started","at":"2026-10-08T14:23:15.044Z","form":"http","sourceClause":"S1 §26 GS-01/GS-02；C5 API Contract V1；P3-S1-REVIEW-005 F-1（选项 A：HTTP 形态，真实 Next.js 服务器）"}
+{"caseId":"F1-E2E-0001:F1-STREAM-02-HTTP","event":"request-completed","at":"2026-10-08T14:23:15.462Z","form":"http","status":200,"eventCount":10,"durationMs":416}
+{"caseId":"F1-E2E-0001:F1-STREAM-02-HTTP","event":"trace_completed","at":"2026-10-08T14:23:15.464Z","startedAt":"2026-10-08T14:23:15.044Z","durationMs":420,"result":"PASS","pass":true}
+{"caseId":"F1-E2E-0001:F1-STREAM-02-HTTP","event":"trace_started","at":"2026-10-08T14:24:30.560Z","form":"http","sourceClause":"S1 §26 GS-01/GS-02；C5 API Contract V1；P3-S1-REVIEW-005 F-1（选项 A：HTTP 形态，真实 Next.js 服务器）"}
+{"caseId":"F1-E2E-0001:F1-STREAM-02-HTTP","event":"request-completed","at":"2026-10-08T14:24:30.971Z","form":"http","status":200,"eventCount":10,"durationMs":410}
+{"caseId":"F1-E2E-0001:F1-STREAM-02-HTTP","event":"trace_completed","at":"2026-10-08T14:24:30.974Z","startedAt":"2026-10-08T14:24:30.559Z","durationMs":415,"result":"FAIL","pass":false}

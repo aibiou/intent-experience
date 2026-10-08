@@ -1,0 +1,29 @@
+{
+  "caseIdNamespace": "F1-E2E-0001:F1-ABORT-03-PRECHUNK",
+  "sourceClause": "P3-S1-REVIEW-005 F-1（取消先于第一个分块到达）；E5 §5 必测维度（边界条件）",
+  "scope": "取消先于第一个分块：信号在请求开始前已 aborted；零内容分块，cancellation 登记于下标 0",
+  "precondition": "同 F1-STREAM-01-INPROC",
+  "inputFault": "边界注入：请求开始前 abort()",
+  "expected": {
+    "executed": "without error"
+  },
+  "actual": {
+    "error": "TypeError: audit is not a function"
+  },
+  "invariants": [
+    "流式分块必须按语料顺序产出，不得重放、缺失或乱序",
+    "取消（传输层 abort 或策略 STOP）后不得产出任何后续内容分块",
+    "每次取消必须登记 cancellation 事件并含取消时的分块下标",
+    "越权/非法输入必须被拒绝且不得产出流",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方"
+  ],
+  "evidence": {
+    "trace": "traces/F1-E2E-0001:F1-ABORT-03-PRECHUNK.jsonl",
+    "traceSha256": "d5360d277e46ec7c944965948dadfa006d2aa7574f02638fb7f88e42dc2dc62d",
+    "form": "in-process",
+    "httpAuditLog": null
+  },
+  "result": "FAIL",
+  "evaluator": "实现作者：代理（Codex，工程负责人角色履行）；独立评测负责人：用户本人（角色 5，PD-15）。本案例由代理执行器运行；独立评测人保留对完整轨迹、预期与失败记录的审阅与否决权（材料 staged 于 review/README.md）。",
+  "defectsFollowUp": "本案例未通过——按 ADR-0002 §5 如实登记，不得重跑至通过为止；缺陷须在下一迭代处置"
+}

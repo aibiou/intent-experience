@@ -1,0 +1,10 @@
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"trace_started","at":"2026-10-08T14:23:15.706Z","form":"http","sourceClause":"P3-S1-REVIEW-005 F-1（AbortSignal 取消传播，HTTP 形态）；E5 §5 必测维度（故障条件：客户端断开）；C5 API Contract V1"}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"abort-issued","at":"2026-10-08T14:23:15.797Z","form":"http","afterChunks":2}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"abort-observed","at":"2026-10-08T14:23:16.101Z","form":"http","receivedChunks":2,"abortError":"AbortError","serverAuditEvents":["chunk","chunk","cancelled"]}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"server-alive-probe","at":"2026-10-08T14:23:16.447Z","status":200,"chunkCount":8}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"trace_completed","at":"2026-10-08T14:23:16.450Z","startedAt":"2026-10-08T14:23:15.706Z","durationMs":744,"result":"PASS","pass":true}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"trace_started","at":"2026-10-08T14:24:31.217Z","form":"http","sourceClause":"P3-S1-REVIEW-005 F-1（AbortSignal 取消传播，HTTP 形态）；E5 §5 必测维度（故障条件：客户端断开）；C5 API Contract V1"}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"abort-issued","at":"2026-10-08T14:24:31.311Z","form":"http","afterChunks":2}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"abort-observed","at":"2026-10-08T14:24:31.616Z","form":"http","receivedChunks":2,"abortError":"AbortError","serverAuditEvents":["chunk","chunk","cancelled"]}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"server-alive-probe","at":"2026-10-08T14:24:31.968Z","status":200,"chunkCount":8}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"trace_completed","at":"2026-10-08T14:24:31.970Z","startedAt":"2026-10-08T14:24:31.217Z","durationMs":753,"result":"PASS","pass":true}

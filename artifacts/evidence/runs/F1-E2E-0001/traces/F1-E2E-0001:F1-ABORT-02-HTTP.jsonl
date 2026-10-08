@@ -1,0 +1,5 @@
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"trace_started","at":"2026-10-08T14:25:37.719Z","form":"http","sourceClause":"P3-S1-REVIEW-005 F-1（AbortSignal 取消传播，HTTP 形态）；E5 §5 必测维度（故障条件：客户端断开）；C5 API Contract V1"}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"abort-issued","at":"2026-10-08T14:25:37.812Z","form":"http","afterChunks":2}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"abort-observed","at":"2026-10-08T14:25:38.119Z","form":"http","receivedChunks":2,"abortError":"AbortError","serverAuditEvents":["chunk","chunk","cancelled"]}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"server-alive-probe","at":"2026-10-08T14:25:38.472Z","status":200,"chunkCount":8}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"trace_completed","at":"2026-10-08T14:25:38.473Z","startedAt":"2026-10-08T14:25:37.718Z","durationMs":755,"result":"PASS","pass":true}

@@ -1,0 +1,37 @@
+{
+  "caseIdNamespace": "F1-E2E-0001:F1-NEG-03-METHOD-HTTP",
+  "sourceClause": "C5 API Contract V1（方法约束）；E5 §5 必测维度（负向案例）",
+  "scope": "方法约束：GET /api/experience/stream → 405 METHOD_NOT_ALLOWED",
+  "precondition": "同 F1-STREAM-02-HTTP",
+  "inputFault": "负向输入：HTTP GET（仅 POST 允许）",
+  "expected": {
+    "status": 405,
+    "error": "METHOD_NOT_ALLOWED",
+    "allowed": [
+      "POST"
+    ]
+  },
+  "actual": {
+    "status": 405,
+    "error": "METHOD_NOT_ALLOWED",
+    "allowed": [
+      "POST"
+    ]
+  },
+  "invariants": [
+    "流式分块必须按语料顺序产出，不得重放、缺失或乱序",
+    "取消（传输层 abort 或策略 STOP）后不得产出任何后续内容分块",
+    "每次取消必须登记 cancellation 事件并含取消时的分块下标",
+    "越权/非法输入必须被拒绝且不得产出流",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方"
+  ],
+  "evidence": {
+    "trace": "traces/F1-E2E-0001:F1-NEG-03-METHOD-HTTP.jsonl",
+    "traceSha256": "a95dc60d4830de03592b9455f8041c37610e4143caa7030d815908deba5235a6",
+    "form": "http",
+    "httpAuditLog": "traces/http-audit.jsonl"
+  },
+  "result": "PASS",
+  "evaluator": "实现作者：代理（Codex，工程负责人角色履行）；独立评测负责人：用户本人（角色 5，PD-15）。本案例由代理执行器运行；独立评测人保留对完整轨迹、预期与失败记录的审阅与否决权（材料 staged 于 review/README.md）。",
+  "defectsFollowUp": "无（本案例）；E3 公开发布统计阈值仍待产品负责人批准（F-4，REVIEW-007/008）"
+}

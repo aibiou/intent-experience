@@ -1,0 +1,4 @@
+{"caseId":"F1-E2E-0001:F1-ABORT-03-PRECHUNK","event":"trace_started","at":"2026-10-08T14:19:54.755Z","form":"in-process","sourceClause":"P3-S1-REVIEW-005 F-1（取消先于第一个分块到达）；E5 §5 必测维度（边界条件）"}
+{"caseId":"F1-E2E-0001:F1-ABORT-03-PRECHUNK","event":"abort-issued","at":"2026-10-08T14:19:54.756Z","form":"in-process","timing":"before-first-chunk"}
+{"caseId":"F1-E2E-0001:F1-ABORT-03-PRECHUNK","event":"executor-error","at":"2026-10-08T14:19:54.757Z","error":"TypeError: audit is not a function"}
+{"caseId":"F1-E2E-0001:F1-ABORT-03-PRECHUNK","event":"trace_completed","at":"2026-10-08T14:19:54.759Z","startedAt":"2026-10-08T14:19:54.755Z","durationMs":4,"result":"FAIL","pass":false}

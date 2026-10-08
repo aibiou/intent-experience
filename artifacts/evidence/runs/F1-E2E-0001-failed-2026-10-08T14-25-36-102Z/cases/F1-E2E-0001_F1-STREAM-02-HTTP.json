@@ -1,0 +1,63 @@
+{
+  "caseIdNamespace": "F1-E2E-0001:F1-STREAM-02-HTTP",
+  "sourceClause": "S1 §26 GS-01/GS-02；C5 API Contract V1；P3-S1-REVIEW-005 F-1（选项 A：HTTP 形态，真实 Next.js 服务器）",
+  "scope": "HTTP 形态正常流式：真实 HTTP 请求经 Next.js Route Handler，NDJSON 增量到达；服务端审计汇与客户端事件一致",
+  "precondition": "Next.js 生产构建成功；服务器监听 127.0.0.1:4321；EXPERIENCE_AUDIT_LOG 指向本运行 traces/http-audit.jsonl",
+  "inputFault": "正常输入：HTTP POST /api/experience/stream { semanticAction: \"WHY\" }；无故障注入",
+  "expected": {
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "chunkCount": 9,
+    "chunkIndexes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "contentEqualsFixture": true,
+    "finalEvent": "done",
+    "serverAuditMatchesClientEvents": true
+  },
+  "actual": {
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "chunkCount": 9,
+    "chunkIndexes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "contentEqualsFixture": true,
+    "finalEvent": "done",
+    "serverAuditEventCount": 32,
+    "serverAuditFinalEvent": "done",
+    "serverAuditContentEqualsClient": false
+  },
+  "invariants": [
+    "流式分块必须按语料顺序产出，不得重放、缺失或乱序",
+    "取消（传输层 abort 或策略 STOP）后不得产出任何后续内容分块",
+    "每次取消必须登记 cancellation 事件并含取消时的分块下标",
+    "越权/非法输入必须被拒绝且不得产出流",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方"
+  ],
+  "evidence": {
+    "trace": "traces/F1-E2E-0001:F1-STREAM-02-HTTP.jsonl",
+    "traceSha256": "c88cf180c9244b293f8120358f05889b18d1a1a3b9f35432221914151404458e",
+    "form": "http",
+    "httpAuditLog": "traces/http-audit.jsonl"
+  },
+  "result": "FAIL",
+  "evaluator": "实现作者：代理（Codex，工程负责人角色履行）；独立评测负责人：用户本人（角色 5，PD-15）。本案例由代理执行器运行；独立评测人保留对完整轨迹、预期与失败记录的审阅与否决权（材料 staged 于 review/README.md）。",
+  "defectsFollowUp": "本案例未通过——按 ADR-0002 §5 如实登记，不得重跑至通过为止；缺陷须在下一迭代处置"
+}

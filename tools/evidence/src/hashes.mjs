@@ -33,8 +33,9 @@ export async function hashTree(rootDir, relBase = '') {
 }
 
 // Write a SHA256SUMS manifest ("<hash>  <relpath>" per line) for every file under outDir.
+// The manifest excludes itself — a manifest cannot hash its own final bytes.
 export async function writeSha256Sums(outDir) {
-  const entries = await hashTree(outDir);
+  const entries = (await hashTree(outDir)).filter((entry) => entry.path !== 'SHA256SUMS');
   const lines = entries.map((e) => `${e.hash}  ${e.path}`);
   const manifestPath = path.join(outDir, 'SHA256SUMS');
   await writeFile(manifestPath, `${lines.join('\n')}\n`, 'utf8');

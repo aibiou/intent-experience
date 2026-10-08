@@ -1,0 +1,3 @@
+{"caseId":"F1-E2E-0001:F1-STREAM-02-HTTP","event":"trace_started","at":"2026-10-08T14:19:53.750Z","form":"http","sourceClause":"S1 §26 GS-01/GS-02；C5 API Contract V1；P3-S1-REVIEW-005 F-1（选项 A：HTTP 形态，真实 Next.js 服务器）"}
+{"caseId":"F1-E2E-0001:F1-STREAM-02-HTTP","event":"request-completed","at":"2026-10-08T14:19:54.148Z","form":"http","status":200,"eventCount":10,"durationMs":397}
+{"caseId":"F1-E2E-0001:F1-STREAM-02-HTTP","event":"trace_completed","at":"2026-10-08T14:19:54.151Z","startedAt":"2026-10-08T14:19:53.750Z","durationMs":401,"result":"FAIL","pass":false}

@@ -1,0 +1,70 @@
+{
+  "caseIdNamespace": "F1-E2E-0001:F1-ABORT-01-INPROC",
+  "sourceClause": "P3-S1-REVIEW-005 F-1（AbortSignal 取消传播）；E5 §5 必测维度（故障条件：取消）；C2 State Machine（生成终止不产生半状态）",
+  "scope": "进程内形态流中取消：收到 2 个分块后 abort()；不得产出任何后续分块；审计汇登记 cancellation（含分块下标）",
+  "precondition": "同 F1-STREAM-01-INPROC；调用方持有 AbortController",
+  "inputFault": "故障注入：第 2 个分块到达后立即 abort()（模拟客户端断开）",
+  "expected": {
+    "receivedChunkCount": 2,
+    "receivedChunkIndexes": [
+      0,
+      1
+    ],
+    "chunksAfterAbort": 0,
+    "auditEvents": [
+      {
+        "type": "chunk",
+        "index": 0
+      },
+      {
+        "type": "chunk",
+        "index": 1
+      },
+      {
+        "type": "cancelled",
+        "index": 2
+      }
+    ],
+    "eventsAfterCancellation": 0
+  },
+  "actual": {
+    "receivedChunkCount": 2,
+    "receivedChunkIndexes": [
+      0,
+      1
+    ],
+    "chunksAfterAbort": 0,
+    "auditEvents": [
+      {
+        "type": "chunk",
+        "index": 0
+      },
+      {
+        "type": "chunk",
+        "index": 1
+      },
+      {
+        "type": "cancelled",
+        "index": 2
+      }
+    ],
+    "eventsAfterCancellation": 0,
+    "abortError": null
+  },
+  "invariants": [
+    "流式分块必须按语料顺序产出，不得重放、缺失或乱序",
+    "取消（传输层 abort 或策略 STOP）后不得产出任何后续内容分块",
+    "每次取消必须登记 cancellation 事件并含取消时的分块下标",
+    "越权/非法输入必须被拒绝且不得产出流",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方"
+  ],
+  "evidence": {
+    "trace": "traces/F1-E2E-0001:F1-ABORT-01-INPROC.jsonl",
+    "traceSha256": "c57f51986bbf493ed74207ad033ecc540336bdfed28d12ce678382b5a727c9e6",
+    "form": "in-process",
+    "httpAuditLog": null
+  },
+  "result": "PASS",
+  "evaluator": "实现作者：代理（Codex，工程负责人角色履行）；独立评测负责人：用户本人（角色 5，PD-15）。本案例由代理执行器运行；独立评测人保留对完整轨迹、预期与失败记录的审阅与否决权（材料 staged 于 review/README.md）。",
+  "defectsFollowUp": "无（本案例）；E3 公开发布统计阈值仍待产品负责人批准（F-4，REVIEW-007/008）"
+}

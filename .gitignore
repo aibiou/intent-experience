@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# compiled core bundle for the in-process evidence harness
+dist/
+
+# local env / secrets — never commit
+.env
+.env.*
+!.env.example
+
+# logs
+*.log

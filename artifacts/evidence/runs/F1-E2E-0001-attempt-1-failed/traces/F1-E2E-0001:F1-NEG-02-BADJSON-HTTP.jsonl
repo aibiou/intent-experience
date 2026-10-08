@@ -1,0 +1,3 @@
+{"caseId":"F1-E2E-0001:F1-NEG-02-BADJSON-HTTP","event":"trace_started","at":"2026-10-08T14:19:54.771Z","form":"http","sourceClause":"C5 API Contract V1（请求体校验）；E5 §5 必测维度（负向案例）"}
+{"caseId":"F1-E2E-0001:F1-NEG-02-BADJSON-HTTP","event":"request-completed","at":"2026-10-08T14:19:54.777Z","form":"http","status":400,"fault":"invalid-json-body"}
+{"caseId":"F1-E2E-0001:F1-NEG-02-BADJSON-HTTP","event":"trace_completed","at":"2026-10-08T14:19:54.778Z","startedAt":"2026-10-08T14:19:54.771Z","durationMs":7,"result":"PASS","pass":true}
