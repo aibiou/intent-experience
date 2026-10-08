@@ -1,0 +1,67 @@
+# P3-S1 实施授权
+
+**编号：** P3-S1-IMPL-AUTH-01
+**版本：** 1.0.0
+**状态：** AUTHORIZED（2026-10-08 签发）
+**授权依据：** P2-EVIDENCE-8.1 两段式门禁（PD-02）；A1–A6 准入条件全部满足（2026-10-08）
+**签发：** 代理产品负责人（Codex 履行，PODR-001 / PD-10 / PD-14 / PD-15 委托）
+
+## 1. 准入条件满足证据（A1–A6）
+
+| 条件 | 状态 | 证据 |
+|---|---|---|
+| A1 / G1 契约权威冻结 | PASSED | C1–C7 Steward 确认（`signing/steward-confirmation-c1-c7.md`，2026-10-08）+ R1 非作者复核（P3-S1-REVIEW-006，ACCEPT WITH FINDINGS） |
+| A2 / G2 静态跨契约映射 | PASSED | R2 非作者复核（P3-S1-REVIEW-004，ACCEPT，2026-10-08）；动态执行 NOT RUN |
+| A3 / A4 / G6 / G7 | PASSED | R3 非作者复核（P3-S1-REVIEW-007，ACCEPT WITH FINDINGS）；PB-01…PB-04 处置闭环（PB-01 解除条件已满足） |
+| A5 / E5 证据环境就绪 | PASSED | E5-SCOPED-LICENSE-01（PD-17 选项 A）+ 环境搭建（`tools/evidence/` + package-lock.json）+ 首次端到端试运行 E5-TRIAL-0001（4 案例 PASS、8/8 断言、退出码 0；`artifacts/evidence/runs/E5-TRIAL-0001/`）+ 独立评测人任命（G5 隔离声明，2026-10-08） |
+| A6 技术可行性 | PASSED | R4 复核（P3-S1-REVIEW-005，ACCEPT WITH FINDINGS）；ADR-0002 Spike 完成（run 2 S-1/S-2/S-3 全过，run 1 失败如实登记） |
+
+准入记录：`docs/product/p3-s1/readiness-record.md` v1.0.0。
+
+## 2. 授权范围
+
+P3-S1 Runtime Implementation：运行时首个完整产品切片（S1）运行时代码的开发与动态证据执行。
+
+## 3. 首个迭代义务（REVIEW-005 F-1 / F-2 处置）
+
+1. **F-1（Important，选项 A 采纳）：** Next.js Route Handler 流式响应 + AbortSignal 取消传播的端到端动态证据——在产品框架（Next.js + TypeScript）内验证 S-1 客户端中止传播（进程内与 HTTP 两种形态），作为实施首批必验项；动态证据按 E5 §3/§4 记录。
+2. **F-2（Important）：** 授权日 Node Active LTS 重查并锁定补丁——**已履行**（见 §4）。
+
+## 4. F-2 履行记录（授权日 LTS 重查）
+
+| 项 | 记录 |
+|---|---|
+| 重查日期 | 2026-10-08 |
+| 重查来源 | nodejs.org 官方发布页（页脚："v24.21.0 Latest LTS"） |
+| 当前 Active LTS 线 | Node.js 24.x |
+| 最新补丁版本 | v24.21.0 |
+| 锁定版本 | Node.js v24.21.0（与 ADR-0002 Spike 锁定版本一致；nvm 已安装 `/Users/pg014/.nvm/versions/node/v24.21.0`） |
+| 锁定位置 | `tools/evidence/package.json` engines.node `>=24.0.0`；产品运行时代码 package.json 锁定精确版本 v24.21.0 |
+| 结论 | F-2 义务履行：授权日重查通过，补丁锁定 v24.21.0 |
+
+## 5. 持续约束（授权不解除）
+
+1. 隐私护栏：隐私六要素全部批准前，不得收集或保存任何真实用户数据；仅允许合成数据或经明确批准的脱敏夹具；不得自行假设留存天数、区域或访问角色（evidence-execution-plan §3）。
+2. P0 硬门槛零容忍（PD-08）：用户主导权、状态完整性、策略边界违反直接阻断。
+3. 任何 Gate 不因代码存在、测试全绿或演示成功而 PASS；只有真实运行证据 + 独立评测 + 正式签署（E5 §2）。
+4. 每次运行按 E5 §3 记录完整版本矩阵；失败结果按 ADR-0002 §5 如实登记，不得重跑至通过为止而不留失败记录。
+5. 密钥、访问令牌、原始个人隐私数据不得进入证据文件。
+6. 不得由实现代理自行批准其实现的产品 Gate；独立评测负责人（角色 5，用户本人，G5 隔离声明 2026-10-08 任命生效）保留审阅与否决权。
+7. C3 行为语义空缺（G-1…G-7，C3-SEMANTIC-GAP-REGISTER-01）不得由编码者补写；行使到空缺语义时按升级规则处理，未知情况升级而非由 LLM 决定。
+8. S1 范围边界：CREATE / SEARCH 禁用；WHAT_IF 仅基础单次模拟（不建立持久 / 多轮分支）；不持久化跨会话 Memory（PD-05 / PD-06 / PD-07）；STOP / CHANGE 为硬边界。
+9. 严重度按来源适用（PD-13）；案例 ID 按六类命名空间（PD-11）；状态写入字段规范名 `expected_state_version`（PD-16）。
+
+## 6. 授权不授予
+
+- 不授予任何 Gate PASS：G2–G8 仍 NOT RUN / NOT PASSED，须经动态证据 + 独立评测 + 正式签署。
+- 不授予真实用户数据收集权（隐私六要素待产品 / 安全负责人批准）。
+- 不授予 P2 关闭（P2 仍为 CLOSURE CANDIDATE / BLOCKED，NOT CLOSED）。
+
+## 7. 签署记录
+
+| 角色 | 记录 | 日期 |
+|---|---|---|
+| 产品负责人（签发人；代理 Codex 履行，用户本人 PD-15 委托） | 签发 P3-S1 实施授权（A1–A6 已满足） | 2026-10-08 |
+| 架构负责人（用户本人，PD-15） | 准入条件 A1–A6 满足确认（见 readiness-record v1.0.0） | 2026-10-08 |
+
+**注意：** 本授权是 P2-EVIDENCE-8.1 两段式门禁的第二段起点。首个迭代完成后，动态证据（G2–G4）与独立评测（G5）按 E5 计划执行；任何 P0 失败直接阻断。
