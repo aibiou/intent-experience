@@ -191,12 +191,9 @@
     "note": "G5 16 项评测包仍 NOT RUN；独立评测人须先审阅 F-1/F-2/F-3 staged 材料（review/README.md）"
   },
   "code": {
-    "gitHead": "69c49f2c7ebc330cd994586df87bd748b83dd425",
-    "workTreeClean": false,
-    "uncommittedEntries": [
-      "M tools/evidence/src/f3.mjs",
-      "?? artifacts/evidence/runs/F3-EB-0001/"
-    ],
+    "gitHead": "4b5f1d62a880da6c5b7e551b6f2aae22a8211e4e",
+    "workTreeClean": true,
+    "uncommittedEntries": [],
     "runtimeFiles": {
       "package.json": "fa7665b1ea2c862dce091db47f4336e9591d022f3f35f7ae15d932607067f8dc",
       "package-lock.json": "3bb63eefad5d1c37990b359e3d0b337ad1d4331da9ec7f5536b18acfd859ed86",
@@ -310,9 +307,9 @@
       "result": "PASSED（40/40 案例、24/24 断言、退出码 0）"
     }
   },
-  "startedAt": "2026-10-08T16:06:18.192Z",
-  "finishedAt": "2026-10-08T16:06:27.394Z",
-  "durationMs": 9202,
+  "startedAt": "2026-10-08T16:07:28.530Z",
+  "finishedAt": "2026-10-08T16:07:37.534Z",
+  "durationMs": 9003,
   "executor": "tools/evidence/src/f3.mjs",
   "executorSha256": "0af9266a959cf1792c7efd9fc65cdcef0d5631f6044c73bd0070f2220a9c2d0e"
 }

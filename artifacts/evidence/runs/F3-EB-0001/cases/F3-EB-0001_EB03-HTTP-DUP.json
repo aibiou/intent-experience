@@ -49,7 +49,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:EB03-HTTP-DUP.jsonl",
-    "traceSha256": "03dff5c2c6572f67f2fc0cb22bb7dc97ab6cc4ee4b1ca67a81b2886a4c7c52a1",
+    "traceSha256": "f5f8dc59c19ae32643fb2ad0bff71db13d40d332a81d948fce92882b29ef0053",
     "form": "http",
     "httpEventLog": "traces/http-events.jsonl",
     "httpDecisionTraceLog": "traces/http-decision-traces.jsonl",

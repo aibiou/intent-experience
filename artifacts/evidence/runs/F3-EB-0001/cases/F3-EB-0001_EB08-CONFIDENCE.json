@@ -37,7 +37,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:EB08-CONFIDENCE.jsonl",
-    "traceSha256": "3c8d0871477ba5c8fa823d2ed9b7cdd1cd00d2727b64c060c5e8db3dde56f581",
+    "traceSha256": "612bd878a7b3917693dc37502feff32997925b493678e1092be0a1a40f15ce7c",
     "form": "in-process+static",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

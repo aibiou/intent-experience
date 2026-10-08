@@ -1,2 +1,2 @@
-{"caseId":"F3-EB-0001:EB05-STALE-LATE","event":"trace_started","at":"2026-10-08T16:06:23.326Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-05（Stale Result Rejection：P2 强制测试——旧请求晚于新请求返回）"}
-{"caseId":"F3-EB-0001:EB05-STALE-LATE","event":"trace_completed","at":"2026-10-08T16:06:23.752Z","startedAt":"2026-10-08T16:06:23.326Z","durationMs":426,"result":"PASS","pass":true}
+{"caseId":"F3-EB-0001:EB05-STALE-LATE","event":"trace_started","at":"2026-10-08T16:07:33.500Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-05（Stale Result Rejection：P2 强制测试——旧请求晚于新请求返回）"}
+{"caseId":"F3-EB-0001:EB05-STALE-LATE","event":"trace_completed","at":"2026-10-08T16:07:33.925Z","startedAt":"2026-10-08T16:07:33.500Z","durationMs":425,"result":"PASS","pass":true}

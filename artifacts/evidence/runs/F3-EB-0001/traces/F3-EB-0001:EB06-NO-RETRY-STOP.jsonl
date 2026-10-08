@@ -1,2 +1,2 @@
-{"caseId":"F3-EB-0001:EB06-NO-RETRY-STOP","event":"trace_started","at":"2026-10-08T16:06:23.757Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-06 Forbidden（User STOP → retry generation 为禁止项）"}
-{"caseId":"F3-EB-0001:EB06-NO-RETRY-STOP","event":"trace_completed","at":"2026-10-08T16:06:24.141Z","startedAt":"2026-10-08T16:06:23.757Z","durationMs":384,"result":"PASS","pass":true}
+{"caseId":"F3-EB-0001:EB06-NO-RETRY-STOP","event":"trace_started","at":"2026-10-08T16:07:33.929Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-06 Forbidden（User STOP → retry generation 为禁止项）"}
+{"caseId":"F3-EB-0001:EB06-NO-RETRY-STOP","event":"trace_completed","at":"2026-10-08T16:07:34.309Z","startedAt":"2026-10-08T16:07:33.929Z","durationMs":380,"result":"PASS","pass":true}

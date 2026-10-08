@@ -50,7 +50,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:EB09-FRONTEND.jsonl",
-    "traceSha256": "3d5c895d71bb1e56af2f7e7b6e953c720ae95abc2a89fc4f9275865e4b73f613",
+    "traceSha256": "2a45aa2f319a911c32f6a2e36250ee6cca45f4fcfb24d9a9f98ebe95f1df8881",
     "form": "static",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

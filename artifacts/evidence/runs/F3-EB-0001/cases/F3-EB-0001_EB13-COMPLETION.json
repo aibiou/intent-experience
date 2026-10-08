@@ -43,7 +43,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:EB13-COMPLETION.jsonl",
-    "traceSha256": "a7a456bae6bb5b8431a0257524e6af20c0c5b5a70a3e825c2a5161ef37c6f7ad",
+    "traceSha256": "96390b8114cbe42cad37003a595ed4ac5e70b16a40952441c9a7bfe10713e643",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

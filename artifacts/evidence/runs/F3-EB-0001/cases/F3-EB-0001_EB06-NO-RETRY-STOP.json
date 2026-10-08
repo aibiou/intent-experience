@@ -40,7 +40,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:EB06-NO-RETRY-STOP.jsonl",
-    "traceSha256": "2832eb91ea66066b3b7ecd166c78375ef0e52e5ff1dc5b1f46fb68b52f6a1dcc",
+    "traceSha256": "eb0803f3600da469d300b68d5e0d867ccdba06875f603726d94bc57f4dfebbce",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

@@ -1,9 +1,9 @@
 {
   "runId": "F3-EB-0001",
   "obligation": "P3-S1-IMPL-AUTH-01 §2 授权范围 / P2-EVIDENCE-8.1 §B：G2 动态跨契约一致性案例与故障链路 + G4 工程边界 EB-01…EB-16（F-3 迭代）",
-  "startedAt": "2026-10-08T16:06:18.192Z",
-  "finishedAt": "2026-10-08T16:06:27.405Z",
-  "durationMs": 9213,
+  "startedAt": "2026-10-08T16:07:28.530Z",
+  "finishedAt": "2026-10-08T16:07:37.543Z",
+  "durationMs": 9012,
   "cases": [
     {
       "caseId": "G2-CHAIN-01",
@@ -287,14 +287,11 @@
     {
       "id": "B27",
       "description": "证据-代码绑定：运行于干净工作树（HEAD 记录于版本矩阵）；运行时文件哈希逐文件登记于 run-metadata.json",
-      "passed": false,
+      "passed": true,
       "detail": {
-        "head": "69c49f2c7ebc330cd994586df87bd748b83dd425",
-        "workTreeClean": false,
-        "uncommittedEntries": [
-          "M tools/evidence/src/f3.mjs",
-          "?? artifacts/evidence/runs/F3-EB-0001/"
-        ]
+        "head": "4b5f1d62a880da6c5b7e551b6f2aae22a8211e4e",
+        "workTreeClean": true,
+        "uncommittedEntries": []
       }
     },
     {
@@ -336,8 +333,8 @@
       }
     }
   ],
-  "allAssertionsPass": false,
-  "allPassed": false,
-  "exitCode": 1,
+  "allAssertionsPass": true,
+  "allPassed": true,
+  "exitCode": 0,
   "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2/G4）或产品状态为 PASS（E5 §2）。G2 动态跨契约一致性与 G4 工程边界证据本运行已执行；G5 独立评测 NOT RUN（独立评测人须先审阅 F-1/F-2/F-3 staged 材料）；CR-16/CR-17 待非作者复核。"
 }

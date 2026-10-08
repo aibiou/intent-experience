@@ -1,2 +1,2 @@
-{"caseId":"F3-EB-0001:EB10-MEMORY","event":"trace_started","at":"2026-10-08T16:06:25.351Z","form":"static+in-process","sourceClause":"P2-EVIDENCE-4.0 EB-10（Memory Write Boundary）；PD-07（S1 不持久化跨会话 Memory）"}
-{"caseId":"F3-EB-0001:EB10-MEMORY","event":"trace_completed","at":"2026-10-08T16:06:25.360Z","startedAt":"2026-10-08T16:06:25.351Z","durationMs":9,"result":"PASS","pass":true}
+{"caseId":"F3-EB-0001:EB10-MEMORY","event":"trace_started","at":"2026-10-08T16:07:35.516Z","form":"static+in-process","sourceClause":"P2-EVIDENCE-4.0 EB-10（Memory Write Boundary）；PD-07（S1 不持久化跨会话 Memory）"}
+{"caseId":"F3-EB-0001:EB10-MEMORY","event":"trace_completed","at":"2026-10-08T16:07:35.521Z","startedAt":"2026-10-08T16:07:35.516Z","durationMs":5,"result":"PASS","pass":true}

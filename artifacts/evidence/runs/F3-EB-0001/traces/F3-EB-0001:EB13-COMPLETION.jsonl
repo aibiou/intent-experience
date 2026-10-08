@@ -1,2 +1,2 @@
-{"caseId":"F3-EB-0001:EB13-COMPLETION","event":"trace_started","at":"2026-10-08T16:06:25.783Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-13（Completion Boundary：完成不属于 LLM 自主权限）；S1 §20"}
-{"caseId":"F3-EB-0001:EB13-COMPLETION","event":"trace_completed","at":"2026-10-08T16:06:26.168Z","startedAt":"2026-10-08T16:06:25.783Z","durationMs":385,"result":"PASS","pass":true}
+{"caseId":"F3-EB-0001:EB13-COMPLETION","event":"trace_started","at":"2026-10-08T16:07:35.940Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-13（Completion Boundary：完成不属于 LLM 自主权限）；S1 §20"}
+{"caseId":"F3-EB-0001:EB13-COMPLETION","event":"trace_completed","at":"2026-10-08T16:07:36.321Z","startedAt":"2026-10-08T16:07:35.940Z","durationMs":381,"result":"PASS","pass":true}

@@ -13,12 +13,12 @@
     "toolImports": [],
     "traces": [
       {
-        "decision_id": "decision_0000255615",
+        "decision_id": "decision_000025db35",
         "tool_used": false,
         "llm_used": true
       },
       {
-        "decision_id": "decision_000026f07f",
+        "decision_id": "decision_000026c6c8",
         "tool_used": false,
         "llm_used": false
       }
@@ -37,7 +37,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:EB11-TOOL.jsonl",
-    "traceSha256": "7922e7deaf439a7b9415273b6e888455114eddd751d63c995f026cc63e310c36",
+    "traceSha256": "b67740d301b6a3957a993fc2ec4af5d07207b885182e4c5703390baad3ee6aef",
     "form": "static+in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

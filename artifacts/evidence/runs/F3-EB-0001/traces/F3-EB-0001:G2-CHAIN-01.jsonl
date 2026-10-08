@@ -1,2 +1,2 @@
-{"caseId":"F3-EB-0001:G2-CHAIN-01","event":"trace_started","at":"2026-10-08T16:06:20.842Z","form":"in-process","sourceClause":"P2-EVIDENCE-8.1 §B.1（G2 动态跨契约一致性）；门禁转换表\"编码后 G\"（真实请求、状态前后、决策轨迹、事件及版本）；C1/C2/C4/C5/C6/C7/C8/C9 一致性"}
-{"caseId":"F3-EB-0001:G2-CHAIN-01","event":"trace_completed","at":"2026-10-08T16:06:21.229Z","startedAt":"2026-10-08T16:06:20.841Z","durationMs":388,"result":"PASS","pass":true}
+{"caseId":"F3-EB-0001:G2-CHAIN-01","event":"trace_started","at":"2026-10-08T16:07:31.024Z","form":"in-process","sourceClause":"P2-EVIDENCE-8.1 §B.1（G2 动态跨契约一致性）；门禁转换表\"编码后 G\"（真实请求、状态前后、决策轨迹、事件及版本）；C1/C2/C4/C5/C6/C7/C8/C9 一致性"}
+{"caseId":"F3-EB-0001:G2-CHAIN-01","event":"trace_completed","at":"2026-10-08T16:07:31.408Z","startedAt":"2026-10-08T16:07:31.023Z","durationMs":385,"result":"PASS","pass":true}

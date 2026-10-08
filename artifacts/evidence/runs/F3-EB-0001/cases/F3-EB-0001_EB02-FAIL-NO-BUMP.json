@@ -30,7 +30,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:EB02-FAIL-NO-BUMP.jsonl",
-    "traceSha256": "5a8f08de155439189dd38a9e3db3029315d35cbb7cb20544181394e6bf0d642c",
+    "traceSha256": "5edfb6c9937f92ebb518554435c625048d0b777a27a27097d4292f00155e2bcf",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

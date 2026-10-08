@@ -46,8 +46,8 @@
     "versionedEventsInRange": true,
     "traceCount": 2,
     "traceDecisions": [
-      "decision_000030f348",
-      "decision_000031b920"
+      "decision_0000308002",
+      "decision_0000312a3c"
     ]
   },
   "invariants": [
@@ -63,7 +63,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:EB15-REPLAY.jsonl",
-    "traceSha256": "1f7596060aa4b983836b439ff230e978d5603ebc6dbf7a460af4fa2083a5b353",
+    "traceSha256": "1a21c1faf6bf22bebe3a55a33c19fc08615ccf5ecc2970b023b3858f7dfeef7f",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

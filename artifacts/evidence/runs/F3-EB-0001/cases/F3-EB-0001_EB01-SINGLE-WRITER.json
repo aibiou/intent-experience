@@ -32,7 +32,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:EB01-SINGLE-WRITER.jsonl",
-    "traceSha256": "871c86950481f8ea300206d60a9d68adbf722d518e2e6efc29b2379e4393fc46",
+    "traceSha256": "76c65176b09613511ee8665b3eb8500b8f0dfabf83925beb153e6c8217248d1d",
     "form": "static+in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

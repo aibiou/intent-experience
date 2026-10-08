@@ -1,2 +1,2 @@
-{"caseId":"F3-EB-0001:EB12-ERROR-MAP","event":"trace_started","at":"2026-10-08T16:06:25.751Z","form":"static+http","sourceClause":"P2-EVIDENCE-4.0 EB-12（API Boundary：Error Semantics 必须区分；禁止统一 500）"}
-{"caseId":"F3-EB-0001:EB12-ERROR-MAP","event":"trace_completed","at":"2026-10-08T16:06:25.783Z","startedAt":"2026-10-08T16:06:25.750Z","durationMs":33,"result":"PASS","pass":true}
+{"caseId":"F3-EB-0001:EB12-ERROR-MAP","event":"trace_started","at":"2026-10-08T16:07:35.907Z","form":"static+http","sourceClause":"P2-EVIDENCE-4.0 EB-12（API Boundary：Error Semantics 必须区分；禁止统一 500）"}
+{"caseId":"F3-EB-0001:EB12-ERROR-MAP","event":"trace_completed","at":"2026-10-08T16:07:35.940Z","startedAt":"2026-10-08T16:07:35.907Z","durationMs":33,"result":"PASS","pass":true}

@@ -34,7 +34,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:EB10-MEMORY.jsonl",
-    "traceSha256": "ed405d5dd9037c87b9707d9141084c1f5b8d334c030c1edfaa0df0f9b8245b59",
+    "traceSha256": "c958ed3b09d22f2d4dac569175abd08b434240e842c69dfbf18087161b5ae2cb",
     "form": "static+in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

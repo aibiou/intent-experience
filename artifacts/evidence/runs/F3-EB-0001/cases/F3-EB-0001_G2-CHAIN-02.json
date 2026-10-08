@@ -61,7 +61,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:G2-CHAIN-02.jsonl",
-    "traceSha256": "640458c90c9cc75374cae9469b601a139d613efb74506b4bc1683a137366182c",
+    "traceSha256": "41ce4311b655d2ffbe5ac17bda8eafe84a23d27c9649e9cd1b9492a3321dd724",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

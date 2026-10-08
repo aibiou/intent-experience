@@ -1,2 +1,2 @@
-{"caseId":"F3-EB-0001:EB08-CONFIDENCE","event":"trace_started","at":"2026-10-08T16:06:24.581Z","form":"in-process+static","sourceClause":"P2-EVIDENCE-4.0 EB-08（LLM Boundary：LLM 网关是能力边界而非产品控制中心）"}
-{"caseId":"F3-EB-0001:EB08-CONFIDENCE","event":"trace_completed","at":"2026-10-08T16:06:25.344Z","startedAt":"2026-10-08T16:06:24.581Z","durationMs":763,"result":"PASS","pass":true}
+{"caseId":"F3-EB-0001:EB08-CONFIDENCE","event":"trace_started","at":"2026-10-08T16:07:34.748Z","form":"in-process+static","sourceClause":"P2-EVIDENCE-4.0 EB-08（LLM Boundary：LLM 网关是能力边界而非产品控制中心）"}
+{"caseId":"F3-EB-0001:EB08-CONFIDENCE","event":"trace_completed","at":"2026-10-08T16:07:35.512Z","startedAt":"2026-10-08T16:07:34.748Z","durationMs":764,"result":"PASS","pass":true}

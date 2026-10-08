@@ -44,7 +44,7 @@
   ],
   "evidence": {
     "trace": "traces/F3-EB-0001:EB04-INTERRUPT.jsonl",
-    "traceSha256": "bc8ec3f85f74db3c39bd66e2cc59c870079dfa0635b5e0fbb062897275c549c5",
+    "traceSha256": "572ec588c378556bf4c75b1bcd2af7ce5bdc0f46f7b5e74d350ede08a7680dc6",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,
