@@ -728,9 +728,18 @@ async function caseGs04NoContinuation(trace) {
     requestId: 'req-gs04n-2',
   });
   await consume(stop.stream);
-  // STOP 后：事件日志以 session_ended 结尾，其后无任何事件。
+  // STOP 后：session_ended 登记；其后仅允许 STOP 自身的 policy_decided
+  // 决策记录（C6 §18：决策事件在分支完成后发出，携带已应用效果）——
+  // 不得出现任何内容生成/交互/等待事件（无 continuation，P0 硬边界）。
   const lastEvent = events[events.length - 1];
   const eventsAfterStop = events.slice(events.findIndex((event) => event.event_type === 'session_ended') + 1);
+  const continuationForbidden = [
+    'question_asked', 'why_requested', 'what_if_requested', 'change_direction_requested',
+    'stop_requested', 'generation_started', 'generation_completed', 'llm_request_started',
+    'llm_request_completed', 'llm_output_validated', 'runtime_waiting', 'state_transitioned',
+    'experience_candidate_generated',
+  ];
+  const forbiddenAfterStop = eventsAfterStop.filter((event) => continuationForbidden.includes(event.event_type));
   // STOP 后提交任何输入均被拒绝（无 continuation 路径）。
   const afterStop = await runtime.submitExperienceEvent({
     experienceId: exp.experienceId,
@@ -741,16 +750,23 @@ async function caseGs04NoContinuation(trace) {
     requestId: 'req-gs04n-3',
   });
   const expected = {
-    noContinuation: 'session_ended 为事件日志最后一条；其后零事件；任何后续提交被拒绝',
+    noContinuation: 'session_ended 后仅跟随 STOP 自身的 policy_decided（携带已应用效果）；无任何内容生成/交互/等待事件；任何后续提交被拒绝',
   };
   const actual = {
     lastEventType: lastEvent?.event_type ?? null,
-    eventsAfterSessionEnded: eventsAfterStop.length,
+    eventsAfterSessionEnded: eventsAfterStop.map((event) => event.event_type),
+    afterStopDecisionAction: eventsAfterStop[0]?.properties?.selected_action ?? null,
+    afterStopDecisionStateAfter: eventsAfterStop[0]?.properties?.state_after?.status ?? null,
+    forbiddenContinuationEvents: forbiddenAfterStop.map((event) => event.event_type),
     afterStopResult: afterStop.ok ? 'OK（缺陷！）' : afterStop.error.code,
   };
   const pass =
-    lastEvent?.event_type === 'session_ended' &&
-    eventsAfterStop.length === 0 &&
+    lastEvent?.event_type === 'policy_decided' &&
+    eventsAfterStop.length === 1 &&
+    eventsAfterStop[0].event_type === 'policy_decided' &&
+    eventsAfterStop[0].properties?.selected_action === 'STOP' &&
+    eventsAfterStop[0].properties?.state_after?.status === 'COMPLETED' &&
+    forbiddenAfterStop.length === 0 &&
     !afterStop.ok &&
     afterStop.error.code === 'INVALID_STATE_TRANSITION';
   return { expected, actual, pass };
@@ -1584,8 +1600,8 @@ async function caseC6Idempotency(trace) {
   const identity = { user_id: 'user_synthetic_001', session_id: 'session_idempotency_test' };
   const context = { experience_id: null, intent_id: null, state_version: null, request_id: null };
   const source = { layer: 'runtime', component: 'idempotency-test' };
-  const first = recorder.build('session_started', { identity, context, source, eventId: 'evt_idempotency_000001' });
-  const second = recorder.build('session_started', { identity, context, source, eventId: 'evt_idempotency_000001' });
+  const first = recorder.build('session_started', { identity, context, source, eventId: 'evtidempotency0001' });
+  const second = recorder.build('session_started', { identity, context, source, eventId: 'evtidempotency0001' });
   const resultFirst = await recorder.record(first);
   const resultSecond = await recorder.record(second);
   const expected = {
@@ -1595,7 +1611,7 @@ async function caseC6Idempotency(trace) {
     firstRecord: resultFirst.ok ? 'recorded' : resultFirst.reason,
     secondRecord: resultSecond.ok ? 'recorded（缺陷！）' : resultSecond.reason,
     sinkEntryCount: recorded.length,
-    hasRecorded: recorder.hasRecorded('evt_idempotency_000001'),
+    hasRecorded: recorder.hasRecorded('evtidempotency0001'),
   };
   const pass = resultFirst.ok && !resultSecond.ok && recorded.length === 1 && actual.hasRecorded;
   return { expected, actual, pass };
