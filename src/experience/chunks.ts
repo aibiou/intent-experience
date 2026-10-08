@@ -7,6 +7,8 @@
 
 import { directAnswer } from './fixtures/direct-answer';
 import { why } from './fixtures/why';
+import { changeDirection } from './fixtures/change-direction';
+import { simulate } from './fixtures/simulate';
 
 export interface ChunkFixture {
   fixtureId: string;
@@ -18,6 +20,8 @@ export interface ChunkFixture {
 const FIXTURES: Readonly<Record<string, ChunkFixture>> = {
   [directAnswer.semanticAction]: directAnswer,
   [why.semanticAction]: why,
+  [changeDirection.semanticAction]: changeDirection,
+  [simulate.semanticAction]: simulate,
 };
 
 export type ChunkResolution =
@@ -30,4 +34,9 @@ export function loadChunkFixture(semanticAction: string): ChunkResolution {
     return { ok: false, code: 'NO_FIXTURE_FOR_ACTION', semanticAction };
   }
   return { ok: true, fixture };
+}
+
+/** 全部合成语料（LLM 合成网关默认数据源）。 */
+export function allFixtures(): Readonly<Record<string, ChunkFixture>> {
+  return FIXTURES;
 }
