@@ -1600,8 +1600,8 @@ async function caseC6Idempotency(trace) {
   const identity = { user_id: 'user_synthetic_001', session_id: 'session_idempotency_test' };
   const context = { experience_id: null, intent_id: null, state_version: null, request_id: null };
   const source = { layer: 'runtime', component: 'idempotency-test' };
-  const first = recorder.build('session_started', { identity, context, source, eventId: 'evtidempotency0001' });
-  const second = recorder.build('session_started', { identity, context, source, eventId: 'evtidempotency0001' });
+  const first = recorder.build('session_started', { identity, context, source, eventId: 'evt_idempotency0001' });
+  const second = recorder.build('session_started', { identity, context, source, eventId: 'evt_idempotency0001' });
   const resultFirst = await recorder.record(first);
   const resultSecond = await recorder.record(second);
   const expected = {
@@ -1611,7 +1611,7 @@ async function caseC6Idempotency(trace) {
     firstRecord: resultFirst.ok ? 'recorded' : resultFirst.reason,
     secondRecord: resultSecond.ok ? 'recorded（缺陷！）' : resultSecond.reason,
     sinkEntryCount: recorded.length,
-    hasRecorded: recorder.hasRecorded('evtidempotency0001'),
+    hasRecorded: recorder.hasRecorded('evt_idempotency0001'),
   };
   const pass = resultFirst.ok && !resultSecond.ok && recorded.length === 1 && actual.hasRecorded;
   return { expected, actual, pass };
