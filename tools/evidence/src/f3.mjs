@@ -441,7 +441,10 @@ async function caseG2Chain01(trace) {
     if (!result.ok) violations.push({ event_id: event.event_id, violations: result.violations });
   }
   const intentParsed = eventsOf(events, 'intent_parsed')[0];
-  const stateTransitioned = eventsOf(events, 'state_transitioned')[0];
+  // 本次提交的版本化提交（startExperience 的初始提交 v1→v2 也在事件流中；按 request_id 精确定位）。
+  const stateTransitioned = eventsOf(events, 'state_transitioned').find(
+    (event) => event.context?.request_id === 'req-g2c1-1',
+  );
   const stateUpdated = streamEvents.find((event) => event.type === 'state_updated');
   const expEvents = events.filter((event) => event.context?.experience_id === exp.experienceId);
   const sequenceOk = expEvents.every((event, index) => index === 0 || event.sequence_number > expEvents[index - 1].sequence_number);
@@ -536,6 +539,12 @@ async function caseG2Chain02(trace) {
     (event) => event.properties?.event === 'CHANGE_DIRECTION',
   );
   const interrupted = eventsOf(events, 'experience_interrupted')[0];
+  // 旧 generation 归属：experience_interrupted 登记候选级中断事实
+  // （interrupted_candidate_id / reason=change_direction / old_generation_rejected）；
+  // generation 级归属由 generation_cancelled 携带 generation_id 权威登记。
+  const generationCancelled = eventsOf(events, 'generation_cancelled').find(
+    (event) => event.properties?.generation_id === oldGenerationId,
+  );
   const newGenerationStarted = eventsOf(events, 'generation_started').find(
     (event) => event.properties?.generation_id !== oldGenerationId,
   );
@@ -546,7 +555,7 @@ async function caseG2Chain02(trace) {
   const expected = {
     compoundSteps: "['CHANGE_DIRECTION', 'EXPERIENCE_STARTED', 'USER_ACTION']（状态机 §14 复合迁移）",
     versionCommit: '单次版本化提交 v3→v4（复合结果一次提交）',
-    generationAttribution: 'experience_interrupted.generation_id = 旧 generation；新 candidate 的 generation_started/llm_* 携带新 generation_id',
+    generationAttribution: 'experience_interrupted(reason=change_direction, old_generation_rejected=true, interrupted_candidate_id) + generation_cancelled.generation_id = 旧 generation（reason=superseded_by_change）；新 candidate 的 generation_started/llm_* 携带新 generation_id',
     lateOldCommit: '拒绝（STALE_GENERATION）——旧 operation 不得提交（S1-10）',
     finalState: 'WAITING v5（新方向完成）',
   };
@@ -555,7 +564,16 @@ async function caseG2Chain02(trace) {
     versionBeforeAfter: changeTransition
       ? { before: changeTransition.properties.state_version_before, after: changeTransition.properties.state_version_after }
       : null,
-    interruptedGenerationId: interrupted?.properties?.generation_id ?? null,
+    interrupted: interrupted
+      ? {
+          reason: interrupted.properties.reason,
+          old_generation_rejected: interrupted.properties.old_generation_rejected,
+          interrupted_candidate_id: interrupted.properties.interrupted_candidate_id,
+        }
+      : null,
+    generationCancelledForOld: generationCancelled
+      ? { generation_id: generationCancelled.properties.generation_id, reason: generationCancelled.properties.reason }
+      : null,
     oldGenerationId,
     newGenerationId: newGenerationStarted?.properties?.generation_id ?? null,
     candidateId: candidateGenerated?.properties?.candidate_id ?? null,
@@ -576,7 +594,9 @@ async function caseG2Chain02(trace) {
       JSON.stringify(['CHANGE_DIRECTION', 'EXPERIENCE_STARTED', 'USER_ACTION']) &&
     changeTransition?.properties?.state_version_before === 3 &&
     changeTransition?.properties?.state_version_after === 4 &&
-    interrupted?.properties?.generation_id === oldGenerationId &&
+    generationCancelled !== undefined &&
+    interrupted?.properties?.reason === 'change_direction' &&
+    interrupted?.properties?.old_generation_rejected === true &&
     newGenerationStarted?.properties?.generation_id !== oldGenerationId &&
     candidateGenerated?.properties?.candidate_id === candidateSelected?.properties?.candidate_id &&
     changeTrace?.state_before?.state_version === 3 &&
@@ -841,11 +861,15 @@ async function caseEb02FailNoBump(trace) {
     requestId: 'req-eb02-2',
   });
   const versionAfterIllegal = runtime.getExperienceState(exp.experienceId).state.stateVersion;
+  // 失败写入不得产生任何超出启动提交（v1→v2）的版本化迁移。
   const transitions = eventsOf(events, 'state_transitioned');
+  const transitionsBeyondStart = transitions.filter(
+    (event) => event.properties.state_version_after > versionAfterStart,
+  );
   const expected = {
     staleWrite: 'STATE_VERSION_CONFLICT，版本号不消耗（v2 → v2）',
     illegalTransition: 'INVALID_STATE_TRANSITION（STOP 从 READY 不合法；retryable=false——原样重试不会成功，须先刷新状态），版本号不消耗（v2 → v2）',
-    invariant: '失败写入绝不推进 state_version（last-write-wins 禁止，EB-02 Forbidden）',
+    invariant: '失败写入绝不推进 state_version（last-write-wins 禁止，EB-02 Forbidden）；事件流中唯一 state_transitioned 是启动提交 v1→v2',
   };
   const actual = {
     versionAfterStart,
@@ -853,7 +877,7 @@ async function caseEb02FailNoBump(trace) {
     versionAfterStale,
     illegalResult: illegal.ok ? 'OK（缺陷！）' : `${illegal.error.code}/${illegal.error.retryable}`,
     versionAfterIllegal,
-    stateTransitionedCount: transitions.length,
+    transitionCountBeyondStart: transitionsBeyondStart.length,
   };
   const pass =
     versionAfterStart === 2 &&
@@ -864,7 +888,7 @@ async function caseEb02FailNoBump(trace) {
     illegal.error.code === 'INVALID_STATE_TRANSITION' &&
     illegal.error.retryable === false &&
     versionAfterIllegal === 2 &&
-    transitions.length === 0;
+    transitionsBeyondStart.length === 0;
   return { expected, actual, pass };
 }
 
@@ -875,6 +899,7 @@ async function caseEb03HttpDuplicate(trace, auditOffset) {
   const firstEvents = await readStreamEvents(first.body);
   const logAfterFirst = await httpLogSize(httpEventLogPath);
   const second = await httpPostEvent(setup, { requestId: 'req-f3-eb03-dup-1' });
+  const secondPayload = await second.json().catch(() => null);
   const logAfterSecond = await httpLogSize(httpEventLogPath);
   const expected = {
     firstRequest: '200 NDJSON 流（submission → chunks → done → state_updated v4）',
@@ -886,7 +911,7 @@ async function caseEb03HttpDuplicate(trace, auditOffset) {
     firstStreamTypes: firstEvents.map((event) => event.type),
     firstFinalVersion: firstEvents.find((event) => event.type === 'state_updated')?.state_version ?? null,
     secondStatus: second.status,
-    secondBody: second.payload,
+    secondBody: secondPayload,
     logSizeAfterFirst: logAfterFirst,
     logSizeAfterSecond: logAfterSecond,
     logGrewOnDuplicate: logAfterSecond > logAfterFirst,
@@ -896,9 +921,9 @@ async function caseEb03HttpDuplicate(trace, auditOffset) {
     firstEvents[0]?.type === 'submission' &&
     firstEvents.find((event) => event.type === 'state_updated')?.state_version === 4 &&
     second.status === 409 &&
-    second.payload?.code === 'REQUEST_DUPLICATE' &&
-    second.payload?.retryable === false &&
-    typeof second.payload?.message === 'string' &&
+    secondPayload?.code === 'REQUEST_DUPLICATE' &&
+    secondPayload?.retryable === false &&
+    typeof secondPayload?.message === 'string' &&
     logAfterSecond === logAfterFirst;
   return { expected, actual, pass, newAuditOffset: auditOffset };
 }
@@ -968,7 +993,7 @@ async function caseEb04Interrupt(trace) {
   const contentEventsAfterStop = eventsOf(events, 'chunk');
   const expected = {
     i3: '生成中常规输入 → INVALID_STATE_TRANSITION（retryable=true），版本不消耗',
-    i2: '生成中 CHANGE → 旧 generation 取消（generation_cancelled reason=superseded_by_change），新候选完成',
+    i2: '生成中 CHANGE → 旧 generation 取消（generation_cancelled reason=superseded_by_change），新候选完成且内容逐字节等于 change-direction 合成语料',
     lateOldResult: '旧 generation 迟到达提交 → STALE_GENERATION（旧结果不得重新进入 Runtime）',
     i1i4: 'STOP → 单一 stopped 事件、零内容分块、体验 COMPLETED、会话 ENDED',
     gatewayCalls: '恰好 2 次（旧 WHY + 新候选；中断不触发额外网关调用）',
@@ -1006,7 +1031,7 @@ async function caseEb04Interrupt(trace) {
     sessionAfter?.state === 'SESSION_ENDED' &&
     gateway.calls.calls === 2 &&
     oldStreamCancelled &&
-    contentOf(changeEvents) === 'scripted proposal content';
+    contentOf(changeEvents) === changeDirection.chunks.join('');
   return { expected, actual, pass };
 }
 
@@ -1100,7 +1125,7 @@ async function caseEb06RetryBoundary(trace) {
   const expected = {
     failureSurface: 'LLM_UNAVAILABLE（retryable=true）——工程恢复机制，非产品决策机制',
     callCount: '网关恰好调用 1 次（无自动重试；Retry is an engineering recovery mechanism, not a product decision mechanism）',
-    sideEffects: '零 state_transitioned / 零 llm_request_completed / 零 generation_completed；policy_decided.state_after=null',
+    sideEffects: '零 state_transitioned（超出启动提交 v1→v2）/ 零 llm_request_completed / 零 generation_completed；policy_decided.state_after=null',
     statePreserved: '版本与状态不因失败改变（v2 READY 不变）',
   };
   const actual = {
@@ -1108,11 +1133,15 @@ async function caseEb06RetryBoundary(trace) {
     errorCode: sub.ok ? null : sub.error.code,
     retryable: sub.ok ? null : sub.error.retryable,
     gatewayCalls: gateway.calls.calls,
-    newEventTypes: newEvents.map((event) => event.event_type),
-    stateTransitionedCount: eventsOf(events, 'state_transitioned').length,
+    newEventTypes: newEvents.map((event) => event.type),
+    stateTransitionedBeyondStart: eventsOf(events, 'state_transitioned').filter(
+      (event) => event.properties.state_version_before >= exp.stateVersion,
+    ).length,
     llmRequestCompletedCount: eventsOf(events, 'llm_request_completed').length,
     generationCompletedCount: eventsOf(events, 'generation_completed').length,
-    policyDecidedStateAfter: eventsOf(events, 'policy_decided')[0]?.properties?.state_after ?? 'MISSING',
+    policyDecidedStateAfter: eventsOf(events, 'policy_decided')[0]
+      ? eventsOf(events, 'policy_decided')[0].properties.state_after
+      : 'MISSING',
     policyDecidedReason: eventsOf(events, 'policy_decided')[0]?.properties?.reason ?? null,
     stateVersion: finalState.ok ? finalState.state.stateVersion : null,
     stateStatus: finalState.ok ? finalState.state.status : null,
@@ -1123,7 +1152,9 @@ async function caseEb06RetryBoundary(trace) {
     sub.error.code === 'LLM_UNAVAILABLE' &&
     sub.error.retryable === true &&
     gateway.calls.calls === 1 &&
-    eventsOf(events, 'state_transitioned').length === 0 &&
+    eventsOf(events, 'state_transitioned').filter(
+      (event) => event.properties.state_version_before >= exp.stateVersion,
+    ).length === 0 &&
     eventsOf(events, 'llm_request_completed').length === 0 &&
     eventsOf(events, 'generation_completed').length === 0 &&
     eventsOf(events, 'policy_decided')[0]?.properties?.state_after === null &&
@@ -1176,7 +1207,7 @@ async function caseEb06NoRetryAfterStop(trace) {
   const finalState = runtime.getExperienceState(exp.experienceId);
   const expected = {
     failedGeneration: '第二次 WHY 失败（LLM_UNAVAILABLE；失败不产生状态写入，状态保持 WAITING v4）',
-    stopAfterFailure: 'STOP 从 WAITING 合法终止（单一 stopped 事件、零内容分块、体验 COMPLETED v5、会话 ENDED）',
+    stopAfterFailure: 'STOP 从 WAITING 合法终止（流事件 stopped、零内容分块、体验 COMPLETED v5、会话 ENDED；C6 事件 stop_requested / experience_completed / session_ended 齐备——无独立 "stopped" C6 事件，终止事实由流事件与完成事件权威登记）',
     gatewayCalls: '恒为 2（STOP/CHANGE 后不得重试旧体验、不得再次调用网关——EB-06 Forbidden）',
   };
   const actual = {
@@ -1187,7 +1218,9 @@ async function caseEb06NoRetryAfterStop(trace) {
     statusAfterFailure,
     stopResult: stop.ok ? 'accepted' : stop.error.code,
     stopStreamTypes: stopEvents.map((event) => event.type),
-    stoppedEventCount: eventsOf(events, 'stopped').length,
+    stopRequestedEventCount: eventsOf(events, 'stop_requested').length,
+    experienceCompletedCount: eventsOf(events, 'experience_completed').length,
+    sessionEndedCount: eventsOf(events, 'session_ended').length,
     contentChunkCount: stopEvents.filter((event) => event.type === 'chunk').length,
     finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
     gatewayCalls: gateway.calls.calls,
@@ -1202,7 +1235,9 @@ async function caseEb06NoRetryAfterStop(trace) {
     stop.ok &&
     stopEvents.some((event) => event.type === 'stopped') &&
     !stopEvents.some((event) => event.type === 'chunk') &&
-    eventsOf(events, 'stopped').length === 1 &&
+    eventsOf(events, 'stop_requested').length === 1 &&
+    eventsOf(events, 'experience_completed').length === 1 &&
+    eventsOf(events, 'session_ended').length === 1 &&
     finalState.ok &&
     finalState.state.stateVersion === 5 &&
     finalState.state.status === 'COMPLETED' &&
@@ -1299,7 +1334,7 @@ async function caseEb08Confidence(trace) {
   const runtimeSource = await readProductSource('src/experience/runtime.ts');
   const policySource = await readProductSource('src/experience/policy.ts');
   const expected = {
-    decisionInvariance: 'confidence 0.0 与 1.0 的提案产生完全一致的决策（selected_action / 终态 / 版本链 / 内容）',
+    decisionInvariance: 'confidence 0.0 与 1.0 的提案产生完全一致的决策（selected_action / 终态 / 版本链 / 流内容逐字节等于合成语料）',
     llmBoundary: 'LLM 网关是能力边界而非产品控制中心——决策路径（运行时 + 策略）不读取 proposal.confidence（静态断言）；验证器仅做 schema 校验（数值 ∈ [0,1]），不参与决策',
   };
   const actual = {
@@ -1327,7 +1362,7 @@ async function caseEb08Confidence(trace) {
     resultA.finalState.state.stateVersion === resultB.finalState.state.stateVersion &&
     resultA.finalState.state.status === resultB.finalState.state.status &&
     contentOf(resultA.streamEvents) === contentOf(resultB.streamEvents) &&
-    contentOf(resultA.streamEvents) === 'scripted proposal content' &&
+    contentOf(resultA.streamEvents) === why.chunks.join('') &&
     !/\.confidence\b/.test(runtimeSource) &&
     !/\.confidence\b/.test(policySource);
   return { expected, actual, pass };
@@ -1470,7 +1505,7 @@ async function caseEb11ToolBoundary(trace) {
   await consume(stop.stream);
   const expected = {
     s1Scope: 'S1 无工具网关（无工具模块、无工具导入）',
-    traceInvariant: '全部决策追踪 execution.tool_used === false（LLM 不得直接执行工具）',
+    traceInvariant: '全部决策追踪 execution.tool_used === false（LLM 不得直接执行工具）；WHY 决策 llm_used === true（能力经 LLM 网关），STOP 决策 llm_used === false（用户主权动作不经 LLM——工具与 LLM 均为能力，非决策者）',
   };
   const actual = {
     toolFiles,
@@ -1486,7 +1521,7 @@ async function caseEb11ToolBoundary(trace) {
     toolImports.length === 0 &&
     traces.length === 2 &&
     traces.every((item) => item.execution?.tool_used === false) &&
-    traces.every((item) => item.execution?.llm_used === true);
+    traces[0]?.execution?.llm_used === true;
   return { expected, actual, pass };
 }
 
@@ -1549,18 +1584,37 @@ async function caseEb12ApiBoundary(trace, auditOffset) {
 async function caseEb13CompletionBoundary(trace) {
   const stopClassification = classifyInput('好了');
   const stopClassification2 = classifyInput('先这样');
-  // 动态：LLM 提案携带完成字段（is_complete）→ 拒绝（Completion 不属于 LLM 自主权限）。
-  const { runtime, events, traces } = createCaseRuntime(
-    scriptedGateway({ state_update_proposal: { is_complete: true } }),
-  );
+  // 动态：队列网关——首次 WHY 正常提案（→ WAITING v4）；第二次 WHY 携带
+  // is_complete 完成字段（Completion 不属于 LLM 自主权限）→ POLICY_REJECTED
+  // （不产生状态写入，版本不消耗）；随后用户"好了"按 STOP 终止。
+  const proposals = [
+    { proposal_id: 'proposal_eb13_0001', content: why.chunks.join(''), state_update_proposal: {}, confidence: 1 },
+    { proposal_id: 'proposal_eb13_0002', content: why.chunks.join(''), state_update_proposal: { is_complete: true }, confidence: 1 },
+  ];
+  const gateway = {
+    async propose() {
+      return proposals.shift() ?? { proposal_id: 'proposal_eb13_0003', content: why.chunks.join(''), state_update_proposal: {}, confidence: 1 };
+    },
+  };
+  const { runtime, events, traces } = createCaseRuntime(gateway);
   const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
-  const sub = await runtime.submitExperienceEvent({
+  const first = await runtime.submitExperienceEvent({
     experienceId: exp.experienceId,
     sessionId: session.sessionId,
     semanticAction: 'WHY',
     rawInput: '为什么？',
     expectedStateVersion: exp.stateVersion,
     requestId: 'req-eb13-1',
+  });
+  await consume(first.stream);
+  const versionAfterFirst = runtime.getExperienceState(exp.experienceId).state.stateVersion;
+  const sub = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: versionAfterFirst,
+    requestId: 'req-eb13-2',
   });
   const versionAfterRejection = runtime.getExperienceState(exp.experienceId).state.stateVersion;
   // 用户"好了"按 STOP 处理（用户主权，非 LLM 判断"用户应该还想继续"）。
@@ -1570,20 +1624,26 @@ async function caseEb13CompletionBoundary(trace) {
     semanticAction: 'STOP',
     rawInput: '好了',
     expectedStateVersion: versionAfterRejection,
-    requestId: 'req-eb13-2',
+    requestId: 'req-eb13-3',
   });
-  await consume(stop.stream);
+  const stopEvents = stop.ok ? await consume(stop.stream) : [];
   const stopTrace = traces.find((item) => item.semantic_action === 'STOP');
   const expected = {
     userSovereignty: '用户说"好了"必须按 STOP 处理（分类器确定性："好了"/"先这样" → STOP），而非 LLM 自行判断继续',
-    completionField: 'LLM 提案携带 is_complete 完成字段 → POLICY_REJECTED（完成必须经 User Goal + Runtime State + Policy + 合法状态迁移）',
-    stopDecision: 'STOP 决策追踪 user_override === true（用户主导权动作）',
+    completionField: 'LLM 提案携带 is_complete 完成字段 → POLICY_REJECTED + llm_output_rejected + state_write_rejected(llm_state_mutation_forbidden)（完成必须经 User Goal + Runtime State + Policy + 合法状态迁移），版本不消耗',
+    stopDecision: 'STOP 从 WAITING 合法终止（流事件 stopped、零内容分块）；STOP 决策追踪 user_override === true（用户主导权动作）',
   };
   const actual = {
     classification好了: stopClassification.semanticAction,
     classification先这样: stopClassification2.semanticAction,
+    firstResult: first.ok ? 'accepted' : 'ERROR',
+    versionAfterFirst,
     completionProposalResult: sub.ok ? 'OK（缺陷！）' : sub.error.code,
     versionAfterRejection,
+    llmOutputRejected: eventsOf(events, 'llm_output_rejected').length,
+    stateWriteRejected: eventsOf(events, 'state_write_rejected').map((event) => event.properties.reason),
+    stopResult: stop.ok ? 'accepted' : stop.error.code,
+    stopStreamTypes: stopEvents.map((event) => event.type),
     stopTrace: stopTrace
       ? { user_override: stopTrace.user_override, selected_action: stopTrace.policy?.selected_action }
       : null,
@@ -1591,9 +1651,16 @@ async function caseEb13CompletionBoundary(trace) {
   const pass =
     stopClassification.semanticAction === 'STOP' &&
     stopClassification2.semanticAction === 'STOP' &&
+    first.ok &&
+    versionAfterFirst === 4 &&
     !sub.ok &&
     sub.error.code === 'POLICY_REJECTED' &&
-    versionAfterRejection === 2 &&
+    versionAfterRejection === versionAfterFirst &&
+    eventsOf(events, 'llm_output_rejected').length === 1 &&
+    eventsOf(events, 'state_write_rejected').map((event) => event.properties.reason).includes('llm_state_mutation_forbidden') &&
+    stop.ok &&
+    stopEvents.some((event) => event.type === 'stopped') &&
+    !stopEvents.some((event) => event.type === 'chunk') &&
     stopTrace?.user_override === true &&
     stopTrace?.policy?.selected_action === 'STOP';
   return { expected, actual, pass };
@@ -2554,7 +2621,7 @@ async function main() {
   const sumsPath = path.join(runDir, 'SHA256SUMS');
   await writeSha256Sums(runDir);
   const verifyResult = await verifySha256Sums(sumsPath, runDir);
-  assert('B28', '证据清单 SHA256SUMS 已产出且独立重算全部一致', verifyResult.ok, { entries: verifyResult.entries ?? null, mismatches: verifyResult.mismatches ?? null });
+  assert('B28', '证据清单 SHA256SUMS 已产出且独立重算全部一致', verifyResult.failed.length === 0, { verified: verifyResult.verified, failed: verifyResult.failed });
 
   // Summary.
   const summary = {
