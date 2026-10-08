@@ -97,7 +97,7 @@ P3-S1 Runtime Implementation：运行时首个完整产品切片（S1）运行�
 |---|---|
 | 义务 | §2 授权范围 / P2-EVIDENCE-8.1 §B：G2 动态跨契约一致性案例与故障链路 + G4 工程边界/并发/重复请求/取消/陈旧响应/恢复/数据完整性验证（P2-EVIDENCE-4.0 EB-01…EB-16） |
 | 实施 | 本迭代产品源码零改动（F-2 运行时核心为已实施基线，`git diff 67aac55..64a1391` 对产品源码为空）；证据执行器 `tools/evidence/src/f3.mjs`（2645 行；21 案例 = 5 G2 动态跨契约一致性 + 16 G4 工程边界；28 断言 B1–B28；E5 §3 版本矩阵含 engineeringBoundaries 专项）；提交 `69c49f2`（执行器）、`67aac55`（执行器侧缺陷修复） |
-| 动态证据 | F3-EB-0001：**21/21 案例 PASS、28/28 断言 PASS、退出码 0**（9.0s；材料 `artifacts/evidence/runs/F3-EB-0001/`：cases/ 21 份 E5 §4 记录、traces/、run-metadata.json E5 §3 版本矩阵、SHA256SUMS）；进程内形态（注入网关/内存汇）+ 静态形态（导入图/属性访问/路由面扫描）+ HTTP 形态（真实 Next.js 生产服务器）三形态；失败尝试 2 次按 ADR-0002 §5 归档（`F3-EB-0001-attempt-2026-10-08T16-06-20-267Z/`、`F3-EB-0001-attempt-2026-10-08T16-07-30-452Z/`，提交 `4b5f1d6`/`0fe8011`）；运行产物提交 `64a1391`；运行绑定至 git 提交 `67aac55`（A23/B27 干净工作树） |
+| 动态证据 | F3-EB-0001：**21/21 案例 PASS、28/28 断言 PASS、退出码 0**（9.0s；材料 `artifacts/evidence/runs/F3-EB-0001/`：cases/ 21 份 E5 §4 记录、traces/、run-metadata.json E5 §3 版本矩阵、SHA256SUMS）；进程内形态（注入网关/内存汇）+ 静态形态（导入图/属性访问/路由面扫描）+ HTTP 形态（真实 Next.js 生产服务器）三形态；失败尝试 2 次按 ADR-0002 §5 归档（`F3-EB-0001-attempt-2026-10-08T16-06-20-267Z/`、`F3-EB-0001-attempt-2026-10-08T16-07-30-452Z/`，提交 `4b5f1d6`/`0fe8011`）；运行产物提交 `64a1391`；运行绑定至 git 提交 `4b5f1d6`（尝试 3 启动时 HEAD，记录于 run-metadata.json code.gitHead；相对 `67aac55` 仅追加证据归档，产品源码一致；A23/B27 干净工作树） |
 | 动态证据发现的缺陷 | 运行时缺陷：**无**（三次尝试中的全部失败均为案例/执行器侧缺陷）；案例/执行器侧缺陷 F3-E-1…F3-E-9 已登记于迭代记录 §3（含尝试 2 的 A23 绑定违规如实记录） |
 | 迭代记录 | `docs/product/p3-s1/implementation-iteration-f3.md`（P3-S1-IMPL-ITER-003 v1.0.0） |
 | 待复核项 | CR-16（事件名称调和表）/ CR-17（policy_decided 发射时机解释）待非作者复核；HTTP 形态 LLM 故障 503（EB-12 子项）NOT RUN——S1 服务端运行时未暴露 LlmGateway 注入缝，是否暴露须产品负责人决策 |

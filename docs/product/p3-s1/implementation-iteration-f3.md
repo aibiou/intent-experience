@@ -47,7 +47,7 @@
 | EB13-COMPLETION | EB-13 完成边界：用户"好了"/"先这样"确定性分类为 STOP（用户主权，非 LLM 判断"用户应该还想继续"）；LLM 提案携带 is_complete 完成字段 → POLICY_REJECTED + llm_output_rejected + state_write_rejected(llm_state_mutation_forbidden)（版本不消耗）；STOP 从 WAITING 合法终止；STOP 决策追踪 user_override === true、selected_action === STOP | PASS |
 | EB14-APPEND-ONLY | EB-14 分析边界（HTTP 形态）：事件日志追加只写——第二次交互后前缀字节逐字节不变、长度严格递增（分析只能观察，不能修改 Runtime State）；第二次交互终态 v6 | PASS |
 | EB15-REPLAY | EB-15 可回放性：仅使用记录的事件流 + 决策追踪重建版本链（每次提交 +1、trace 链与事件链一致）、终态与运行时视图一致（COMPLETED/COMPLETION v5）、sequence_number 单调、全部版本化事件 ≤ 最终版本 | PASS |
-| EB-16 | EB-16 版本可追溯：由 E5 §3 版本矩阵覆盖（B24/B26/B27/B28）：一次产品行为可关联 Product Version / Contract Versions / Schema Version / Policy Version / Code Revision / Corpus 版本；运行时 31 文件逐文件哈希登记；执行器自身哈希登记；证据-代码绑定（干净工作树，HEAD `67aac55`） | PASS |
+| EB-16 | EB-16 版本可追溯：由 E5 §3 版本矩阵覆盖（B24/B26/B27/B28）：一次产品行为可关联 Product Version / Contract Versions / Schema Version / Policy Version / Code Revision / Corpus 版本；运行时 31 文件逐文件哈希登记；执行器自身哈希登记；证据-代码绑定（干净工作树，运行启动时 HEAD `4b5f1d6`，记录于 run-metadata.json code.gitHead；相对 `67aac55` 仅追加证据归档，产品源码一致） | PASS |
 
 断言 B1–B28：B1 run-metadata 完整（E5 §3 版本矩阵全部字段）；B2 环境锁定（engines.node === "24.21.0" 且执行于 Node v24.21.0）；B3 全部 21 案例记录齐备且 12 字段完整（E5 §4）；B4 全部 21 案例轨迹文件齐备且非空；B5–B8 G2 组不变式（WHY/CHANGE 链路、故障链、版本链）；B9–B23 EB-01…EB-15 逐项不变式（含 B14 重试边界双案例、B16 决策路径静态扫描）；B24 EB-16 版本可追溯；B25 无真实提供方调用（`src/experience/**` + `app/api/**` 25 文件静态扫描 0 违规）；B26 预检与完整性（typecheck:core + next build 退出码 0；参考归档 36 项哈希验证通过；契约指纹 C1–C7 全部匹配）；B27 证据-代码绑定（干净工作树，HEAD 记录于版本矩阵）；B28 证据清单 SHA256SUMS 产出且独立重算一致。
 
@@ -86,7 +86,7 @@
 | 2 | 16:06:20–16:06:27 | 21/21 案例 PASS；27/28 断言 PASS；B27 失败（workTreeClean=false——执行器修复未提交，A23 绑定违规）；退出码 1 | `artifacts/evidence/runs/F3-EB-0001-attempt-2026-10-08T16-07-30-452Z/`（尝试 2 产物原始提交于 `4b5f1d6` 的 `F3-EB-0001/` 路径；尝试 3 启动时执行器将其重命名至本归档路径，归档副本补提交 `0fe8011`；缺陷 F3-E-9） |
 | 3 | 16:07:28–16:07:37 | **21/21 案例 PASS、28/28 断言 PASS、退出码 0**（9.0s） | `artifacts/evidence/runs/F3-EB-0001/`（`64a1391` 提交） |
 
-证据-代码绑定（A23/B27）：尝试 3 运行前工作树干净——执行器（`69c49f2`）、缺陷修复（`67aac55`）、失败尝试归档（`4b5f1d6`）均在运行前提交；运行产物于运行后提交（`64a1391`）；运行绑定至 git 提交 `67aac55`（记录于 run-metadata.json code.gitHead）。
+证据-代码绑定（A23/B27）：尝试 3 运行前工作树干净——执行器（`69c49f2`）、缺陷修复（`67aac55`）、失败尝试归档（`4b5f1d6`）均在运行前提交；运行产物于运行后提交（`64a1391`）；运行绑定至 git 提交 `4b5f1d6`（尝试 3 启动时 HEAD，记录于 run-metadata.json code.gitHead，workTreeClean=true、uncommittedEntries=[]；`4b5f1d6` 相对 `67aac55` 仅追加失败尝试证据归档，产品源码完全一致——`git diff 67aac55..4b5f1d6` 对产品源码为空）。注：`64a1391` 提交信息中的"HEAD 67aac55"为产品源码基线简述；权威绑定以 run-metadata.json 记录为准（`4b5f1d6`）。
 
 ## 5. 明确非结论（不得据此宣告任何产品 Gate）
 
