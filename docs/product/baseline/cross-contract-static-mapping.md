@@ -1,8 +1,8 @@
 # 跨契约静态一致性映射
 
 **编号：** XCC-MAP-01
-**版本：** 1.3.0（2026-10-08：补 N3-01 补丁剩余两项；新增 PD-16 字段命名调和注记与 S1-CC31 WAIT 澄清）
-**状态：** 产品负责人已裁决映射原则；逐条独立复核待完成；非动态证据
+**版本：** 1.4.0（2026-10-08：按 P3-S1-REVIEW-004 A2 裁定回写 NEG14 / NEG17 定级；§8/§9 复核状态更新）
+**状态：** A2 非作者静态复核已完成并签署（P3-S1-REVIEW-004，2026-10-08）；动态执行全部 NOT RUN；非动态证据
 **依据：** E8 G2、P3-S1-CC01、P3-S1-CC02、PODR-001 / PD-11 / PD-13
 
 ## 1. 编号命名空间
@@ -162,26 +162,26 @@
 | S1-CC02-NEG11 | Policy DENY 后 LLM 执行 | S1-CC12、13、17 | Policy Bypass / P0 | NOT RUN |
 | S1-CC02-NEG12 | Memory 覆盖当前 Intent | S1-CC06、33、34 | Memory overrides Explicit Current Intent / P0 | NOT RUN |
 | S1-CC02-NEG13 | WAIT 自动继续 | S1-CC31 | Hidden Continuation / P0 | NOT RUN |
-| S1-CC02-NEG14 | Retry 改变原 Intent | S1-CC25 | 负向必测；严重度待 A2 非作者复核，若触发 Policy / Agency 硬违规则按适用分类处理 | NOT RUN |
+| S1-CC02-NEG14 | Retry 改变原 Intent | S1-CC25 | Policy Bypass / P0（A2 裁定：P3-S1-REVIEW-004 §3-A，2026-10-08） | NOT RUN |
 | S1-CC02-NEG15 | Fallback 绕过 Validator | S1-CC26 | Validator bypass / P0 | NOT RUN |
 | S1-CC02-NEG16 | Analytics 修改 Runtime | S1-CC35 | Unauthorized State Mutation / P0 | NOT RUN |
-| S1-CC02-NEG17 | Provider timeout 被伪装成功 | S1-CC28、29、36 | 负向必测；严重度待 A2 非作者复核，不预先映射为 P1 或 P0 | NOT RUN |
+| S1-CC02-NEG17 | Provider timeout 被伪装成功 | S1-CC28、29、36 | 基础 P1（失败分类 / 调用记录完整性，S1-CC02-H10）；未经 Validator 进入 Runtime 则按 Stale Result enters Runtime / Validator bypass 升 P0（A2 裁定：P3-S1-REVIEW-004 §3-B，2026-10-08） | NOT RUN |
 | S1-CC02-NEG18 | malformed output 被接受 | S1-CC14、29、37 | Validator bypass / P0 | NOT RUN |
 
 ## 8. 严重度来源与适用范围
 
 - SRC-25 / P3-S1-CC01 §27 的 P0–P3 分类适用于 CC01 一致性错误及其对应案例；SRC-26 / P3-S1-CC02 §9 的硬失败分类适用于 CC02 的 S1 系统级阻断案例。两者各自适用于其来源范围，不相互取代。本节规则依据 PODR-001 v1.0.2 / PD-13 与 decision-register CR-13。
-- 同一发现同时落入两种范围且等级不同，按较严格等级处理并登记裁决；不得降级或通过平均分抵消。NEG14 / NEG17 的映射须由 A2 非作者复核人确认。
+- 同一发现同时落入两种范围且等级不同，按较严格等级处理并登记裁决；不得降级或通过平均分抵消。NEG14 / NEG17 的映射已经 A2 非作者复核人裁定确认（P3-S1-REVIEW-004 §3-A/B，2026-10-08），并已回写 §7。
 - CC02 §9 明列的 Unauthorized State Mutation、LLM Direct State Mutation、Policy Bypass、STOP / CHANGE_DIRECTION Violation、Stale Result enters Runtime、State Version overwrite、Illegal State Transition、Memory overrides Explicit Current Intent、Validator bypass、Hidden Continuation 任一出现，均直接阻断，不得平均。
 - CC02 §3 的 40 行未在单行末尾标注 P0，不代表其相关负向断言可降级；反之，S1-CC19 / S1-CC20 标注 P0 也不代表只有这两项属于 P0。
-- P0 映射仍待非作者核验；当前没有任何动态证据，全部为 NOT RUN。
-- CC01 §27 与 CC02 §9 的交叉适用及较严格等级规则，须由非作者复核人在 A2 记录签署确认。
+- 16 项派生 P0 映射已经 A2 非作者复核逐项确认（P3-S1-REVIEW-004 §3-C，2026-10-08）；当前没有任何动态证据，全部为 NOT RUN。
+- CC01 §27 与 CC02 §9 的交叉适用及较严格等级规则，已经非作者复核人在 A2 记录签署确认（P3-S1-REVIEW-004 §3-D，2026-10-08）。
 
 ## 9. 裁决和复核边界
 
 - 表中范围裁定来自 PODR-001 / PD-05–PD-11；静态映射不等于静态一致性 Gate 已 PASS。
 - S1-CC32、E8-G2-CC05、E8-G2-CC08 的延期不豁免 P2 G2 / G3；相关 Gate 保持 NOT PASSED，直到后续阶段完成证据。
 - S1-CC33/34 是策略边界测试，不得据此声称已实现 Memory 产品。
-- 本文件尚无非作者独立复核记录。G2 静态准入仍 NOT PASSED；动态执行均 NOT RUN。
+- 本文件已经 A2 非作者独立复核并签署（P3-S1-REVIEW-004，2026-10-08，结论 ACCEPT）。动态执行均 NOT RUN；G2 整体（含动态部分）仍 NOT PASSED。
 - 原始 CC02 §3 的 40 行以本表 `S1-CC01…S1-CC40` 为兼容标识；新执行产物必须同时记录源条款 `SRC-26 §3 / CC-xx`，禁止只写裸编号。
 - 复核须检查 E8 12 项、CC02 40 项、CC01 20 项、CC02 的 12 项硬检查 / 8 个 GXC / 18 个负向案例均逐项有归属；检查所有延期决策不会被误记为 PASS。
