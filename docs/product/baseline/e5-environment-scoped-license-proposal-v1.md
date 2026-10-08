@@ -60,3 +60,52 @@ E5 证据环境搭建的授权方式，二选一：
 | 产品负责人 | PENDING | PENDING | 本提案不预填决定；裁决后按选择更新 decision-register CR-15 与 readiness-record |
 
 **注意：** 无论选项 A 或 B，E5 环境搭建均须遵守 E5 v1.1.1 全部条款（版本矩阵、案例结构、状态词汇、独立性规则、隐私护栏）；E5 通过标准不变（16 项评测包实际运行结果 + 独立评测者复核 + 产品负责人签署）。
+
+## 6. 附录 A：E5 证据环境搭建设计草案（裁决后执行蓝图）
+
+**编号：** E5-LICENSE-PROPOSAL-01-ANNEX-A
+**版本：** 1.0.0（2026-10-08）
+**状态：** DECISION SUPPORT——设计草案，非执行记录；CR-15 裁决前不执行任何搭建动作。选项 A 与选项 B 共用本设计（仅开工时点不同）。
+
+### A.1 设计原则
+
+- 零外部依赖（与 ADR-0002 Spike 一致）：仅 Node 内置模块（node:sqlite / node:http / node:crypto / node:fs / node:child_process）；package.json 仅声明元数据并生成 lockfile
+- 只追加证据布局（E5 §7）；失败如实登记（ADR-0002 §5 模式：保留失败记录，不得重跑至通过为止而不留失败记录）
+- 合成数据 only；密钥、访问令牌、原始个人隐私数据不得进入证据文件（E5 §3）
+
+### A.2 目录结构
+
+```text
+artifacts/evidence/manifest/
+artifacts/evidence/runs/<run-id>/run-metadata.json
+artifacts/evidence/runs/<run-id>/cases/<namespace>-<case-id>.json
+artifacts/evidence/runs/<run-id>/traces/
+artifacts/evidence/runs/<run-id>/logs/
+artifacts/evidence/runs/<run-id>/review/
+tools/evidence/          # 自动化执行器（run-metadata 生成器 / 案例记录器 / trace 捕获 / SHA-256 清单产出）
+```
+
+### A.3 执行器设计
+
+- run-metadata 生成：绑定 Product Decision 版本、C1–C7 契约版本与 SHA-256、S1 C01–C09 规范版本与 SHA-256、State Machine / Policy / API / Event / Evaluation 版本、code commit（未提交工作树记录差异摘要）、Prompt 模板版本与内容哈希、Provider / Model ID / 参数 / 调用区域 / SDK 版本（不能提供时标记 unavailable）、Golden corpus / fixture / 测试脚本版本与哈希、回归基线 revision（无历史运行时标记 BASELINE_NOT_AVAILABLE，不得伪造比较结果）、Node / Next.js / 运行平台 / 数据库版本与配置摘要、时间戳 / 命令 / 退出码 / 重试次数 / 执行人
+- 单案例记录器：E5 §4 全部 11 字段（含 Evaluator 字段——同一案例的实现作者与独立评测者不得为同一人）
+- trace 捕获：输入、状态前后快照、决定轨迹、事件、时间戳
+- SHA-256 清单产出：每个 run 包生成 SHA256SUMS
+- 退出码语义：退出码 0 仅表示该命令中的断言通过，不自动设置 Golden Case / Gate / 产品状态为 PASS
+
+### A.4 首次端到端试运行设计（合成 fixtures）
+
+- 目标：验证证据管线本身（版本绑定 → 案例记录 → trace → 哈希清单）的完整性与可审计性；**不是**产品运行时行为验证
+- 场景：以合成 fixture 模拟完整链路（输入 → 语义动作 → 策略决策 → 事件 → 状态前后），覆盖 GS-01 / GS-02 / GS-05 管线级 smoke 与一条失败路径（如 stale state_version 拒绝）
+- 断言：版本矩阵完整可重算；案例记录 11 字段齐备；trace 可还原输入与状态前后；哈希清单可独立重算；失败路径按预期登记
+- 边界：产品运行时行为验证属 G2–G4 动态执行（实施授权后），不在本次试运行范围
+
+### A.5 环境基线
+
+- Node.js v24.21.0（Active LTS，ADR-0002 Spike 已验证）；授权日重查 Active LTS 并锁定补丁的义务（F-2）不因本附录免除
+- 平台 darwin arm64（搭建环境记录于 run-metadata）
+
+### A.6 约束复核
+
+- 本附录不改变任何 Gate 状态；试运行结果仅作 A5 再评估输入
+- A5 再评估通过标准不变：环境可复现（锁文件 + 版本矩阵）、执行器产出符合 E5 §4 / §7、试运行证据链完整可审计；A5 通过仍需独立评测者复核与产品负责人签署
