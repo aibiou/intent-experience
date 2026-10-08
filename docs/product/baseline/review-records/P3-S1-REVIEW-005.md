@@ -1,8 +1,8 @@
 # P3-S1 独立复核记录：R4（技术架构与失败恢复 / ADR-0001 复核）
 
 **记录编号：** P3-S1-REVIEW-005
-**版本：** 0.1.0 DRAFT（2026-10-08：起草代理完成复核分析与机械核验；**待复核者签署**）
-**状态：** DRAFT——PENDING 复核者签署；本草案不构成 A6 签署或任何 Gate 证据
+**版本：** 1.0.0（2026-10-08：复核者签署——ACCEPT WITH FINDINGS；F-1 按选项 A 处置（转入实施计划首批必验项），F-2 授权日 LTS 重查义务确认）
+**状态：** SIGNED——复核者已签署（2026-10-08，用户本人，角色 2，非起草方）；本记录是 A6 技术可行性复核证据，不改变任何 Gate 状态
 **适用门禁：** P2-EVIDENCE-8.1 A6（G6 技术栈 / 架构工程复核）；ADR-0001 工程复核
 
 ## 1. 复核记录（按 independent-review-package.md §4 模板）
@@ -11,10 +11,10 @@
 |---|---|
 | Review ID | P3-S1-REVIEW-005 |
 | 复核区块 | R4（技术架构与失败恢复，对应 A6）；ADR-0001 工程复核 |
-| 复核者及角色 | PENDING（拟定：用户本人，角色 2 架构负责人，OWNER-ROSTER-01 v0.2.4 行 2，PD-15） |
+| 复核者及角色 | 用户本人（角色 2 架构负责人，OWNER-ROSTER-01 v0.2.4 行 2，PD-15）；2026-10-08 签署 |
 | 复核者与作者关系 | 非起草方：ADR-0001、ADR-0002 Spike 代码与验证报告由代理会话起草；复核者未参与内容起草（同 K-5 先例：起草代理与复核者无同一性） |
 | 基线版本与 Git revision | ADR-0001（@ git 77106a4，内容未变）；ADR-0002（@ 05fd95f，已生效）；ADR-0002-spike-report.md v1.0.0（@ 94f5fd5）；`spike/cancellation/` 代码与证据（@ 94f5fd5） |
-| 结论 | PENDING（草案建议见 §5） |
+| 结论 | ACCEPT WITH FINDINGS（F-1…F-5 见 §4；F-1/F-2 处置：实施计划首批必验项；run 1 失败性质确认为测试桩缺陷） |
 | Findings（含严重度 / 条款 / Gate） | F-1…F-5（见 §4）；无 Critical |
 | 遗留问题 / 责任人 / 到期阶段 | F-1 / F-2 处置义务转入实施计划首批必验项（责任人：工程负责人角色）；到期阶段：实施授权后首个迭代；幂等验证（S1-CC25 等）与产品 DB 复验属 G2–G4 动态证据 |
 | 证据位置与哈希 | `docs/architecture/decisions/ADR-0002-spike-report.md` §5（run 1 / run 2 全部证据 SHA-256）；`spike/cancellation/evidence/SHA256SUMS`、`spike/cancellation/evidence-run-1-initial/SHA256SUMS` |
@@ -71,7 +71,9 @@
 
 无 Critical finding；无 BLOCK 级未决项（F-1 的两种处置见 §5）。
 
-## 5. 草案建议结论（待复核者确认）
+## 5. 复核结论（复核者已确认）
+
+**复核者确认（2026-10-08，用户本人，角色 2，非起草方）：** 接受草案建议——**ACCEPT WITH FINDINGS**。F-1 按选项 A 处置：转入实施计划首批必验项（实施授权后首个迭代完成 Next.js App Router Route Handler + streaming + AbortSignal 端到端取消的动态证据，G2–G4）；备选 BLOCK 未采纳。F-2 授权日 LTS 重查义务确认（实施授权日按 ADR-0001 §43 重查并锁定精确补丁）。run 1 S-3 失败性质确认：测试桩配置遗漏（`PRAGMA busy_timeout`），非存储原子性失效。
 
 **建议：ACCEPT WITH FINDINGS。** 理由：R4 五项确认点均有证据或明确的后续义务；F-1 / F-2 为 Important 但属实施阶段必验项而非准入阻断——ADR-0002 §2 的法定验证目标（常驻 Node 服务形态的取消与 stale 拒绝）已全部达成，产品框架集成验证按既有门禁序列（G2–G4 动态证据）在实施阶段完成，且 F-1 已显式登记并转入实施计划，不存在"未证实写成已保证"。
 
@@ -83,8 +85,8 @@
 
 | 签署 | 记录 |
 |---|---|
-| 复核者（角色 2 架构负责人） | PENDING |
-| 结论（ACCEPT / ACCEPT WITH FINDINGS / BLOCK） | PENDING |
-| 日期 | PENDING |
+| 复核者（角色 2 架构负责人） | 用户本人（PD-15），非起草方（ADR-0001 与 Spike 代码/报告由代理会话起草，复核者未参与内容起草） |
+| 结论（ACCEPT / ACCEPT WITH FINDINGS / BLOCK） | ACCEPT WITH FINDINGS |
+| 日期 | 2026-10-08 |
 
 **注意：** 本记录签署 ≠ A6 签署 ≠ 实施授权；A1–A6 与各 Gate 状态不变。

@@ -1,8 +1,8 @@
 # P3-S1 准入独立复核包
 
 **编号：** P3-S1-REVIEW-PACKAGE-01
-**版本：** 1.3.0（2026-10-08：§7 门禁状态同步——R2 已签署（REVIEW-004）；ADR-0002 Spike 完成；R1 / R3 / R4 / R5 复核草案已准备（REVIEW-006 / 007 / 005 / 008，待签署）；contract-authority-baseline v1.2.0 与 C4-LLM-scope-disposition v1.1.0 状态已同步）
-**状态：** READY FOR REVIEW / R2 已签署（REVIEW-004，ACCEPT）；R1 / R3 / R4 / R5 草案待签署
+**版本：** 1.4.0（2026-10-08：签署会执行——五区块独立复核全部签署（R2 REVIEW-004 ACCEPT；R4 REVIEW-005 / R1 REVIEW-006 / R3 REVIEW-007 / R5 REVIEW-008，均 ACCEPT WITH FINDINGS）；C1–C7 Steward 确认与 G5 隔离声明同步完成）
+**状态：** 独立复核已完成（五区块）；复核结论已登记于各 REVIEW 记录；Gate 状态以 readiness-record v0.7.0 为准
 **适用门禁：** P2-EVIDENCE-8.1 A1–A6（编码前准入）
 **复核原则：** 本包由本轮产品负责人/规格整理者准备；不得把作者自检记录成独立复核。
 
@@ -170,13 +170,13 @@ P3-S1-REVIEW-002 确认 R1 仍因 C4 正式权威和架构签署未完成而 BLO
 
 本包只使复核任务可执行，不构成复核结果：
 
-- A1 / G1：候选来源和哈希已登记；C4 独立权威已建立（K-4/K-5 完成，CR-10 / CR-11 关闭）；C1–C7 Steward 确认与 G1 非作者核验待办；R1 复核草案已准备（P3-S1-REVIEW-006，待签署）。
+- A1 / G1：候选来源和哈希已登记；C4 独立权威已建立（K-4/K-5 完成，CR-10 / CR-11 关闭）；C1–C7 Steward 确认完成（steward-confirmation-c1-c7.md，2026-10-08）；R1 非作者复核已签署（P3-S1-REVIEW-006，ACCEPT WITH FINDINGS，2026-10-08）。**A1 满足；G1 PASSED。**
 - A2 / G2 静态：12 + 40 + 20 + 12 + 8 + 18 案例映射完成；R2 复核已签署（P3-S1-REVIEW-004，ACCEPT，2026-10-08）；动态执行 NOT RUN。
-- A3 / A4：产品负责人决策已记录；R3 复核草案已准备（P3-S1-REVIEW-007，待签署）；Gate 证据签署 PENDING。
-- A5 / E5：流程和 16 项 G5 交叉表已定义；工具环境未搭建、独立评测人未任命、隐私六要素待批准；R5 复核草案已准备（P3-S1-REVIEW-008，待签署）。
-- A6：技术栈已由产品负责人接受；ADR-0002 Spike 已完成（run 2 S-1/S-2/S-3 全过，run 1 S-3 测试桩缺陷按 §5 如实登记，报告已落档）；ADR-0001 复核草案已准备（P3-S1-REVIEW-005，待签署）；LTS 授权日重查义务未消失。
-- 实施授权：NOT AUTHORIZED。
+- A3 / A4：产品负责人决策已记录；R3 非作者复核已签署（P3-S1-REVIEW-007，ACCEPT WITH FINDINGS，2026-10-08；签署同时完成 CR-12 的 PD-12 非作者复核）。**A3 / A4 满足；G6 / G7 PASSED（PB-01 解除条件已满足）。**
+- A5 / E5：流程和 16 项 G5 交叉表已定义；独立评测人已任命并签署 G5 隔离声明（2026-10-08）；工具环境未搭建、隐私六要素待批准；R5 非作者复核已签署（P3-S1-REVIEW-008，ACCEPT WITH FINDINGS，2026-10-08）。**A5 仍 NOT PASSED（环境未搭建；唯一剩余准入前置）。**
+- A6：技术栈已由产品负责人接受；ADR-0002 Spike 已完成（run 2 S-1/S-2/S-3 全过，run 1 S-3 测试桩缺陷按 §5 如实登记，报告已落档）；ADR-0001 独立复核已签署（P3-S1-REVIEW-005，ACCEPT WITH FINDINGS，2026-10-08；F-1 转入实施首批必验项，F-2 授权日 LTS 重查义务确认）。**A6 满足。**
+- 实施授权：NOT AUTHORIZED（唯一剩余前置：A5 / E5 环境搭建授权，待产品负责人决定）。
 
-**复核草案状态汇总（2026-10-08）：** 五区块中 R2 已签署；R1 / R3 / R4 / R5 草案已准备并待签署（REVIEW-006 / 007 / 005 / 008）。草案签署后，本包 §1–§5 的复核结论方可登记；签署本身不改变任何 Gate 状态。
+**复核签署状态汇总（2026-10-08 签署会）：** 五区块全部签署完成——R2（P3-S1-REVIEW-004，ACCEPT）、R4（P3-S1-REVIEW-005）、R1（P3-S1-REVIEW-006）、R3（P3-S1-REVIEW-007）、R5（P3-S1-REVIEW-008），后四者均 ACCEPT WITH FINDINGS。签署本身不改变任何 Gate 状态；Gate 状态以 `../p3-s1/readiness-record.md` v0.7.0 为准（A1/A2/A3/A4/A6 满足；A5 未满足；实施授权 NOT AUTHORIZED）。
 
 **执行规则：** 所有复核区块达到其通过条件、阻断问题关闭并更新准入记录后，才可考虑签发 P3-S1 实施授权；本包不能自动签发授权。

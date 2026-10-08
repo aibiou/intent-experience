@@ -1,8 +1,8 @@
 # 产品冲突与未决决策登记册
 
 **编号：** BASELINE-DECISIONS-01
-**版本：** 0.6.0（2026-10-08：ADR-0002 Spike 执行完成——run 2 S-1/S-2/S-3 全部通过，run 1 S-3 测试桩缺陷按 §5 如实登记；报告 ADR-0002-spike-report.md 已落档，仅作 ADR-0001 复核输入）
-**状态：** PODR-001 v1.0.4 已裁决 CR-01…CR-07、CR-09、CR-12、CR-13、CR-14，并增补 PD-14 / PD-15 / PD-16；CR-09 / CR-10 / CR-11 / CR-13 已由 2026-10-08 签署关闭；CR-08 部分解决（含 ADR-0002 Spike 执行完成）；G6 处置表（PB-01…PB-04）已建立。
+**版本：** 0.7.0（2026-10-08：签署会执行——REVIEW-005/006/007/008 四份独立复核记录签署（均 ACCEPT WITH FINDINGS）；C1–C7 Steward 确认完成；G5 隔离声明生效；CR-07 / CR-12 关闭；PB-01 解除条件满足）
+**状态：** PODR-001 v1.0.4 已裁决 CR-01…CR-07、CR-09、CR-12、CR-13、CR-14，并增补 PD-14 / PD-15 / PD-16；CR-07 / CR-09 / CR-10 / CR-11 / CR-12 / CR-13 已关闭（CR-12 于 2026-10-08 经 REVIEW-007 非作者复核签署关闭）；CR-08 部分解决——剩余仅隐私六要素批准；G6 处置表（PB-01…PB-04）已建立，PB-01 解除条件已满足（2026-10-08）。
 **规则：** 执行团队不得自行把产品决策解释为运行证据或 Gate PASS。
 
 ## CR-01｜P2 已关闭与仍阻塞的状态冲突
@@ -73,7 +73,7 @@
 - **严重度：** BLOCKER。
 - **决策负责人：** 产品负责人及各契约负责人（待命名）。
 - **所需变更：** 每份契约形成独立冻结记录；更新 E1 与来源登记册。
-- **状态：** PRODUCT SOURCE SELECTION RESOLVED BY PODR-001；G1 指纹登记、职责核验和独立复核仍 NOT PASSED。
+- **状态：** RESOLVED（2026-10-08）：来源选择经 PODR-001 裁决；G1 指纹登记（contract-authority-baseline v1.2.0 + C4 §1–§17 范围指纹）、职责核验（C1–C7 Steward 确认，steward-confirmation-c1-c7.md）与独立复核（R1 / P3-S1-REVIEW-006，ACCEPT WITH FINDINGS）全部完成；CR-07 关闭。G1 PASSED（2026-10-08）。
 
 ## CR-08｜版本治理与变更授权签署人未指定
 
@@ -83,7 +83,7 @@
 - **严重度：** BLOCKER。
 - **决策负责人：** 产品负责人。
 - **所需变更：** 治理决议、职责清单及签署模板。
-- **状态：** PARTIALLY RESOLVED BY PD-10 / PD-14 / PD-15；ADR-0002 会签完成并生效（2026-10-08）；ADR-0002 Spike 已执行（run 2 S-1/S-2/S-3 全过，run 1 S-3 测试桩缺陷按 §5 如实登记，报告 ADR-0002-spike-report.md 已落档，仅作 ADR-0001 复核输入）；CR-09 / CR-10 / CR-11 / CR-13 签署已执行；剩余：C1–C7 Steward 确认、ADR-0001 独立复核、G5 隔离声明、隐私六要素批准；本项未关闭。
+- **状态：** PARTIALLY RESOLVED BY PD-10 / PD-14 / PD-15；ADR-0002 会签完成并生效（2026-10-08）；ADR-0002 Spike 已执行（run 2 S-1/S-2/S-3 全过，run 1 S-3 测试桩缺陷按 §5 如实登记，报告 ADR-0002-spike-report.md 已落档，仅作 ADR-0001 复核输入）；CR-09 / CR-10 / CR-11 / CR-13 签署已执行；2026-10-08 签署会已执行：C1–C7 Steward 确认、ADR-0001 独立复核（REVIEW-005）、G5 隔离声明；剩余仅：隐私六要素批准；本项未关闭。
 
 ## CR-09｜E8、CC01 与 CC02 跨契约案例编号空间碰撞
 
@@ -113,7 +113,7 @@
 - **证据：** C3 将 WHY 与 WHAT_IF 列于同一优先级层；S1 §12 将 WHY 置于 WHAT_IF 之前。
 - **影响：** 若无解释，执行者可能误把局部排序提升为权限或全局优先级变化。
 - **决策：** PD-12 将其限定为同层冲突时的解释顺序，不改变授权和动作集合；更高层动作依 C3 / State Machine，未知情况升级而非由 LLM 决定。
-- **状态：** 产品解释已记录；静态映射完成（XCC-MAP）；非作者复核已准备于 P3-S1-REVIEW-007（R3 草案 §2 / §3 第 5 项，待签署）；CR-12 未关闭。
+- **状态：** RESOLVED（2026-10-08）：产品解释已记录；静态映射完成（XCC-MAP）；非作者复核已签署（P3-S1-REVIEW-007，R3，ACCEPT WITH FINDINGS——复核确认该解释顺序不改变授权与动作集合）；CR-12 关闭。
 
 ## CR-13｜CC01 与 CC02 严重度分类适用范围
 
@@ -137,7 +137,7 @@ A3 / G6 通过条件要求 PB-01…PB-04 均有产品负责人明确决定、责
 
 | 编号 | 阻断项（来源） | 处置决定 | 决策依据 | 责任人 | 适用阶段 | 状态 |
 |---|---|---|---|---|---|---|
-| PB-01 | Seven V1 Contracts Authority Freeze（七份 V1 契约权威冻结；E1 §3 / §14） | 维持 BLOCKED：G1 通过前不得解除；解除条件为各契约 Owner 签署、C4 独立权威建立且范围指纹获批 | PODR-001 §7；contract-authority-baseline §3 | 产品负责人 + 各契约 Steward（用户兼任，PD-15） | 编码前（A1） | OPEN / BLOCKED（已显式处置） |
+| PB-01 | Seven V1 Contracts Authority Freeze（七份 V1 契约权威冻结；E1 §3 / §14） | 维持 BLOCKED：G1 通过前不得解除；解除条件为各契约 Owner 签署、C4 独立权威建立且范围指纹获批 | PODR-001 §7；contract-authority-baseline §3 | 产品负责人 + 各契约 Steward（用户兼任，PD-15） | 编码前（A1） | RESOLVED / 解除（2026-10-08：解除条件全部满足——G1 通过（C1–C7 Steward 确认 + R1 非作者复核 REVIEW-006 签署）；各契约 Owner 签署完成（steward-confirmation-c1-c7.md）；C4 独立权威建立（C4-LLM-Contract-v1.0.0，K-4/K-5）且 §1–§17 范围指纹获批） |
 | PB-02 | First Experience Type & Canonical Path（首个体验类型与标准路径；E2） | 已解决：首体验冻结为探索型问题体验；完整体验路径跨 S1 / S2 | PD-05 | 产品负责人 | S1（范围已冻结） | RESOLVED |
 | PB-03 | Release-Gate Metric Definitions（发布门槛指标定义；E3） | 已解决：硬门槛零容忍；无真实基线不编造统计阈值；面向公开发布的统计阈值须预先批准 | PD-08 | 产品负责人 | 公开发布前 | RESOLVED（S1 内部受控验证不受限） |
 | PB-04 | Memory / Template Scope Decision（记忆 / 模板范围决策；E2 / E8 G08） | 已解决：S1 不持久化跨会话 Memory；隔离测试上下文验证当前意图优先；最小持久 Memory 进入 S2 须另作版本化决策 | PD-07 | 产品负责人 + 独立评测负责人 | S1 / S2 边界 | RESOLVED |

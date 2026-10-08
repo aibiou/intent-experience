@@ -1,8 +1,8 @@
 # P3-S1 独立复核记录：R3（S1 范围与 Golden 映射）
 
 **记录编号：** P3-S1-REVIEW-007
-**版本：** 0.1.0 DRAFT（2026-10-08：起草代理完成复核分析与机械核验；**待复核者签署**）
-**状态：** DRAFT——PENDING 复核者签署；本草案不构成 A3 / A4 / G6 / G7 签署或任何 Gate 证据
+**版本：** 1.0.0（2026-10-08：复核者签署——ACCEPT WITH FINDINGS；A3 / A4 准入条件满足；本记录签署同时完成 CR-12 的 PD-12 非作者复核）
+**状态：** SIGNED——复核者已签署（2026-10-08，用户本人，非起草方）；本记录是 A3 / A4 / G6 / G7 复核证据
 **适用门禁：** P2-EVIDENCE-8.1 A3 / A4 / G6 / G7
 
 ## 1. 复核记录（按 independent-review-package.md §4 模板）
@@ -11,10 +11,10 @@
 |---|---|
 | Review ID | P3-S1-REVIEW-007 |
 | 复核区块 | R3（S1 范围与 Golden 映射，对应 A3 / A4 / G6 / G7） |
-| 复核者及角色 | PENDING（拟定：用户本人，角色 2/4/5 相关职责，OWNER-ROSTER-01 v0.2.4，PD-15） |
+| 复核者及角色 | 用户本人（角色 2/4/5 相关职责，OWNER-ROSTER-01 v0.2.4，PD-15）；2026-10-08 签署 |
 | 复核者与作者关系 | 非起草方：acceptance-mapping、product-owner-decisions、decision-register 由代理会话起草；复核者未参与内容起草 |
 | 基线版本与 Git revision | acceptance-mapping v0.3.1；product-owner-decisions v1.0.4（PD-05…PD-08、PD-12）；decision-register v0.6.0（§G6 PB-01…PB-04）；evidence-execution-plan v1.1.0；Git 65179fd（origin/main） |
-| 结论 | PENDING（草案建议见 §5） |
+| 结论 | ACCEPT WITH FINDINGS（F-1…F-4 为执行阶段义务，登记在案） |
 | Findings（含严重度 / 条款 / Gate） | F-1…F-4（见 §4）；无 Critical |
 | 遗留问题 / 责任人 / 到期阶段 | 评测负责人正式任命（G5 前）；E3 公开发布统计阈值批准；G6 证据归档；到期阶段：实施授权后首个迭代 / G5 前 |
 | 证据位置与哈希 | `docs/product/p3-s1/acceptance-mapping.md` v0.3.1；`docs/product/baseline/product-owner-decisions-v1.md` v1.0.4；`docs/product/baseline/decision-register.md` v0.6.0 §G6 |
@@ -50,7 +50,9 @@
 
 无 Critical finding；无 BLOCK 级未决项。
 
-## 5. 草案建议结论（待复核者确认）
+## 5. 复核结论（复核者已确认）
+
+**复核者确认（2026-10-08，用户本人，非起草方）：** 接受草案建议——**ACCEPT WITH FINDINGS**。F-1…F-4 为执行阶段义务，登记在案（实施阶段 G2–G4 动态执行时逐项核对原始条款；G5 前完成评测负责人任命与 E3 阈值批准）。A3 / A4 准入条件满足；G6 / G7 证据条件满足（PB-01…PB-04 处置闭环待 G1 通过后 PB-01 解除登记）。本记录签署同时完成 CR-12 的 PD-12 非作者复核（WHY > WHAT_IF 仅同层解释顺序，不改变授权与动作集合）。
 
 **建议：ACCEPT WITH FINDINGS。** 理由：S1 范围映射完整且与 PODR-001 裁决一致；延期案例未被误记为 PASS；P0 零容忍与"不编造统计阈值"的安排在映射与 E5 计划中均到位；PB-01…PB-04 处置表责任明确。剩余 F-1…F-4 为执行阶段义务，不构成 A3 / A4 的材料缺陷。A3 / A4 / G6 / G7 的通过仍待各自 Gate 证据（动态执行、评测负责人任命、证据归档）实际完成。
 
@@ -58,8 +60,8 @@
 
 | 签署 | 记录 |
 |---|---|
-| 复核者 | PENDING |
-| 结论（ACCEPT / ACCEPT WITH FINDINGS / BLOCK） | PENDING |
-| 日期 | PENDING |
+| 复核者 | 用户本人（PD-15），非起草方（acceptance-mapping、product-owner-decisions、decision-register 由代理会话起草，复核者未参与内容起草） |
+| 结论（ACCEPT / ACCEPT WITH FINDINGS / BLOCK） | ACCEPT WITH FINDINGS |
+| 日期 | 2026-10-08 |
 
 **注意：** 本记录签署 ≠ A3 / A4 / G6 / G7 签署；各 Gate 保持 NOT PASSED 直至对应证据完成。

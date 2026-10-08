@@ -1,7 +1,7 @@
 # P3-S1 验收映射（范围已批准；运行证据待执行）
 
 **编号：** P3-S1-ACCEPTANCE-MAP-01
-**版本：** 0.3.1（2026-10-08：GS-05 标注规范字段名（PD-16）；S1-ACT-WHAT_IF 补 E8-G2-CC07 来源；§A 增补负向案例派生说明）
+**版本：** 0.3.2（2026-10-08：证据负责人列更新——独立评测人已任命（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效））
 **状态：** APPROVED FOR S1 SCOPE BY PODR-001；评测负责人复核待办；所有运行证据 NOT RUN
 **提醒：** 下表是来源条款的工作映射，不是测试结果；所有运行证据均为 `NOT RUN`。未批准动作不在此臆定语义。
 
@@ -9,13 +9,13 @@
 
 | 编号 / 动作 | 来源条款 | 拟定范围 | 预期行为（按原规范转述） | 必需负向案例 | 证据负责人 | 阶段 / 当前证据 |
 |---|---|---|---|---|---|---|
-| GS-01 Direct Answer | `P3-S1｜Runtime Vertical Slice Specification` §26 GS-01；Evaluation System V1 Golden Cases / Direct Answer；API V1 Case 01 | S1 核心 | 用户要求直接回答时走 `DIRECT_ANSWER → ANSWER`，不强迫进入探索体验 | 不应继续生成体验或隐式推荐；模型异常时不得改写用户意图 | 评测负责人（待指定） | P3-S1；NOT RUN |
-| GS-02 Why | S1 §26 GS-02；Evaluation System V1 G02 Why | S1 核心 | “为什么？”触发 `WHY → EXPLAIN` | 不得把问题误作 STOP/CHANGE；不得声称无依据事实 | 评测负责人（待指定） | P3-S1；NOT RUN |
-| GS-03 Change | S1 §26 GS-03；S1-CC20 / S1-CC02-H03；API V1 Case 03 | S1 核心 | 改变方向时取消旧生成/动作、拒绝旧候选，再开始获准的新方向 | 并发旧回复、取消失败、重复请求、旧候选不得污染新状态 | 工程负责人 + 独立评测者（待指定） | P3-S1；NOT RUN |
-| GS-04 Stop | S1 §26 GS-04；S1-CC19 / S1-CC02-H02；Evaluation System P0 STOP blocker；API V1 Case 04 | S1 核心 | STOP 终止当前 Experience，不自动开启新体验、不继续发送内容 | 在生成中 STOP 后旧结果返回；后台 retry / continuation；重复 STOP | 工程负责人 + 独立评测者（待指定） | P3-S1；NOT RUN；任何违规为 P0 阻断 |
-| GS-05 State Version Conflict | S1 §26 GS-05；S1 state-version / stale-write contract sections；CC02 stale-write cases；API V1 Case 05 | S1 核心 | 陈旧版本写入（携带旧 `expected_state_version`，规范字段名按 PD-16）返回 `STATE_VERSION_CONFLICT`，不得覆盖新状态 | 并发两个写入；旧版本重试；冲突恢复不得丢失最新状态 | 工程负责人 + 评测负责人（待指定） | P3-S1；NOT RUN |
-| GS-06 LLM State Mutation Rejection | S1 §26 GS-06；C07–C08 / C07–C09 候选文本；S1-CC01、S1-CC02-H01/H05；CC02 Runtime single-writer 约束 | S1 核心 | 模型提出 `state_update` 时 Validator / Runtime 拒绝；模型不直接写状态 | 伪造合法字段、额外字段、嵌套状态变更、策略绕过 | 架构负责人 + 独立评测者（待指定） | P3-S1；NOT RUN；C4 权威 / C07–C08 迁移处置待 CR-10 / CR-11 确认 |
-| S1-ACT-WHAT_IF 基础动作（非 Golden 编号） | S1 §11 / §14 WHAT_IF → SIMULATE；PODR-001 / PD-06；E8-G2-CC07（假设 / 事实 / 模拟结果分离） | S1 契约动作；不新增 GS 编号 | 按既有 Policy 产生当前单次模拟提案；区分事实、推断与假设；不创建持久 / 多轮分支状态 | 不能把假设当事实；不修改产品状态；输入含 STOP 时 STOP 优先；模拟失败不得继续或伪造结果 | 工程负责人 + 独立评测者（待指定） | P3-S1；NOT RUN |
+| GS-01 Direct Answer | `P3-S1｜Runtime Vertical Slice Specification` §26 GS-01；Evaluation System V1 Golden Cases / Direct Answer；API V1 Case 01 | S1 核心 | 用户要求直接回答时走 `DIRECT_ANSWER → ANSWER`，不强迫进入探索体验 | 不应继续生成体验或隐式推荐；模型异常时不得改写用户意图 | 评测负责人（已指定：用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08） | P3-S1；NOT RUN |
+| GS-02 Why | S1 §26 GS-02；Evaluation System V1 G02 Why | S1 核心 | “为什么？”触发 `WHY → EXPLAIN` | 不得把问题误作 STOP/CHANGE；不得声称无依据事实 | 评测负责人（已指定：用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08） | P3-S1；NOT RUN |
+| GS-03 Change | S1 §26 GS-03；S1-CC20 / S1-CC02-H03；API V1 Case 03 | S1 核心 | 改变方向时取消旧生成/动作、拒绝旧候选，再开始获准的新方向 | 并发旧回复、取消失败、重复请求、旧候选不得污染新状态 | 工程负责人 + 独立评测者（已指定：用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08） | P3-S1；NOT RUN |
+| GS-04 Stop | S1 §26 GS-04；S1-CC19 / S1-CC02-H02；Evaluation System P0 STOP blocker；API V1 Case 04 | S1 核心 | STOP 终止当前 Experience，不自动开启新体验、不继续发送内容 | 在生成中 STOP 后旧结果返回；后台 retry / continuation；重复 STOP | 工程负责人 + 独立评测者（已指定：用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08） | P3-S1；NOT RUN；任何违规为 P0 阻断 |
+| GS-05 State Version Conflict | S1 §26 GS-05；S1 state-version / stale-write contract sections；CC02 stale-write cases；API V1 Case 05 | S1 核心 | 陈旧版本写入（携带旧 `expected_state_version`，规范字段名按 PD-16）返回 `STATE_VERSION_CONFLICT`，不得覆盖新状态 | 并发两个写入；旧版本重试；冲突恢复不得丢失最新状态 | 工程负责人 + 评测负责人（已指定：用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08） | P3-S1；NOT RUN |
+| GS-06 LLM State Mutation Rejection | S1 §26 GS-06；C07–C08 / C07–C09 候选文本；S1-CC01、S1-CC02-H01/H05；CC02 Runtime single-writer 约束 | S1 核心 | 模型提出 `state_update` 时 Validator / Runtime 拒绝；模型不直接写状态 | 伪造合法字段、额外字段、嵌套状态变更、策略绕过 | 架构负责人 + 独立评测者（已指定：用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08） | P3-S1；NOT RUN；C4 权威 / C07–C08 迁移处置待 CR-10 / CR-11 确认 |
+| S1-ACT-WHAT_IF 基础动作（非 Golden 编号） | S1 §11 / §14 WHAT_IF → SIMULATE；PODR-001 / PD-06；E8-G2-CC07（假设 / 事实 / 模拟结果分离） | S1 契约动作；不新增 GS 编号 | 按既有 Policy 产生当前单次模拟提案；区分事实、推断与假设；不创建持久 / 多轮分支状态 | 不能把假设当事实；不修改产品状态；输入含 STOP 时 STOP 优先；模拟失败不得继续或伪造结果 | 工程负责人 + 独立评测者（已指定：用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08） | P3-S1；NOT RUN |
 
 注：上表"必需负向案例"列内容源自 SRC-27 §34 P0 阻断清单与契约原则的派生；SRC-27 §26 原文仅含正向输入与 Expected，未含负向案例。负向案例不改变 GS-01–GS-06 原义。
 

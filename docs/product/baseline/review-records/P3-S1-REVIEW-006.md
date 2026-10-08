@@ -1,8 +1,8 @@
 # P3-S1 独立复核记录：R1（契约权威与版本）
 
 **记录编号：** P3-S1-REVIEW-006
-**版本：** 0.1.0 DRAFT（2026-10-08：起草代理完成复核分析与机械核验；**待复核者签署**）
-**状态：** DRAFT——PENDING 复核者签署；本草案不构成 A1 / G1 签署或任何 Gate 证据
+**版本：** 1.0.0（2026-10-08：复核者签署——ACCEPT WITH FINDINGS；F-1 于签署会执行完成（C1–C7 Steward 确认），A1 准入条件满足）
+**状态：** SIGNED——复核者已签署（2026-10-08，用户本人，角色 2，非起草方）；本记录是 A1 / G1 复核证据
 **适用门禁：** P2-EVIDENCE-8.1 A1 / G1 契约权威冻结
 
 ## 1. 复核记录（按 independent-review-package.md §4 模板）
@@ -11,10 +11,10 @@
 |---|---|
 | Review ID | P3-S1-REVIEW-006 |
 | 复核区块 | R1（契约权威与版本，对应 A1 / G1） |
-| 复核者及角色 | PENDING（拟定：用户本人，角色 2 架构负责人 / 各契约 Steward，OWNER-ROSTER-01 v0.2.4，PD-15） |
+| 复核者及角色 | 用户本人（角色 2 架构负责人 / 各契约 Steward 职责，OWNER-ROSTER-01 v0.2.4，PD-15）；2026-10-08 签署 |
 | 复核者与作者关系 | 非起草方：基线文件、处置表、C4 正式文件由代理会话起草；复核者未参与内容起草（同 K-5 先例：起草代理与复核者无同一性） |
 | 基线版本与 Git revision | contract-authority-baseline v1.2.0；source-of-truth v0.2.0；C4-LLM-scope-disposition v1.1.0；C4-LLM-Contract v1.0.0；owner-roster v0.2.4；Git 65179fd（origin/main） |
-| 结论 | PENDING（草案建议见 §5） |
+| 结论 | ACCEPT WITH FINDINGS（F-1 于 2026-10-08 签署会执行完成；F-2…F-4 登记在案） |
 | Findings（含严重度 / 条款 / Gate） | F-1…F-4（见 §4）；无 Critical |
 | 遗留问题 / 责任人 / 到期阶段 | C1–C7 Steward 确认与 G1 非作者核验（责任人：用户本人各角色；到期阶段：A1 签署先于实施授权） |
 | 证据位置与哈希 | `docs/product/baseline/contract-authority-baseline-v1.md` v1.2.0；`docs/product/reference/SHA256SUMS`（36 项）；`docs/product/contracts/C4-LLM-Contract-v1.0.0.md` §18（§1–§17 指纹） |
@@ -52,7 +52,9 @@
 
 无 Critical finding；无 BLOCK 级未决项（F-1 为执行项：签署动作本身，非材料缺陷）。
 
-## 5. 草案建议结论（待复核者确认）
+## 5. 复核结论（复核者已确认）
+
+**复核者确认（2026-10-08，用户本人，角色 2，非起草方）：** 接受草案建议——**ACCEPT WITH FINDINGS**。F-1 已于 2026-10-08 签署会执行完成：C1–C7 Steward 确认签署（`signing/steward-confirmation-c1-c7.md`）+ 本记录签署，G1 非作者核验完成；A1 准入条件满足，G1 静态权威冻结 PASSED。备选（C3 歧义升 Important）未采纳——C3 版本化安排经 C3 Steward 确认时显式接受并登记语义空缺义务（确认表已注明）。
 
 **建议：ACCEPT WITH FINDINGS。** 理由：R1 材料完备、内部一致；REVIEW-001 的两项 R1 blocker（F-01 / F-02）已关闭；剩余 F-1 是 G1 通过条件本身的执行（Steward 签署 + 非作者核验），不是材料缺陷。材料层面已具备 A1 签署条件；A1 / G1 的通过仍待七行 Steward 确认与非作者核验实际完成。
 
@@ -62,8 +64,8 @@
 
 | 签署 | 记录 |
 |---|---|
-| 复核者（角色 2 架构负责人） | PENDING |
-| 结论（ACCEPT / ACCEPT WITH FINDINGS / BLOCK） | PENDING |
-| 日期 | PENDING |
+| 复核者（角色 2 架构负责人） | 用户本人（PD-15），非起草方（基线、处置表、C4 正式文件由代理会话起草，复核者未参与内容起草） |
+| 结论（ACCEPT / ACCEPT WITH FINDINGS / BLOCK） | ACCEPT WITH FINDINGS |
+| 日期 | 2026-10-08 |
 
 **注意：** 本记录签署 ≠ A1 / G1 签署；G1 保持 NOT PASSED 直至 C1–C7 Steward 确认与非作者核验完成。

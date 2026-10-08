@@ -1,8 +1,8 @@
 # P3-S1 独立复核记录：R5（E5 证据可复现性与独立性）
 
 **记录编号：** P3-S1-REVIEW-008
-**版本：** 0.1.0 DRAFT（2026-10-08：起草代理完成复核分析与机械核验；**待复核者签署**）
-**状态：** DRAFT——PENDING 复核者签署；本草案不构成 A5 / E5 签署或任何 Gate 证据
+**版本：** 1.0.0（2026-10-08：复核者签署——对 E5 计划本身 ACCEPT WITH FINDINGS；A5 / E5 就绪状态维持 NOT PASSED；F-2 独立评测人任命经 G5 隔离声明签署完成）
+**状态：** SIGNED——复核者已签署（2026-10-08，用户本人，非起草方）；本记录是 A5 复核证据；E5 仍 NOT PASSED
 **适用门禁：** P2-EVIDENCE-8.1 A5 / E5
 
 ## 1. 复核记录（按 independent-review-package.md §4 模板）
@@ -11,10 +11,10 @@
 |---|---|
 | Review ID | P3-S1-REVIEW-008 |
 | 复核区块 | R5（E5 证据可复现性与独立性，对应 A5） |
-| 复核者及角色 | PENDING（拟定：用户本人，角色 5 独立评测负责人职责相关，OWNER-ROSTER-01 v0.2.4，PD-15） |
+| 复核者及角色 | 用户本人（角色 5 独立评测负责人职责相关，OWNER-ROSTER-01 v0.2.4，PD-15）；2026-10-08 签署 |
 | 复核者与作者关系 | 非起草方：evidence-execution-plan 由代理会话起草；复核者未参与内容起草 |
 | 基线版本与 Git revision | evidence-execution-plan v1.1.0；contract-authority-baseline v1.2.0；cross-contract-static-mapping v1.4.0；acceptance-mapping v0.3.1；Git 65179fd（origin/main） |
-| 结论 | PENDING（草案建议见 §5） |
+| 结论 | 对 E5 证据操作计划本身 ACCEPT WITH FINDINGS；A5 / E5 就绪状态维持 NOT PASSED（F-1 环境未搭建） |
 | Findings（含严重度 / 条款 / Gate） | F-1…F-4（见 §4）；无 Critical |
 | 遗留问题 / 责任人 / 到期阶段 | E5 执行环境搭建（授权方式属产品负责人决定）；独立评测人正式任命；首次端到端试运行；到期阶段：实施授权前后（按产品负责人决定） |
 | 证据位置与哈希 | `docs/product/baseline/evidence-execution-plan.md` v1.1.0；`docs/product/baseline/signing/`（G5 隔离声明、隐私六要素模板） |
@@ -50,7 +50,9 @@
 
 无 Critical finding。F-1 / F-2 是 A5 的就绪条件未满足（非材料缺陷），在就绪条件完成前 A5 / E5 保持 NOT PASSED。
 
-## 5. 草案建议结论（待复核者确认）
+## 5. 复核结论（复核者已确认）
+
+**复核者确认（2026-10-08，用户本人，非起草方）：** 接受草案建议——**对 E5 证据操作计划本身 ACCEPT WITH FINDINGS；A5 / E5 就绪状态维持 NOT PASSED**。F-1（环境搭建）的授权方式保留为产品负责人待决项（实施授权前的 scoped 许可，或作为实施阶段首个迭代任务）；F-2 独立评测人任命已于 2026-10-08 经 G5 隔离声明签署完成；F-3 / F-4 登记在案。备选（E5 环境必须在实施授权前建成，F-1 升 BLOCK 级）未采纳——产品负责人须另行签发 scoped 许可方可启动环境搭建。
 
 **建议：对 E5 证据操作计划本身 ACCEPT WITH FINDINGS；A5 / E5 就绪状态维持 NOT PASSED。** 理由：证据规范完整（版本矩阵、案例结构、状态词汇、独立性规则、隐私护栏齐备且与 E8 G5 16 项交叉对应）；未满足项（F-1 环境、F-2 评测人、F-3 试运行）是就绪条件的执行缺口，计划已为其定义了明确的完成标准与责任。复核者不把"计划完备"当作"E5 通过"。
 
@@ -60,8 +62,8 @@
 
 | 签署 | 记录 |
 |---|---|
-| 复核者 | PENDING |
-| 结论（ACCEPT WITH FINDINGS on plan / BLOCK） | PENDING |
-| 日期 | PENDING |
+| 复核者 | 用户本人（PD-15），非起草方（evidence-execution-plan 由代理会话起草，复核者未参与内容起草） |
+| 结论（ACCEPT WITH FINDINGS on plan / BLOCK） | ACCEPT WITH FINDINGS on plan；A5 / E5 维持 NOT PASSED |
+| 日期 | 2026-10-08 |
 
 **注意：** 本记录签署 ≠ A5 / E5 签署；E5 保持 NOT PASSED 直至环境、评测人、试运行三项就绪条件完成。
