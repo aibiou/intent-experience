@@ -1,7 +1,7 @@
 # P3-S1 实现准入记录
 
 **编号：** P3-S1-READINESS-01
-**版本：** 0.6.0（2026-10-08：ADR-0002 Spike 执行完成——run 2 S-1/S-2/S-3 全部通过；run 1 S-3 测试桩缺陷已按 §5 如实登记并存档；验证报告 ADR-0002-spike-report.md 附入 ADR-0001 复核材料；实施授权仍 NOT AUTHORIZED）
+**版本：** 0.6.1（2026-10-08：独立复核五区块草案齐备——R1/R3/R4/R5 复核草案已准备（REVIEW-006/007/005/008，待签署）；R2 已签署（REVIEW-004）；contract-authority-baseline v1.2.0 与 C4 处置表 v1.1.0 状态同步）
 **状态：** NOT READY / NOT AUTHORIZED
 **记录日期：** 2026-10-08
 **范围：** 仅检查 P3-S1 产品运行时代码是否已获准启动；本记录不代表 P2 关闭或产品验收通过。
@@ -64,7 +64,7 @@ Runtime Code / Tests / Product Evidence: NOT STARTED
 | CR-09 编号碰撞 | 命名空间已裁决；全量映射经 A2 非作者复核签署（REVIEW-004，ACCEPT，2026-10-08）；CR-09 关闭。 |
 | CR-12 同层动作顺序 | PD-12 限定 WHY > WHAT_IF 仅为同层解释顺序，不改变授权；非作者复核待办。 |
 | CR-13 严重度适用范围 | PD-13 适用范围规则经 A2 签署确认（REVIEW-004 §3-D）；NEG14 定 P0/Policy Bypass、NEG17 基础 P1 + 升级条件，已回写 XCC-MAP v1.4.0；CR-13 关闭。 |
-| 独立复核准备 | R2 已有复核者 / 结论 / 签署（P3-S1-REVIEW-004，ACCEPT）；C4 正式文件已经 K-4/K-5 批准；R1 复核结论登记与 G1 其余项（C1–C7 Steward 确认、非作者核验）待办；其余区块复核待办。 |
+| 独立复核准备 | R2 已签署（P3-S1-REVIEW-004，ACCEPT）；ADR-0002 Spike 完成（run 2 全过，报告已落档）；R1 / R3 / R4 / R5 复核草案已准备（REVIEW-006 / 007 / 005 / 008，待签署）；G1 其余项（C1–C7 Steward 确认、非作者核验）待办。 |
 | E5 | 执行流程已定义；工具环境、锁文件、自动化和试运行未完成；NOT PASSED。 |
 | 技术栈 | Next.js + TypeScript / Node.js 24 LTS 基线已由产品负责人采用；ADR-0002 已会签生效；Spike 已完成（run 2 S-1/S-2/S-3 全过，Node v24.21.0 锁定，报告已落档）；实现授权时须重查 Active LTS 并锁定补丁；ADR-0001 独立复核待执行（Spike 报告已可作输入）。 |
 | ADR-0002 Spike | 已完成：run 1 S-3 测试桩缺陷（`PRAGMA busy_timeout` 遗漏致 SQLITE_BUSY）按 §5 如实登记并存档；run 2 S-1/S-2/S-3 全部通过；报告 `docs/architecture/decisions/ADR-0002-spike-report.md`（含环境、版本锁定、原始记录 SHA-256、硬边界合规声明）；结果仅作 ADR-0001 复核输入，非 Gate 证据，不改变任何门禁状态。 |

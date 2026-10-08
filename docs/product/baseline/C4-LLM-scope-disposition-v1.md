@@ -1,9 +1,9 @@
 # C4 大模型契约范围与迁移处置表
 
 **编号：** C4-SCOPE-DISPOSITION-01
-**版本：** 1.0.0
-**状态：** 产品范围处置草案；AI 架构负责人确认待办；不得作为已冻结 C4
-**对应审查：** P3-S1-REVIEW-001 / F-01 / F-02
+**版本：** 1.1.0（2026-10-08：状态更新——C4 正式文件 C4-LLM-Contract-v1.0.0 已建立（K-4 批准 + K-5 非作者会签 + §1–§17 范围指纹登记，CR-10 / CR-11 关闭）；本文 §1–§2 逐章处置保持历史分析输入原貌，其裁定内容已由 C4 正式文件落实）
+**状态：** C4 正式权威已建立；本文为处置过程记录（非 C4 权威文本，不取代 C4-LLM-Contract-v1.0.0）；G1 其余项（C1–C7 Steward 确认与非作者核验）待办
+**对应审查：** P3-S1-REVIEW-001 / F-01 / F-02（已关闭：F-01 / F-02 随 C4 正式文件建立与 K-4/K-5 完成而关闭）
 **来源：** SRC-23（P3-S1-C07～C08）、SRC-24（P3-S1-C07～C09）
 **目的：** 显式处置 SRC-23 的 32 个章节，避免“非实现权威”被误读成“未迁移要求已自动废弃”。
 
@@ -65,17 +65,19 @@
 
 | 确认项 | 责任角色 | 当前状态 | 未完成时的结果 |
 |---|---|---|---|
-| §1–§32 处置是否完整、是否有遗漏的规范性要求 | AI 架构负责人 | PENDING | G1 / A1 BLOCKED |
-| “部分映射”各行的等价性与差异 | AI 架构负责人 | PENDING | G1 / A1 BLOCKED |
-| 模型评测、模型升级和跨模型回归的责任链 | AI 架构负责人 + 独立评测负责人 | PENDING | G1 / A1 BLOCKED；G5 不可通过 |
-| C4 正式文件、版本、精确范围、Owner 与批准证据 | AI 架构负责人 | PENDING | C4 未成立；G1 / A1 NOT PASSED |
-| 最终文件与选定范围指纹 | 契约 Owner + 非作者复核者 | PENDING | 不得登记 G1 PASS |
+| §1–§32 处置是否完整、是否有遗漏的规范性要求 | AI 架构负责人 | 已完成（K-4 批准，2026-10-08；32 章处置经 C4-signoff-comparison-brief-v1 逐章等价性分析，C4-LLM-Contract-v1.0.0 落实） | G1 / A1 BLOCKED |
+| “部分映射”各行的等价性与差异 | AI 架构负责人 | 已完成（K-4 批准；差异经 DP-1 / DP-2 等裁定收紧并由契约落实） | G1 / A1 BLOCKED |
+| 模型评测、模型升级和跨模型回归的责任链 | AI 架构负责人 + 独立评测负责人 | 责任链已共签（K-3，2026-10-08）；评测执行 NOT RUN | G1 / A1 BLOCKED；G5 不可通过 |
+| C4 正式文件、版本、精确范围、Owner 与批准证据 | AI 架构负责人 | 已完成（C4-LLM-Contract-v1.0.0，K-4/K-5，2026-10-08） | C4 未成立；G1 / A1 NOT PASSED |
+| 最终文件与选定范围指纹 | 契约 Owner + 非作者复核者 | 已完成（§1–§17 全节 SHA-256 范围指纹登记于契约 §18，K-5，2026-10-08） | 不得登记 G1 PASS |
+
+**G1 其余项：** C1–C7 Steward 确认与 G1 非作者核验仍待办（模板：`signing/steward-confirmation-c1-c7.md`）；G1 保持 NOT PASSED。
 
 ## 4. 状态
 
 ```text
-C4 formal contract: NOT ESTABLISHED
-Clause disposition: PRODUCT DRAFT / ARCHITECT REVIEW PENDING
-G1 / A1: NOT PASSED
+C4 formal contract: ESTABLISHED（C4-LLM-Contract-v1.0.0，K-4/K-5 完成，2026-10-08）
+Clause disposition: ENACTED（32 章处置经 K-4 批准并由 C4 正式文件落实；本文 §1–§2 保留为历史分析输入）
+G1 / A1: NOT PASSED（待 C1–C7 Steward 确认与非作者核验）
 Implementation authority: NOT GRANTED
 ```
