@@ -34,6 +34,10 @@
 - CR-16（S1 §23 → C6 事件名称调和）与 CR-17（policy_decided 发射时机解释）：PENDING NON-AUTHOR REVIEW（登记于 decision-register v0.8.0）
 - 事件名称调和表 staged 于 F2-GS-0001/review/README.md
 
+## 证据绑定说明（独立核验须知）
+
+案例记录 `evidence.traceSha256` 覆盖轨迹文件除末行 `trace_completed` 信封外的全部内容（信封在哈希计算后追加——执行器自 F-1 起的系统性行为，F1/F2 同模式；"除末行外"重算 21/21 与声明全部匹配）。`SHA256SUMS` 46 项（cases/ 21 + traces/ 24 + run-metadata.json；summary.json 不列入）独立重算全部精确通过。`trace_completed` 信封内容（结果/耗时）同时记录于案例记录 `result` 与 summary.json。
+
 ## 独立重跑
 
     cd tools/evidence && npm run f3   # Node v24.21.0

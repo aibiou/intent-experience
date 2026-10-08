@@ -32,6 +32,10 @@
 | version_conflict | state_version_conflict | C6 §21 状态事件 |
 | 其余 10 项 | 同名 | C6 §10/§13/§15/§18/§21 |
 
+## 证据绑定说明（独立核验须知）
+
+案例记录 `evidence.traceSha256` 覆盖轨迹文件除末行 `trace_completed` 信封外的全部内容（信封在哈希计算后追加——执行器自 F-1 起的系统性行为，F1/F3 同模式；"除末行外"重算与声明全部匹配）。`SHA256SUMS` 中 `summary.json` 项因清单先于 summary 定稿计算而不匹配（F1/F2 各 1 项，已登记于 F-3 迭代记录 §3 独立审计发现）；其余 84 项精确通过。完整产物核验以"除末行外"轨迹哈希与案例记录比对、或重跑执行器比对内容为准。
+
 ## 独立重跑
 
     cd tools/evidence && npm run f2   # Node v24.21.0
