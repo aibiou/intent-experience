@@ -4,6 +4,7 @@ node_modules/
 # Next.js build output
 .next/
 out/
+next-env.d.ts
 
 # compiled core bundle for the in-process evidence harness
 dist/
