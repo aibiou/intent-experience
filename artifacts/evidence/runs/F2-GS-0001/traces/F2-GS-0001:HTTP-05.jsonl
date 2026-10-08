@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:HTTP-05","event":"trace_started","at":"2026-10-08T15:18:10.901Z","form":"http","sourceClause":"S1 §27 POST /experience/{id}/event；API §11.3 执行链"}
-{"caseId":"F2-GS-0001:HTTP-05","event":"trace_completed","at":"2026-10-08T15:18:11.300Z","startedAt":"2026-10-08T15:18:10.901Z","durationMs":399,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:HTTP-05","event":"trace_started","at":"2026-10-08T15:20:10.423Z","form":"http","sourceClause":"S1 §27 POST /experience/{id}/event；API §11.3 执行链"}
+{"caseId":"F2-GS-0001:HTTP-05","event":"trace_completed","at":"2026-10-08T15:20:10.820Z","startedAt":"2026-10-08T15:20:10.423Z","durationMs":397,"result":"PASS","pass":true}

@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:WHATIF-STOP","event":"trace_started","at":"2026-10-08T15:18:06.910Z","form":"in-process","sourceClause":"acceptance-mapping §A S1-ACT-WHAT_IF 负向：输入含 STOP 时 STOP 优先；S1 §15 P-01"}
-{"caseId":"F2-GS-0001:WHATIF-STOP","event":"trace_completed","at":"2026-10-08T15:18:06.912Z","startedAt":"2026-10-08T15:18:06.910Z","durationMs":2,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:WHATIF-STOP","event":"trace_started","at":"2026-10-08T15:20:06.438Z","form":"in-process","sourceClause":"acceptance-mapping §A S1-ACT-WHAT_IF 负向：输入含 STOP 时 STOP 优先；S1 §15 P-01"}
+{"caseId":"F2-GS-0001:WHATIF-STOP","event":"trace_completed","at":"2026-10-08T15:20:06.440Z","startedAt":"2026-10-08T15:20:06.438Z","durationMs":2,"result":"PASS","pass":true}

@@ -180,7 +180,7 @@
     "note": "G5 16 项评测包仍 NOT RUN"
   },
   "code": {
-    "gitHead": "118bc04ecba024b469824bcbcb8f47c001aaec4c",
+    "gitHead": "c69d4f1f33ea7ea207ab68c871f28d92cd2aee00",
     "workTreeClean": true,
     "uncommittedEntries": [],
     "runtimeFiles": {
@@ -288,8 +288,8 @@
     "npmRegistryReachable": "via proxy 127.0.0.1:7890（2026-10-08 验证）"
   },
   "run": {
-    "startedAt": "2026-10-08T15:17:58.506Z",
-    "finishedAt": "2026-10-08T15:18:13.046Z",
+    "startedAt": "2026-10-08T15:19:57.824Z",
+    "finishedAt": "2026-10-08T15:20:12.574Z",
     "command": "npm run f2 (node tools/evidence/src/f2.mjs, from tools/evidence)",
     "exitCode": 1,
     "executor": {

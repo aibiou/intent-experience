@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:HTTP-09","event":"trace_started","at":"2026-10-08T15:18:11.739Z","form":"http","sourceClause":"API §2.3（Query 与 Command 分离）；方法约束"}
-{"caseId":"F2-GS-0001:HTTP-09","event":"trace_completed","at":"2026-10-08T15:18:11.749Z","startedAt":"2026-10-08T15:18:11.739Z","durationMs":10,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:HTTP-09","event":"trace_started","at":"2026-10-08T15:20:11.254Z","form":"http","sourceClause":"API §2.3（Query 与 Command 分离）；方法约束"}
+{"caseId":"F2-GS-0001:HTTP-09","event":"trace_completed","at":"2026-10-08T15:20:11.263Z","startedAt":"2026-10-08T15:20:11.254Z","durationMs":9,"result":"PASS","pass":true}

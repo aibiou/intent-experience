@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:GS-03-POS","event":"trace_started","at":"2026-10-08T15:18:02.333Z","form":"in-process","sourceClause":"S1 §26 GS-03；S1-CC20 / S1-CC02-H03；API V1 Case 03；状态机 §7；S1 §11/§21"}
-{"caseId":"F2-GS-0001:GS-03-POS","event":"trace_completed","at":"2026-10-08T15:18:02.764Z","startedAt":"2026-10-08T15:18:02.333Z","durationMs":431,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:GS-03-POS","event":"trace_started","at":"2026-10-08T15:20:01.869Z","form":"in-process","sourceClause":"S1 §26 GS-03；S1-CC20 / S1-CC02-H03；API V1 Case 03；状态机 §7；S1 §11/§21"}
+{"caseId":"F2-GS-0001:GS-03-POS","event":"trace_completed","at":"2026-10-08T15:20:02.296Z","startedAt":"2026-10-08T15:20:01.869Z","durationMs":427,"result":"PASS","pass":true}

@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:GS-05-REC","event":"trace_started","at":"2026-10-08T15:18:05.540Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-05 负向：冲突恢复不得丢失最新状态"}
+{"caseId":"F2-GS-0001:GS-05-REC","event":"trace_completed","at":"2026-10-08T15:18:06.303Z","startedAt":"2026-10-08T15:18:05.540Z","durationMs":763,"result":"PASS","pass":true}

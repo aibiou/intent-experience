@@ -1,9 +1,9 @@
 {
   "runId": "F2-GS-0001",
   "obligation": "P3-S1-IMPL-AUTH-01 §2 授权范围：GS-01…GS-06 完整动态执行 + C6 事件契约证据 + S1 启用动作契约测试 + F-1 回归（F-2 迭代）",
-  "startedAt": "2026-10-08T15:17:58.506Z",
-  "finishedAt": "2026-10-08T15:18:13.046Z",
-  "durationMs": 14536,
+  "startedAt": "2026-10-08T15:19:57.824Z",
+  "finishedAt": "2026-10-08T15:20:12.574Z",
+  "durationMs": 14750,
   "cases": [
     {
       "caseId": "F2-GS-0001:GS-01-POS",
@@ -39,7 +39,7 @@
     },
     {
       "caseId": "F2-GS-0001:GS-04-NOCONT",
-      "result": "FAIL"
+      "result": "PASS"
     },
     {
       "caseId": "F2-GS-0001:GS-04-MIDGEN",
@@ -201,7 +201,7 @@
     {
       "id": "A9",
       "description": "GS-04：STOP 终止（单一 stopped 事件、零内容分块、体验 COMPLETED、会话 ENDED、四事件齐备）；重复 STOP 拒绝；STOP 后零 continuation（P0）；生成中客户端中止后零后续分块且 STOP 仍可从 ACTIVE 终止",
-      "passed": false
+      "passed": true
     },
     {
       "id": "A10",

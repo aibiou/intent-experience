@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:GS-01-DET","event":"trace_started","at":"2026-10-08T15:18:01.225Z","form":"in-process","sourceClause":"S1 §26 GS-01 负向：模型异常时不得改写用户意图；acceptance-mapping §A GS-01 负向案例"}
+{"caseId":"F2-GS-0001:GS-01-DET","event":"trace_completed","at":"2026-10-08T15:18:01.946Z","startedAt":"2026-10-08T15:18:01.224Z","durationMs":722,"result":"PASS","pass":true}

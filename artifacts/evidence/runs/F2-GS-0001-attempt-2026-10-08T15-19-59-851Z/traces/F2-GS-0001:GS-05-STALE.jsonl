@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:GS-05-STALE","event":"trace_started","at":"2026-10-08T15:18:04.773Z","form":"in-process","sourceClause":"S1 §26 GS-05；S1 state-version / stale-write contract；CC02 stale-write cases；API V1 Case 05；S1 §12"}
+{"caseId":"F2-GS-0001:GS-05-STALE","event":"trace_completed","at":"2026-10-08T15:18:05.157Z","startedAt":"2026-10-08T15:18:04.773Z","durationMs":384,"result":"PASS","pass":true}

@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:GS-03-DUP","event":"trace_started","at":"2026-10-08T15:18:03.192Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-03 负向：重复请求；C6 §27；API §2.4 幂等"}
+{"caseId":"F2-GS-0001:GS-03-DUP","event":"trace_completed","at":"2026-10-08T15:18:03.574Z","startedAt":"2026-10-08T15:18:03.192Z","durationMs":382,"result":"PASS","pass":true}

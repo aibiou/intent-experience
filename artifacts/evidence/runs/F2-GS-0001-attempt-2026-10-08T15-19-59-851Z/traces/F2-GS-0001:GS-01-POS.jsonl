@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:GS-01-POS","event":"trace_started","at":"2026-10-08T15:18:00.879Z","form":"in-process","sourceClause":"S1 §26 GS-01；Evaluation System V1 Golden Cases / Direct Answer；API V1 Case 01；CC04 显式回答不被预设体验覆盖"}
+{"caseId":"F2-GS-0001:GS-01-POS","event":"trace_completed","at":"2026-10-08T15:18:01.223Z","startedAt":"2026-10-08T15:18:00.878Z","durationMs":345,"result":"PASS","pass":true}

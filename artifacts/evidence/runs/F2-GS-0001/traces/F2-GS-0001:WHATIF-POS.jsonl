@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:WHATIF-POS","event":"trace_started","at":"2026-10-08T15:18:06.317Z","form":"in-process","sourceClause":"S1 §11/§14 WHAT_IF → SIMULATE；PODR-001 / PD-06；E8-G2-CC07（假设/事实/模拟结果分离）；acceptance-mapping §A S1-ACT-WHAT_IF"}
-{"caseId":"F2-GS-0001:WHATIF-POS","event":"trace_completed","at":"2026-10-08T15:18:06.909Z","startedAt":"2026-10-08T15:18:06.317Z","durationMs":592,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:WHATIF-POS","event":"trace_started","at":"2026-10-08T15:20:05.844Z","form":"in-process","sourceClause":"S1 §11/§14 WHAT_IF → SIMULATE；PODR-001 / PD-06；E8-G2-CC07（假设/事实/模拟结果分离）；acceptance-mapping §A S1-ACT-WHAT_IF"}
+{"caseId":"F2-GS-0001:WHATIF-POS","event":"trace_completed","at":"2026-10-08T15:20:06.437Z","startedAt":"2026-10-08T15:20:05.844Z","durationMs":593,"result":"PASS","pass":true}

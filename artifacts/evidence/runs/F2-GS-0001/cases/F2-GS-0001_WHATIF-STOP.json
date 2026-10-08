@@ -24,7 +24,7 @@
   ],
   "evidence": {
     "trace": "traces/F2-GS-0001:WHATIF-STOP.jsonl",
-    "traceSha256": "d2df162238a1abc3ad0cb340a5e5c5f4d07e87729c50c14b1a92d9894f23256b",
+    "traceSha256": "846e91d5b57137a0bebd968278934699b0a97f36cad171ef467de496b8b60588",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

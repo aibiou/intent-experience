@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:C6-TRACE-SEP","event":"trace_started","at":"2026-10-08T15:18:09.964Z","form":"in-process","sourceClause":"C6 §22 Decision Trace；C6 §23 LLM Trace 与 Policy Trace 必须分离；S1 §25"}
-{"caseId":"F2-GS-0001:C6-TRACE-SEP","event":"trace_completed","at":"2026-10-08T15:18:10.349Z","startedAt":"2026-10-08T15:18:09.964Z","durationMs":385,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:C6-TRACE-SEP","event":"trace_started","at":"2026-10-08T15:20:09.494Z","form":"in-process","sourceClause":"C6 §22 Decision Trace；C6 §23 LLM Trace 与 Policy Trace 必须分离；S1 §25"}
+{"caseId":"F2-GS-0001:C6-TRACE-SEP","event":"trace_completed","at":"2026-10-08T15:20:09.875Z","startedAt":"2026-10-08T15:20:09.494Z","durationMs":381,"result":"PASS","pass":true}

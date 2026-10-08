@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:GS-04-MIDGEN","event":"trace_started","at":"2026-10-08T15:18:04.724Z","form":"in-process","sourceClause":"S1-CC02-GXC02（生成中 STOP）；acceptance-mapping §A GS-04 负向：生成中 STOP 后旧结果返回"}
-{"caseId":"F2-GS-0001:GS-04-MIDGEN","event":"trace_completed","at":"2026-10-08T15:18:04.773Z","startedAt":"2026-10-08T15:18:04.724Z","durationMs":49,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:GS-04-MIDGEN","event":"trace_started","at":"2026-10-08T15:20:04.264Z","form":"in-process","sourceClause":"S1-CC02-GXC02（生成中 STOP）；acceptance-mapping §A GS-04 负向：生成中 STOP 后旧结果返回"}
+{"caseId":"F2-GS-0001:GS-04-MIDGEN","event":"trace_completed","at":"2026-10-08T15:20:04.312Z","startedAt":"2026-10-08T15:20:04.264Z","durationMs":48,"result":"PASS","pass":true}

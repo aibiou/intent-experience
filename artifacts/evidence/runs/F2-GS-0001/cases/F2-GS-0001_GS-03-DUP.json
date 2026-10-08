@@ -23,7 +23,7 @@
   ],
   "evidence": {
     "trace": "traces/F2-GS-0001:GS-03-DUP.jsonl",
-    "traceSha256": "39dda9784b4112c125b92de841b1b04fe9d4b78c0c5335595d8d11a481554c28",
+    "traceSha256": "bb4547a121bf3758bec31d3422a4fd953211fc259cddc5fc0bf0fe4c8a3301dd",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:GS-06-NESTED","event":"trace_started","at":"2026-10-08T15:18:06.313Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-06 负向：嵌套状态变更"}
-{"caseId":"F2-GS-0001:GS-06-NESTED","event":"trace_completed","at":"2026-10-08T15:18:06.315Z","startedAt":"2026-10-08T15:18:06.313Z","durationMs":2,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:GS-06-NESTED","event":"trace_started","at":"2026-10-08T15:20:05.842Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-06 负向：嵌套状态变更"}
+{"caseId":"F2-GS-0001:GS-06-NESTED","event":"trace_completed","at":"2026-10-08T15:20:05.843Z","startedAt":"2026-10-08T15:20:05.842Z","durationMs":1,"result":"PASS","pass":true}

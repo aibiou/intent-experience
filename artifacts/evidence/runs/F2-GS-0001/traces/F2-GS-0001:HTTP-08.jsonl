@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:HTTP-08","event":"trace_started","at":"2026-10-08T15:18:11.728Z","form":"http","sourceClause":"授权 §5.7（未知情况升级）；S1 §28 INVALID_ACTION"}
-{"caseId":"F2-GS-0001:HTTP-08","event":"trace_completed","at":"2026-10-08T15:18:11.739Z","startedAt":"2026-10-08T15:18:11.728Z","durationMs":11,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:HTTP-08","event":"trace_started","at":"2026-10-08T15:20:11.243Z","form":"http","sourceClause":"授权 §5.7（未知情况升级）；S1 §28 INVALID_ACTION"}
+{"caseId":"F2-GS-0001:HTTP-08","event":"trace_completed","at":"2026-10-08T15:20:11.253Z","startedAt":"2026-10-08T15:20:11.243Z","durationMs":10,"result":"PASS","pass":true}

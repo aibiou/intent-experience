@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:HTTP-02","event":"trace_started","at":"2026-10-08T15:18:10.861Z","form":"http","sourceClause":"S1 §27 POST /intent/resolve；API §10.1（不直接修改 ExperienceState）"}
+{"caseId":"F2-GS-0001:HTTP-02","event":"trace_completed","at":"2026-10-08T15:18:10.875Z","startedAt":"2026-10-08T15:18:10.861Z","durationMs":14,"result":"PASS","pass":true}

@@ -34,7 +34,7 @@
   ],
   "evidence": {
     "trace": "traces/F2-GS-0001:WHATIF-POS.jsonl",
-    "traceSha256": "c271ed41e6b1f3366b5cb5c4f35d9d702e46151322139fc7b281b556ef98062a",
+    "traceSha256": "d26228109f37c331626e8c2c75f45811019e9cfe052cddb77411288c454c8c1f",
     "form": "in-process",
     "httpEventLog": null,
     "httpDecisionTraceLog": null,

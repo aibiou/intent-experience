@@ -1,0 +1,36 @@
+{
+  "caseIdNamespace": "F2-GS-0001:WHATIF-STOP",
+  "sourceClause": "acceptance-mapping §A S1-ACT-WHAT_IF 负向：输入含 STOP 时 STOP 优先；S1 §15 P-01",
+  "scope": "S1 契约动作（负向）",
+  "precondition": "分类器确定性规则",
+  "inputFault": "输入同时含 WHAT_IF 与 STOP 标记",
+  "expected": {
+    "input": "如果摩擦力为零就好了（含 WHAT_IF 与 STOP 标记）",
+    "result": "STOP（P-01：STOP 永远优先）"
+  },
+  "actual": {
+    "classification": "STOP",
+    "controlClassification": "WHAT_IF"
+  },
+  "invariants": [
+    "S1 范围边界：CREATE/SEARCH 禁用；WHAT_IF 仅单次模拟不建立持久/多轮分支；不持久化跨会话 Memory（PD-05/PD-06/PD-07）",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "旧 operation 不得提交（generation epoch 守卫 + 版本双重检查，S1-10；CC02 H03）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/F2-GS-0001:WHATIF-STOP.jsonl",
+    "traceSha256": "d2df162238a1abc3ad0cb340a5e5c5f4d07e87729c50c14b1a92d9894f23256b",
+    "form": "in-process",
+    "httpEventLog": null,
+    "httpDecisionTraceLog": null,
+    "httpAuditLog": null
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

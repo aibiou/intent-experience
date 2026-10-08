@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:HTTP-06","event":"trace_started","at":"2026-10-08T15:18:11.300Z","form":"http","sourceClause":"S1 §12；API §22 错误契约（STATE_VERSION_CONFLICT）"}
-{"caseId":"F2-GS-0001:HTTP-06","event":"trace_completed","at":"2026-10-08T15:18:11.713Z","startedAt":"2026-10-08T15:18:11.300Z","durationMs":413,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:HTTP-06","event":"trace_started","at":"2026-10-08T15:20:10.820Z","form":"http","sourceClause":"S1 §12；API §22 错误契约（STATE_VERSION_CONFLICT）"}
+{"caseId":"F2-GS-0001:HTTP-06","event":"trace_completed","at":"2026-10-08T15:20:11.227Z","startedAt":"2026-10-08T15:20:10.820Z","durationMs":407,"result":"PASS","pass":true}

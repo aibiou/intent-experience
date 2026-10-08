@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:HTTP-10","event":"trace_started","at":"2026-10-08T15:18:11.749Z","form":"http","sourceClause":"S1 §20；GS-04；S1-01（ended 后旧操作拒绝）"}
+{"caseId":"F2-GS-0001:HTTP-10","event":"trace_completed","at":"2026-10-08T15:18:12.159Z","startedAt":"2026-10-08T15:18:11.749Z","durationMs":410,"result":"PASS","pass":true}

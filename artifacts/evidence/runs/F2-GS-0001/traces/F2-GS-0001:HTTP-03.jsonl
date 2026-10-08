@@ -1,2 +1,2 @@
-{"caseId":"F2-GS-0001:HTTP-03","event":"trace_started","at":"2026-10-08T15:18:10.875Z","form":"http","sourceClause":"S1 §27 POST /experience/start；API §11.1（不得由 Frontend 自己创建 ExperienceState）"}
-{"caseId":"F2-GS-0001:HTTP-03","event":"trace_completed","at":"2026-10-08T15:18:10.886Z","startedAt":"2026-10-08T15:18:10.875Z","durationMs":11,"result":"PASS","pass":true}
+{"caseId":"F2-GS-0001:HTTP-03","event":"trace_started","at":"2026-10-08T15:20:10.396Z","form":"http","sourceClause":"S1 §27 POST /experience/start；API §11.1（不得由 Frontend 自己创建 ExperienceState）"}
+{"caseId":"F2-GS-0001:HTTP-03","event":"trace_completed","at":"2026-10-08T15:20:10.407Z","startedAt":"2026-10-08T15:20:10.396Z","durationMs":11,"result":"PASS","pass":true}
