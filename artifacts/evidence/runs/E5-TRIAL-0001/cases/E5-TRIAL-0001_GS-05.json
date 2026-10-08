@@ -1,0 +1,25 @@
+{
+  "caseIdNamespace": "E5-TRIAL-0001:GS-05",
+  "sourceClause": "P3-S1｜Runtime Vertical Slice Specification §26 GS-05；S1 state-version / stale-write contract sections；CC02 stale-write cases；API V1 Case 05",
+  "scope": "S1 核心（Golden Subset）；E5 证据管线试运行（非产品运行时验证）",
+  "precondition": "fixture 状态存储初始化：experience_state[id=fixture-state].version = 2；写入携带陈旧期望版本",
+  "inputFault": "模拟客户端条件写入，携带 expected_state_version = 1（当前实际版本为 2）（合成 fixture，标记 simulated）",
+  "expected": "写入被拒绝并返回 STATE_VERSION_CONFLICT；当前状态（version=2）不被覆盖；拒绝记入 write_audit（可审计）",
+  "actual": "{\"writes\":[{\"label\":\"stale-write\",\"expectedStateVersion\":1,\"outcome\":{\"accepted\":false,\"staleConflict\":true,\"currentVersion\":2}}],\"finalStateVersion\":2,\"auditEntries\":1,\"statePreserved\":true,\"allRejected\":true}；结果判定：全部预期检查通过",
+  "invariants": [
+    "陈旧版本写入（携带旧 expected_state_version，规范字段名按 PD-16）返回 STATE_VERSION_CONFLICT，不得覆盖新状态",
+    "冲突必须可审计（write_audit 记录 original_state_version / current_state_version / stale_reason / decision / rejected_at）",
+    "冲突恢复不得丢失最新状态"
+  ],
+  "evidence": {
+    "runDir": "artifacts/evidence/runs/E5-TRIAL-0001",
+    "trace": "artifacts/evidence/runs/E5-TRIAL-0001/traces/GS-05.jsonl",
+    "traceSha256": "75081ae857c50b285978838ae870c2a95e6b0496eb549293c1aac858da13f3a6",
+    "decisionTrace": "见 trace 事件 policy_decision_recorded（C3 §25 字段结构）",
+    "fixture": "tools/evidence/fixtures/gs05-stale-write.json",
+    "simulated": true
+  },
+  "result": "PASS",
+  "evaluator": "工程负责人角色（代理，Codex 履行，PD-15 委托）；独立复核人：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 任命生效，保留审阅与否决权）；同一案例实现作者与独立评测者分离（G5 隔离声明 §2）",
+  "defectsFollowUp": "无"
+}

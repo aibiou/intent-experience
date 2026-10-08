@@ -1,0 +1,25 @@
+{
+  "caseIdNamespace": "E5-TRIAL-0001:GS-05-NEG-STALE-RETRY",
+  "sourceClause": "CC02 stale-write cases；E5 §5 必测维度（stale state_version / 重复请求 / 重试）；acceptance-mapping §A GS-05 必需负向案例（旧版本重试）",
+  "scope": "S1 核心（负向 / 故障条件）；E5 证据管线试运行（非产品运行时验证）",
+  "precondition": "fixture 状态存储初始化：version = 2；此前已有一次陈旧写入被拒绝（本案例内重放两次写入）",
+  "inputFault": "第一次写入携带 expected_state_version = 1 被拒绝后，重试携带相同陈旧 expected_state_version = 1（合成 fixture，标记 simulated）",
+  "expected": "两次写入均被拒绝（STATE_VERSION_CONFLICT）；状态仍为 version=2；两次拒绝均有审计记录（auditEntries = 2）；重试不得绕过版本检查",
+  "actual": "{\"writes\":[{\"label\":\"stale-write-first\",\"expectedStateVersion\":1,\"outcome\":{\"accepted\":false,\"staleConflict\":true,\"currentVersion\":2}},{\"label\":\"stale-write-retry\",\"expectedStateVersion\":1,\"outcome\":{\"accepted\":false,\"staleConflict\":true,\"currentVersion\":2}}],\"finalStateVersion\":2,\"auditEntries\":2,\"statePreserved\":true,\"allRejected\":true}；结果判定：全部预期检查通过",
+  "invariants": [
+    "重复陈旧写入不得通过重试绕过版本检查",
+    "拒绝次数与 write_audit 记录一致",
+    "最新状态在重试后仍然保留"
+  ],
+  "evidence": {
+    "runDir": "artifacts/evidence/runs/E5-TRIAL-0001",
+    "trace": "artifacts/evidence/runs/E5-TRIAL-0001/traces/GS-05-NEG-STALE-RETRY.jsonl",
+    "traceSha256": "8a625c92402f2d66e3507d36916a874961d49144bc36caa831e68d4d93f0c391",
+    "decisionTrace": "见 trace 事件 policy_decision_recorded（C3 §25 字段结构）",
+    "fixture": "tools/evidence/fixtures/neg-stale-retry.json",
+    "simulated": true
+  },
+  "result": "PASS",
+  "evaluator": "工程负责人角色（代理，Codex 履行，PD-15 委托）；独立复核人：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 任命生效，保留审阅与否决权）；同一案例实现作者与独立评测者分离（G5 隔离声明 §2）",
+  "defectsFollowUp": "无"
+}
