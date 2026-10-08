@@ -10,6 +10,7 @@
   },
   "scripts": {
     "trial": "node src/trial.mjs",
-    "f1": "node src/f1.mjs"
+    "f1": "node src/f1.mjs",
+    "f2": "node src/f2.mjs"
   }
 }
