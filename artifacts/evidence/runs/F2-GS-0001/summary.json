@@ -1,0 +1,296 @@
+{
+  "runId": "F2-GS-0001",
+  "obligation": "P3-S1-IMPL-AUTH-01 §2 授权范围：GS-01…GS-06 完整动态执行 + C6 事件契约证据 + S1 启用动作契约测试 + F-1 回归（F-2 迭代）",
+  "startedAt": "2026-10-08T15:17:58.506Z",
+  "finishedAt": "2026-10-08T15:18:13.046Z",
+  "durationMs": 14536,
+  "cases": [
+    {
+      "caseId": "F2-GS-0001:GS-01-POS",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-01-DET",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-02-POS",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-03-POS",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-03-H03",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-03-DUP",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-04-POS",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-04-DUP",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-04-NOCONT",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-04-MIDGEN",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-05-STALE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-05-CONC",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-05-REC",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-06-MUT",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-06-FORGED",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-06-EXTRA",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-06-NESTED",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:GS-06-BYPASS",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:WHATIF-POS",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:WHATIF-STOP",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:ILLEGAL-TRANS",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:SESSION-ENDED",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:C6-ENVELOPE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:C6-ORDER",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:C6-MINSET",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:C6-IDEMPOTENT",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "F2-GS-0001:C6-TRACE-SEP",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:F1-REG-INPROC",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-01",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-02",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-03",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-04",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-05",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-06",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-07",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-08",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-09",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-10",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-11",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F2-GS-0001:HTTP-12",
+      "result": "PASS"
+    }
+  ],
+  "allCasesPass": false,
+  "assertions": [
+    {
+      "id": "A3",
+      "description": "全部 40 案例记录齐备且 12 字段完整（E5 §4）",
+      "passed": false
+    },
+    {
+      "id": "A4",
+      "description": "全部 40 案例轨迹文件齐备且非空",
+      "passed": true
+    },
+    {
+      "id": "A5",
+      "description": "GS-01：DIRECT_ANSWER → ANSWER；内容逐字节等于合成语料；分类确定性 20/20；探索进行中显式回答不被覆盖（CC04）",
+      "passed": true
+    },
+    {
+      "id": "A6",
+      "description": "GS-02：WHY → EXPLAIN；内容逐字节等于合成语料；未误作 STOP/CHANGE",
+      "passed": true
+    },
+    {
+      "id": "A7",
+      "description": "GS-03：生成中 CHANGE——旧 generation 取消、旧候选拒绝、新候选生成、新方向流完成、状态迁移合法（v3→v4→v5）；重复请求幂等拒绝",
+      "passed": true
+    },
+    {
+      "id": "A8",
+      "description": "GS-03 负向（CC02 H03）：旧 generation 迟到达提交被拒绝（STALE_GENERATION），新状态未被污染，state_write_rejected 登记",
+      "passed": true
+    },
+    {
+      "id": "A9",
+      "description": "GS-04：STOP 终止（单一 stopped 事件、零内容分块、体验 COMPLETED、会话 ENDED、四事件齐备）；重复 STOP 拒绝；STOP 后零 continuation（P0）；生成中客户端中止后零后续分块且 STOP 仍可从 ACTIVE 终止",
+      "passed": false
+    },
+    {
+      "id": "A10",
+      "description": "GS-05：陈旧写入 → STATE_VERSION_CONFLICT（409，不覆盖）；并发同版本双写恰好一胜一负；冲突恢复以刷新版本成功且最新状态不丢失",
+      "passed": true
+    },
+    {
+      "id": "A11",
+      "description": "GS-06：越权状态写入提案（非空 state_update_proposal，含伪造合法字段与嵌套变更）→ POLICY_REJECTED；结构外字段与策略绕过 → LLM_SCHEMA_INVALID；全部不产生状态写入；llm_output_rejected + state_write_rejected 登记；决策追踪 state_after=null",
+      "passed": true
+    },
+    {
+      "id": "A12",
+      "description": "S1-ACT-WHAT_IF：WHAT_IF → SIMULATE 单次模拟提案，内容区分事实/推断/假设，不创建新 Session/Experience，阶段 SIMULATION；STOP 优先（P-01）",
+      "passed": true
+    },
+    {
+      "id": "A13",
+      "description": "S1-04/S1-01：生成中常规输入拒绝（INVALID_STATE_TRANSITION，retryable=true）；终态操作拒绝；SESSION_ENDED 拒绝全部旧操作",
+      "passed": true
+    },
+    {
+      "id": "A14",
+      "description": "C6 §7/§25：全部事件通过信封校验（event_id 格式、ISO-8601 时间戳、identity/context/source/properties/sequence_number 完备）；每体验 sequence_number 严格单调、时间戳非递减",
+      "passed": true
+    },
+    {
+      "id": "A15",
+      "description": "C6 事件契约：S1 §23 全部 15 项最低事件发出（C6 权威名 + 调和表）；event_id 幂等去重（C6 §27）；LLM/Policy/State 追踪分离（C6 §22/§23）",
+      "passed": false
+    },
+    {
+      "id": "A16",
+      "description": "无真实提供方调用：产品运行时源码（src/experience/** + app/api/**）静态扫描无 fetch/网络/LLM 提供方/凭据引用；流式内容逐字节等于合成 fixture（A5/A6 已证）",
+      "passed": true
+    },
+    {
+      "id": "A17",
+      "description": "F-1 回归：流式端点（进程内 + HTTP 两形态）行为不变——完整流/流中取消/策略 STOP/表外动作拒绝与 F1-E2E-0001 一致",
+      "passed": true
+    },
+    {
+      "id": "A18",
+      "description": "HTTP 形态端到端：session/start → intent/resolve → experience/start → state 查询（Query 不改状态）→ event 端到端 NDJSON 流（首行 API §11.3 响应结构 + 服务端完整事件链）",
+      "passed": true
+    },
+    {
+      "id": "A19",
+      "description": "HTTP 负向：陈旧版本 → 409 STATE_VERSION_CONFLICT；语义不匹配 → 400 INVALID_REQUEST；不可分类输入 → 400 INVALID_ACTION；GET 访问 Command → 405；STOP 端到端 + ended 会话拒绝",
+      "passed": true
+    },
+    {
+      "id": "A20",
+      "description": "HTTP 生成中 CHANGE：旧 HTTP 响应以 cancelled 终止（零后续分块），服务端登记 generation_cancelled + experience_interrupted + change_direction_requested，新方向流完成",
+      "passed": true
+    },
+    {
+      "id": "A21",
+      "description": "HTTP 形态服务端汇：事件日志 / 决策追踪日志 / 审计汇均已写入且为有效 NDJSON；服务端事件全部通过 C6 §7 信封校验",
+      "passed": true
+    },
+    {
+      "id": "A22",
+      "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹全部匹配",
+      "passed": true
+    },
+    {
+      "id": "A23",
+      "description": "证据-代码绑定：运行于干净工作树（HEAD 记录于版本矩阵）；运行时文件哈希逐文件登记于 run-metadata.json",
+      "passed": true
+    },
+    {
+      "id": "A1",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段）",
+      "passed": true
+    },
+    {
+      "id": "A2",
+      "description": "环境锁定：engines.node === \"24.21.0\"（F-2 精确锁定）且执行于 Node v24.21.0；Next.js 16.4.0 / React 19.3.0 已记录",
+      "passed": true
+    },
+    {
+      "id": "A24",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
+      "passed": true
+    }
+  ],
+  "allAssertionsPass": false,
+  "allPassed": false,
+  "exitCode": 1,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2–G4）或产品状态为 PASS（E5 §2）。GS-01…GS-06 动态证据本运行已执行；C6 事件契约证据本运行已执行；G5 独立评测仍 NOT RUN。"
+}
