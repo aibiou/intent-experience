@@ -48,3 +48,11 @@
 - F1/F2 的 summary.json 列入其 SHA256SUMS 但在清单计算之后才定稿（各 1 项声明哈希不符，实质内容经交叉核验为真）；F3 执行器已改进（summary.json 不列入清单）。
 - 案例记录 evidence.traceSha256 绑定轨迹文件除末行 trace_completed 信封外的内容（三迭代系统性行为，"除末行外"重算全部匹配）；完整产物核验以各运行 SHA256SUMS 为准。
 - 本清单不产生任何 Gate 结论；G5 16 项评测包均 NOT RUN（独立评测人：用户本人，角色 5，PD-15）。
+
+## 重跑复现验证（2026-10-08，manifest v1.1.0）
+
+- 协议：临时 git worktree（HEAD `24c71ef`）+ Node v24.21.0（F-2 授权日锁定 LTS）；依赖以硬链接实文件就位（Next.js/turbopack 拒绝 workspace root 外的符号链接依赖）；每轮执行器运行前恢复工作树至干净态。
+- 结果：已提交执行器重跑复现全部通过——F1-E2E-0001 9/9 案例 + 12/12 断言 exit 0；F2-GS-0001 40/40 + 24/24 exit 0；F3-EB-0001 21/21 + 28/28 exit 0（F3 dry-run 绑定 gitHead=`24c71ef`、workTreeClean=true，如实记录 dry-run 实际 HEAD）。
+- 中间失败轮次（如实登记）：顺序执行的前两轮 F2/F3 中 A23/B27（干净工作树绑定）失败——上一轮 dry-run 产物使工作树变脏；此为绑定断言按设计工作的演示（同 F3 尝试 2 的 B27 检测机制）。按干净树协议重跑后全部通过。
+- 日志：`repro-logs/`（f1-dryrun.log 通过；f2-dryrun.log A23 失败；f2-dryrun2.log 通过；f3-dryrun.log B27 失败；f3-dryrun2.log 通过）。
+- 范围：dry-run 产物仅存于临时 worktree（已清理），不进入证据链、不修改已提交证据；本验证不产生任何 Gate 结论。
