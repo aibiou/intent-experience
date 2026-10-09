@@ -3115,6 +3115,11 @@ async function main() {
   await writeFile(path.join(runDir, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
   await writeFile(path.join(runDir, 'run-metadata.json'), `${JSON.stringify(versionMatrix, null, 2)}\n`, 'utf8');
 
+  // G3-E-3 fix: the summary/run-metadata rewrite above invalidated the manifest
+  // computed at the intermediate state. Regenerate SHA256SUMS so the on-disk
+  // manifest always matches the final persisted artifacts (A10 invariant).
+  await writeSha256Sums(runDir);
+
   // Review README for the independent evaluator (G3 item-by-item ruling aid).
   const reviewReadme = `# G3-GOLDEN-0001 — 独立评测人审阅包（staged，待审阅与否决）
 
