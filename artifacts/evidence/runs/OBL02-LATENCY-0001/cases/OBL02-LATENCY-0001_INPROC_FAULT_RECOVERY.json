@@ -1,0 +1,92 @@
+{
+  "caseIdNamespace": "OBL02-LATENCY-0001:INPROC_FAULT_RECOVERY",
+  "sourceClause": "OBL-02-LATENCY-METHOD-01 v1.0.0 §1（测量对象：故障恢复路径单列——LLM_UNAVAILABLE → 健康重试完成，不与正常路径混合）/ §2（环境分层：执行形态 进程内证据形态（in_process））/ §4（路径维度：故障恢复）/ §5（样本窗口与采集纪律）/ §6（披露纪律）",
+  "scope": "延迟测量（进程内证据形态（in_process） / DIRECT_ANSWER / 故障恢复路径）：首次尝试 LLM_UNAVAILABLE（503 / retryable=true）→ 客户端新 request_id 同状态版本健康重试 → 全链路完成；故障恢复路径单列，不与正常路径混合",
+  "precondition": "证据故障注入网关（fail_once：首次调用失败，后续委托合成网关）；每样本独立构造运行时与独立注入网关实例",
+  "inputFault": "合成输入「直接告诉我答案」× 30；首次尝试经注入缝失败（LLM_UNAVAILABLE），重试尝试健康完成",
+  "expected": {
+    "failure": "每次首次尝试均失败：进程内形态 error.code=LLM_UNAVAILABLE / HTTP 形态 503；retryable=true；失败写入不消耗版本号（OBL-01）",
+    "recovery": "重试尝试（新 request_id、同状态版本）全链路完成：terminal=done、内容逐字节等于 DIRECT_ANSWER 合成语料",
+    "separation": "故障恢复路径单列（方法 §1）；仅 DIRECT_ANSWER 代表类别（首个探索动作）",
+    "sampleCount": "≥ 30",
+    "llmCalls": "进程内形态：llm_request_started=2 / llm_request_completed=1（仅重试成功那次完成）"
+  },
+  "actual": {
+    "sampleCount": 30,
+    "failure": {
+      "codeOk": 30,
+      "retryableOk": 30,
+      "roundTripMs": {
+        "count": 30,
+        "meanMs": 0.22,
+        "p50Ms": 0.19,
+        "p95Ms": 0.28,
+        "minMs": 0.12,
+        "maxMs": 0.82
+      }
+    },
+    "recovery": {
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 328.48,
+        "p50Ms": 328.53,
+        "p95Ms": 330.59,
+        "minMs": 326.41,
+        "maxMs": 330.86
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 41.06,
+        "p50Ms": 41.25,
+        "p95Ms": 41.35,
+        "minMs": 40.28,
+        "maxMs": 41.37
+      },
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 8,
+        "p50Ms": 8,
+        "p95Ms": 8,
+        "minMs": 8,
+        "maxMs": 8
+      },
+      "chunkIntervalsMs": {
+        "count": 210,
+        "meanMs": 41.05,
+        "p50Ms": 41.21,
+        "p95Ms": 41.37,
+        "minMs": 39.34,
+        "maxMs": 41.56
+      },
+      "terminals": [
+        "done"
+      ],
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      }
+    },
+    "llmCalls": {
+      "llmRequestStarted": 2,
+      "llmRequestCompleted": 1,
+      "note": "每样本独立运行时实例；计数为该样本窗口内观测值"
+    }
+  },
+  "invariants": [
+    "重试是工程恢复机制而非产品决策机制（EB-06）；重试不自行决定新方向（EB-07）",
+    "失败写入不消耗版本号（OBL-01 / S1-12）：重试使用与失败尝试相同的状态版本",
+    "故障恢复路径不与正常路径混合（方法 §1/§4）",
+    "合成语保真：重试流内容逐字节等于 fixture（ADR-0002 §3）",
+    "无统计阈值（PB-03 / PD-08）；本案例结果不构成延迟指标宣称（方法 §6）"
+  ],
+  "evidence": {
+    "trace": "traces/inproc_fault_recovery.jsonl",
+    "serverEventLogs": "进程内形态事件经执行器内存汇观测（llm_request_started/completed 计数登记于样本记录）",
+    "samples": 30,
+    "runId": "OBL02-LATENCY-0001",
+    "method": "OBL-02-LATENCY-METHOD-01 v1.0.0"
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本运行）"
+}

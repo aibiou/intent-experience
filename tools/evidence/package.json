@@ -17,6 +17,7 @@
     "s2a-f1": "node src/s2a-f1.mjs",
     "s2a-f2": "node src/s2a-f2.mjs",
     "s2a-f3": "node src/s2a-f3.mjs",
-    "s2a-f4": "node src/s2a-f4.mjs"
+    "s2a-f4": "node src/s2a-f4.mjs",
+    "obl02": "node src/obl02.mjs"
   }
 }
