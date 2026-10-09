@@ -329,7 +329,17 @@
 - **严重度：** N/A（语义冻结登记，非冲突）
 - **决策负责人：** 产品负责人（用户本人，PD-15）
 - **所需变更：** F-5 关闭后签发 P3-S2B-IMPL-AUTH-01 → S2b 实施 → 动态证据 S2B-0001 → 迭代记录写回
-- **状态：** IMPLEMENTED（2026-10-09：语义定义版本化冻结完成（PD-23 §6 义务履行）→ S2b 实施授权签发（P3-S2B-IMPL-AUTH-01 v1.0.0，产品负责人 2026-10-09 签署，生效条件双满足）→ 首批义务 G-1…G-4 实施完成（实施提交 `65ea951`——12 文件：classifier / policy / creation / runtime / search / presentation / state-machine + 方向性语料三件套；policy_v2.0.0 变更 1–6 / state_machine_v1.5.0 变更 1–3）→ 黄金套件扩展（G09 方向性操作案例组——36 案例）后 G3-GOLDEN-0001 再生验证 36/36 案例 PASS、10/10 断言、退出码 0（`849c0fc`；SHA256SUMS 74 文件独立重算一致；三次执行器侧失败尝试按 ADR-0002 §5 归档留存）→ 动态证据 S2B-0001 通过（7/7 案例、14/14 断言、退出码 0，`434142f`；SHA256SUMS 16 文件独立重算一致；一次执行器侧案例预期失败尝试按 ADR-0002 §5 归档留存）；迭代记录 P3-S2B-IMPL-ITER v1.0.0；readiness-record v1.30.0。退出码 0 不设置任何 Gate 为 PASS；S2b 独立评测 NOT RUN（staged 审阅包 `artifacts/evidence/runs/S2B-0001/review/README.md` 待角色 5 独立评测人审阅））
+- **状态：** IMPLEMENTED（2026-10-09：语义定义版本化冻结完成（PD-23 §6 义务履行）→ S2b 实施授权签发（P3-S2B-IMPL-AUTH-01 v1.0.0，产品负责人 2026-10-09 签署，生效条件双满足）→ 首批义务 G-1…G-4 实施完成（实施提交 `65ea951`——12 文件：classifier / policy / creation / runtime / search / presentation / state-machine + 方向性语料三件套；policy_v2.0.0 变更 1–6 / state_machine_v1.5.0 变更 1–3）→ 黄金套件扩展（G09 方向性操作案例组——36 案例）后 G3-GOLDEN-0001 再生验证 36/36 案例 PASS、10/10 断言、退出码 0（`849c0fc`；SHA256SUMS 74 文件独立重算一致；三次执行器侧失败尝试按 ADR-0002 §5 归档留存）→ 动态证据 S2B-0001 通过（7/7 案例、14/14 断言、退出码 0，`434142f`；SHA256SUMS 16 文件独立重算一致；一次执行器侧案例预期失败尝试按 ADR-0002 §5 归档留存）；迭代记录 P3-S2B-IMPL-ITER v1.0.0；readiness-record v1.30.0。退出码 0 不设置任何 Gate 为 PASS；S2b 独立评测 **PASS**（2026-10-09：角色 5 独立评测人（用户本人，PD-15）签署——S2B-0001 staged 审阅包 7/7 案例、14/14 断言、退出码 0 只表示本运行断言通过；G-4 关闭；CR-24 IMPLEMENTED→EVALUATED；readiness-record v1.31.0；迭代记录 P3-S2B-IMPL-ITER §5/§6/§7 回写））
+
+## S2 模拟语料尾句对齐裁决登记（CR-25）
+
+- **证据：** S2-CORPUS-TAIL-RULING-01 v1.0.0（`../p3-s1/s2-corpus-tail-ruling-staged.md`——v0.1.0 staged 提案（实现方起草）经产品负责人 2026-10-09 裁决"选项 A"升版 RULED：语料尾句更新、fixtureId 升 `synthetic/simulate/v2`；§1 事实取证 / §2 不一致分析 / §3 裁决选项 A/B/C / §4 选项 A 实施影响 / §5 明确非结论 / §6 签署区裁决填写）
+- **影响：** 语料变更实施（`src/experience/fixtures/simulate.ts`——fixtureId `synthetic/simulate/v1`→`synthetic/simulate/v2`；尾句与 F-4 分支语义对齐："。本提案为单次模拟；本轮模拟已建立分支状态（会话内持久，可经后续"如果"轮继续）。（流式结束）"；文件头注同步更新为 F-4 语义描述；不改变任何状态机 / 分类器 / 策略映射行为——纯呈现文本对齐；v1 字节冻结于 git 历史，已提交证据哈希链不断裂）
+- **建议：** 按裁决 §4 实施清单执行——语料变更 → G3 黄金套件 WHAT_IF 预期随现行语料走（内容逐字节等于语料断言自动对齐新字节）→ S2A-F4 域动态证据回归一轮登记新 fixtureId 哈希 → 语料对齐迭代记录 + readiness-record 升版 + 本登记
+- **严重度：** N/A（语料裁决实施登记）
+- **决策负责人：** 产品负责人（用户本人，PD-15——选项 A 裁决，2026-10-09）
+- **所需变更：** 语料变更（simulate.ts）→ 黄金套件再生 → S2A-F4 域回归 → 迭代记录写回
+- **状态：** IMPLEMENTED（2026-10-09：语料升 synthetic/simulate/v2；G3-GOLDEN-0001 再生验证 36/36 案例 PASS、10/10 断言、退出码 0（WHAT_IF 内容断言逐字节等于新语料，自动对齐）；S2A-F4-0001 域回归通过（9/9 案例、16/16 断言、退出码 0——run-metadata E5 §3 版本矩阵登记新 fixtureId 哈希 dfa4045b…；失败尝试 1 次按 ADR-0002 §5 归档留存：`S2A-F4-0001-attempt-2026-10-09T17-50-08-431Z`——执行器侧 policy_v1.4.0 过期期望致 A1/A7/A8 失败，产品运行时无缺陷（自 S2b 实施 `65ea951` 起运行时合法输出 policy_v2.0.0），执行器期望同步修复后重跑通过）；语料对齐迭代记录 P3-S2-CORPUS-ALIGN-ITER v1.0.0；readiness-record v1.31.0。退出码 0 不设置任何 Gate 为 PASS）
 
 ## S2 范围裁决登记（PD-23）
 
