@@ -1,7 +1,7 @@
 # P3-S1 实现准入记录
 
 **编号：** P3-S1-READINESS-01
-**版本：** 1.10.0（2026-10-09：G3 处置裁决登记——产品负责人裁决 G3（黄金案例套件）DEFERRED TO S2/P2 关闭切片（登记为 OBL-03，decision-register v0.16.0 / PD-19）；G3 仍 NOT PASSED 直至套件在 S2/P2 关闭切片执行；其余内容与 v1.9.0 相同）
+**版本：** 1.11.0（2026-10-09：P2 收束路径方向登记——产品负责人裁决"先关再建"（PD-20）：P2 关闭切片（OBL-01 / OBL-02 / OBL-03 处置 + 最小 G04 Creation / G07 Correction / G08 Memory Boundary 能力（范围待 PD-21 裁决））优先于 S2 功能构建；G3/G8 仍 NOT PASSED，P2 仍 CLOSURE CANDIDATE / BLOCKED；其余内容与 v1.10.0 相同）
 **状态：** READY / AUTHORIZED / THIRD ITERATION EVIDENCE PRODUCED / G5 EVALUATION PASSED WITH CONDITIONS（G1/G2/G4/G5/G6/G7 PASSED——G5 为有条件通过，2026-10-09；G3 仍 NOT PASSED——处置已裁决：DEFERRED TO S2/P2 关闭切片（OBL-03，产品负责人 2026-10-09 裁决 / PD-19）；G8 仍 NOT PASSED；P2 仍 CLOSURE CANDIDATE / BLOCKED）
 **记录日期：** 2026-10-08
 **范围：** 仅检查 P3-S1 产品运行时代码是否已获准启动；本记录不代表 P2 关闭或产品验收通过。
