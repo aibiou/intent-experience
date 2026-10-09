@@ -1,7 +1,7 @@
 # 产品冲突与未决决策登记册
 
 **编号：** BASELINE-DECISIONS-01
-**版本：** 0.22.0（2026-10-09：S2 范围裁决登记（PD-23）——产品负责人 2026-10-09"同意"，四项建议全案批准：批次=选项 B（分批——S2a 核心能力收束 / S2b 体验动作扩展）；S2a 扩展既有 CREATE / CORRECTION / WHAT_IF 语义（MODIFY 登记为 CORRECTION 用户面别名），策略升 policy_v1.2.0、状态机升 state_machine_v1.1.0；Minimal Memory 仅短期记忆形态（PB-04 版本化决策）；OBL-01 编入 S2a 首个迭代（环境门控 LlmGateway 注入缝 + HTTP 形态 503 补测）；S2 实施授权 P3-S2-IMPL-AUTH-01 v1.0.0 staged 待签发；其余内容与 v0.21.0 相同）
+**版本：** 0.23.0（2026-10-09：S2 实施授权签发登记——产品负责人 2026-10-09 签署 P3-S2-IMPL-AUTH-01 v1.1.0（AUTHORIZED）；S2a 首个迭代 F-1（OBL-01）开工；其余内容与 v0.22.0 相同）
 **状态：** PODR-001 v1.0.4 已裁决 CR-01…CR-07、CR-09、CR-12、CR-13、CR-14，并增补 PD-14 / PD-15 / PD-16 / PD-17；CR-07 / CR-08 / CR-09 / CR-10 / CR-11 / CR-12 / CR-13 / CR-15 / CR-16 / CR-17 / CR-18 已关闭（CR-08 于 2026-10-09 关闭：隐私六要素全部裁决签署，P3-S1-PRIVACY-SIX-01 v0.4.0；CR-16 / CR-17 于 2026-10-09 经 REVIEW-009 非作者复核签署关闭；CR-18 于 2026-10-09 经产品负责人裁决关闭：选项 B——维持不暴露网关注入缝，HTTP 形态 LLM 故障 503 登记 DEFERRED TO 后续切片；CR-15 于 2026-10-08 经 PD-17 裁决关闭：选项 A，scoped 预授权许可签发）；G6 处置表（PB-01…PB-04）已建立，PB-01 解除条件已满足（2026-10-08）。
 **规则：** 执行团队不得自行把产品决策解释为运行证据或 Gate PASS。
 
@@ -265,11 +265,11 @@
 
 - **证据：** S2-SCOPE-PROPOSAL-01 v1.1.0（`s2-scope-proposal-v1.md`，§5 裁决区已填写、§6 裁决记录）；S1 规范 §37（P3-S2 九项）/ §11（保留动作 DEEPEN / SIMPLIFY / REFRAME / CREATE / MODIFY / SEARCH）；acceptance-mapping §B / §C；07 号契约（Memory & User State Engine：六类数据状态、优先级链、生命周期）；E2 Stage 5（Creation 编排）；PODR-001 PD-05 / PD-06 / PD-07 / PD-20 / PD-22；P2-SIGNOFF-01 遗留债务 D-01 / D-02 / D-03。
 - **影响：** S2 功能构建范围经产品负责人 2026-10-09 裁决（"同意"，四项建议全案批准）——批次=选项 B（分批）：S2a 核心能力收束（完整 G04 Creation：多轮分支 + 持久创作状态，E2 Stage 5 编排；完整 G07 Correction；WHAT_IF 完整分支；Minimal Memory），S2b 体验动作扩展（DEEPEN / SIMPLIFY / REFRAME / Search 启用、First Experience 完整呈现、更完整 Golden Suite）；S2a 策略升 policy_v1.2.0、状态机升 state_machine_v1.1.0（CREATION 完整阶段链 + CORRECTION 阶段语义；关闭切片 CREATION 阶段经本裁决契约化）；Minimal Memory 仅持久化短期记忆（跨会话主题 / 意图信号）+ 用户显式纠正 / 撤回记录，Current State / Session State 会话结束即失效，长期记忆（偏好画像）S2 不启用，默认保留 6 个月后自动删除，写入经 Runtime 单一写入者；OBL-01 编入 S2a 首个迭代（环境门控 LlmGateway 注入缝，CR-18 选项 A 形态，仅证据 / 测试环境启用，默认合成模式不变；HTTP 形态 LLM 故障 503 补测）。
-- **建议：** S2 实施授权 P3-S2-IMPL-AUTH-01 v1.0.0 staged 待产品负责人签发；S2a 首个迭代 = OBL-01；S2b 新动作语义定义须在 S2b 授权前由产品负责人版本化冻结；S2b 须另行裁决与授权。
+- **建议：** S2 实施授权已签发（P3-S2-IMPL-AUTH-01 v1.1.0，产品负责人 2026-10-09 签署）；S2a 首个迭代 = OBL-01（开工）；S2b 新动作语义定义须在 S2b 授权前由产品负责人版本化冻结；S2b 须另行裁决与授权。
 - **严重度：** N/A（范围裁决，非冲突）。
 - **决策负责人：** 产品负责人（用户本人，PD-15）。
 - **所需变更：** 回写 PODR-001（PD-23）/ readiness-record / owner-roster / acceptance-mapping；S2 实施授权签发后启动 S2a 实施。
-- **状态：** APPROVED（产品负责人 2026-10-09"同意"——四项建议全案批准）；S2 实施授权待签发。
+- **状态：** APPROVED（产品负责人 2026-10-09"同意"——四项建议全案批准）；S2 实施授权已签发（2026-10-09，P3-S2-IMPL-AUTH-01 v1.1.0，AUTHORIZED）；S2a 首个迭代 F-1（OBL-01）开工。
 
 ## 执行器缺陷登记（G3-E-3）
 
