@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G03-N","event":"trace_started","at":"2026-10-09T07:39:04.248Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G03 What If（S1 基础形态）；S1 §11/§14 WHAT_IF → SIMULATE；E8-G2-CC07 事实/推断/假设分离；PD-06","goldenCase":"G03","dimension":"NORMAL"}
-{"caseId":"G3-GOLDEN-0001:G03-N","event":"trace_completed","at":"2026-10-09T07:39:04.834Z","startedAt":"2026-10-09T07:39:04.248Z","durationMs":586,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G03-N","event":"trace_started","at":"2026-10-09T08:06:43.601Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G03 What If（S1 基础形态）；S1 §11/§14 WHAT_IF → SIMULATE；E8-G2-CC07 事实/推断/假设分离；PD-06","goldenCase":"G03","dimension":"NORMAL"}
+{"caseId":"G3-GOLDEN-0001:G03-N","event":"trace_completed","at":"2026-10-09T08:06:44.180Z","startedAt":"2026-10-09T08:06:43.601Z","durationMs":579,"result":"PASS","pass":true}
