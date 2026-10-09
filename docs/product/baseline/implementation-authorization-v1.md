@@ -1,7 +1,7 @@
 # P3-S1 实施授权
 
 **编号：** P3-S1-IMPL-AUTH-01
-**版本：** 1.4.0（2026-10-08：§1 A5 行 E5-TRIAL-0001 断言计数更正（8/8→6/6：A1/A2a/A2b/A3/A4/A6；A7/A8 未持久化已登记于 P3-S1-IMPL-ITER-003 §3））
+**版本：** 1.5.0（2026-10-09：§8–§10 履行记录"非结论"/"待复核项"/"独立评测"行按单一状态源规范更正（G2/G4 经 G5 独立评测 PASSED；CR-16/CR-17 已经 REVIEW-009 关闭；G5 16 项评测包已执行并双签署——P3-S1-G5-WORKSHEET-01 v1.7.0）；其余内容与 v1.4.0 相同）
 **状态：** AUTHORIZED（2026-10-08 签发）；F-1 已履行（2026-10-08）；F-2 已履行（2026-10-08）；F-3 已履行（2026-10-08）
 **授权依据：** P2-EVIDENCE-8.1 两段式门禁（PD-02）；A1–A6 准入条件全部满足（2026-10-08）
 **签发：** 代理产品负责人（Codex 履行，PODR-001 / PD-10 / PD-14 / PD-15 委托）
@@ -75,7 +75,7 @@ P3-S1 Runtime Implementation：运行时首个完整产品切片（S1）运行�
 | 动态证据 | F1-E2E-0001：**9/9 案例 PASS、12/12 断言 PASS、退出码 0**（材料 `artifacts/evidence/runs/F1-E2E-0001/`，含 §4 案例记录、trace、服务端审计汇、run-metadata E5 §3 版本矩阵、SHA256SUMS） |
 | 动态证据发现的缺陷 | D-1：STOP 策略被要求加载内容语料致 500（已修复：STOP 无内容分块，跳过语料加载）；D-2：终止事件仅写审计汇未 yield 给流（已修复：终止事件 emit + yield）。均按 ADR-0002 §5 登记，失败尝试归档留存（`F1-E2E-0001-attempt-1-failed/`、`F1-E2E-0001-failed-2026-10-08T14-25-36-102Z/`） |
 | 迭代记录 | `docs/product/p3-s1/implementation-iteration-f1.md`（P3-S1-IMPL-ITER-001 v1.0.0） |
-| 非结论 | 退出码 0 不设置任何 Gate 为 PASS；GS-01–GS-06 完整动态执行与 C6 事件证据属后续迭代（NOT RUN）；G2–G4 仍 NOT PASSED；S1 未验收 |
+| 非结论 | 退出码 0 不设置任何 Gate 为 PASS（时点声明，2026-10-08）；GS-01–GS-06 完整动态执行与 C6 事件证据属后续迭代（F-2 已履行，2026-10-08）；G2/G4 Gate 判定经 G5 独立评测作出：PASSED（2026-10-09，P3-S1-READINESS-01 v1.9.0）；S1 未验收 |
 | 独立评测 | 材料 staged 于 `F1-E2E-0001/review/README.md`；独立评测负责人（用户本人，角色 5）保留审阅与否决权 |
 
 ## 9. F-2 履行记录（2026-10-08）
@@ -87,9 +87,9 @@ P3-S1 Runtime Implementation：运行时首个完整产品切片（S1）运行�
 | 动态证据 | F2-GS-0001：**40/40 案例 PASS、24/24 断言 PASS、退出码 0**（14.6s；材料 `artifacts/evidence/runs/F2-GS-0001/`：cases/ 40 份 E5 §4 记录、traces/、run-metadata.json E5 §3 版本矩阵、SHA256SUMS）；覆盖 GS-01…GS-06（含全部登记负向）、S1-ACT-WHAT_IF、S1 §23/C6 最低事件集、C6 §7/§25/§27/§22/§23 契约校验、F-1 回归（进程内 + HTTP）、HTTP 形态端到端与负向、无真实提供方静态扫描、完整性（36 项归档哈希 + C1–C7 契约指纹）、证据-代码绑定（干净工作树，绑定提交 `d957d39`） |
 | 动态证据发现的缺陷 | 运行时缺陷：**无**。案例/执行器侧缺陷 3 项（E-1 event_id 格式、E-2 GS-04-NOCONT 断言次序假设、E-3 event_id 前缀修复过度），均已修复并登记于迭代记录 §3；失败尝试按 ADR-0002 §5 归档（`F2-GS-0001-attempt-2026-10-08T15-19-59-851Z/`、`F2-GS-0001-attempt-2026-10-08T15-21-16-354Z/`） |
 | 迭代记录 | `docs/product/p3-s1/implementation-iteration-f2.md`（P3-S1-IMPL-ITER-002 v1.0.0） |
-| 待复核项 | 事件名称调和表（S1 §23 → C6 权威名，CR-16）与 policy_decided 发射时机解释（CR-17）——编码时契约解释，**待非作者复核**，未确认前不作为契约结论 |
-| 非结论 | 退出码 0 不设置任何 Gate 为 PASS；G2 动态跨契约一致性案例与 G4 工程边界证据专项仍 NOT RUN；G2–G4 仍 NOT PASSED；S1 未验收 |
-| 独立评测 | 材料 staged 于 `F2-GS-0001/review/README.md`；独立评测负责人（用户本人，角色 5）保留审阅与否决权；G5 16 项评测包执行前须先审阅 F-1 与 F-2 材料 |
+| 待复核项 | 事件名称调和表（S1 §23 → C6 权威名，CR-16）与 policy_decided 发射时机解释（CR-17）——编码时契约解释，已经非作者复核签署关闭（P3-S1-REVIEW-009，ACCEPT，2026-10-09），作为契约结论生效 |
+| 非结论 | 退出码 0 不设置任何 Gate 为 PASS（时点声明，2026-10-08）；G2 动态跨契约一致性案例与 G4 工程边界证据专项已由 F-3 履行（2026-10-08）；G2/G4 Gate 判定经 G5 独立评测作出：PASSED（2026-10-09，P3-S1-READINESS-01 v1.9.0）；S1 未验收 |
+| 独立评测 | 材料 staged 于 `F2-GS-0001/review/README.md`；独立评测负责人（用户本人，角色 5）保留审阅与否决权；G5 16 项评测包执行前须先审阅 F-1 与 F-2 材料（**已履行 2026-10-09：staged 材料经三份审阅包审阅通过，G5 评测已执行并双签署——P3-S1-G5-WORKSHEET-01 v1.7.0**） |
 
 ## 10. F-3 履行记录（2026-10-08）
 
@@ -100,6 +100,6 @@ P3-S1 Runtime Implementation：运行时首个完整产品切片（S1）运行�
 | 动态证据 | F3-EB-0001：**21/21 案例 PASS、28/28 断言 PASS、退出码 0**（9.0s；材料 `artifacts/evidence/runs/F3-EB-0001/`：cases/ 21 份 E5 §4 记录、traces/、run-metadata.json E5 §3 版本矩阵、SHA256SUMS）；进程内形态（注入网关/内存汇）+ 静态形态（导入图/属性访问/路由面扫描）+ HTTP 形态（真实 Next.js 生产服务器）三形态；失败尝试 2 次按 ADR-0002 §5 归档（`F3-EB-0001-attempt-2026-10-08T16-06-20-267Z/`、`F3-EB-0001-attempt-2026-10-08T16-07-30-452Z/`，提交 `4b5f1d6`/`0fe8011`）；运行产物提交 `64a1391`；运行绑定至 git 提交 `4b5f1d6`（尝试 3 启动时 HEAD，记录于 run-metadata.json code.gitHead；相对 `67aac55` 仅追加证据归档，产品源码一致；A23/B27 干净工作树） |
 | 动态证据发现的缺陷 | 运行时缺陷：**无**（三次尝试中的全部失败均为案例/执行器侧缺陷）；案例/执行器侧缺陷 F3-E-1…F3-E-9 已登记于迭代记录 §3（含尝试 2 的 A23 绑定违规如实记录） |
 | 迭代记录 | `docs/product/p3-s1/implementation-iteration-f3.md`（P3-S1-IMPL-ITER-003 v1.0.0） |
-| 待复核项 | CR-16（事件名称调和表）/ CR-17（policy_decided 发射时机解释）待非作者复核；HTTP 形态 LLM 故障 503（EB-12 子项）NOT RUN——S1 服务端运行时未暴露 LlmGateway 注入缝，是否暴露须产品负责人决策 |
-| 非结论 | 退出码 0 不设置任何 Gate 为 PASS；G2/G4 证据已产出但 Gate 判定属 G5 独立评测范畴（NOT RUN）；G2–G4 仍 NOT PASSED；S1 未验收 |
-| 独立评测 | 材料 staged 于 `F3-EB-0001/review/README.md`；独立评测负责人（用户本人，角色 5）保留审阅与否决权；G5 16 项评测包执行前须先审阅 F-1、F-2 与 F-3 材料 |
+| 待复核项 | CR-16（事件名称调和表）/ CR-17（policy_decided 发射时机解释）已经非作者复核签署关闭（P3-S1-REVIEW-009，ACCEPT，2026-10-09）；HTTP 形态 LLM 故障 503（EB-12 子项）NOT RUN——S1 服务端运行时未暴露 LlmGateway 注入缝，2026-10-09 经产品负责人裁决（CR-18 选项 B）登记 DEFERRED TO 后续切片 |
+| 非结论 | 退出码 0 不设置任何 Gate 为 PASS（时点声明，2026-10-08）；G2/G4 证据已产出，Gate 判定经 G5 独立评测作出：PASSED（2026-10-09，P3-S1-READINESS-01 v1.9.0）；S1 未验收 |
+| 独立评测 | 材料 staged 于 `F3-EB-0001/review/README.md`；独立评测负责人（用户本人，角色 5）保留审阅与否决权；G5 16 项评测包执行前须先审阅 F-1、F-2 与 F-3 材料（**已履行 2026-10-09：staged 材料经三份审阅包审阅通过，G5 评测已执行并双签署——P3-S1-G5-WORKSHEET-01 v1.7.0**） |

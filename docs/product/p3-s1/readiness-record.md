@@ -1,7 +1,7 @@
 # P3-S1 实现准入记录
 
 **编号：** P3-S1-READINESS-01
-**版本：** 1.8.0（2026-10-09：G5 独立评测完成——16 项评测包 12 PASS + 1 N/A + 1 DEFERRED + 发布建议 B，独立评测负责人与产品负责人双行签署已登记（P3-S1-G5-WORKSHEET-01 v1.7.0）；**G5 = PASSED（有条件）**，遗留两项：HTTP 形态 LLM 故障 503 后续切片补测（CR-18 选项 B）+ 延迟测量方法定义；G2/G4 Gate 判定经 G5 独立评测作出（PASSED）；G3/G8 仍 NOT PASSED；P2 仍 CLOSURE CANDIDATE / BLOCKED）
+**版本：** 1.9.0（2026-10-09：当前状态表过时行按单一状态源规范更正——实施迭代 1/2/3 行尾部"G2–G4 仍 NOT PASSED"改为现行判定引用（G2/G4 经 G5 独立评测 PASSED）；F-2 行 CR-16/CR-17 待复核状态同步为已关闭（REVIEW-009）；CR-05/06 行执行与复核状态同步；CR-15 行加条件满足注记；其余内容与 v1.8.0 相同）
 **状态：** READY / AUTHORIZED / THIRD ITERATION EVIDENCE PRODUCED / G5 EVALUATION PASSED WITH CONDITIONS（G1/G2/G4/G5/G6/G7 PASSED——G5 为有条件通过，2026-10-09；G3/G8 仍 NOT PASSED；P2 仍 CLOSURE CANDIDATE / BLOCKED）
 **记录日期：** 2026-10-08
 **范围：** 仅检查 P3-S1 产品运行时代码是否已获准启动；本记录不代表 P2 关闭或产品验收通过。
@@ -59,7 +59,7 @@ Runtime Code / Tests / Product Evidence: THIRD ITERATION EVIDENCED + G5 EVALUATE
 | CR-01 P2 状态 | 已裁定 P2 仍为 CLOSURE CANDIDATE / BLOCKED；P2 不得标 CLOSED。 |
 | CR-02 门禁顺序 | 已采纳 P2-EVIDENCE-8.1 两段式门禁；A1–A6 已满足（2026-10-08），实施授权已签发（P3-S1-IMPL-AUTH-01 v1.0.0）。 |
 | CR-03/04/10/11 契约来源 | SRC-24 是 S1 操作规范候选；SRC-23 逐章处置已签署（CR-10 关闭）；C4 正式文件 v1.0.0 已批准（CR-11 关闭）；G1 已 PASSED（C1–C7 Steward 确认 + R1 非作者复核 REVIEW-006 签署，2026-10-08）。 |
-| CR-05/06 首体验 / S1 范围 | 已由 PODR-001 批准；执行和非作者复核尚未完成。 |
+| CR-05/06 首体验 / S1 范围 | 已由 PODR-001 批准；执行（F-1/F-2/F-3 迭代，2026-10-08）与非作者复核（CR-16/CR-17 经 REVIEW-009，2026-10-09）已完成。 |
 | CR-07 G1 | 来源及 SHA-256 清单已登记；C1–C7 责任角色确认（Steward 确认）、G1 独立核验（R1 非作者复核 REVIEW-006）已完成；G1 PASSED（2026-10-08）。 |
 | CR-08 职责治理 | 角色 2–8 用户兼任并已执行首批签署（ADR-0002 会签、C4 逐章 + K-1…K-5、A2 复核）；签署会（2026-10-08）已完成 C1–C7 Steward 确认、ADR-0001 独立复核（REVIEW-005）与 G5 隔离声明；隐私六要素已全部裁决签署（2026-10-09，P3-S1-PRIVACY-SIX-01 v0.4.0），CR-08 关闭。 |
 | CR-09 编号碰撞 | 命名空间已裁决；全量映射经 A2 非作者复核签署（REVIEW-004，ACCEPT，2026-10-08）；CR-09 关闭。 |
@@ -68,13 +68,13 @@ Runtime Code / Tests / Product Evidence: THIRD ITERATION EVIDENCED + G5 EVALUATE
 | 独立复核准备 | 独立复核五区块全部签署完成：R2（REVIEW-004，ACCEPT）、R4（REVIEW-005）、R1（REVIEW-006）、R3（REVIEW-007）、R5（REVIEW-008），后四者均 ACCEPT WITH FINDINGS（2026-10-08）；G1 其余项（C1–C7 Steward 确认、非作者核验）已完成。 |
 | E5 | 执行流程已定义；环境已搭建（`tools/evidence/` + package-lock.json）；首次试运行 E5-TRIAL-0001 完成（4 案例 PASS / 6 断言 / 退出码 0）；独立评测人已任命（G5 隔离声明生效）；E5 = PASSED，A5 满足（2026-10-08）。 |
 | 实施授权 | A1–A6 全部满足（2026-10-08）；实施授权已签发（P3-S1-IMPL-AUTH-01 v1.3.0）；F-1 已履行（F1-E2E-0001：9/9 案例、12/12 断言、退出码 0；材料 `artifacts/evidence/runs/F1-E2E-0001/`）；F-2 已履行（Node v24.21.0 Active LTS 授权日重查 + 锁定）；F-2 实施义务已履行（F2-GS-0001：40/40 案例、24/24 断言、退出码 0）；F-3 已履行（F3-EB-0001：21/21 案例、28/28 断言、退出码 0；材料 `artifacts/evidence/runs/F3-EB-0001/`）。 |
-| 实施迭代 1（F-1） | 已完成（P3-S1-IMPL-ITER-001 v1.0.0）：运行时切片 `app/api/experience/stream/route.ts` + `src/experience/`（仅 S1 冻结映射；取消感知生成器；终止事件 emit+yield；追加只写服务端审计汇）；动态证据发现并修复运行时缺陷 D-1/D-2；失败尝试 3 次按 ADR-0002 §5 归档留存。G2–G4 仍 NOT PASSED。 |
-| 实施迭代 2（F-2） | 已完成（P3-S1-IMPL-ITER-002 v1.0.0）：S1 运行时核心（`src/experience/runtime.ts` 1663 行 + 11 模块 + 5 条 HTTP 路由 + `policy.ts` S1 §14 冻结全映射；提交 `2a81d34`）；动态证据 F2-GS-0001（40/40 案例、24/24 断言、退出码 0；覆盖 GS-01…GS-06 含全部登记负向、S1-ACT-WHAT_IF、C6 §7/§22/§23/§25/§27 契约、HTTP 形态端到端与负向、F-1 回归、无真实提供方静态扫描、证据-代码绑定）；动态证据未发现运行时缺陷（案例/执行器侧缺陷 E-1…E-3 已修复登记）；失败尝试 2 次按 ADR-0002 §5 归档留存。事件名称调和表（CR-16）与 policy_decided 发射时机解释（CR-17）待非作者复核。G2–G4 仍 NOT PASSED。 |
-| 实施迭代 3（F-3） | 已完成（P3-S1-IMPL-ITER-003 v1.0.0）：产品源码零改动（F-2 运行时核心为已实施基线）；证据执行器 `tools/evidence/src/f3.mjs`（2645 行；提交 `69c49f2`、缺陷修复 `67aac55`）；动态证据 F3-EB-0001（21/21 案例、28/28 断言、退出码 0、9.0s；G2 动态跨契约一致性——WHY/CHANGE 完整链路含复合步骤、generation 归属与迟到达旧 generation 拒绝、UNKNOWN 升级与语义不匹配故障链、版本链 +1 不变式；G4 工程边界 EB-01…EB-15 动态/静态证据，EB-16 由 E5 §3 版本矩阵覆盖；HTTP 形态 LLM 故障 503 执行时 NOT RUN 登记——服务端运行时未暴露网关注入缝；2026-10-09 经 CR-18 选项 B 裁决登记 DEFERRED TO 后续切片）；动态证据未发现运行时缺陷（案例/执行器侧缺陷 F3-E-1…F3-E-9 已修复登记）；失败尝试 2 次按 ADR-0002 §5 归档留存。CR-16/CR-17 与实施侧解释已经非作者复核签署关闭（P3-S1-REVIEW-009，ACCEPT，2026-10-09）。G2–G4 仍 NOT PASSED。 |
+| 实施迭代 1（F-1） | 已完成（P3-S1-IMPL-ITER-001 v1.0.0）：运行时切片 `app/api/experience/stream/route.ts` + `src/experience/`（仅 S1 冻结映射；取消感知生成器；终止事件 emit+yield；追加只写服务端审计汇）；动态证据发现并修复运行时缺陷 D-1/D-2；失败尝试 3 次按 ADR-0002 §5 归档留存。G2/G4 Gate 判定经 G5 独立评测作出：PASSED（2026-10-09，见本记录"更新后的总判定"）。 |
+| 实施迭代 2（F-2） | 已完成（P3-S1-IMPL-ITER-002 v1.0.0）：S1 运行时核心（`src/experience/runtime.ts` 1663 行 + 11 模块 + 5 条 HTTP 路由 + `policy.ts` S1 §14 冻结全映射；提交 `2a81d34`）；动态证据 F2-GS-0001（40/40 案例、24/24 断言、退出码 0；覆盖 GS-01…GS-06 含全部登记负向、S1-ACT-WHAT_IF、C6 §7/§22/§23/§25/§27 契约、HTTP 形态端到端与负向、F-1 回归、无真实提供方静态扫描、证据-代码绑定）；动态证据未发现运行时缺陷（案例/执行器侧缺陷 E-1…E-3 已修复登记）；失败尝试 2 次按 ADR-0002 §5 归档留存。事件名称调和表（CR-16）与 policy_decided 发射时机解释（CR-17）已经非作者复核签署关闭（P3-S1-REVIEW-009，ACCEPT，2026-10-09）。G2/G4 Gate 判定经 G5 独立评测作出：PASSED（2026-10-09，见本记录"更新后的总判定"）。 |
+| 实施迭代 3（F-3） | 已完成（P3-S1-IMPL-ITER-003 v1.0.0）：产品源码零改动（F-2 运行时核心为已实施基线）；证据执行器 `tools/evidence/src/f3.mjs`（2645 行；提交 `69c49f2`、缺陷修复 `67aac55`）；动态证据 F3-EB-0001（21/21 案例、28/28 断言、退出码 0、9.0s；G2 动态跨契约一致性——WHY/CHANGE 完整链路含复合步骤、generation 归属与迟到达旧 generation 拒绝、UNKNOWN 升级与语义不匹配故障链、版本链 +1 不变式；G4 工程边界 EB-01…EB-15 动态/静态证据，EB-16 由 E5 §3 版本矩阵覆盖；HTTP 形态 LLM 故障 503 执行时 NOT RUN 登记——服务端运行时未暴露网关注入缝；2026-10-09 经 CR-18 选项 B 裁决登记 DEFERRED TO 后续切片）；动态证据未发现运行时缺陷（案例/执行器侧缺陷 F3-E-1…F3-E-9 已修复登记）；失败尝试 2 次按 ADR-0002 §5 归档留存。CR-16/CR-17 与实施侧解释已经非作者复核签署关闭（P3-S1-REVIEW-009，ACCEPT，2026-10-09）。G2/G4 Gate 判定经 G5 独立评测作出：PASSED（2026-10-09，见本记录"更新后的总判定"）。 |
 | 技术栈 | Next.js + TypeScript / Node.js 24 LTS 基线已由产品负责人采用；ADR-0002 已会签生效；Spike 已完成（run 2 S-1/S-2/S-3 全过，Node v24.21.0 锁定，报告已落档）；F-2 已履行：授权日（2026-10-08）重查 nodejs.org——v24.21.0 为当前 Active LTS（Latest LTS），与 Spike 锁定版本一致，产品运行时锁定 Node v24.21.0；F-1 已实施（Next.js 16.4.0 / React 19.3.0 / TypeScript 7.0.2，package-lock.json lockfileVersion 3）；ADR-0001 独立复核已签署（REVIEW-005，ACCEPT WITH FINDINGS，2026-10-08）。 |
 | ADR-0002 Spike | 已完成：run 1 S-3 测试桩缺陷（`PRAGMA busy_timeout` 遗漏致 SQLITE_BUSY）按 §5 如实登记并存档；run 2 S-1/S-2/S-3 全部通过；报告 `docs/architecture/decisions/ADR-0002-spike-report.md`（含环境、版本锁定、原始记录 SHA-256、硬边界合规声明）；结果仅作 ADR-0001 复核输入，非 Gate 证据，不改变任何门禁状态。 |
 | 负责人安排（CR-08） | 角色 2–8 用户本人兼任（PD-15 / owner-roster-v1 v0.2.5）；签署会（2026-10-08）已执行：C1–C7 Steward 确认、G5 隔离声明、四份独立复核记录签署；隐私六要素已全部裁决签署（2026-10-09，P3-S1-PRIVACY-SIX-01 v0.4.0），CR-08 关闭。 |
-| CR-15 E5 环境授权 | 产品负责人已经 PD-17 裁决：选项 A（签发 scoped 预授权许可）；E5-SCOPED-LICENSE-01 已签发（2026-10-08）；环境搭建按附录 A 设计蓝图进行中；A5 仍 NOT PASSED 直至三项就绪条件（环境、评测人、试运行）完成。 |
+| CR-15 E5 环境授权 | 产品负责人已经 PD-17 裁决：选项 A（签发 scoped 预授权许可）；E5-SCOPED-LICENSE-01 已签发（2026-10-08）；环境搭建按附录 A 设计蓝图进行中；A5 仍 NOT PASSED 直至三项就绪条件（环境、评测人、试运行）完成（**条件已满足：E5 = PASSED，A5 满足，2026-10-08**）。 |
 | 状态版本字段命名 | 已由 PD-16 统一规范名为 `expected_state_version`（CR-14）；`expected_version`（SRC-27 §22）与 `state_version`（SRC-07 §30 Case 05）为别名；实现与测试须同时记录规范名与来源表述。 |
 | 文档状态声明中和 | SRC-27 §39"Implementation READY TO START"与头部"IMPLEMENTATION PREPARATION"为文档内部状态声明，不产生任何实施授权效力；实施授权以本记录"授权判定"节为准。 |
 

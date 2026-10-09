@@ -1,8 +1,8 @@
 # P3-S1 实施迭代记录：迭代 1（F-1 流式传输 + 取消传播）
 
 **编号：** P3-S1-IMPL-ITER-001
-**版本：** 1.0.0（2026-10-08：首个迭代完成——F-1 运行时切片已实施，F1-E2E-0001 端到端动态证据通过（9/9 案例、12/12 断言、退出码 0））
-**状态：** FIRST ITERATION EVIDENCE PRODUCED（G2–G4 仍 NOT PASSED；S1 未验收）
+**版本：** 1.1.0（2026-10-09：§5 时点状态按单一状态源规范加履行注记（G5 16 项评测包已执行并双签署，G5 = PASSED（有条件）——P3-S1-G5-WORKSHEET-01 v1.7.0；现行 Gate 状态见 P3-S1-READINESS-01 v1.9.0）；记录内容与 v1.0.0 相同）
+**状态：** FIRST ITERATION EVIDENCE PRODUCED（时点状态，2026-10-08：G2–G4 仍 NOT PASSED；S1 未验收——现行 Gate 状态见 P3-S1-READINESS-01 v1.9.0）
 **义务来源：** P3-S1-IMPL-AUTH-01 v1.0.0 §3 F-1（Next.js Route Handler 流式 + AbortSignal 取消端到端动态证据）
 **记录日期：** 2026-10-08
 
@@ -62,7 +62,7 @@
 - 退出码 0 与 12/12 断言通过只表示本运行中的断言通过；不设置 G2 / G3 / G4 或任何 Gate 为 PASS（E5 §2 状态词汇规则）。
 - 本迭代仅覆盖流式传输与取消传播路径；GS-01–GS-06 的完整动态执行（状态机转换、并发写、stale `expected_state_version`、非法转换、伪造 state_update、轨迹缺失/重复/乱序等）属后续迭代，当前 NOT RUN。
 - C6 事件与分析契约的动态证据属后续迭代。
-- S1 未验收；P2 仍 CLOSURE CANDIDATE / BLOCKED；G5 16 项评测包 NOT RUN。
+- S1 未验收；P2 仍 CLOSURE CANDIDATE / BLOCKED；G5 16 项评测包 NOT RUN（**时点义务，已履行 2026-10-09：G5 16 项评测包经三份 staged 审阅包审阅通过后执行并双签署，G5 = PASSED（有条件）——P3-S1-G5-WORKSHEET-01 v1.7.0**）。
 - 独立评测人（用户本人，角色 5，PD-15）对本运行材料保留审阅与否决权（材料 staged 于 `review/README.md`）；评测人不得由本运行执行者担任。
 
 ## 6. 后续义务

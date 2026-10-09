@@ -1,8 +1,8 @@
 # P3-S1 实施迭代记录：迭代 2（F-2 GS-01…GS-06 完整动态执行 + C6 事件证据）
 
 **编号：** P3-S1-IMPL-ITER-002
-**版本：** 1.0.0（2026-10-08：第二迭代完成——S1 运行时核心已实施，F2-GS-0001 动态证据通过（40/40 案例、24/24 断言、退出码 0））
-**状态：** SECOND ITERATION EVIDENCE PRODUCED（G2–G4 仍 NOT PASSED；S1 未验收）
+**版本：** 1.1.0（2026-10-09：§5 时点状态按单一状态源规范加履行注记（G5 16 项评测包已执行并双签署，G5 = PASSED（有条件）；CR-16/CR-17 已经 REVIEW-009 关闭——P3-S1-G5-WORKSHEET-01 v1.7.0；现行 Gate 状态见 P3-S1-READINESS-01 v1.9.0）；记录内容与 v1.0.0 相同）
+**状态：** SECOND ITERATION EVIDENCE PRODUCED（时点状态，2026-10-08：G2–G4 仍 NOT PASSED；S1 未验收——现行 Gate 状态见 P3-S1-READINESS-01 v1.9.0）
 **义务来源：** P3-S1-IMPL-AUTH-01 §2 授权范围；P2-EVIDENCE-8.1 §B 实施后动态证据段（GS-01…GS-06 完整动态执行 + S1 启用动作契约测试 + G4 工程边界 + C6 事件证据）
 **记录日期：** 2026-10-08
 
@@ -109,8 +109,8 @@
 
 - 退出码 0 与 24/24 断言通过只表示本运行中的断言通过；不设置 G2 / G3 / G4 或任何 Gate 为 PASS（E5 §2 状态词汇规则）。
 - GS-01…GS-06 动态证据本运行已执行；C6 事件契约证据本运行已执行；G2 动态跨契约一致性案例与 G4 工程边界证据的完整专项仍属后续迭代（NOT RUN）。
-- G5 16 项评测包 NOT RUN；独立评测人（用户本人，角色 5，PD-15）须先审阅 F-1 与 F-2 staged 材料（`F1-E2E-0001/review/README.md`、`F2-GS-0001/review/README.md`）后方可执行评测。
-- 事件名称调和表与 policy_decided 发射时机解释待非作者复核（CR-16 / CR-17）；未确认前不作为契约结论。
+- G5 16 项评测包 NOT RUN；独立评测人（用户本人，角色 5，PD-15）须先审阅 F-1 与 F-2 staged 材料（`F1-E2E-0001/review/README.md`、`F2-GS-0001/review/README.md`）后方可执行评测（**时点义务，已履行 2026-10-09：F-1 与 F-2 staged 材料经审阅包审阅通过，G5 16 项评测包已执行并双签署，G5 = PASSED（有条件）——P3-S1-G5-WORKSHEET-01 v1.7.0**）。
+- 事件名称调和表与 policy_decided 发射时机解释待非作者复核（CR-16 / CR-17）；未确认前不作为契约结论（**时点状态，已关闭 2026-10-09：经非作者复核签署关闭，P3-S1-REVIEW-009，ACCEPT——作为契约结论生效**）。
 - S1 未验收；P2 仍 CLOSURE CANDIDATE / BLOCKED。
 - 独立评测人对本运行材料保留审阅与否决权；评测人不得由本运行执行者担任（角色分离见各案例记录 evaluator 字段）。
 

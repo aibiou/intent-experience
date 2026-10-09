@@ -1,8 +1,8 @@
 # P3-S1 实施迭代记录：迭代 3（F-3 G2 动态跨契约一致性 + G4 工程边界证据）
 
 **编号：** P3-S1-IMPL-ITER-003
-**版本：** 1.1.0（2026-10-09：§3.4 第 4 项 HTTP 形态 LLM 故障 503 子项经 CR-18 裁决（选项 B）登记 DEFERRED TO 后续切片；§5 / §6 同步；CR-16 / CR-17 非作者复核关闭状态同步）
-**状态：** THIRD ITERATION EVIDENCE PRODUCED（G2–G4 仍 NOT PASSED；S1 未验收）
+**版本：** 1.2.0（2026-10-09：§5 G5 评测包时点义务加履行注记（G5 16 项评测包已执行并双签署，G5 = PASSED（有条件）——P3-S1-G5-WORKSHEET-01 v1.7.0；现行 Gate 状态见 P3-S1-READINESS-01 v1.9.0）；记录内容与 v1.1.0 相同）
+**状态：** THIRD ITERATION EVIDENCE PRODUCED（时点状态，2026-10-08：G2–G4 仍 NOT PASSED；S1 未验收——现行 Gate 状态见 P3-S1-READINESS-01 v1.9.0）
 **义务来源：** P3-S1-IMPL-AUTH-01 §2 授权范围；P2-EVIDENCE-8.1 §B 实施后动态证据段（G2 动态跨契约一致性案例与故障链路 + G4 工程边界/并发/重复请求/取消/陈旧响应/恢复/数据完整性验证）；P2-EVIDENCE-4.0 EB-01…EB-16
 **记录日期：** 2026-10-08
 
@@ -100,7 +100,7 @@
 
 - 退出码 0 与 28/28 断言通过只表示本运行中的断言通过；不设置 G2 / G4 或任何 Gate 为 PASS（E5 §2 状态词汇规则）。
 - G2 动态跨契约一致性案例与 G4 工程边界证据本运行已执行（证据已产出）；G2–G4 的 Gate 判定属 G5 独立评测范畴，NOT RUN。
-- G5 16 项评测包 NOT RUN；独立评测人（用户本人，角色 5，PD-15）须先审阅 F-1、F-2 与 F-3 staged 材料（`F1-E2E-0001/review/README.md`、`F2-GS-0001/review/README.md`、`F3-EB-0001/review/README.md`）后方可执行评测。
+- G5 16 项评测包 NOT RUN；独立评测人（用户本人，角色 5，PD-15）须先审阅 F-1、F-2 与 F-3 staged 材料（`F1-E2E-0001/review/README.md`、`F2-GS-0001/review/README.md`、`F3-EB-0001/review/README.md`）后方可执行评测（**时点义务，已履行 2026-10-09：F-1/F-2/F-3 staged 材料经三份审阅包审阅通过，G5 16 项评测包已执行并双签署，G5 = PASSED（有条件）——P3-S1-G5-WORKSHEET-01 v1.7.0**）。
 - 事件名称调和表与 policy_decided 发射时机解释已经非作者复核签署关闭（P3-S1-REVIEW-009，ACCEPT，2026-10-09），作为契约结论生效。
 - HTTP 形态 LLM 故障 503 DEFERRED TO 后续切片（CR-18 选项 B，2026-10-09 产品负责人裁决，见 §3.4；执行时 NOT RUN 登记保留为时点事实）。
 - EB-10/EB-11 的 S2 范围项（记忆生命周期、工具授权链）属 S2 范围，本运行仅 S1 缺席证明。
