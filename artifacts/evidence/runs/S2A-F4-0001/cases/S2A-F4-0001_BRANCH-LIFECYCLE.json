@@ -136,7 +136,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:BRANCH-LIFECYCLE.jsonl",
-    "traceSha256": "f0d5d9185e7ed6f1203c2be76796065e167645afdb2803992c2d815139815372",
+    "traceSha256": "386a8edfc9227742feae8ec3ddccec3dc3ea144142324252322a742ef2cb9b26",
     "form": "inprocess",
     "servers": []
   },

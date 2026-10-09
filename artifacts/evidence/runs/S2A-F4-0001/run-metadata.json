@@ -49,7 +49,7 @@
         "A11=PASSED",
         "A12-PREFLIGHT=PASSED"
       ],
-      "goldenRegression": "G3-GOLDEN-0001 PASSED（32/32 案例；断言已同步 policy_v1.4.0）"
+      "goldenRegression": "G3-GOLDEN-0001 PASSED（F-4 实施时 32/32 案例，断言已同步 policy_v1.4.0——历史绑定在录；本回归轮前置基线 2026-10-09：36/36 案例、policy_v2.0.0 / state_machine_v1.5.0、退出码 0）"
     }
   },
   "environmentLicense": {
@@ -174,7 +174,7 @@
   ],
   "stateMachine": {
     "contract": "C2",
-    "version": "state_machine_v1.3.0",
+    "version": "state_machine_v1.5.0",
     "implemented": [
       "L0 Session（§4）",
       "L2 Experience 状态机（§7）",
@@ -184,22 +184,26 @@
       "CORRECTION 操作序列契约化（S2A-F3-SEMANTIC-FREEZE-01 §4 变更 1）",
       "RESTORE 语义（S2A-F3-SEMANTIC-FREEZE-01 §4 变更 2）",
       "WHAT_IF_SIMULATE 多轮模拟契约化（S2A-F4-SEMANTIC-FREEZE-01 §4 变更 1：WHAT_IF_SIMULATE 触发规则不变——13 §15.2 UNDERSTANDING → SIMULATION、§15.3 SIMULATION → SIMULATION；多轮模拟经模拟域事件序列登记，每轮恰好一次版本化提交，模拟结果四元分离）",
-      "WHAT_IF 分支状态（S2A-F4-SEMANTIC-FREEZE-01 §4 变更 2：轴外分支子状态机——D-02 选项 A 形态，分支记录生命周期状态迁移 ACTIVE / RETURNED / ABANDONED 与分支操作触发器经产品负责人裁决后补写生效；体验轴触发器集不变——分支操作不新增体验轴触发器，同 F-2 D-05 / F-3 D-04 轴外纪律）"
+      "WHAT_IF 分支状态（S2A-F4-SEMANTIC-FREEZE-01 §4 变更 2：轴外分支子状态机——D-02 选项 A 形态，分支记录生命周期状态迁移 ACTIVE / RETURNED / ABANDONED 与分支操作触发器经产品负责人裁决后补写生效；体验轴触发器集不变——分支操作不新增体验轴触发器，同 F-2 D-05 / F-3 D-04 轴外纪律）",
+      "S2b 时代扩展（state_machine_v1.5.0 变更 1–3：创作域补丁操作域扩展 {add, remove, modify, deepen, simplify, reframe} / SEARCH 能力状态纪律 / First Experience 呈现路径——S2B-SEMANTIC-FREEZE-01 §4；本清单为 F-4 义务绑定范围，S2b 扩展由 S2B-0001 证据登记）"
     ]
   },
   "policy": {
     "contract": "C3",
-    "version": "policy_v1.4.0",
+    "version": "policy_v2.0.0",
     "frozenMappingsImplemented": {
       "DIRECT_ANSWER": "ANSWER",
       "WHY": "EXPLAIN",
-      "WHAT_IF": "SIMULATE（映射不变——S1 §14；执行语义 F-4 起扩展为多轮模拟持久化 + 轴外分支子状态机，policy_v1.4.0 §3 变更 1/2）",
+      "WHAT_IF": "SIMULATE（映射不变——S1 §14；执行语义 F-4 起扩展为多轮模拟持久化 + 轴外分支子状态机，冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.0.0 延续不变）",
       "CHANGE_DIRECTION": "CHANGE_EXPERIENCE",
       "STOP": "STOP",
+      "DEEPEN": "DEEPEN（S2b 启用——14 §8 恒等映射，policy_v2.0.0 变更 1；动态证据 S2B-0001 登记）",
+      "SIMPLIFY": "SIMPLIFY（同上——S2b 启用）",
+      "REFRAME": "REFRAME（同上——S2b 启用）",
       "CREATE": "CREATE（PD-21 关闭切片启用；F-2 起承载完整 G04 创作语义；F-3 起创作会话内 MODIFY 别名输入经路由保护回创作解释；SIMULATION → CREATION 衔接 13 §15.5 不变）",
       "CORRECTION": "EXPLAIN（G07 完整语义 F-3 起完整化：定位目标 / 局部修改 / 重生成 / 历史版本化；MODIFY 用户面别名 + RESTORE 恢复子型；策略映射不变）"
     },
-    "frozenMapAuthority": "S1 规范 §14 Policy Rules（acceptance-mapping §A/C 批准范围）+ S2A-F4-SEMANTIC-FREEZE-01 §3 变更文本（policy_v1.4.0）",
+    "frozenMapAuthority": "S1 规范 §14 Policy Rules（acceptance-mapping §A/C 批准范围）+ S2A-F4-SEMANTIC-FREEZE-01 §3 变更文本（policy_v1.4.0，经现行 policy_v2.0.0 延续不变）",
     "semanticGapRegister": "docs/product/baseline/c3-semantic-gap-register-v1.md（G-1…G-7 已登记，未由编码者补写；冻结点之外一律拒绝并升级）"
   },
   "api": {
@@ -237,10 +241,10 @@
     "evidence": "EB-02（失败写入不消耗版本号——STALE-REJECT / 分支操作前置校验拒绝）；EB-06（重试是工程恢复机制——本迭代无重试路径改动）；EB-07（超时不自行决定新方向）；EB-13（完成不属于 LLM 自主权限）；EB-14（分析只能观察）；EB-16（版本可追溯——本版本矩阵 + A10/A15）",
     "seamBoundary": "本迭代无注入缝改动（注入缝属 F-1；SEAM-INERT 不变式由 S2A-OBL-01-0001 证据保持，本运行进程内形态默认合成网关）",
     "s2ScopeItems": {
-      "memory": "Minimal Memory 属 S2a 后续迭代 F-5（短期记忆 only，6 个月自动删除，无长期画像——PD-23 裁决；跨会话分支持久化属 F-5 裁决范围——D-04 选项 A）",
-      "deepenSimplifyReframe": "DEEPEN/SIMPLIFY/REFRAME 属 S2b（PD-23 裁决；识别后 INVALID_ACTION 升级拒绝——S2A-F2-0001 DEFERRED-OP 案例）",
+      "memory": "Minimal Memory 属 S2a F-5——已实施（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本；src/experience/memory.ts 新增；动态证据 S2A-F5-0001 9/9 案例、14/14 断言；policy_v1.5.0 冻结语义，经 policy_v2.0.0 延续）——非本回归范围",
+      "deepenSimplifyReframe": "DEEPEN/SIMPLIFY/REFRAME 属 S2b（PD-23 裁决）——S2b 首批义务 G-1…G-4 已实施启用（顶层语义动作，policy_v2.0.0 变更 1；S2B-SEMANTIC-FREEZE-01 D-01 选项 A；动态证据 S2B-0001 7/7 案例、14/14 断言）——非本回归范围（S2A-F2-0001 DEFERRED-OP 案例为 F-4 时点历史记录）",
       "correction": "G07 完整 Correction 语义属 S2a F-3（policy_v1.3.0）——已实施（S2A-F3-0001）",
-      "whatIf": "WHAT_IF 全分支属 S2a F-4（policy_v1.4.0）——本迭代已实施（S2A-F4-0001）"
+      "whatIf": "WHAT_IF 全分支属 S2a F-4（语义冻结于 policy_v1.4.0，经 policy_v2.0.0 延续）——本迭代已实施（S2A-F4-0001）；本回归轮登记语料升版 synthetic/simulate/v2（S2-CORPUS-TAIL-RULING-01 选项 A）后的域语义"
     }
   },
   "simulationSemantics": {
@@ -260,14 +264,113 @@
     "note": "G5 16 项评测包仍 NOT RUN；独立评测人须先审阅本运行 staged 材料（review/README.md）"
   },
   "code": {
-    "gitHead": "dcc94fccc996889241fcea3d2c8583ae28602424",
+    "gitHead": "44b7fa6dc0d8c269fa49cc273095bfcdd5d7584d",
     "workTreeClean": false,
     "uncommittedEntries": [
-      "M tools/evidence/package.json",
-      "?? artifacts/evidence/runs/S2A-F4-0001-attempt-2026-10-09T09-49-21-804Z/",
-      "?? artifacts/evidence/runs/S2A-F4-0001-attempt-2026-10-09T09-49-38-948Z/",
-      "?? artifacts/evidence/runs/S2A-F4-0001/",
-      "?? tools/evidence/src/s2a-f4.mjs"
+      "M artifacts/evidence/runs/G3-GOLDEN-0001/SHA256SUMS",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G01-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G01-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G01-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G01-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G02-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G02-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G02-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G02-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G03-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G03-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G03-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G03-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G04-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G04-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G04-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G04-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G05-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G05-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G05-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G05-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G06-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G06-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G06-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G06-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G07-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G07-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G07-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G07-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G08-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G08-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G08-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G08-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G09-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G09-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G09-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G09-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/review/README.md",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/run-metadata.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/summary.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G01-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G01-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G01-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G01-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G02-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G02-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G02-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G02-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G03-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G03-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G03-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G03-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G04-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G04-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G04-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G04-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G05-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G05-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G05-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G05-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G06-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G06-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G06-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G06-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G07-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G07-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G07-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G07-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G08-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G08-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G08-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G08-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G09-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G09-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G09-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G09-NEG.jsonl",
+      " M artifacts/evidence/runs/S2A-F4-0001/SHA256SUMS",
+      " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_BRANCH-LIFECYCLE.json",
+      " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_INPROC-REGRESSION.json",
+      " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_MULTI-ROUND.json",
+      " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_NO-NEW-EXPERIENCE.json",
+      " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_NONCREATION-INERT.json",
+      " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_SEPARATION.json",
+      " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_STAGE-PRESERVED.json",
+      " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_STALE-REJECT.json",
+      " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_STOP-PRIORITY.json",
+      " M artifacts/evidence/runs/S2A-F4-0001/review/README.md",
+      " M artifacts/evidence/runs/S2A-F4-0001/run-metadata.json",
+      " M artifacts/evidence/runs/S2A-F4-0001/summary.json",
+      " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:BRANCH-LIFECYCLE.jsonl",
+      " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:INPROC-REGRESSION.jsonl",
+      " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:MULTI-ROUND.jsonl",
+      " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:NO-NEW-EXPERIENCE.jsonl",
+      " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:NONCREATION-INERT.jsonl",
+      " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:SEPARATION.jsonl",
+      " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:STAGE-PRESERVED.jsonl",
+      " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:STALE-REJECT.jsonl",
+      " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:STOP-PRIORITY.jsonl",
+      " M src/experience/fixtures/simulate.ts",
+      " M tools/evidence/src/golden.mjs",
+      " M tools/evidence/src/s2a-f4.mjs",
+      " M tools/evidence/src/s2b.mjs",
+      "?? artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-09T17-36-20-924Z/",
+      "?? artifacts/evidence/runs/S2A-F4-0001-attempt-2026-10-09T17-37-26-969Z/"
     ],
     "runtimeFiles": {
       "package.json": "fa7665b1ea2c862dce091db47f4336e9591d022f3f35f7ae15d932607067f8dc",
@@ -283,31 +386,31 @@
       "app/api/experience/start/route.ts": "388db9999ca45a25dd9e016c283cd4f3711110e1b98f76a4fa6b106da03a8026",
       "app/api/experience/[experienceId]/state/route.ts": "ac786e52885b91168997c4b6a685f70fd480c24c8c9e5001a7373e4103ffb8ac",
       "app/api/experience/[experienceId]/event/route.ts": "325ff8e6b73c0ef3b140767135b1017a56a41b1d29531f74be1694051d1e14d2",
-      "src/experience/policy.ts": "5793845f0e6041a11266c0a2f0bcf0cd0e015c065ed9477a38cca35db9fac616",
-      "src/experience/chunks.ts": "733a16552bc0fdd120bd2e202ee17de26078307f9c79821fe2599f3915fc89ec",
+      "src/experience/policy.ts": "c89a1f8387d6cfb0dd4fc4b2c86cefb20bfd20acd342a8d509bbfc3b17627366",
+      "src/experience/chunks.ts": "a26f6619842a23e853aae7f7800b94b161756121785e6fe4943a1f7bf01a1755",
       "src/experience/stream.ts": "a2931765e29382e81f755be747a8dbb9097b94d3a42103a9d8ba87c988281010",
       "src/experience/audit.ts": "1da20af50e24cde6e4638a78f22e05ec847fa153c0a4655b86134474291ddf0b",
       "src/experience/http.ts": "d26961966a134880732b9ae22a9368c821ce6680fff2c1df4349d0a7f731b13d",
       "src/experience/session.ts": "d7a21131bfb848730643ca7808e71a714e4a757e917cf1103f23c549d68589ae",
-      "src/experience/state-machine.ts": "79a5cba41afcd6c9288e903acc12400871a7c178330aaa3844f00c1235447da7",
+      "src/experience/state-machine.ts": "e78a54e5cc5ee6d9d9ddfb4520bdc7aaa8c0f37d48530b29e9a5bb2d7f9d9044",
       "src/experience/state-store.ts": "625f747f39f589c8d3d99bf00a61dd58a89c5876e9b21cd2c1f59a346189e863",
-      "src/experience/classifier.ts": "b4a1b008f0b258d882804f34b4f2dd2ffe73c5131b95c279b808fcc1419edbec",
+      "src/experience/classifier.ts": "9745fd31eac696d7d374f8df78d1de149feb0230c0d0a99b395cc052c0749110",
       "src/experience/correction.ts": "72897fcf8b3d8a64ceb9d6600a228cd2c447f772cc79c2aa8e46ab63a9d4674c",
       "src/experience/validator.ts": "46850fea758853531f6687551b8f96280772c7fe4c019ac76559ec93fdc4646a",
-      "src/experience/events.ts": "a3ec7e38081eb5653536a8c758e462712802ea050772a226c40e9d0cfeafeefa",
+      "src/experience/events.ts": "a000798fbdbbdb9409d18ea3f76d3c4e252fe1c7ddac4ac369d50f337c2c105a",
       "src/experience/decision-trace.ts": "6606aa6e01c100b0217bafd7b49810a174e3dd7cda36a15668ebf0b42506f0c8",
       "src/experience/llm-gateway.ts": "858dea8a666c6bed47142f39b32695418e88d564d54096b8373ed80f955a1601",
-      "src/experience/creation.ts": "28f14267903c219cbcdfc98588c396c1fcc1506a9f3a59baee3183398548a5ca",
+      "src/experience/creation.ts": "a7fe504b7ffa711ed10820f2d568792819fdefc3e65f0a4af280a2da4da181d4",
       "src/experience/simulation.ts": "507cd3a6010a1edb193279f1be03ff2c1c9bd31d1ad9b382e8ab88ecfd46a2a6",
-      "src/experience/runtime.ts": "76de676201d939384ebfc930c19568bffdb6249f3ce948006853f02d19969829",
+      "src/experience/runtime.ts": "a5ee92e31bd5712327342710496f27b72bfc3ba1c57d04c5a5e131d490b0018a",
       "src/experience/server-runtime.ts": "b6b3f83166d085e72013661915f2f79398f961081310bd35c5ad4d10412f5700",
       "src/experience/fixtures/direct-answer.ts": "d2183d5f8fe5075540980462cf3774fba8fcc4c1f0740032654ba27331ed264c",
       "src/experience/fixtures/why.ts": "8e597e2d9c4082ee4a80e19557c82d3be54ed917f3dbfd68bb8a4752787757e0",
       "src/experience/fixtures/change-direction.ts": "8db3861f3a0693492054d4aeb9d73ed42a3fb561bcc7f45ed8de0fc47ed6468a",
-      "src/experience/fixtures/simulate.ts": "77d51cfad3fb9beef78a367e767b0eb3aea582f9a9d7a189f98468ad14d55643",
+      "src/experience/fixtures/simulate.ts": "dfa4045bb0457267f53b7f320472d55afd5b00635cf8366e8449b8aa793bc58a",
       "src/experience/fixtures/create.ts": "e84eba657c582b8947d10988ed9389ab5eb56563f8d07de97ef7f81f486b7b99",
       "src/experience/fixtures/correction.ts": "27393524ebcb51cf2f26e32fa163e3c2a787f0cfe2cf9b11fc242dbe7db03f68",
-      "tools/evidence/src/s2a-f4.mjs": "a4e87926604d3e1ceb4cfdaa13fdd2439b2a79f60a984e7672c47d12753363a7"
+      "tools/evidence/src/s2a-f4.mjs": "a99c2736078360f7250d45412b633a9ad911ae356e16e4ed59b8637aa1b8ce40"
     },
     "typecheckCommand": "npm run typecheck:core",
     "buildCommand": "npm run build (next build, Turbopack)",
@@ -359,9 +462,9 @@
         "sha256": "d2183d5f8fe5075540980462cf3774fba8fcc4c1f0740032654ba27331ed264c"
       },
       {
-        "fixtureId": "synthetic/simulate/v1",
+        "fixtureId": "synthetic/simulate/v2",
         "file": "src/experience/fixtures/simulate.ts",
-        "sha256": "77d51cfad3fb9beef78a367e767b0eb3aea582f9a9d7a189f98468ad14d55643"
+        "sha256": "dfa4045bb0457267f53b7f320472d55afd5b00635cf8366e8449b8aa793bc58a"
       },
       {
         "fixtureId": "synthetic/stop/v1",
@@ -418,7 +521,7 @@
     },
     "g3": {
       "runId": "G3-GOLDEN-0001",
-      "result": "PASSED（golden 再生验证，policy_v1.4.0 断言同步后 32/32）"
+      "result": "PASSED（golden 再生验证——F-4 实施时 32/32、断言已同步 policy_v1.4.0；本回归轮前置基线 2026-10-09：36/36 案例、policy_v2.0.0 / state_machine_v1.5.0、退出码 0）"
     },
     "s2a": {
       "f1": {
@@ -435,9 +538,9 @@
       }
     }
   },
-  "startedAt": "2026-10-09T09:50:56.904Z",
-  "finishedAt": "2026-10-09T09:51:13.671Z",
-  "durationMs": 16764,
+  "startedAt": "2026-10-09T17:50:05.675Z",
+  "finishedAt": "2026-10-09T17:50:21.436Z",
+  "durationMs": 15759,
   "executor": "tools/evidence/src/s2a-f4.mjs",
-  "executorSha256": "a4e87926604d3e1ceb4cfdaa13fdd2439b2a79f60a984e7672c47d12753363a7"
+  "executorSha256": "a99c2736078360f7250d45412b633a9ad911ae356e16e4ed59b8637aa1b8ce40"
 }

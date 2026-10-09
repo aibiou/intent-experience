@@ -1,19 +1,19 @@
 {
   "caseIdNamespace": "S2A-F4-0001:NONCREATION-INERT",
   "sourceClause": "S2A-F4-SEMANTIC-FREEZE-01 §5（S2A-F4-NONCREATION-INERT 案例大纲）；G3 黄金套件 G02 语义（非模拟路径不回归）；PD-07",
-  "scope": "非模拟场景（WHY → EXPLAIN）行为与前置版本一致：why_requested ×1 → generation/llm 链路 → state_transitioned（steps [USER_ACTION]）→ 终态 WAITING/UNDERSTANDING v4；内容逐字节等于 why 语料；与前置版本仅有的差异为 policy_version=policy_v1.4.0；模拟域零事件、无模拟上下文",
+  "scope": "非模拟场景（WHY → EXPLAIN）行为与前置版本一致：why_requested ×1 → generation/llm 链路 → state_transitioned（steps [USER_ACTION]）→ 终态 WAITING/UNDERSTANDING v4；内容逐字节等于 why 语料；与前置版本（policy_v1.3.0）仅有的差异为 policy_version=policy_v2.0.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.0.0 延续）；模拟域零事件、无模拟上下文",
   "precondition": "WHY 意图链已建立（启动 v2）",
   "inputFault": "\"为什么\"（声明 WHY）",
   "expected": {
     "inertness": "非模拟场景（WHY → EXPLAIN）行为与前置版本（policy_v1.3.0）一致：why_requested ×1 → generation/llm 链路 → state_transitioned（steps [USER_ACTION]）→ 终态 WAITING/UNDERSTANDING v4；内容逐字节等于 why 语料",
-    "difference": "与前置版本仅有的差异：policy_version 字段 = policy_v1.4.0（版本化变更文本同步）；模拟域事件零登记（非模拟路径不受 F-4 影响）",
+    "difference": "与前置版本（policy_v1.3.0）仅有的差异：policy_version 字段 = policy_v2.0.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.0.0 延续）；模拟域事件零登记（非模拟路径不受 F-4 影响）",
     "simulationDomain": "零 simulation_recorded 事件；无模拟域上下文（getSimulation 拒绝——未建立模拟上下文）"
   },
   "actual": {
     "whyOk": true,
     "whySelectedAction": "EXPLAIN",
     "whyReason": "semantic_action",
-    "whyPolicyVersion": "policy_v1.4.0",
+    "whyPolicyVersion": "policy_v2.0.0",
     "whyContentMatchesFixture": true,
     "whyRequested": 1,
     "transitionedSteps": [
@@ -25,7 +25,7 @@
     "simulationRecordedCount": 0,
     "simulationContext": "rejected (no simulation context)",
     "policyVersions": [
-      "policy_v1.4.0"
+      "policy_v2.0.0"
     ],
     "llmUsed": [
       true
@@ -49,7 +49,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:NONCREATION-INERT.jsonl",
-    "traceSha256": "02d01cbd000bfc0d95034ff7281559904ee4c652191cfb13d0ca43731b2cd96f",
+    "traceSha256": "c4d658f65d69e5b629e9c959a44eef00b87b7ce2048fa4d3544bd22bdbea081c",
     "form": "inprocess",
     "servers": []
   },

@@ -1,2 +1,2 @@
-{"caseId":"S2A-F4-0001:INPROC-REGRESSION","event":"trace_started","at":"2026-10-09T09:51:09.387Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §5（S2A-F4-INPROC-REGRESSION 案例大纲）；G2 跨契约一致性；C6 §7（信封）/§25（sequence 单调）；13 §15.5（SIMULATION → CREATION 衔接）；D-04 选项 A（会话结束失效）","servers":[]}
-{"caseId":"S2A-F4-0001:INPROC-REGRESSION","event":"trace_completed","at":"2026-10-09T09:51:11.872Z","startedAt":"2026-10-09T09:51:09.387Z","durationMs":2485,"result":"PASS","pass":true}
+{"caseId":"S2A-F4-0001:INPROC-REGRESSION","event":"trace_started","at":"2026-10-09T17:50:16.369Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §5（S2A-F4-INPROC-REGRESSION 案例大纲）；G2 跨契约一致性；C6 §7（信封）/§25（sequence 单调）；13 §15.5（SIMULATION → CREATION 衔接）；D-04 选项 A（会话结束失效）","servers":[]}
+{"caseId":"S2A-F4-0001:INPROC-REGRESSION","event":"trace_completed","at":"2026-10-09T17:50:19.261Z","startedAt":"2026-10-09T17:50:16.369Z","durationMs":2892,"result":"PASS","pass":true}

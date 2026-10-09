@@ -64,7 +64,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:STOP-PRIORITY.jsonl",
-    "traceSha256": "a9961b23eac2634345c9f2a90a268e6ef579cf4e3b07beec4a377dbf5bc3d6c7",
+    "traceSha256": "9fe7af1a79c08389afe380443c0cff0579acef829ae13a92c55d6e5721254918",
     "form": "inprocess",
     "servers": []
   },

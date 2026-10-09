@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G09-FR","event":"trace_started","at":"2026-10-09T14:59:08.309Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 陈旧创作版本拒绝（S1-12 延伸）；失败写入不消耗版本号（OBL-01 纪律）","goldenCase":"G09","dimension":"FAILURE_RECOVERY"}
-{"caseId":"G3-GOLDEN-0001:G09-FR","event":"trace_completed","at":"2026-10-09T14:59:09.410Z","startedAt":"2026-10-09T14:59:08.308Z","durationMs":1102,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G09-FR","event":"trace_started","at":"2026-10-09T17:36:36.652Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 陈旧创作版本拒绝（S1-12 延伸）；失败写入不消耗版本号（OBL-01 纪律）","goldenCase":"G09","dimension":"FAILURE_RECOVERY"}
+{"caseId":"G3-GOLDEN-0001:G09-FR","event":"trace_completed","at":"2026-10-09T17:36:37.731Z","startedAt":"2026-10-09T17:36:36.652Z","durationMs":1079,"result":"PASS","pass":true}

@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G03-B","event":"trace_started","at":"2026-10-09T14:58:56.044Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G03 Boundary；PD-12 同一优先级层内解释顺序 WHY > WHAT_IF","goldenCase":"G03","dimension":"BOUNDARY"}
-{"caseId":"G3-GOLDEN-0001:G03-B","event":"trace_completed","at":"2026-10-09T14:58:56.046Z","startedAt":"2026-10-09T14:58:56.044Z","durationMs":2,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G03-B","event":"trace_started","at":"2026-10-09T17:36:24.528Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G03 Boundary；PD-12 同一优先级层内解释顺序 WHY > WHAT_IF","goldenCase":"G03","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G03-B","event":"trace_completed","at":"2026-10-09T17:36:24.528Z","startedAt":"2026-10-09T17:36:24.528Z","durationMs":0,"result":"PASS","pass":true}
