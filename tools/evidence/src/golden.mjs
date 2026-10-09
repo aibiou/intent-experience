@@ -1,15 +1,18 @@
 // G3-GOLDEN-0001 — P2 G3 黄金案例回归套件执行器（OBL-03 / PD-19）。
 //
-// 语料定义（P2 Exit Gate & Sign-off §8）：P2 核心产品验收 G01–G08，
+// 语料定义（P2 Exit Gate & Sign-off §8）：P2 核心产品验收 G01–G09，
 // 每个黄金案例至少具备 Normal / Negative / Boundary / Failure-Recovery
 // 四维度 + Expected / Observed / Evidence Location / Evaluator。
-// 本运行执行 8 黄金案例 × 4 维度 = 32 案例：S1 已实现黄金子集
+// 本运行执行 9 黄金案例 × 4 维度 = 36 案例：S1 已实现黄金子集
 // （G01 Direct Answer / G02 Why / G03 What If 基础单次模拟形态 /
 // G05 Change / G06 Stop）+ P2 关闭切片最小实现（G04 Creation /
 // G07 Correction / G08 Memory Boundary——PD-21，产品负责人
 // 2026-10-09 批准：CREATE / CORRECTION 语义动作 + CREATION 阶段 +
 // 当前会话方向信号的最小形态）。完整 Creation / Correction / 持久
 // Memory 语义仍属 S2（PD-05/PD-06/PD-07 范围不变；acceptance-mapping §B）。
+// G09 Directional Operations（S2b；S2B-SEMANTIC-FREEZE-01 D-01 选项 A：
+// DEEPEN / SIMPLIFY / REFRAME 顶层语义动作——policy_v2.0.0，创作域顶层
+// 补丁操作承载；S2b 授权 P3-S2B-IMPL-AUTH-01 v1.0.0 产品负责人签署）。
 //
 // 跨迭代回归基准：案例期望冻结自 F2-GS-0001 行为基线；本运行绑定
 // git HEAD，运行时代码行为漂移即案例失败（回归基线见 run-metadata
@@ -55,6 +58,9 @@ const { simulate } = await import('../../../src/experience/fixtures/simulate');
 const { changeDirection } = await import('../../../src/experience/fixtures/change-direction');
 const { create: createFixture } = await import('../../../src/experience/fixtures/create');
 const { correction: correctionFixture } = await import('../../../src/experience/fixtures/correction');
+const { deepen: deepenFixture } = await import('../../../src/experience/fixtures/deepen');
+const { simplify: simplifyFixture } = await import('../../../src/experience/fixtures/simplify');
+const { reframe: reframeFixture } = await import('../../../src/experience/fixtures/reframe');
 
 const { sha256OfBuffer, sha256OfFile, hashTree, writeSha256Sums, verifySha256Sums } = await import('./hashes.mjs');
 const { TraceWriter } = await import('./trace.mjs');
@@ -1340,7 +1346,7 @@ async function caseG04Normal(trace) {
   const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
   const expected = {
     classification: 'CREATE（"做成"模式；PD-21 关闭切片）',
-    policy: 'CREATE → CREATE（policy_v1.5.0）',
+    policy: 'CREATE → CREATE（policy_v2.0.0）',
     stream: 'submission → chunks → done → state_updated',
     content: createFixture.chunks.join(''),
     headerState: 'ACTIVE/CREATION（迁移提交时视图）',
@@ -1373,7 +1379,7 @@ async function caseG04Normal(trace) {
     classification.semanticAction === 'CREATE' &&
     create.ok &&
     actual.policyAction === 'CREATE' &&
-    actual.policyVersion === 'policy_v1.5.0' &&
+    actual.policyVersion === 'policy_v2.0.0' &&
     actual.stateVersion === 5 &&
     actual.headerState === 'ACTIVE/CREATION' &&
     createEvents[0].type === 'submission' &&
@@ -1386,7 +1392,7 @@ async function caseG04Normal(trace) {
     actual.whyRequestedEvents === 1 &&
     actual.stateTransitionedCreate &&
     actual.decisionTraceSemanticAction === 'CREATE' &&
-    actual.decisionTracePolicyVersion === 'policy_v1.5.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v2.0.0' &&
     actual.decisionTraceReason === 'explicit_user_direction' &&
     finalState.ok &&
     finalState.state.stateVersion === 6 &&
@@ -1680,7 +1686,7 @@ async function caseG07Normal(trace) {
   const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
   const expected = {
     classification: 'CORRECTION（"不是"模式；PD-21 关闭切片）',
-    policy: 'CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v1.5.0）',
+    policy: 'CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v2.0.0）',
     stream: 'submission → chunks → done → state_updated',
     content: correctionFixture.chunks.join(''),
     headerState: 'ACTIVE/UNDERSTANDING（迁移提交时视图；阶段保持）',
@@ -1714,7 +1720,7 @@ async function caseG07Normal(trace) {
     classification.semanticAction === 'CORRECTION' &&
     correct.ok &&
     actual.selectedAction === 'EXPLAIN' &&
-    actual.policyVersion === 'policy_v1.5.0' &&
+    actual.policyVersion === 'policy_v2.0.0' &&
     actual.stateVersion === 5 &&
     actual.headerState === 'ACTIVE/UNDERSTANDING' &&
     correctEvents[0].type === 'submission' &&
@@ -1728,7 +1734,7 @@ async function caseG07Normal(trace) {
     actual.interrupted.filter((reason) => reason === 'correction').length === 1 &&
     actual.stateTransitionedCorrection &&
     actual.decisionTraceSemanticAction === 'CORRECTION' &&
-    actual.decisionTracePolicyVersion === 'policy_v1.5.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v2.0.0' &&
     actual.decisionTraceReason === 'reassess' &&
     finalState.ok &&
     finalState.state.stateVersion === 6 &&
@@ -2343,7 +2349,339 @@ async function caseG08FailureRecovery(trace) {
   return { expected, actual, pass };
 }
 
-// 案例注册表（执行的 32 案例；PD-21 关闭切片：G04/G07/G08 最小实现，无 DEFERRED 登记）
+// ---------------------------------------------------------------------------
+// 黄金案例（G09 Directional Operations——S2b；S2B-SEMANTIC-FREEZE-01
+// D-01 选项 A：DEEPEN / SIMPLIFY / REFRAME 顶层语义动作，policy_v2.0.0）
+// ---------------------------------------------------------------------------
+
+// --- G09-N：正常路径（创作会话内 DEEPEN 方向性补丁） --------------------
+async function caseG09Normal(trace) {
+  const { runtime, events, traces } = createCaseRuntime();
+  const classification = classifyInput('再深入关卡一点');
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const why = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g09n-1',
+  });
+  if (!why.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: why.error.code }, pass: false };
+  }
+  await consume(why.stream);
+  const stateAfterWhy = runtime.getExperienceState(exp.experienceId);
+  const create = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CREATE',
+    rawInput: '这个可以做成一个小游戏。',
+    expectedStateVersion: stateAfterWhy.state.stateVersion,
+    requestId: 'req-g09n-2',
+  });
+  if (!create.ok) {
+    return { expected: { setup: 'CREATE 提交应被接受' }, actual: { setupError: create.error.code }, pass: false };
+  }
+  await consume(create.stream);
+  const stateAfterCreate = runtime.getExperienceState(exp.experienceId);
+  const creationBefore = runtime.getCreation(exp.experienceId);
+  // DEEPEN：创作会话内方向性补丁（顶层补丁操作，与 add / remove / modify 同级）。
+  const deepen = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'DEEPEN',
+    rawInput: '再深入关卡一点',
+    expectedStateVersion: stateAfterCreate.state.stateVersion,
+    requestId: 'req-g09n-3',
+  });
+  const deepenEvents = deepen.ok ? await consume(deepen.stream) : [];
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const creationAfter = runtime.getCreation(exp.experienceId);
+  const deepenRequested = eventsOf(events, 'deepen_requested');
+  const patchApplied = eventsOf(events, 'creation_patch_applied');
+  const createTransitions = eventsOf(events, 'state_transitioned').filter((event) => event.properties.event === 'CREATE');
+  const deepenTrace = traces.find((entry) => entry.semantic_action === 'DEEPEN');
+  const expectedUserChangePatch = { operation: 'deepen', target: 'level', change: { direction: 'deepen' }, summary: '再深入关卡一点' };
+  const structurePreserved =
+    creationAfter.ok &&
+    creationBefore.ok &&
+    JSON.stringify(creationAfter.creation.objects) === JSON.stringify(creationBefore.creation.objects) &&
+    JSON.stringify(creationAfter.creation.rules) === JSON.stringify(creationBefore.creation.rules) &&
+    JSON.stringify(creationAfter.creation.variables) === JSON.stringify(creationBefore.creation.variables) &&
+    JSON.stringify(creationAfter.creation.interactions) === JSON.stringify(creationBefore.creation.interactions) &&
+    JSON.stringify(creationAfter.creation.concept) === JSON.stringify(creationBefore.creation.concept);
+  const userChangeMatches =
+    creationAfter.ok &&
+    creationAfter.creation.userChanges.length === 1 &&
+    creationAfter.creation.userChanges[0].version === 2 &&
+    JSON.stringify(creationAfter.creation.userChanges[0].patch) === JSON.stringify(expectedUserChangePatch);
+  const expected = {
+    classification: 'DEEPEN（"深入"词表；目标经 TARGET_SYNONYMS 由"关卡"派生为 level）',
+    policy: 'DEEPEN → DEEPEN（policy_v2.0.0；14 §8 恒等映射）',
+    flow: 'WHY → CREATE → DEEPEN（创作会话内顶层补丁操作）',
+    content: deepenFixture.chunks.join(''),
+    headerState: 'ACTIVE/CREATION（迁移提交时视图）',
+    finalState: 'WAITING/CREATION（补丁轮次经 CREATE 触发器迁移）',
+    stateVersion: '8（v6 + DEEPEN 迁移 v7 + 完成提交 v8）',
+    creationVersion: '2（v1 + 方向性补丁 v2；user_changes 权威登记）',
+    structurePreservation: 'objects / rules / variables / interactions / concept 逐字段保持（08 §11 局部变更纪律：不重新生成整个作品）',
+  };
+  const actual = {
+    classification: classification.semanticAction,
+    policyAction: deepen.ok ? deepen.header.policy_decision.selected_action : deepen.error.code,
+    policyVersion: deepen.ok ? deepen.header.policy_decision.policy_version : null,
+    policyReason: deepen.ok ? deepen.header.policy_decision.reason : null,
+    stateVersion: deepen.ok ? deepen.header.state_version : null,
+    headerState: deepen.ok ? `${deepen.header.state.status}/${deepen.header.state.stage}` : 'ERROR',
+    streamTypes: deepenEvents.map((event) => event.type),
+    contentEqualsFixture: contentOf(deepenEvents) === deepenFixture.chunks.join(''),
+    deepenRequestedEvents: deepenRequested.length,
+    patchAppliedEvents: patchApplied.length,
+    patchOperation: patchApplied[0]?.properties.operation ?? null,
+    patchTarget: patchApplied[0]?.properties.target ?? null,
+    patchChange: patchApplied[0] ? JSON.stringify(patchApplied[0].properties.change) : null,
+    patchCreationVersion: patchApplied[0]?.properties.creation_version ?? null,
+    createTransitions: createTransitions.length,
+    decisionTraceSemanticAction: deepenTrace?.semantic_action ?? null,
+    decisionTracePolicyVersion: deepenTrace?.policy?.policy_version ?? null,
+    decisionTraceReason: deepenTrace?.reason?.primary ?? null,
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage}` : 'ERROR',
+    finalStateVersion: finalState.ok ? finalState.state.stateVersion : null,
+    lastSemanticAction: finalState.ok ? finalState.state.lastSemanticAction : null,
+    creationVersion: creationAfter.ok ? creationAfter.creation.version : null,
+    creationActive: creationAfter.ok ? creationAfter.active : null,
+    structurePreserved,
+    userChangeMatches,
+  };
+  const pass =
+    classification.semanticAction === 'DEEPEN' &&
+    deepen.ok &&
+    actual.policyAction === 'DEEPEN' &&
+    actual.policyVersion === 'policy_v2.0.0' &&
+    actual.policyReason === 'creation_modification' &&
+    actual.stateVersion === 7 &&
+    actual.headerState === 'ACTIVE/CREATION' &&
+    deepenEvents[0].type === 'submission' &&
+    deepenEvents.some((event) => event.type === 'done') &&
+    deepenEvents.some((event) => event.type === 'state_updated') &&
+    actual.contentEqualsFixture &&
+    actual.deepenRequestedEvents === 1 &&
+    actual.patchAppliedEvents === 1 &&
+    actual.patchOperation === 'deepen' &&
+    actual.patchTarget === 'level' &&
+    actual.patchChange === '{"direction":"deepen"}' &&
+    actual.patchCreationVersion === 2 &&
+    actual.createTransitions === 2 &&
+    actual.decisionTraceSemanticAction === 'DEEPEN' &&
+    actual.decisionTracePolicyVersion === 'policy_v2.0.0' &&
+    actual.decisionTraceReason === 'explicit_user_direction' &&
+    finalState.ok &&
+    finalState.state.stateVersion === 8 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'CREATION' &&
+    actual.lastSemanticAction === 'DEEPEN' &&
+    actual.creationVersion === 2 &&
+    actual.creationActive === true &&
+    actual.structurePreserved &&
+    actual.userChangeMatches;
+  return { expected, actual, pass };
+}
+
+// --- G09-NEG：负向（无创作会话方向性操作 → 升级拒绝） ------------------
+async function caseG09Negative(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const classification = classifyInput('简单一点');
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const why = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g09neg-1',
+  });
+  if (!why.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: why.error.code }, pass: false };
+  }
+  await consume(why.stream);
+  const stateAfterWhy = runtime.getExperienceState(exp.experienceId);
+  const eventsBefore = events.length;
+  // 负向核心：无活跃创作对象时方向性操作不可执行——升级拒绝
+  // （policy_v2.0.0 变更 5；C3 升级纪律，model on F-2/F-3 创作会话
+  // 路由保护——不静默执行未定义语义）。
+  const simplify = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'SIMPLIFY',
+    rawInput: '简单一点',
+    expectedStateVersion: stateAfterWhy.state.stateVersion,
+    requestId: 'req-g09neg-2',
+  });
+  const eventsAdded = events.length - eventsBefore;
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const creationQuery = runtime.getCreation(exp.experienceId);
+  const expected = {
+    classification: 'SIMPLIFY（"简单一点"词表）',
+    escalation: '无活跃创作对象 → INVALID_ACTION（policy_v2.0.0 变更 5；C3 升级纪律：不静默执行未定义语义）',
+    noSideEffects: '升级拒绝零事件、零版本消耗、零创作会话建立',
+  };
+  const actual = {
+    classification: classification.semanticAction,
+    simplifyResult: simplify.ok ? 'OK（缺陷！）' : simplify.error.code,
+    eventsAdded,
+    simplifyRequestedEvents: eventsOf(events, 'simplify_requested').length,
+    patchAppliedEvents: eventsOf(events, 'creation_patch_applied').length,
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+    creationQuery: creationQuery.ok ? '存在（缺陷！）' : creationQuery.error.code,
+  };
+  const pass =
+    classification.semanticAction === 'SIMPLIFY' &&
+    !simplify.ok &&
+    simplify.error.code === 'INVALID_ACTION' &&
+    actual.eventsAdded === 0 &&
+    actual.simplifyRequestedEvents === 0 &&
+    actual.patchAppliedEvents === 0 &&
+    finalState.ok &&
+    finalState.state.stateVersion === 4 &&
+    !creationQuery.ok;
+  return { expected, actual, pass };
+}
+
+// --- G09-B：边界（冻结优先级链 8 组碰撞输入） --------------------------
+async function caseG09Boundary(trace) {
+  // 冻结优先级链（policy_v2.0.0 变更 4）：
+  // STOP > CHANGE_DIRECTION > CORRECTION > CREATE >
+  // DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER
+  const chain = [
+    { input: '好了，深入一点', expected: 'STOP', rule: 'STOP 永远优先（P-01）压倒方向性动作' },
+    { input: '不要这个，深挖一下', expected: 'CHANGE_DIRECTION', rule: '显式方向变更优先于方向性操作（P-03）' },
+    { input: '不对，简化一点', expected: 'CORRECTION', rule: '用户纠正优先于方向性操作（PD-21 关闭切片）' },
+    { input: '做成一个小游戏，重新表述', expected: 'CREATE', rule: '创作意图优先于方向性操作（PD-21 关闭切片）' },
+    { input: '换个角度', expected: 'CHANGE_DIRECTION', rule: '碰撞核验："换个"命中 CHANGE_DIRECTION 先于"换角度"（词表碰撞由优先级层消解）' },
+    { input: '为什么深入一点', expected: 'DEEPEN', rule: '方向性操作优先于 WHY（S2b 冻结链）' },
+    { input: '如果简单一点', expected: 'SIMPLIFY', rule: '方向性操作优先于 WHAT_IF（S2b 冻结链）' },
+    { input: '换角度回答这个问题', expected: 'REFRAME', rule: '方向性操作优先于 DIRECT_ANSWER（提问标记为最低层）' },
+  ];
+  const results = chain.map((entry) => {
+    const first = classifyInput(entry.input);
+    const second = classifyInput(entry.input);
+    return { input: entry.input, expected: entry.expected, rule: entry.rule, actual: first.semanticAction, deterministic: first.semanticAction === second.semanticAction };
+  });
+  const expected = {
+    freezeChain: 'STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER（policy_v2.0.0 变更 4）',
+    groups: '8 组碰撞输入逐组判定（含 "换个角度" 词表碰撞核验）',
+    determinism: '同一输入重复分类结果恒定（GS-01；确定性规则分类）',
+  };
+  const actual = { results };
+  const pass = results.every((entry) => entry.actual === entry.expected && entry.deterministic);
+  return { expected, actual, pass };
+}
+
+// --- G09-FR：故障恢复（陈旧创作版本冲突拒绝 → 当前版本重试成功） ------
+async function caseG09FailureRecovery(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const why = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g09fr-1',
+  });
+  if (!why.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: why.error.code }, pass: false };
+  }
+  await consume(why.stream);
+  const stateAfterWhy = runtime.getExperienceState(exp.experienceId);
+  const create = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CREATE',
+    rawInput: '这个可以做成一个小游戏。',
+    expectedStateVersion: stateAfterWhy.state.stateVersion,
+    requestId: 'req-g09fr-2',
+  });
+  if (!create.ok) {
+    return { expected: { setup: 'CREATE 提交应被接受' }, actual: { setupError: create.error.code }, pass: false };
+  }
+  await consume(create.stream);
+  const stateAfterCreate = runtime.getExperienceState(exp.experienceId);
+  // 故障注入：陈旧 expected_creation_version（999 ≠ 当前 v1）——
+  // 冲突拒绝、不覆盖、不消耗版本（S1-12 同族；OBL-01 失败写入纪律）。
+  const stale = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'REFRAME',
+    rawInput: '换角度重述',
+    expectedStateVersion: stateAfterCreate.state.stateVersion,
+    expectedCreationVersion: 999,
+    requestId: 'req-g09fr-3',
+  });
+  const conflictEvents = eventsOf(events, 'creation_version_conflict');
+  const stateAfterStale = runtime.getExperienceState(exp.experienceId);
+  const creationAfterStale = runtime.getCreation(exp.experienceId);
+  // 恢复：当前创作版本重试（声明版本与实际一致 → 补丁应用成功）。
+  const retry = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'REFRAME',
+    rawInput: '换角度重述',
+    expectedStateVersion: stateAfterStale.state.stateVersion,
+    expectedCreationVersion: creationAfterStale.ok ? creationAfterStale.creation.version : -1,
+    requestId: 'req-g09fr-4',
+  });
+  const retryEvents = retry.ok ? await consume(retry.stream) : [];
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const creationAfter = runtime.getCreation(exp.experienceId);
+  const expectedUserChangePatch = { operation: 'reframe', target: 'creation', change: { direction: 'reframe' }, summary: '换角度重述' };
+  const expected = {
+    staleRejection: '陈旧 expected_creation_version=999 → STATE_VERSION_CONFLICT（S1-12 同族：不覆盖、不消耗版本）',
+    noSideEffects: '冲突拒绝后体验状态版本与创作版本均不变（失败写入不消耗版本号——OBL-01 纪律）',
+    recovery: '当前版本重试 REFRAME 成功（创作 v1 → v2；体验 v6 → v8）',
+    content: reframeFixture.chunks.join(''),
+    userChanges: '创作 v2 登记方向性条目 {operation:"reframe", target:"creation", change:{direction:"reframe"}}',
+  };
+  const actual = {
+    staleResult: stale.ok ? 'OK（缺陷！）' : stale.error.code,
+    conflictEvents: conflictEvents.length,
+    conflictExpectedVersion: conflictEvents[0]?.properties.expected_creation_version ?? null,
+    conflictCurrentVersion: conflictEvents[0]?.properties.current_creation_version ?? null,
+    stateVersionAfterStale: stateAfterStale.ok ? stateAfterStale.state.stateVersion : null,
+    creationVersionAfterStale: creationAfterStale.ok ? creationAfterStale.creation.version : null,
+    retryAccepted: retry.ok,
+    retryContentEqualsFixture: contentOf(retryEvents) === reframeFixture.chunks.join(''),
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage}` : 'ERROR',
+    finalStateVersion: finalState.ok ? finalState.state.stateVersion : null,
+    lastSemanticAction: finalState.ok ? finalState.state.lastSemanticAction : null,
+    creationVersion: creationAfter.ok ? creationAfter.creation.version : null,
+    userChangesLength: creationAfter.ok ? creationAfter.creation.userChanges.length : null,
+    lastUserChange: creationAfter.ok && creationAfter.creation.userChanges.length === 1 ? JSON.stringify(creationAfter.creation.userChanges[0].patch) : null,
+    userChangeMatches: creationAfter.ok && creationAfter.creation.userChanges.length === 1 && JSON.stringify(creationAfter.creation.userChanges[0].patch) === JSON.stringify(expectedUserChangePatch),
+  };
+  const pass =
+    !stale.ok &&
+    stale.error.code === 'STATE_VERSION_CONFLICT' &&
+    actual.conflictEvents === 1 &&
+    actual.conflictExpectedVersion === 999 &&
+    actual.conflictCurrentVersion === 1 &&
+    actual.stateVersionAfterStale === 6 &&
+    actual.creationVersionAfterStale === 1 &&
+    retry.ok &&
+    actual.retryContentEqualsFixture &&
+    finalState.ok &&
+    finalState.state.stateVersion === 8 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'CREATION' &&
+    actual.lastSemanticAction === 'REFRAME' &&
+    actual.creationVersion === 2 &&
+    actual.userChangesLength === 1 &&
+    actual.userChangeMatches;
+  return { expected, actual, pass };
+}
+
+// 案例注册表（执行的 36 案例；PD-21 关闭切片：G04/G07/G08 最小实现 + S2b G09 方向性操作，无 DEFERRED 登记）
 // ---------------------------------------------------------------------------
 const CASE_REGISTRY = [
   // G01 Direct Answer
@@ -2706,6 +3044,53 @@ const CASE_REGISTRY = [
     inputFault: '对抗记忆升级尝试（"记住这个"）→ 在途 WHY 生成继续完成',
     run: caseG08FailureRecovery,
   },
+
+  // G09 Directional Operations（S2b；S2B-SEMANTIC-FREEZE-01
+  // D-01 选项 A——顶层语义动作 DEEPEN / SIMPLIFY / REFRAME）
+  {
+    caseId: 'G09-N',
+    goldenCase: 'G09',
+    dimension: 'NORMAL',
+    form: 'in-process',
+    sourceClause: 'S2B-SEMANTIC-FREEZE-01 §5.2 方向性补丁正常路径；14 §8 恒等映射；08 §十 方向性操作自然语示例锚点；policy_v2.0.0 变更 1/3/5',
+    scope: 'P2 G3 黄金套件——S2b 新增黄金案例（创作会话内 DEEPEN 方向性补丁：顶层补丁操作 + 版本单调 +1 + user_changes 权威登记 + 结构保持）',
+    precondition: 'WHY → CREATE 完成（WAITING/CREATION v6；创作 v1，USER_FEEDBACK 阶段）',
+    inputFault: '无（正常路径；"再深入关卡一点" → DEEPEN，目标经 TARGET_SYNONYMS 由"关卡"派生为 level）',
+    run: caseG09Normal,
+  },
+  {
+    caseId: 'G09-NEG',
+    goldenCase: 'G09',
+    dimension: 'NEGATIVE',
+    form: 'in-process',
+    sourceClause: 'S2B-SEMANTIC-FREEZE-01 §5.2 非创作会话升级路径；policy_v2.0.0 变更 5；C3 升级纪律（model on F-2/F-3 创作会话路由保护）',
+    scope: 'P2 G3 黄金套件——S2b 新增黄金案例（无活跃创作对象时方向性操作升级拒绝）',
+    precondition: 'WHY 完成（WAITING/UNDERSTANDING v4；无创作会话）',
+    inputFault: '无创作会话 SIMPLIFY 分类输入 → INVALID_ACTION 升级（零事件、零版本消耗、零创作会话建立）',
+    run: caseG09Negative,
+  },
+  {
+    caseId: 'G09-B',
+    goldenCase: 'G09',
+    dimension: 'BOUNDARY',
+    form: 'in-process',
+    sourceClause: 'S2B-SEMANTIC-FREEZE-01 §5.2 优先级链；policy_v2.0.0 变更 4 冻结优先级链；分类器确定性规则词表（GS-01 确定性）',
+    scope: 'P2 G3 黄金套件——S2b 新增黄金案例（冻结优先级链 8 组碰撞输入：STOP / CHANGE_DIRECTION / CORRECTION / CREATE 优先于方向性动作；方向性动作优先于 WHY / WHAT_IF / DIRECT_ANSWER）',
+    precondition: '无（纯分类层；确定性规则，无状态变更）',
+    inputFault: '优先级碰撞输入 8 组（含 "换个角度" → CHANGE_DIRECTION 词表碰撞核验）',
+    run: caseG09Boundary,
+  },
+  {
+    caseId: 'G09-FR',
+    goldenCase: 'G09',
+    dimension: 'FAILURE_RECOVERY',
+    form: 'in-process',
+    sourceClause: 'S2B-SEMANTIC-FREEZE-01 §5.2 陈旧创作版本拒绝（S1-12 延伸）；失败写入不消耗版本号（OBL-01 纪律）',
+    scope: 'P2 G3 黄金套件——S2b 新增黄金案例（陈旧 expected_creation_version 冲突拒绝 → 当前版本重试成功）',
+    precondition: 'WHY → CREATE 完成（WAITING/CREATION v6；创作 v1）',
+    inputFault: '陈旧 expectedCreationVersion=999 → STATE_VERSION_CONFLICT（不覆盖、不消耗版本）→ 当前版本重试 REFRAME 成功',
+    run: caseG09FailureRecovery,
+  },
 ];
 
 
@@ -2891,15 +3276,15 @@ async function main() {
     { traceFiles: traceFiles.length, expected: CASE_REGISTRY.length },
   );
 
-  // A5: golden dimension coverage — each golden case (G01–G08) has all four dimensions.
-  const goldenCases = ['G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08'];
+  // A5: golden dimension coverage — each golden case (G01–G09) has all four dimensions.
+  const goldenCases = ['G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08', 'G09'];
   const dimensionCoverage = goldenCases.map((goldenCase) => {
     const dims = executedResults.filter((entry) => entry.goldenCase === goldenCase).map((entry) => entry.dimension);
     return { goldenCase, dimensions: dims, complete: GOLDEN_DIMENSIONS.every((dim) => dims.includes(dim)) };
   });
   assert(
     'A5',
-    '黄金维度覆盖：G01–G08 各具备 NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度（P2 Exit Gate §8；G04/G07/G08 为 PD-21 关闭切片最小实现）',
+    '黄金维度覆盖：G01–G09 各具备 NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度（P2 Exit Gate §8；G04/G07/G08 为 PD-21 关闭切片最小实现；G09 为 S2b 新增黄金案例）',
     dimensionCoverage.every((entry) => entry.complete),
     { dimensionCoverage },
   );
@@ -2960,6 +3345,9 @@ async function main() {
     'src/experience/fixtures/change-direction.ts': await sha256OfFile(path.join(repoRoot, 'src/experience/fixtures/change-direction.ts')),
     'src/experience/fixtures/create.ts': await sha256OfFile(path.join(repoRoot, 'src/experience/fixtures/create.ts')),
     'src/experience/fixtures/correction.ts': await sha256OfFile(path.join(repoRoot, 'src/experience/fixtures/correction.ts')),
+    'src/experience/fixtures/deepen.ts': await sha256OfFile(path.join(repoRoot, 'src/experience/fixtures/deepen.ts')),
+    'src/experience/fixtures/simplify.ts': await sha256OfFile(path.join(repoRoot, 'src/experience/fixtures/simplify.ts')),
+    'src/experience/fixtures/reframe.ts': await sha256OfFile(path.join(repoRoot, 'src/experience/fixtures/reframe.ts')),
   };
   const finishedAt = new Date().toISOString();
   const durationMs = Date.now() - startedAtMs;
@@ -2970,10 +3358,10 @@ async function main() {
       executedBy: '工程负责人角色（代理，Codex）',
       independentEvaluator: '独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）',
     },
-    obligation: 'P2 G08 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行）',
+    obligation: 'P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）',
     authorization: 'P3-S1-IMPL-AUTH-01 v1.3.0 §2（动态证据执行）；E5-SCOPED-LICENSE-01（PD-17 / CR-15 选项 A）',
     goldenCorpus: {
-      definition: 'P2 核心产品验收 G01–G08；每案例至少 Normal/Negative/Boundary/Failure-Recovery 四维度 + Expected/Observed/Evidence/Evaluator（P2 Exit Gate §8）',
+      definition: 'P2 核心产品验收 G01–G09；每案例至少 Normal/Negative/Boundary/Failure-Recovery 四维度 + Expected/Observed/Evidence/Evaluator（P2 Exit Gate §8；G09 为 S2b 方向性操作）',
       s1Covered: {
         goldenCases,
         caseIds: CASE_REGISTRY.map((definition) => definition.caseId),
@@ -2998,8 +3386,8 @@ async function main() {
     s1Specifications: referenceCheck.entries
       .filter((entry) => entry.path.startsWith('P3-S1'))
       .map((entry) => ({ source: `docs/product/reference/${entry.path}`, sha256: entry.computed, archiveIntegrity: entry.match ? 'VERIFIED vs SHA256SUMS' : 'MISMATCH' })),
-    stateMachine: { version: 'state_machine_v1.0.0', source: 'SRC-05 / 13', closureSlice: 'CREATION 阶段 + CREATE/CORRECTION 触发（PD-21 关闭切片最小形态）；完整 WHAT_IF 分支 / Creation / Correction 属 S2' },
-    policy: { version: 'policy_v1.5.0（S2a F-5 版本化变更）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）+ 完整 WHAT_IF 分支语义（S2a F-4，policy_v1.4.0：多轮模拟持久化 + 轴外分支子状态机）+ Minimal Memory 语义（S2a F-5，policy_v1.5.0：轴外记忆子状态机 + L5 信号注入 + Runtime 单一写入者）；SEARCH 仍表外（PD-06）' },
+    stateMachine: { version: 'state_machine_v1.5.0', source: 'SRC-05 / 13', closureSlice: 'CREATION 阶段 + CREATE/CORRECTION 触发（PD-21 关闭切片最小形态）+ 完整 WHAT_IF 分支语义（S2a F-4，state_machine_v1.4.0）+ S2b 变更 1–3（state_machine_v1.5.0：方向性操作 DEEPEN/SIMPLIFY/REFRAME 文档化——冻结迁移表无结构变更）' },
+    policy: { version: 'policy_v2.0.0（S2b 版本化变更）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）+ 完整 WHAT_IF 分支语义（S2a F-4，policy_v1.4.0：多轮模拟持久化 + 轴外分支子状态机）+ Minimal Memory 语义（S2a F-5，policy_v1.5.0：轴外记忆子状态机 + L5 信号注入 + Runtime 单一写入者）+ S2b 方向性操作语义（policy_v2.0.0：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 14 §8 恒等映射 + 冻结优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER + 创作域顶层补丁操作承载）；SEARCH 仍表外（PD-06，内部能力动作 14 §7）' },
     api: { version: 'api_v1.0.0', source: 'SRC-07 / 16' },
     event: { version: 'analytics_v1.0.0', source: 'SRC-08 / 17' },
     evaluation: { contract: 'C7', version: 'evaluation_v1.0.0', note: 'G5 16 项评测包已执行并双签署（P3-S1-G5-WORKSHEET-01 v1.7.0）；G3 逐项判定属本运行后的独立评测范畴' },
@@ -3023,6 +3411,9 @@ async function main() {
         { fixtureId: changeDirection.fixtureId, file: 'src/experience/fixtures/change-direction.ts', sha256: fixtureHashes['src/experience/fixtures/change-direction.ts'] },
         { fixtureId: createFixture.fixtureId, file: 'src/experience/fixtures/create.ts', sha256: fixtureHashes['src/experience/fixtures/create.ts'] },
         { fixtureId: correctionFixture.fixtureId, file: 'src/experience/fixtures/correction.ts', sha256: fixtureHashes['src/experience/fixtures/correction.ts'] },
+        { fixtureId: deepenFixture.fixtureId, file: 'src/experience/fixtures/deepen.ts', sha256: fixtureHashes['src/experience/fixtures/deepen.ts'] },
+        { fixtureId: simplifyFixture.fixtureId, file: 'src/experience/fixtures/simplify.ts', sha256: fixtureHashes['src/experience/fixtures/simplify.ts'] },
+        { fixtureId: reframeFixture.fixtureId, file: 'src/experience/fixtures/reframe.ts', sha256: fixtureHashes['src/experience/fixtures/reframe.ts'] },
         { fixtureId: 'synthetic/stop/v1', file: '（运行时内联构造：STOP 无内容分块）', sha256: null },
       ],
       realUserData: false,
@@ -3133,7 +3524,7 @@ async function main() {
   // Review README for the independent evaluator (G3 item-by-item ruling aid).
   const reviewReadme = `# G3-GOLDEN-0001 — 独立评测人审阅包（staged，待审阅与否决）
 
-运行：G3-GOLDEN-0001（P2 G3 黄金案例回归套件——OBL-03 / PD-19；8 黄金案例 × 4 维度 = 32 案例执行；PD-21 关闭切片：G04/G07/G08 最小实现）
+运行：G3-GOLDEN-0001（P2 G3 黄金案例回归套件——OBL-03 / PD-19；9 黄金案例 × 4 维度 = 36 案例执行；PD-21 关闭切片：G04/G07/G08 最小实现 + S2b G09 方向性操作）
 日期：${finishedAt}
 执行器：工程负责人角色（代理）；独立评测负责人：用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）
 
@@ -3156,17 +3547,18 @@ async function main() {
 | G06 Stop | N/NEG/B/FR | 4/4 PASS | 待裁决 | |
 | G07 Correction（PD-21 关闭切片最小实现） | N/NEG/B/FR | 4/4 PASS | 待裁决 | 完整 Correction 语义属 S2（acceptance-mapping §B，PD-05） |
 | G08 Memory Boundary（PD-21 关闭切片最小实现） | N/NEG/B/FR | 4/4 PASS | 待裁决 | 完整持久 Memory 语义属 S2（acceptance-mapping §B，PD-07） |
+| G09 Directional Operations（S2b 方向性操作） | N/NEG/B/FR | 4/4 PASS | 待裁决 | S2b 新增（S2B-SEMANTIC-FREEZE-01 D-01 选项 A；policy_v2.0.0 顶层语义动作 DEEPEN/SIMPLIFY/REFRAME） |
 
 ## 审阅清单（不得只看汇总）
 
-1. cases/ —— 32 份 E5 §4 案例记录（12 字段），含预期 / 实际 / 不变式 / 证据哈希；32 份执行（无 DEFERRED 登记）
-2. traces/ —— 32 份 JSONL 轨迹（每案例 trace_started → 案例事实 → trace_completed）
+1. cases/ —— 36 份 E5 §4 案例记录（12 字段），含预期 / 实际 / 不变式 / 证据哈希；36 份执行（无 DEFERRED 登记）
+2. traces/ —— 36 份 JSONL 轨迹（每案例 trace_started → 案例事实 → trace_completed）
 3. run-metadata.json —— E5 §3 版本矩阵（黄金语料定义、回归基线绑定 F2-GS-0001/F3-EB-0001、契约指纹、代码字节绑定）
 4. SHA256SUMS —— 证据包清单（可独立重算验证）
 
 ## 语料范围声明
 
-- 已执行（本运行）：G01–G08 八黄金案例四维度共 32 案例，进程内形态（真实 .ts 源字节）；G03 为 S1 基础单次模拟形态（PD-06）。
+- 已执行（本运行）：G01–G09 九黄金案例四维度共 36 案例，进程内形态（真实 .ts 源字节）；G03 为 S1 基础单次模拟形态（PD-06）；G09 为 S2b 方向性操作（policy_v2.0.0）。
 - 关闭切片（PD-21）：G04/G07/G08 最小实现（CREATE / CORRECTION 语义动作 + CREATION 阶段 + 当前会话方向信号）；完整 Creation / Correction / 持久 Memory 语义仍属 S2（PD-05/PD-06/PD-07；acceptance-mapping §B）。
 - 形态覆盖：HTTP 形态回归证据见 F2-GS-0001 / F3-EB-0001（本套件为跨迭代回归基准的进程内形态）。
 - 未执行（NOT RUN）：真实 LLM 提供方接入（须另经产品决策与隐私六要素批准）；真实用户数据收集（按 ADR-0002 §3 证据运行仅使用合成数据）。

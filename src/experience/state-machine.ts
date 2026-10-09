@@ -32,6 +32,27 @@
  * 实现承载于 memory.ts（轴外持久对象——D-01 选项 A）。
  */
 
+/**
+ * state_machine_v1.5.0（S2b 版本化变更，2026-10-09 产品
+ * 负责人批准——S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 §4）：
+ * 变更 1——创作域子状态机：补丁操作域扩展为
+ * {add, remove, modify, deepen, simplify, reframe}（轴外承载
+ * 纪律不变，F-2 D-02；deepen / simplify / reframe 为整体验
+ * 方向性补丁——合成模式下结构保持、版本 +1、user_changes
+ * 权威登记，08 §11 局部变更纪律；每次合法补丁提交版本
+ * +1，S1-12 不变式）。
+ * 变更 2——SEARCH 能力状态纪律：SEARCH 为无状态只读能力
+ * 调用，不产生体验状态迁移、不产生创作域补丁（本状态机
+ * 无 SEARCH 迁移行——能力纪律经 policy_v2.0.0 变更 6 承载）。
+ * 变更 3——First Experience 呈现路径：六阶段呈现迁移
+ * （Curiosity → Understanding → Simulation → Branch →
+ * Creation → Completion）为已有体验阶段轴的呈现补全
+ * （E2 §6；13 号状态机阶段轴不变——Branch 为 Simulation
+ * 阶段的分支探索呈现面，轴外分支记录 F-4 D-02）。
+ * 呈现路径模型承载于 presentation.ts（只读呈现层，
+ * 不改状态机）。
+ */
+
 export type ExperienceStatus = 'ENTERING' | 'READY' | 'ACTIVE' | 'WAITING' | 'COMPLETED';
 
 export type ExperienceStage =

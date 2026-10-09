@@ -57,12 +57,20 @@ import { allFixtures, loadChunkFixture } from './chunks';
 import {
   CreationStore,
   buildMinimalCreation,
+  buildDirectionalPatch,
   inheritCreationContext,
   interpretCreationInput,
   type CreationInterpretation,
   type CreationObject,
   type CreationPatch,
 } from './creation';
+import {
+  firstExperiencePresentation,
+  presentationStageFor,
+  type FirstExperiencePresentation,
+  type PresentationStage,
+} from './presentation';
+import { searchExperienceContext, type SearchContextResult } from './search';
 import {
   SimulationStore,
   deriveSimulationSeparation,
@@ -111,6 +119,9 @@ const INTERACTION_EVENT_BY_SEMANTIC_ACTION: Readonly<Record<SemanticAction, stri
   STOP: 'stop_requested',
   CREATE: 'create_requested', // PD-21 关闭切片（C6 §14 交互事件命名模式）
   CORRECTION: 'correction_requested', // PD-21 关闭切片（C6 §14 交互事件命名模式）
+  DEEPEN: 'deepen_requested', // S2b（D-01 选项 A；C6 §14 交互事件命名模式）
+  SIMPLIFY: 'simplify_requested', // S2b（同上）
+  REFRAME: 'reframe_requested', // S2b（同上）
 };
 
 function errorCodeStatus(code: RuntimeErrorCode): number {
@@ -505,6 +516,48 @@ export class ExperienceRuntime {
     };
   }
 
+  /**
+   * 解释层生成上下文构建（S2b；S2B-SEMANTIC-FREEZE-01
+   * 附列裁决区选项 A——VERIFY 类输入按既有 WHY /
+   * DIRECT_ANSWER 解释层处理，SEARCH 内部能力在这些
+   * 路径内被调用；policy_v2.0.0 变更 2/6）。
+   *
+   * SEARCH 能力集成（D-02/D-03 选项 A）：只读检索当前
+   * 体验内容 / 创作对象 / 会话内上下文——不改变体验、
+   * 不触发产品动作、不产生事件、无外部网络出口；跨会话
+   * 记忆检索属 F-5 记忆域 L5 检索（07 §20），不经
+   * SEARCH 动作（由 buildLlmContext 承载）。
+   */
+  private async buildGenerationContext(input: {
+    rawInput: string;
+    experienceId: string;
+  }): Promise<{
+    raw_input: string;
+    memory_signals: MemorySignal[];
+    search_context: SearchContextResult;
+  }> {
+    const base = await this.buildLlmContext(input.rawInput);
+    const current = this.store.get(input.experienceId);
+    const creationRecord = this.creations.get(input.experienceId);
+    const history = this.actionHistory.get(input.experienceId) ?? [];
+    const searchContext = searchExperienceContext({
+      query: input.rawInput,
+      experienceContent: current
+        ? `status=${current.status} stage=${current.stage} version=${current.stateVersion} lastAction=${current.lastSemanticAction ?? ''}`
+        : '',
+      creationObject: creationRecord?.active
+        ? {
+            active: true,
+            theme: creationRecord.creation.concept.theme,
+            goal: creationRecord.creation.goal,
+            version: creationRecord.creation.version,
+          }
+        : undefined,
+      sessionContext: history,
+    });
+    return { ...base, search_context: searchContext };
+  }
+
   // ---------------------------------------------------------------------
   // 体验启动（S1 规范 §27：POST /experience/start）
   // ---------------------------------------------------------------------
@@ -693,6 +746,58 @@ export class ExperienceRuntime {
     return { ok: true, memory: this.memories.getSnapshot() };
   }
 
+  /**
+   * First Experience 呈现路径查询（S2b；S2B-SEMANTIC-FREEZE-01
+   * D-04 选项 A——只读呈现层：不产生事件、不改变任何状态——
+   * 同 getSimulation / getMemory 纪律；视觉样式不在冻结范围
+   * （E2 §5））。
+   */
+  getFirstExperiencePresentation(
+    experienceId?: string,
+  ): {
+    ok: true;
+    presentation: FirstExperiencePresentation;
+    current: {
+      experienceId: string | null;
+      view: ExperienceView | null;
+      presentationStage: PresentationStage;
+      branchActive: boolean;
+    };
+  } {
+    const presentation = firstExperiencePresentation();
+    if (!experienceId) {
+      return {
+        ok: true,
+        presentation,
+        current: {
+          experienceId: null,
+          view: null,
+          presentationStage: 'CURIOSITY',
+          branchActive: false,
+        },
+      };
+    }
+    const current = this.store.get(experienceId);
+    const view: ExperienceView = current
+      ? { status: current.status, stage: current.stage }
+      : initialExperienceView();
+    const snapshot = this.simulations.getSnapshot(experienceId);
+    const branchActive =
+      snapshot?.currentBranchId != null &&
+      snapshot.branches.find((branch) => branch.branchId === snapshot.currentBranchId)
+        ?.lifecycle === 'ACTIVE';
+    return {
+      ok: true,
+      presentation,
+      current: {
+        experienceId,
+        view: current ? view : null,
+        presentationStage: presentationStageFor(view, branchActive),
+        branchActive,
+      },
+    };
+  }
+
   // ---------------------------------------------------------------------
   // S1-09/S1-10/S1-11 核心：提交体验事件（POST /experience/{id}/event）
   // ---------------------------------------------------------------------
@@ -786,15 +891,6 @@ export class ExperienceRuntime {
         // 至多一个高价值澄清问题。
         semanticAction = 'CREATE';
         creationIntent = interpretation;
-      } else if (interpretation.kind === 'unsupported') {
-        // S2b 保留操作（授权 §2 不授权）：升级拒绝，不实施未授权语义。
-        return {
-          ok: false,
-          error: runtimeError(
-            'INVALID_ACTION',
-            `creation operation ${interpretation.operation} is deferred to S2b (not authorized in S2a; P3-S2-IMPL-AUTH-01 §2)`,
-          ),
-        };
       }
       // interpretation.kind === 'none'：保持 UNKNOWN，走下方通用升级拒绝。
     }
@@ -847,18 +943,43 @@ export class ExperienceRuntime {
           // （PD-23 §5：S2a 不新增动作集）。
           semanticAction = 'CREATE';
           creationIntent = correctionInterpretation;
-        } else if (correctionInterpretation.kind === 'unsupported') {
-          // S2b 保留操作（授权 §2 不授权）：升级拒绝，不实施未授权语义。
-          return {
-            ok: false,
-            error: runtimeError(
-              'INVALID_ACTION',
-              `creation operation ${correctionInterpretation.operation} is deferred to S2b (not authorized in S2a; P3-S2-IMPL-AUTH-01 §2)`,
-            ),
-          };
         }
         // correctionInterpretation.kind === 'none'：保持 CORRECTION，
         // 走下方通用 CORRECTION 执行路径（executeCorrect）。
+      }
+    }
+    // S2b 创作域方向性操作路由（S2B-SEMANTIC-FREEZE-01
+    // D-01 选项 A；policy_v2.0.0 变更 1/3/5）：DEEPEN /
+    // SIMPLIFY / REFRAME 为顶层语义动作（14 §8 恒等映射，
+    // 分类器确定性规则词表识别——优先级链 CREATE >
+    // DEEPEN = SIMPLIFY = REFRAME > WHY），执行语义承载
+    // 于创作域——创作会话内为与 add / remove / modify 同级
+    // 的顶层补丁操作（buildDirectionalPatch：目标经
+    // TARGET_SYNONYMS 确定性派生）；无活跃创作对象时按
+    // 升级规则处理（C3 纪律，model on F-2/F-3 创作会话
+    // 路由保护——INVALID_ACTION 升级，不静默执行未定义语义）。
+    if (
+      classification.semanticAction === 'DEEPEN' ||
+      classification.semanticAction === 'SIMPLIFY' ||
+      classification.semanticAction === 'REFRAME'
+    ) {
+      if (activeCreation?.active && activeCreation.creation.phase !== 'COMPLETE') {
+        creationIntent = {
+          kind: 'modification',
+          patch: buildDirectionalPatch(
+            classification.semanticAction.toLowerCase() as 'deepen' | 'simplify' | 'reframe',
+            input.rawInput,
+            activeCreation.creation,
+          ),
+        };
+      } else {
+        return {
+          ok: false,
+          error: runtimeError(
+            'INVALID_ACTION',
+            `directional operation ${classification.semanticAction} requires an active creation session (escalated per policy_v2.0.0 变更 5; C3 upgrade discipline)`,
+          ),
+        };
       }
     }
     if (semanticAction === 'UNKNOWN') {
@@ -2284,7 +2405,7 @@ export class ExperienceRuntime {
       status: view.status,
       stage: view.stage,
       waitingForUser: false,
-      lastSemanticAction: 'CREATE',
+      lastSemanticAction: policy.semanticAction,
       updatedAt: now,
     }));
     if (!commit.ok) {
@@ -2933,7 +3054,7 @@ export class ExperienceRuntime {
         experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
         semantic_action: policy.semanticAction,
         allowed_action: policy.policyAction,
-        context: await this.buildLlmContext(input.rawInput),
+        context: await this.buildGenerationContext(input),
       });
     } catch {
       // EB-02：propose 失败不提交、不消耗版本号（在途 generation 已被取消）。
@@ -3241,7 +3362,7 @@ export class ExperienceRuntime {
         experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
         semantic_action: policy.semanticAction,
         allowed_action: policy.policyAction,
-        context: await this.buildLlmContext(input.rawInput),
+        context: await this.buildGenerationContext(input),
       });
     } catch {
       return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'synthetic gateway failed', true) };

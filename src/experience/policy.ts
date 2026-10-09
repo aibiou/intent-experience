@@ -12,12 +12,18 @@
  *   完整 Creation 语义属 S2，PD-05/PD-06）
  * - CORRECTION → EXPLAIN（PD-21 关闭切片：重评估是内部过程，必须落到
  *   合法 Policy Action；EXPLAIN = 重评估后的纠正候选，G07）
+ * - DEEPEN → DEEPEN / SIMPLIFY → SIMPLIFY / REFRAME → REFRAME
+ *   （S2b：14 §8 恒等映射；S2B-SEMANTIC-FREEZE-01 v1.0.0 D-01 选项 A
+ *   ——顶层语义动作，创作域顶层补丁操作承载）
  *
  * 治理约束：
  * - C3 行为语义空缺（G-1…G-7，见 c3-semantic-gap-register-v1.md）未由编码者补写：
  *   冻结点之外一律拒绝并升级，不在运行时发明语义。
  * - 范围边界（PD-05/PD-06/PD-07/PD-21）：SEARCH 禁用；不持久化跨会话 Memory；
- *   CREATE / CORRECTION 仅在 P2 关闭切片以最小形态启用，完整语义属 S2。
+ *   CREATE / CORRECTION 仅在 P2 关闭切片以最小形态启用，完整语义属 S2；
+ *   S2b 起 SEARCH 为内部能力动作启用（D-02 选项 A——14 §7"SEARCH 不是
+ *   用户体验类型，而是一种内部能力动作"），DEEPEN / SIMPLIFY / REFRAME
+ *   为顶层语义动作（D-01 选项 A）。
  * - 策略不生成事实内容（P-04）；LLM 不允许自己选择最终 Action（P-05）。
  */
 
@@ -28,7 +34,10 @@ export type SemanticAction =
   | 'CHANGE_DIRECTION'
   | 'STOP'
   | 'CREATE'
-  | 'CORRECTION';
+  | 'CORRECTION'
+  | 'DEEPEN'
+  | 'SIMPLIFY'
+  | 'REFRAME';
 
 export type PolicyAction =
   | 'ANSWER'
@@ -36,7 +45,10 @@ export type PolicyAction =
   | 'SIMULATE'
   | 'CHANGE_EXPERIENCE'
   | 'STOP'
-  | 'CREATE';
+  | 'CREATE'
+  | 'DEEPEN'
+  | 'SIMPLIFY'
+  | 'REFRAME';
 
 /** 冻结映射表：键为 S1 范围内语义动作，值为对应策略动作（S1 §14）。 */
 const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
@@ -47,6 +59,9 @@ const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
   STOP: 'STOP', // C3 §7 单目标映射；S1 硬边界（P-01：永远优先）
   CREATE: 'CREATE', // PD-21 关闭切片：最小 Creation Branch（C3 §7/§8 合法动作；完整语义属 S2）
   CORRECTION: 'EXPLAIN', // PD-21 关闭切片：重评估为内部过程，落到合法 Policy Action EXPLAIN（重评估后的纠正候选）
+  DEEPEN: 'DEEPEN', // S2b（14 §8 恒等映射；S2B-SEMANTIC-FREEZE-01 D-01 选项 A——顶层语义动作，创作域顶层补丁操作承载）
+  SIMPLIFY: 'SIMPLIFY', // S2b（同上——14 §8 恒等映射）
+  REFRAME: 'REFRAME', // S2b（同上——14 §8 恒等映射）
 };
 
 /** S1 策略版本（决策追踪与策略事件记录使用，C6 §18/§22）。 */
@@ -135,7 +150,47 @@ const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
  * REFRAME / SEARCH 仍属 S2b 保留禁用，授权 §5.7；既有映射不变）；
  * SEARCH 仍表外（PD-06）。
  */
-export const POLICY_VERSION = 'policy_v1.5.0';
+/**
+ * policy_v2.0.0（S2b 版本化变更，2026-10-09 产品负责人批准——
+ * S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 §3，分层生效）：
+ * 体验动作扩展（DEEPEN / SIMPLIFY / REFRAME 启用 + SEARCH
+ * 内部能力动作）：
+ * 变更 1——SemanticAction 域扩展：启用 DEEPEN / SIMPLIFY /
+ * REFRAME（14 §8 恒等映射 DEEPEN→DEEPEN / SIMPLIFY→SIMPLIFY /
+ * REFRAME→REFRAME）；SEARCH 不入 SemanticAction 域（内部能力
+ * 动作，14 §7——"SEARCH 不是用户体验类型"）；VERIFY 不启用
+ * （附列裁决区选项 A——SEARCH 以内部能力动作启用即可覆盖
+ * 14 §8 路由，VERIFY 类输入按既有 WHY / DIRECT_ANSWER 解释层
+ * 处理）。
+ * 变更 2——PolicyAction 域：确认 SEARCH 为内部策略动作
+ * （14 §7 taxonomy 既有，无新增）；VERIFY 类输入按既有解释层
+ * 路径处理，SEARCH 能力在这些路径内被调用（14 §8 路由纪律）。
+ * 变更 3——创作域补丁操作域扩展：{add, remove, modify,
+ * deepen, simplify, reframe}（F-2 D-04 冻结域 + D-01 选项 A
+ * 三动作——整体验方向性操作（深入 / 简化 / 换角度），不可
+ * 归约为局部修改，故为顶层补丁操作而非 modify 子型——F-2 将
+ * REPLACE / TUNE / REBALANCE / RENAME / RESTYLE 降为 modify
+ * 子型的归约纪律不适用于三动作）；modify 子型域不变
+ * （{REPLACE, TUNE, REBALANCE, RENAME, RESTYLE}）。
+ * 变更 4——优先级链扩展冻结：STOP > CHANGE_DIRECTION >
+ * CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME >
+ * WHY = WHAT_IF > DIRECT_ANSWER（同层解释顺序纪律不变，
+ * model on S1 §12；分类器识别层位于 CREATE 之后、WHY 之前）。
+ * 变更 5——非创作会话保护：DEEPEN / SIMPLIFY / REFRAME 输入
+ * 在无活跃创作对象时按升级规则处理（C3 纪律，model on
+ * F-2/F-3 创作会话路由保护——INVALID_ACTION 升级，不静默
+ * 执行未定义语义）。
+ * 变更 6——SEARCH 能力纪律：只读、不改变体验、不触发产品
+ * 动作；无外部网络出口；检索范围限当前体验内容 / 创作对象 /
+ * 会话内上下文（D-03 选项 A）；跨会话记忆检索属 F-5 记忆域
+ * L5 检索（07 §20 纪律），不经 SEARCH 动作。
+ * 不变：既有语义动作映射（DIRECT_ANSWER→ANSWER / WHY→
+ * EXPLAIN / WHAT_IF→SIMULATE / CHANGE_DIRECTION→
+ * CHANGE_EXPERIENCE / STOP→STOP / CREATE→CREATE /
+ * CORRECTION→EXPLAIN）；Minimal Memory 语义（policy_v1.5.0）
+ * 不变。
+ */
+export const POLICY_VERSION = 'policy_v2.0.0';
 
 export type PolicyResolution =
   | { ok: true; semanticAction: SemanticAction; policyAction: PolicyAction }

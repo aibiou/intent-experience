@@ -11,6 +11,9 @@ import { changeDirection } from './fixtures/change-direction';
 import { simulate } from './fixtures/simulate';
 import { create } from './fixtures/create';
 import { correction } from './fixtures/correction';
+import { deepen } from './fixtures/deepen';
+import { simplify } from './fixtures/simplify';
+import { reframe } from './fixtures/reframe';
 
 export interface ChunkFixture {
   fixtureId: string;
@@ -26,6 +29,9 @@ const FIXTURES: Readonly<Record<string, ChunkFixture>> = {
   [simulate.semanticAction]: simulate,
   [create.semanticAction]: create,
   [correction.semanticAction]: correction,
+  [deepen.semanticAction]: deepen,
+  [simplify.semanticAction]: simplify,
+  [reframe.semanticAction]: reframe,
 };
 
 export type ChunkResolution =

@@ -16,7 +16,9 @@
  *   周期存活），跨会话持久化属 F-5 Minimal Memory 裁决范围；
  * - D-04 选项 A：补丁 operation 值域收敛为 {add, remove, modify}，
  *   REPLACE / TUNE / REBALANCE / RENAME / RESTYLE 作 modify 的 change 子型；
- *   SIMPLIFY / DEEPEN / REFRAME 显式 DEFERRED 至 S2b（授权 §2 不授权）；
+ *   SIMPLIFY / DEEPEN / REFRAME 经 S2b 实施为顶层补丁操作
+ *   （S2B-SEMANTIC-FREEZE-01 v1.0.0 D-01 选项 A——与
+ *   add / remove / modify 同级，policy_v2.0.0 变更 3）；
  * - D-05 选项 A：CREATION_COMPLETE 经 STOP 执行路径在创作域登记，
  *   体验轴触发器不变（P-01 STOP 永远优先链不动）。
  *
@@ -46,9 +48,22 @@ export type CreationPhase =
 /**
  * 创作补丁操作（08 §12 示例 operation 值域；D-04 选项 A 收敛；
  * restore 为 F-3 D-04 选项 A 的恢复轮次特例——修改轮次特例，
- * 版本单调 +1，新版本内容 = 目标历史版本内容）。
+ * 版本单调 +1，新版本内容 = 目标历史版本内容；
+ * deepen / simplify / reframe 为 S2b 顶层方向性补丁操作
+ * （S2B-SEMANTIC-FREEZE-01 D-01 选项 A——整体验方向性操作
+ * （深入 / 简化 / 换角度），不可归约为局部修改，故与
+ * add / remove / modify 同级而非 modify 子型；合成模式下
+ * 结构保持、版本 +1、user_changes 权威登记——08 §11
+ * 局部变更纪律，policy_v2.0.0 变更 3）。
  */
-export type CreationOperation = 'add' | 'remove' | 'modify' | 'restore';
+export type CreationOperation =
+  | 'add'
+  | 'remove'
+  | 'modify'
+  | 'restore'
+  | 'deepen'
+  | 'simplify'
+  | 'reframe';
 
 /** modify 的 change 子型（08 §10 修改类型中非 S2b 保留项；D-04 选项 A）。 */
 export type CreationModifyKind =
@@ -281,6 +296,10 @@ function cloneCreation(creation: CreationObject): CreationObject {
  *   内容 = 目标历史版本内容（经版本快照历史定位，D-04 实施承载）；
  *   版本单调 +1（S1-12 不变式：版本指针永不回退）；user_changes
  *   登记 restore 条目（含恢复来源版本号——change.restoreFromVersion）。
+ * - deepen / simplify / reframe（S2b；D-01 选项 A）：方向性补丁——
+ *   合成模式下结构保持（方向性语义属真实模式生成纪律），版本
+ *   单调 +1，user_changes 权威登记方向性条目（change.direction
+ *   标识操作方向——08 §11 局部变更纪律：不重新生成整个作品）。
  * 任何补丁：version +1、userChanges 追加（版本化提交；08 §28 单调历史）。
  */
 export function applyCreationPatch(
@@ -377,15 +396,14 @@ export type CreationInterpretation =
   | { kind: 'completion' }
   | { kind: 'modification'; patch: CreationPatch }
   | { kind: 'ambiguous'; question: string; conflictingAxis: string }
-  | { kind: 'unsupported'; operation: string }
   | { kind: 'none' };
 
-/** S2b 保留操作（授权 §2 不授权；识别后升级拒绝，不静默执行）。 */
-const DEFERRED_OPERATION_PATTERNS: ReadonlyArray<{ pattern: RegExp; operation: string }> = [
-  { pattern: /简单一点|简化|简易化/, operation: 'SIMPLIFY' },
-  { pattern: /深入|更丰富|加深度/, operation: 'DEEPEN' },
-  { pattern: /换个角度|重新框|重构视角/, operation: 'REFRAME' },
-];
+// S2b（D-01 选项 A；policy_v2.0.0 变更 1/3）：DEEPEN / SIMPLIFY /
+// REFRAME 已经产品负责人版本化冻结并授权实施（S2B-SEMANTIC-FREEZE-01
+// v1.0.0）——三动作由顶层分类器识别为顶层语义动作（14 §8 恒等
+// 映射），创作会话内经 buildDirectionalPatch 构造顶层补丁操作；
+// 本解释器不再升级拒绝（保留操作纪律经分类器优先级链与运行时
+// 非创作会话升级路径承接——policy_v2.0.0 变更 5）。
 
 /** 完成信号词表（08 §27；"好了" 由通用 STOP 分类直接覆盖，此处补齐其余词）。 */
 const COMPLETION_PATTERN = /就这样|可以了|完成|这个就是我想要的/;
@@ -441,6 +459,28 @@ function extractTarget(rawInput: string, creation: CreationObject): string {
   return 'creation';
 }
 
+/**
+ * 方向性操作补丁构建（S2b；S2B-SEMANTIC-FREEZE-01 D-01 选项
+ * A——顶层语义动作 DEEPEN / SIMPLIFY / REFRAME 的创作域承载：
+ * 与 add / remove / modify 同级的顶层补丁操作。目标经
+ * TARGET_SYNONYMS 同义词表确定性派生（默认 'creation' 级
+ * 方向性修改）；change.direction 登记操作方向——合成模式下
+ * 方向性操作不重生成作品（08 §11 局部变更纪律），版本 +1、
+ * user_changes 权威登记）。
+ */
+export function buildDirectionalPatch(
+  operation: 'deepen' | 'simplify' | 'reframe',
+  rawInput: string,
+  creation: CreationObject,
+): CreationPatch {
+  return {
+    operation,
+    target: extractTarget(rawInput, creation),
+    change: { direction: operation },
+    summary: rawInput,
+  };
+}
+
 /** 既有轴触发器词表（冲突判据；08 §16：与修改意图同时命中 → 至多一个澄清问题）。 */
 const AXIS_CONFLICT_PATTERNS: ReadonlyArray<{ pattern: RegExp; axis: string }> = [
   { pattern: /换|不要这个|别这样|不要了/, axis: 'CHANGE_DIRECTION' },
@@ -458,19 +498,12 @@ export function interpretCreationInput(
   rawInput: string,
   creation: CreationObject,
 ): CreationInterpretation {
-  // 1. S2b 保留操作：升级拒绝（授权 §2；不实施未授权语义）。
-  for (const deferred of DEFERRED_OPERATION_PATTERNS) {
-    if (deferred.pattern.test(rawInput)) {
-      return { kind: 'unsupported', operation: deferred.operation };
-    }
-  }
-
-  // 2. 完成信号（08 §27：立即结束，不自动推荐、不自动继续）。
+  // 1. 完成信号（08 §27：立即结束，不自动推荐、不自动继续）。
   if (COMPLETION_PATTERN.test(rawInput)) {
     return { kind: 'completion' };
   }
 
-  // 3. 修改意图识别（08 §10 示例映射）。
+  // 2. 修改意图识别（08 §10 示例映射）。
   let patch: CreationPatch | null = null;
   if (ADD_PATTERN.test(rawInput)) {
     const target = extractTarget(rawInput, creation);
@@ -517,7 +550,7 @@ export function interpretCreationInput(
     return { kind: 'none' };
   }
 
-  // 4. 冲突判据（08 §16：能安全推断就直接做；与既有轴触发器冲突时
+  // 3. 冲突判据（08 §16：能安全推断就直接做；与既有轴触发器冲突时
   //    不自动判定——至多一个高价值澄清问题）。
   for (const axis of AXIS_CONFLICT_PATTERNS) {
     if (axis.pattern.test(rawInput)) {

@@ -6,6 +6,9 @@
  * 优先；PD-12 解释顺序 WHY > WHAT_IF；PD-21 关闭切片）：
  *   STOP > CHANGE_DIRECTION > CORRECTION > CREATE > WHY > WHAT_IF >
  *   DIRECT_ANSWER
+ * （S2b 起 policy_v2.0.0 变更 4 冻结链：STOP > CHANGE_DIRECTION >
+ * CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY =
+ * WHAT_IF > DIRECT_ANSWER）
  *
  * 治理约束：
  * - 分类是确定性规则，不调用任何模型：模型异常不存在于本路径，
@@ -13,8 +16,9 @@
  * - 无法分类的输入返回 UNKNOWN 并升级（未知情况升级而非由 LLM 决定，
  *   授权 §5.7）；不在运行时发明语义。
  * - 语义动作词汇表：S1 冻结动作 + PD-21 关闭切片启用的 CREATE /
- *   CORRECTION（最小形态）；SEARCH 仍表外；完整 Creation / Correction
- *   语义属 S2（PD-05/PD-06/PD-07 范围不变）。
+ *   CORRECTION（最小形态）+ S2b 启用的 DEEPEN / SIMPLIFY / REFRAME
+ *   （S2B-SEMANTIC-FREEZE-01 D-01 选项 A——顶层语义动作）；
+ *   SEARCH 不入语义动作域（内部能力动作——14 §7；S2b D-02 选项 A）。
  */
 
 import type { SemanticAction } from './policy';
@@ -67,6 +71,42 @@ const CREATE_PATTERNS: ReadonlyArray<RegExp> = [
 ];
 
 const WHY_PATTERNS: ReadonlyArray<RegExp> = [/为什么/, /为何/, /为啥/, /什么缘故/];
+
+/**
+ * S2b 方向性操作识别词表（S2B-SEMANTIC-FREEZE-01 D-01 选项 A
+ * ——确定性规则词表，model on F-4 D-03 纪律；自然语示例锚点：
+ * 08 §十 修改类型与自然语示例）。碰撞核验：不命中任何更高
+ * 优先级层词表——"换角度"不含"换个/换一"（不落入
+ * CHANGE_DIRECTION），"重新框/重构视角/重新表述"不含"改"
+ * （不落入 CORRECTION 修改族），三动作词表不含 STOP / CREATE
+ * 标记；既有黄金输入与合成语料零命中（零黄金回归面）。
+ */
+const DEEPEN_PATTERNS: ReadonlyArray<RegExp> = [
+  /深入/,
+  /深挖/,
+  /细化/,
+  /更丰富/,
+  /加深度/,
+  /展开/,
+];
+
+const SIMPLIFY_PATTERNS: ReadonlyArray<RegExp> = [
+  /简单一点/,
+  /简单些/,
+  /简化/,
+  /简易化/,
+  /再简单/,
+  /太复杂/,
+];
+
+const REFRAME_PATTERNS: ReadonlyArray<RegExp> = [
+  /换角度/,
+  /换视角/,
+  /重新框/,
+  /重构视角/,
+  /重新表述/,
+  /另一种视角/,
+];
 
 const WHAT_IF_PATTERNS: ReadonlyArray<RegExp> = [/如果/, /假如/, /假设/, /要是/, /倘使/];
 
@@ -129,6 +169,18 @@ export function classifyInput(rawInput: string): ClassificationResult {
   }
   if (CREATE_PATTERNS.some((pattern) => pattern.test(rawInput))) {
     return { semanticAction: 'CREATE' };
+  }
+  // S2b（policy_v2.0.0 变更 4 冻结优先级链）：DEEPEN =
+  // SIMPLIFY = REFRAME 识别层位于 CREATE 之后、WHY 之前
+  // （CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF）。
+  if (DEEPEN_PATTERNS.some((pattern) => pattern.test(rawInput))) {
+    return { semanticAction: 'DEEPEN' };
+  }
+  if (SIMPLIFY_PATTERNS.some((pattern) => pattern.test(rawInput))) {
+    return { semanticAction: 'SIMPLIFY' };
+  }
+  if (REFRAME_PATTERNS.some((pattern) => pattern.test(rawInput))) {
+    return { semanticAction: 'REFRAME' };
   }
   // PD-12：WHY > WHAT_IF（同一优先级层内的解释顺序）。
   if (WHY_PATTERNS.some((pattern) => pattern.test(rawInput))) {
