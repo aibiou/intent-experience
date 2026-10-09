@@ -329,7 +329,7 @@
 - **严重度：** N/A（语义冻结登记，非冲突）
 - **决策负责人：** 产品负责人（用户本人，PD-15）
 - **所需变更：** F-5 关闭后签发 P3-S2B-IMPL-AUTH-01 → S2b 实施 → 动态证据 S2B-0001 → 迭代记录写回
-- **状态：** FROZEN（2026-10-09：语义定义版本化冻结完成——PD-23 §6 义务履行；S2b 实施授权待另行签发（前置依赖：F-5 关闭））
+- **状态：** IMPLEMENTED（2026-10-09：语义定义版本化冻结完成（PD-23 §6 义务履行）→ S2b 实施授权签发（P3-S2B-IMPL-AUTH-01 v1.0.0，产品负责人 2026-10-09 签署，生效条件双满足）→ 首批义务 G-1…G-4 实施完成（实施提交 `65ea951`——12 文件：classifier / policy / creation / runtime / search / presentation / state-machine + 方向性语料三件套；policy_v2.0.0 变更 1–6 / state_machine_v1.5.0 变更 1–3）→ 黄金套件扩展（G09 方向性操作案例组——36 案例）后 G3-GOLDEN-0001 再生验证 36/36 案例 PASS、10/10 断言、退出码 0（`849c0fc`；SHA256SUMS 74 文件独立重算一致；三次执行器侧失败尝试按 ADR-0002 §5 归档留存）→ 动态证据 S2B-0001 通过（7/7 案例、14/14 断言、退出码 0，`434142f`；SHA256SUMS 16 文件独立重算一致；一次执行器侧案例预期失败尝试按 ADR-0002 §5 归档留存）；迭代记录 P3-S2B-IMPL-ITER v1.0.0；readiness-record v1.30.0。退出码 0 不设置任何 Gate 为 PASS；S2b 独立评测 NOT RUN（staged 审阅包 `artifacts/evidence/runs/S2B-0001/review/README.md` 待角色 5 独立评测人审阅））
 
 ## S2 范围裁决登记（PD-23）
 
