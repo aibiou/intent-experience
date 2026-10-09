@@ -1,0 +1,81 @@
+{
+  "caseIdNamespace": "S2B-0001:ESCALATION-NEG",
+  "sourceClause": "S2B-SEMANTIC-FREEZE-01 §5.2 案例面 2；policy_v2.0.0 变更 5；C3 升级纪律（model on F-2/F-3 创作会话路由保护）",
+  "scope": "S2b G-1 负向：非创作会话升级路径——DEEPEN / SIMPLIFY / REFRAME 在无活跃创作对象时按升级规则处理（INVALID_ACTION 升级，不静默执行未定义语义）",
+  "precondition": "WHY 建立体验会话但无创作对象（WAITING/UNDERSTANDING v4；getCreation 返回错误）",
+  "inputFault": "无创作会话的方向性操作输入（\"再深入一点\" / \"简单一点\" / \"换角度\"——分类正确但执行升级拒绝）",
+  "expected": {
+    "classification": "DEEPEN / SIMPLIFY / REFRAME（各动作词表识别——升级为语义守卫，非分类失败）",
+    "escalation": "INVALID_ACTION（三动作在无活跃创作对象时按升级规则处理——policy_v2.0.0 变更 5；C3 升级纪律，不静默执行未定义语义）",
+    "state": "状态版本与视图零增量（拒绝先于任何写入——失败不消耗版本号，OBL-01 纪律）",
+    "creation": "无创作对象（getCreation 返回错误——非创作会话）",
+    "events": "零方向性交互事件、零 creation_patch_applied（升级路径不产生任何产品动作）"
+  },
+  "actual": {
+    "scenarios": [
+      {
+        "action": "DEEPEN",
+        "rawInput": "再深入一点",
+        "classification": "DEEPEN",
+        "submissionOk": false,
+        "errorCode": "INVALID_ACTION",
+        "stateVersionBefore": 4,
+        "stateVersionAfter": 4,
+        "stageUnchanged": true,
+        "creationObjectAbsent": true,
+        "directionalEvents": 0,
+        "patchAppliedEvents": 0
+      },
+      {
+        "action": "SIMPLIFY",
+        "rawInput": "简单一点",
+        "classification": "SIMPLIFY",
+        "submissionOk": false,
+        "errorCode": "INVALID_ACTION",
+        "stateVersionBefore": 4,
+        "stateVersionAfter": 4,
+        "stageUnchanged": true,
+        "creationObjectAbsent": true,
+        "directionalEvents": 0,
+        "patchAppliedEvents": 0
+      },
+      {
+        "action": "REFRAME",
+        "rawInput": "换角度",
+        "classification": "REFRAME",
+        "submissionOk": false,
+        "errorCode": "INVALID_ACTION",
+        "stateVersionBefore": 4,
+        "stateVersionAfter": 4,
+        "stageUnchanged": true,
+        "creationObjectAbsent": true,
+        "directionalEvents": 0,
+        "patchAppliedEvents": 0
+      }
+    ]
+  },
+  "invariants": [
+    "S2b 范围边界（S2B-SEMANTIC-FREEZE-01 §2/§3/§4）：DEEPEN / SIMPLIFY / REFRAME 为顶层语义动作（14 §8 恒等映射，policy_v2.0.0 变更 1）；创作域顶层补丁操作 deepen / simplify / reframe（与 add / remove / modify 同级，非 modify 子型——变更 3）；优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER（变更 4）",
+    "非创作会话保护（policy_v2.0.0 变更 5）：DEEPEN / SIMPLIFY / REFRAME 在无活跃创作对象时按升级规则处理——INVALID_ACTION 升级，不静默执行未定义语义（C3 纪律，model on F-2/F-3 创作会话路由保护）；拒绝先于任何写入（失败不消耗版本号，OBL-01 纪律）",
+    "SEARCH 能力纪律（policy_v2.0.0 变更 2/6；14 §7）：内部能力动作，不入 SemanticAction 域；只读——不改变体验、不触发产品动作、不产生事件；无外部网络出口（确定性规则检索，不调用任何提供方）；作用面限当前体验内容 / 创作对象 / 会话内上下文（D-03 选项 A；跨会话记忆检索属 F-5 记忆域 L5，不经 SEARCH 动作）",
+    "VERIFY 附列裁决区选项 A：VERIFY 不启用为语义动作——VERIFY 类输入按既有 WHY / DIRECT_ANSWER 解释层处理，SEARCH 能力在这些路径内被调用（14 §8 路由纪律）",
+    "First Experience 呈现路径（S2B-SEMANTIC-FREEZE-01 §4 变更 3；D-04 选项 A）：六阶段呈现（Curiosity → Understanding → Simulation → Branch → Creation → Completion）为已有体验阶段轴的呈现补全——E2 §7 冻结面不变，13 号状态机阶段轴不变（Branch 为 Simulation 阶段的分支探索呈现面——轴外分支记录 F-4 D-02）；只读呈现层——不产生事件、不改变任何状态；视觉样式不在冻结范围（E2 §5）",
+    "方向性补丁合成模式（D-01 选项 A；08 §11 局部变更纪律）：结构保持（不重新生成整个作品）、版本单调 +1（S1-12 不变式）、user_changes 权威登记方向性条目（change.direction 标识操作方向——08 §11 不重新生成整个作品）；目标经 TARGET_SYNONYMS 确定性派生（默认 creation 级方向性修改）",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12 同族）；失败写入不消耗任何版本号（OBL-01 纪律）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）；创作修改轮次决策追踪 llm_used=false（确定性规则，非模型）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
+  ],
+  "evidence": {
+    "trace": "traces/S2B-0001:ESCALATION-NEG.jsonl",
+    "traceSha256": "bf812c69051e740b018717828e097d0bc81a916377250de4761809286e9eba4d",
+    "form": "in-process",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}
