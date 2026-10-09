@@ -51,10 +51,25 @@ const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
 
 /** S1 策略版本（决策追踪与策略事件记录使用，C6 §18/§22）。 */
 /**
- * policy_v1.1.0（PD-21 关闭切片版本化变更，2026-10-09 产品负责人批准）：
- * 新增 CREATE / CORRECTION 语义动作与 CREATE Policy Action。
+ * policy_v1.2.0（S2a F-2 版本化变更，2026-10-09 产品负责人批准——
+ * S2A-F2-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 §3）：
+ * CREATE 语义动作完整化（PD-21 关闭切片最小形态 → 完整 G04 语义）：
+ * E2 Stage 5 完整编排（CREATE → CONTEXT_INHERIT → MINIMAL_BUILD →
+ * PREVIEW → USER_FEEDBACK）；上下文继承（08 §4/§6/§25 五项）；
+ * 创作对象模型（08 §8/§9）；创作域子策略（08 §15——创作执行内部
+ * 决策记录，不新增顶层 SemanticAction / PolicyAction）；ASK 纪律
+ * （08 §16：能推断即做，至多一个澄清问题）；用户主权（08 §17：
+ * AI 建议 ≠ AI 决定，补丁经版本化历史可逆，预览即确认）；
+ * 安全禁区（08 §14 / 13 §23：禁止自动扩张 / 自动发布 / 自动分享 /
+ * 自动长期记忆保存 / 自动继续创作）；创作会话内输入路由（修改意图
+ * 由创作运行时解释，不落入通用 CORRECTION → EXPLAIN 路径；完成信号
+ * 经 STOP 执行路径在创作域登记——D-05 选项 A）。
+ * 不变：CORRECTION → EXPLAIN、WHAT_IF → SIMULATE 关闭切片映射；
+ * SEARCH 仍表外（PD-06）；完整 CORRECTION 语义随 F-3
+ * （policy_v1.3.0）、WHAT_IF 完整分支随 F-4（policy_v1.4.0）
+ * 各自版本化变更冻结实施（P3-S2-IMPL-AUTH-01 v1.2.0 §4 逐切片升版）。
  */
-export const POLICY_VERSION = 'policy_v1.1.0';
+export const POLICY_VERSION = 'policy_v1.2.0';
 
 export type PolicyResolution =
   | { ok: true; semanticAction: SemanticAction; policyAction: PolicyAction }

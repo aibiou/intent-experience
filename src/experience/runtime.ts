@@ -47,6 +47,15 @@ import {
 import { SyntheticLlmGateway, type LlmGateway } from './llm-gateway';
 import { createExperienceStream, type StreamEvent } from './stream';
 import { allFixtures, loadChunkFixture } from './chunks';
+import {
+  CreationStore,
+  buildMinimalCreation,
+  inheritCreationContext,
+  interpretCreationInput,
+  type CreationInterpretation,
+  type CreationObject,
+  type CreationPatch,
+} from './creation';
 import type { AuditSink } from './audit';
 
 /** S1 §28 错误契约代码（API 契约 §22 错误结构：{code, message, retryable}）。 */
@@ -183,6 +192,10 @@ export class ExperienceRuntime {
   private readonly intents = new Map<string, IntentRecord>();
   private readonly experiences = new Map<string, ExperienceRecord>();
   private readonly store = new ExperienceStateStore();
+  /** 创作状态存储（G04 完整 Creation 语义；S2A-F2-SEMANTIC-FREEZE-01 §4/D-03 选项 A——会话内持久）。 */
+  private readonly creations = new CreationStore();
+  /** 语义动作历史（创作上下文继承派生用；08 §6 五项。仅登记已提交动作）。 */
+  private readonly actionHistory = new Map<string, SemanticAction[]>();
   private readonly recorder: EventRecorder;
   private readonly traceSink: DecisionTraceSink;
   private readonly auditSink: AuditSink;
@@ -195,7 +208,7 @@ export class ExperienceRuntime {
   private readonly generationControllers = new Map<string, AbortController>();
   /** 已发出 generation_cancelled 的 generation（事件不重复登记）。 */
   private readonly cancellationMarked = new Set<string>();
-  private counters = { intent: 0, experience: 0, candidate: 0, generation: 0 };
+  private counters = { intent: 0, experience: 0, candidate: 0, generation: 0, creation: 0 };
 
   constructor(options: RuntimeOptions = {}) {
     this.userId = options.userId ?? 'user_synthetic_001';
@@ -464,6 +477,17 @@ export class ExperienceRuntime {
     return { ok: true, state };
   }
 
+  /** 创作状态查询（S2a F2；只读，不改变任何状态——同 getExperienceState 纪律）。 */
+  getCreation(
+    experienceId: string,
+  ): { ok: true; creation: CreationObject; active: boolean } | { ok: false; error: RuntimeError } {
+    const record = this.creations.get(experienceId);
+    if (!record) {
+      return { ok: false, error: runtimeError('INVALID_REQUEST', `no creation session for experience: ${experienceId}`) };
+    }
+    return { ok: true, creation: record.creation, active: record.active };
+  }
+
   // ---------------------------------------------------------------------
   // S1-09/S1-10/S1-11 核心：提交体验事件（POST /experience/{id}/event）
   // ---------------------------------------------------------------------
@@ -476,6 +500,8 @@ export class ExperienceRuntime {
     rawInput: string;
     /** 客户端已知的状态版本（PD-16 规范字段名 expected_state_version）。 */
     expectedStateVersion: number;
+    /** 客户端已知的创作版本（创作修改轮次；S2a F-2——陈旧 → 冲突拒绝）。 */
+    expectedCreationVersion?: number;
     requestId: string;
     /** 客户端断开信号（HTTP 形态为 request.signal）。 */
     signal?: AbortSignal;
@@ -529,7 +555,45 @@ export class ExperienceRuntime {
 
     // --- 语义动作：分类权威，客户端声明仅作完整性校验 ------------------
     const classification = classifyInput(input.rawInput);
-    if (classification.semanticAction === 'UNKNOWN') {
+    let semanticAction = classification.semanticAction;
+    let creationIntent: CreationInterpretation | null = null;
+    let creationCompletionSignal = false;
+    // 创作会话内输入路由（policy_v1.2.0 变更 2；S2A-F2-SEMANTIC-FREEZE-01 §3）：
+    // 通用分类器返回 UNKNOWN 时，创作运行时解释输入（08 §13 理解职责；
+    // 修改意图不落入通用 CORRECTION → EXPLAIN 路径——冻结文本 §3 变更 2）。
+    const activeCreation = this.creations.get(input.experienceId);
+    if (
+      classification.semanticAction === 'UNKNOWN' &&
+      activeCreation?.active &&
+      activeCreation.creation.phase !== 'COMPLETE'
+    ) {
+      const interpretation = interpretCreationInput(input.rawInput, activeCreation.creation);
+      if (interpretation.kind === 'completion') {
+        // 08 §27 完成信号：经 STOP 执行路径在创作域登记（D-05 选项 A）。
+        semanticAction = 'STOP';
+        creationCompletionSignal = true;
+      } else if (interpretation.kind === 'modification') {
+        // 创作修改意图：创作域伞形动作 CREATE（PD-23 §5：S2a 不新增动作集）。
+        semanticAction = 'CREATE';
+        creationIntent = interpretation;
+      } else if (interpretation.kind === 'ambiguous') {
+        // 冲突判据（08 §16）：与既有轴触发器词表冲突——不自动判定，
+        // 至多一个高价值澄清问题。
+        semanticAction = 'CREATE';
+        creationIntent = interpretation;
+      } else if (interpretation.kind === 'unsupported') {
+        // S2b 保留操作（授权 §2 不授权）：升级拒绝，不实施未授权语义。
+        return {
+          ok: false,
+          error: runtimeError(
+            'INVALID_ACTION',
+            `creation operation ${interpretation.operation} is deferred to S2b (not authorized in S2a; P3-S2-IMPL-AUTH-01 §2)`,
+          ),
+        };
+      }
+      // interpretation.kind === 'none'：保持 UNKNOWN，走下方通用升级拒绝。
+    }
+    if (semanticAction === 'UNKNOWN') {
       return {
         ok: false,
         error: runtimeError(
@@ -538,18 +602,18 @@ export class ExperienceRuntime {
         ),
       };
     }
-    if (input.semanticAction !== classification.semanticAction) {
+    if (input.semanticAction !== semanticAction) {
       return {
         ok: false,
         error: runtimeError(
           'INVALID_REQUEST',
-          `semantic_action mismatch: declared ${input.semanticAction} but input classifies as ${classification.semanticAction} (clients cannot inject policy actions)`,
+          `semantic_action mismatch: declared ${input.semanticAction} but input classifies as ${semanticAction} (clients cannot inject policy actions)`,
         ),
       };
     }
 
     // --- 策略决策（S1-06；P-05：LLM 不允许自己选择最终 Action） --------
-    const policy = resolvePolicy(classification.semanticAction);
+    const policy = resolvePolicy(semanticAction);
     if (!policy.ok) {
       return {
         ok: false,
@@ -580,8 +644,14 @@ export class ExperienceRuntime {
 
     // --- 策略分支（S1-06；P-05：LLM 不允许自己选择最终 Action） ------
     let branchResult: SubmissionResult;
-    if (policy.policyAction === 'STOP') {
-      branchResult = await this.executeStop(input, session, current, stateBefore, policy, decisionId, interactionEventType);
+    if (creationIntent?.kind === 'modification') {
+      // 创作修改轮次（G04；USER_FEEDBACK 轮补丁应用——冻结文本 §4 变更 1）。
+      branchResult = await this.executeCreationModify(input, session, experience, current, stateBefore, policy, decisionId, creationIntent.patch);
+    } else if (creationIntent?.kind === 'ambiguous') {
+      // 创作 ASK 轮次（08 §16：至多一个澄清问题；创作子状态不推进）。
+      branchResult = await this.executeCreationAsk(input, session, experience, current, stateBefore, policy, decisionId, creationIntent.question);
+    } else if (policy.policyAction === 'STOP') {
+      branchResult = await this.executeStop({ ...input, creationCompletionSignal }, session, current, stateBefore, policy, decisionId, interactionEventType);
     } else if (policy.policyAction === 'CHANGE_EXPERIENCE') {
       branchResult = await this.executeChange(input, session, experience, current, stateBefore, policy, decisionId);
     } else if (policy.policyAction === 'CREATE') {
@@ -600,6 +670,14 @@ export class ExperienceRuntime {
         policy,
         decisionId,
       );
+    }
+
+    // 语义动作历史登记（创作上下文继承派生用；仅登记已提交动作——
+    // 失败分支不改变历史，失败写入不消耗任何版本号）。
+    if (branchResult.ok) {
+      const history = this.actionHistory.get(input.experienceId) ?? [];
+      history.push(policy.semanticAction);
+      this.actionHistory.set(input.experienceId, history);
     }
 
     // policy_decided 事件（C6 §18；S1 §23 最低事件集）：记录决策与其
@@ -654,6 +732,8 @@ export class ExperienceRuntime {
       requestId: string;
       expectedStateVersion: number;
       signal?: AbortSignal;
+      /** 创作完成信号（08 §27 词表经创作路由适配为 STOP——D-05 选项 A）。 */
+      creationCompletionSignal?: boolean;
     },
     session: SessionRecord,
     current: ExperienceState,
@@ -740,6 +820,15 @@ export class ExperienceRuntime {
       };
     }
 
+    // 创作完成登记（G04；D-05 选项 A——创作完成经 STOP 执行路径在
+    // 创作域登记：08 §27 完成信号 / 13 §22 条件 A/B/C；立即结束，
+    // 不自动推荐、不自动继续）。
+    await this.terminateCreationSession(input.experienceId, input.sessionId, 'completed', input.creationCompletionSignal ? 'creation_completion_signal' : 'user_stop', now, {
+      requestId: input.requestId,
+      decisionId,
+      stateVersion: commit.state.stateVersion,
+    });
+
     // Session 收尾：ACTIVE → ENDING → ENDED（§4.3/§4.4；ENDING 非常短）。
     const sessionEnding = transitionSession(session.state, 'SESSION_ENDING');
     const sessionEnded = sessionEnding.ok ? transitionSession('SESSION_ENDING', 'SESSION_ENDED') : sessionEnding;
@@ -801,7 +890,9 @@ export class ExperienceRuntime {
       stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
       selectedAction: policy.policyAction,
       reasonPrimary: 'explicit_user_direction',
-      reasonSecondary: 'STOP terminates the current experience (P-01: STOP always wins)',
+      reasonSecondary: input.creationCompletionSignal
+        ? 'CREATION_COMPLETE: completion signal ends the experience via the STOP execution path (08 §27; creation domain registered via creation_completed — D-05 选项 A)'
+        : 'STOP terminates the current experience (P-01: STOP always wins)',
       llmUsed: false,
       userOverride: true,
       inputEvent: null,
@@ -1065,6 +1156,14 @@ export class ExperienceRuntime {
         ),
       };
     }
+
+    // 7.5 创作会话终止（13 §23.6：方向变更后旧运行时必须取消或冻结——
+    // 创作历史保留至会话结束，不跨会话持久（D-03 选项 A））。
+    await this.terminateCreationSession(input.experienceId, input.sessionId, 'ended', 'superseded_by_change_direction', now, {
+      requestId: input.requestId,
+      decisionId,
+      stateVersion: commit.state.stateVersion,
+    });
 
     // 8. generation epoch 切换（旧 generation 迟到达提交由此守卫拒绝）。
     this.activeGenerations.set(input.experienceId, generationId);
@@ -1349,6 +1448,67 @@ export class ExperienceRuntime {
       };
     }
 
+    // 6.5 创作会话建立（G04 完整 Creation 语义；S2A-F2-SEMANTIC-FREEZE-01 §4）。
+    // 相邻重复 CREATE 取代在途创作会话（黄金契约 G04-Boundary：
+    // 每次均生成完整最小构建，内容逐字节等于 fixture，不省略、不累积）。
+    const supersededCreation = this.creations.get(input.experienceId);
+    if (supersededCreation?.active) {
+      await this.terminateCreationSession(input.experienceId, input.sessionId, 'ended', 'superseded_by_create', now, {
+        requestId: input.requestId,
+        decisionId,
+        stateVersion: commit.state.stateVersion,
+      });
+    }
+    this.counters.creation += 1;
+    const creationId = `creation_${String(this.counters.creation).padStart(4, '0')}`;
+    const inherited = inheritCreationContext({
+      theme: this.intents.get(experience.intentId)?.rawInput ?? input.rawInput,
+      actionHistory: this.actionHistory.get(input.experienceId) ?? [],
+      createInput: input.rawInput,
+    });
+    const creation = buildMinimalCreation({
+      creationId,
+      experienceId: input.experienceId,
+      stateVersion: commit.state.stateVersion,
+      inherited,
+      at: now,
+    });
+    this.creations.create({ creation, active: true });
+    await this.recordEvent('creation_started', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: commit.state.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'creation-runtime' },
+      properties: {
+        creation_id: creationId,
+        source_experience_id: input.experienceId,
+        source_state_version: commit.state.stateVersion,
+        theme: creation.concept.theme,
+        goal: creation.goal,
+        inherited_context: { understood: inherited.understood, attempted: inherited.attempted },
+      },
+    });
+    // 子状态机推进：对象随继承上下文建立于 CONTEXT_INHERIT（CREATE_INTENT
+    // 阶段先于对象存在，经 creation_started 权威登记）→ MINIMAL_BUILD
+    // （最小可玩物已构建）→ PREVIEW（预览流即将交付）。
+    const buildPhase = await this.creations.advancePhase(input.experienceId, 'minimal_built', now);
+    await this.recordEvent('creation_phase_transitioned', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: commit.state.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'creation-runtime' },
+      properties: buildPhase.ok
+        ? { creation_id: creationId, from_phase: buildPhase.from, to_phase: buildPhase.to, trigger: buildPhase.event }
+        : { creation_id: creationId, from_phase: buildPhase.from, to_phase: null, trigger: buildPhase.event, rejected: true },
+    });
+    const previewPhase = await this.creations.advancePhase(input.experienceId, 'previewed', now);
+    await this.recordEvent('creation_phase_transitioned', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: commit.state.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'creation-runtime' },
+      properties: previewPhase.ok
+        ? { creation_id: creationId, from_phase: previewPhase.from, to_phase: previewPhase.to, trigger: previewPhase.event }
+        : { creation_id: creationId, from_phase: previewPhase.from, to_phase: null, trigger: previewPhase.event, rejected: true },
+    });
+
     // 7. generation epoch 登记 + 迁移事件 + 决策追踪。
     this.activeGenerations.set(input.experienceId, generationId);
     const controller = new AbortController();
@@ -1422,6 +1582,638 @@ export class ExperienceRuntime {
         chunks: fixture.fixture.chunks,
         signal: combinedSignal,
         chunkDelayMs: 40,
+        audit: this.auditSink,
+      },
+      completionCommit: true,
+      stateTransitionedEvent: stateTransitions,
+    });
+
+    return { ok: true, header, stream, generationId };
+  }
+
+  // ---------------------------------------------------------------------
+  // 创作会话终止（G04；D-05 选项 A / 13 §23.6）
+  // ---------------------------------------------------------------------
+
+  /**
+   * 创作会话终止。
+   * - completed：USER_FEEDBACK → COMPLETE（08 §27 完成语义），
+   *   creation_completed 事件权威登记；非 USER_FEEDBACK 阶段
+   *   （如预览在途）完成迁移非法——按 aborted 终止登记
+   *   （完成信号只在反馈轮有效）。
+   * - ended：会话生命周期终止（取代 / 方向变更），creation_ended
+   *   事件登记；创作历史保留至会话结束（D-03 选项 A——
+   *   跨会话持久化属 F-5 Minimal Memory 裁决范围）。
+   */
+  private async terminateCreationSession(
+    experienceId: string,
+    sessionId: string,
+    mode: 'completed' | 'ended',
+    reason: string,
+    now: string,
+    context: { requestId: string | null; decisionId: string | null; stateVersion: number },
+  ): Promise<void> {
+    const record = this.creations.get(experienceId);
+    if (!record?.active) {
+      return;
+    }
+    if (mode === 'completed') {
+      const phaseResult = await this.creations.advancePhase(experienceId, 'completed', now);
+      if (phaseResult.ok) {
+        await this.recordEvent('creation_phase_transitioned', {
+          identity: { user_id: this.userId, session_id: sessionId },
+          context: { experience_id: experienceId, intent_id: null, state_version: context.stateVersion, request_id: context.requestId, decision_id: context.decisionId },
+          source: { layer: 'runtime', component: 'creation-runtime' },
+          properties: {
+            creation_id: record.creation.creationId,
+            from_phase: phaseResult.from,
+            to_phase: phaseResult.to,
+            trigger: phaseResult.event,
+          },
+        });
+        await this.recordEvent('creation_completed', {
+          identity: { user_id: this.userId, session_id: sessionId },
+          context: { experience_id: experienceId, intent_id: null, state_version: context.stateVersion, request_id: context.requestId, decision_id: context.decisionId },
+          source: { layer: 'runtime', component: 'creation-runtime' },
+          properties: {
+            creation_id: record.creation.creationId,
+            creation_version: phaseResult.record.creation.version,
+            completion_condition: reason,
+          },
+        });
+        // 会话生命周期收尾（CreationRecord 契约：完成 / 取代 / 终止后
+        // active 置 false——历史保留至会话结束，D-03 选项 A）。
+        await this.creations.end(experienceId, reason);
+        return;
+      }
+      // 完成迁移非法（预览在途等）：按终止登记——完成信号只在反馈轮有效。
+    }
+    await this.creations.end(experienceId, reason);
+    await this.recordEvent('creation_ended', {
+      identity: { user_id: this.userId, session_id: sessionId },
+      context: { experience_id: experienceId, intent_id: null, state_version: context.stateVersion, request_id: context.requestId, decision_id: context.decisionId },
+      source: { layer: 'runtime', component: 'creation-runtime' },
+      properties: {
+        creation_id: record.creation.creationId,
+        creation_version: record.creation.version,
+        reason,
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // 创作修改执行（G04 完整 Creation 语义；USER_FEEDBACK 轮补丁应用）
+  // ---------------------------------------------------------------------
+
+  private async executeCreationModify(
+    input: {
+      experienceId: string;
+      sessionId: string;
+      requestId: string;
+      expectedStateVersion: number;
+      expectedCreationVersion?: number;
+      signal?: AbortSignal;
+      rawInput: string;
+    },
+    session: SessionRecord,
+    experience: ExperienceRecord,
+    current: ExperienceState,
+    stateBefore: ExperienceView,
+    policy: { semanticAction: SemanticAction; policyAction: PolicyAction },
+    decisionId: string,
+    patch: CreationPatch,
+  ): Promise<SubmissionResult> {
+    const now = new Date().toISOString();
+
+    // 1. 取消在途 generation（补丁应用与在途生成互斥——同族纪律）。
+    await this.interruptGeneration(input.experienceId, 'creation_patch');
+
+    // 2. 拒绝旧候选（修改轮次取代在途候选）。
+    await this.recordEvent('experience_interrupted', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: {
+        experience_id: input.experienceId,
+        intent_id: experience.intentId,
+        state_version: current.stateVersion,
+        request_id: input.requestId,
+      },
+      source: { layer: 'runtime', component: 'interrupt-controller' },
+      properties: {
+        interrupted_candidate_id: experience.candidateId,
+        reason: 'creation_patch',
+        old_generation_rejected: true,
+      },
+    });
+
+    // 3. 创作阶段校验：补丁仅在 USER_FEEDBACK 轮应用（子状态机不变式；
+    //    13 §21：修改必须先经 PREVIEW 再由用户判断——补丁必经
+    //    PREVIEW，存在未预览补丁不得 COMPLETE）。
+    const creationRecord = this.creations.get(input.experienceId);
+    if (!creationRecord?.active || creationRecord.creation.phase !== 'USER_FEEDBACK') {
+      const phase = creationRecord?.creation.phase ?? 'NONE';
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'invalid_state_transition',
+        reasonSecondary: `creation patch requires USER_FEEDBACK phase (creation phase: ${phase}; preview must be delivered before modification, 13 §21)`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'INVALID_STATE_TRANSITION',
+          `creation patch illegal in phase ${phase} (patches apply in USER_FEEDBACK after preview delivery)`,
+        ),
+      };
+    }
+
+    // 4. 前置版本校验（失败写入不消耗版本号——OBL-01 纪律）：
+    //    体验状态版本与创作版本均须为客户端声明值，否则拒绝且不写入。
+    const expectedCreationVersion = input.expectedCreationVersion ?? creationRecord.creation.version;
+    if (current.stateVersion !== input.expectedStateVersion) {
+      await this.recordEvent('state_version_conflict', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId },
+        source: { layer: 'runtime', component: 'state-store' },
+        properties: {
+          expected_state_version: input.expectedStateVersion,
+          current_state_version: current.stateVersion,
+          trigger: 'CREATE',
+        },
+      });
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'state_version_conflict',
+        reasonSecondary: `expected ${input.expectedStateVersion}, current ${current.stateVersion}`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'STATE_VERSION_CONFLICT',
+          `stale expected_state_version: expected ${input.expectedStateVersion}, current ${current.stateVersion} (no overwrite, S1-12)`,
+          false,
+          { expected_state_version: input.expectedStateVersion, current_state_version: current.stateVersion },
+        ),
+      };
+    }
+    if (creationRecord.creation.version !== expectedCreationVersion) {
+      await this.recordEvent('creation_version_conflict', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId },
+        source: { layer: 'runtime', component: 'creation-runtime' },
+        properties: {
+          expected_creation_version: expectedCreationVersion,
+          current_creation_version: creationRecord.creation.version,
+          creation_id: creationRecord.creation.creationId,
+        },
+      });
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'state_version_conflict',
+        reasonSecondary: `stale creation version: expected ${expectedCreationVersion}, current ${creationRecord.creation.version} (no overwrite, S1-12 同族)`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'STATE_VERSION_CONFLICT',
+          `stale expected_creation_version: expected ${expectedCreationVersion}, current ${creationRecord.creation.version} (no overwrite, S1-12)`,
+          false,
+          { expected_creation_version: expectedCreationVersion, current_creation_version: creationRecord.creation.version },
+        ),
+      };
+    }
+
+    // 5. 状态迁移合法性校验（CREATE 触发器：WAITING/ACTIVE/CREATION
+    //    → ACTIVE/CREATION；逐步合法校验）。
+    const transition = transitionExperience(stateBefore, 'CREATE');
+    if (!transition.ok) {
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'invalid_state_transition',
+        reasonSecondary: `CREATE illegal from ${stateBefore.status}/${stateBefore.stage}`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'INVALID_STATE_TRANSITION',
+          `CREATE illegal from ${stateBefore.status}/${stateBefore.stage} (state machine allows CREATE from READY/ACTIVE/WAITING)`,
+        ),
+      };
+    }
+    const view = transition.next;
+
+    // 6. 创作补丁提交（版本化 +1；user_changes 权威登记；
+    //    08 §11/§12：局部补丁，不重新生成整个作品）。
+    const patchCommit = await this.creations.commitPatch(input.experienceId, expectedCreationVersion, patch, now);
+    if (!patchCommit.ok) {
+      // 前置校验后仅剩并发竞态窗口（如实登记冲突，不修改状态）。
+      await this.recordEvent('creation_version_conflict', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId },
+        source: { layer: 'runtime', component: 'creation-runtime' },
+        properties: {
+          expected_creation_version: expectedCreationVersion,
+          current_creation_version: patchCommit.currentVersion,
+        },
+      });
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'state_version_conflict',
+        reasonSecondary: `stale creation version: expected ${expectedCreationVersion}, current ${patchCommit.currentVersion}`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'STATE_VERSION_CONFLICT',
+          `stale expected_creation_version: expected ${expectedCreationVersion}, current ${patchCommit.currentVersion} (no overwrite, S1-12)`,
+          false,
+          { expected_creation_version: expectedCreationVersion, current_creation_version: patchCommit.currentVersion },
+        ),
+      };
+    }
+    await this.recordEvent('creation_patch_applied', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'creation-runtime' },
+      properties: {
+        creation_id: patchCommit.record.creation.creationId,
+        creation_version: patchCommit.record.creation.version,
+        operation: patch.operation,
+        target: patch.target,
+        change: patch.change,
+        summary: patch.summary,
+      },
+    });
+    const patchPhase = await this.creations.advancePhase(input.experienceId, 'patch_applied', now);
+    await this.recordEvent('creation_phase_transitioned', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'creation-runtime' },
+      properties: patchPhase.ok
+        ? { creation_id: patchCommit.record.creation.creationId, from_phase: patchPhase.from, to_phase: patchPhase.to, trigger: patchPhase.event }
+        : { creation_id: patchCommit.record.creation.creationId, from_phase: patchPhase.from, to_phase: null, trigger: patchPhase.event, rejected: true },
+    });
+
+    // 7. 体验状态版本化提交（迁移结果；expected_state_version 前置已校验）。
+    const commit = await this.store.commit(input.experienceId, input.expectedStateVersion, (state) => ({
+      ...state,
+      status: view.status,
+      stage: view.stage,
+      waitingForUser: false,
+      lastSemanticAction: 'CREATE',
+      updatedAt: now,
+    }));
+    if (!commit.ok) {
+      await this.recordEvent('state_version_conflict', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId },
+        source: { layer: 'runtime', component: 'state-store' },
+        properties: {
+          expected_state_version: input.expectedStateVersion,
+          current_state_version: commit.currentStateVersion,
+          trigger: 'CREATE',
+        },
+      });
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'state_version_conflict',
+        reasonSecondary: `expected ${input.expectedStateVersion}, current ${commit.currentStateVersion}`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'STATE_VERSION_CONFLICT',
+          `stale expected_state_version: expected ${input.expectedStateVersion}, current ${commit.currentStateVersion} (no overwrite, S1-12)`,
+          false,
+          { expected_state_version: input.expectedStateVersion, current_state_version: commit.currentStateVersion },
+        ),
+      };
+    }
+
+    // 8. generation epoch 登记 + 迁移事件 + 决策追踪。
+    this.counters.generation += 1;
+    const generationId = `gen_synthetic_${String(this.counters.generation).padStart(4, '0')}`;
+    this.activeGenerations.set(input.experienceId, generationId);
+    const controller = new AbortController();
+    this.generationControllers.set(input.experienceId, controller);
+
+    const stateTransitions = await this.recordEvent('state_transitioned', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: commit.state.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'state-machine' },
+      properties: {
+        from: { status: stateBefore.status, stage: stateBefore.stage },
+        event: 'CREATE',
+        action: policy.policyAction,
+        to: { status: commit.state.status, stage: commit.state.stage },
+        state_version_before: current.stateVersion,
+        state_version_after: commit.state.stateVersion,
+        steps: ['CREATE'],
+      },
+    });
+
+    await this.writeDecisionTrace({
+      decisionId,
+      sessionId: input.sessionId,
+      experienceId: input.experienceId,
+      semanticAction: policy.semanticAction,
+      stateBefore,
+      stateBeforeVersion: current.stateVersion,
+      stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+      selectedAction: policy.policyAction,
+      reasonPrimary: 'explicit_user_direction',
+      reasonSecondary: `creation modification applied as patch (creation v${expectedCreationVersion} → v${patchCommit.record.creation.version}; local patch, no whole-work regeneration, 08 §11)`,
+      llmUsed: false,
+      userOverride: true,
+      inputEvent: null,
+      intentBefore: null,
+    });
+
+    // 9. 预览流（合成语料——补丁后创作状态经 getCreation 可查；
+    //    流完成经 completeGeneration 推进 PREVIEW → USER_FEEDBACK）。
+    const header: SubmissionHeader = {
+      type: 'submission',
+      accepted: true,
+      experience_id: input.experienceId,
+      session_id: input.sessionId,
+      request_id: input.requestId,
+      policy_decision: {
+        decision_id: decisionId,
+        policy_version: POLICY_VERSION,
+        semantic_action: policy.semanticAction,
+        selected_action: policy.policyAction,
+        reason: 'creation_modification',
+      },
+      state_version: commit.state.stateVersion,
+      state: { status: commit.state.status, stage: commit.state.stage, waiting_for_user: commit.state.waitingForUser },
+      at: now,
+    };
+    const fixture = loadChunkFixture(policy.semanticAction);
+    if (!fixture.ok) {
+      return { ok: false, error: runtimeError('INTERNAL_ERROR', `fixture missing for ${policy.semanticAction}`) };
+    }
+    const combinedSignal = input.signal
+      ? AbortSignal.any([input.signal, controller.signal])
+      : controller.signal;
+    const stream = this.wrapGenerationStream({
+      header,
+      experienceId: input.experienceId,
+      generationId,
+      streamOptions: {
+        semanticAction: policy.semanticAction,
+        policyAction: policy.policyAction,
+        fixtureId: fixture.fixture.fixtureId,
+        chunks: fixture.fixture.chunks,
+        signal: combinedSignal,
+        chunkDelayMs: 40,
+        audit: this.auditSink,
+      },
+      completionCommit: true,
+      stateTransitionedEvent: stateTransitions,
+    });
+
+    return { ok: true, header, stream, generationId };
+  }
+
+  // ---------------------------------------------------------------------
+  // 创作 ASK 执行（08 §16：至多一个澄清问题；创作子状态不推进）
+  // ---------------------------------------------------------------------
+
+  private async executeCreationAsk(
+    input: {
+      experienceId: string;
+      sessionId: string;
+      requestId: string;
+      expectedStateVersion: number;
+      signal?: AbortSignal;
+      rawInput: string;
+    },
+    session: SessionRecord,
+    experience: ExperienceRecord,
+    current: ExperienceState,
+    stateBefore: ExperienceView,
+    policy: { semanticAction: SemanticAction; policyAction: PolicyAction },
+    decisionId: string,
+    question: string,
+  ): Promise<SubmissionResult> {
+    const now = new Date().toISOString();
+
+    // 1. 取消在途 generation（ASK 轮次与在途生成互斥）。
+    await this.interruptGeneration(input.experienceId, 'creation_ask');
+
+    // 2. 状态迁移合法性校验（CREATE 触发器——ASK 轮次是创作域
+    //    系统回合：系统产出澄清问题后等待用户判断）。
+    const transition = transitionExperience(stateBefore, 'CREATE');
+    if (!transition.ok) {
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'invalid_state_transition',
+        reasonSecondary: `CREATE illegal from ${stateBefore.status}/${stateBefore.stage}`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'INVALID_STATE_TRANSITION',
+          `CREATE illegal from ${stateBefore.status}/${stateBefore.stage} (state machine allows CREATE from READY/ACTIVE/WAITING)`,
+        ),
+      };
+    }
+    const view = transition.next;
+
+    // 3. 版本化提交（ASK 轮次；创作子状态不推进——澄清问题
+    //    不修改作品，08 §16）。
+    const commit = await this.store.commit(input.experienceId, input.expectedStateVersion, (state) => ({
+      ...state,
+      status: view.status,
+      stage: view.stage,
+      waitingForUser: false,
+      lastSemanticAction: 'CREATE',
+      updatedAt: now,
+    }));
+    if (!commit.ok) {
+      await this.recordEvent('state_version_conflict', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId },
+        source: { layer: 'runtime', component: 'state-store' },
+        properties: {
+          expected_state_version: input.expectedStateVersion,
+          current_state_version: commit.currentStateVersion,
+          trigger: 'CREATE',
+        },
+      });
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'state_version_conflict',
+        reasonSecondary: `expected ${input.expectedStateVersion}, current ${commit.currentStateVersion}`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'STATE_VERSION_CONFLICT',
+          `stale expected_state_version: expected ${input.expectedStateVersion}, current ${commit.currentStateVersion} (no overwrite, S1-12)`,
+          false,
+          { expected_state_version: input.expectedStateVersion, current_state_version: commit.currentStateVersion },
+        ),
+      };
+    }
+
+    // 4. generation epoch 登记 + 迁移事件 + 决策追踪。
+    this.counters.generation += 1;
+    const generationId = `gen_synthetic_${String(this.counters.generation).padStart(4, '0')}`;
+    this.activeGenerations.set(input.experienceId, generationId);
+    const controller = new AbortController();
+    this.generationControllers.set(input.experienceId, controller);
+
+    const stateTransitions = await this.recordEvent('state_transitioned', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: commit.state.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'state-machine' },
+      properties: {
+        from: { status: stateBefore.status, stage: stateBefore.stage },
+        event: 'CREATE',
+        action: policy.policyAction,
+        to: { status: commit.state.status, stage: commit.state.stage },
+        state_version_before: current.stateVersion,
+        state_version_after: commit.state.stateVersion,
+        steps: ['CREATE'],
+      },
+    });
+
+    await this.writeDecisionTrace({
+      decisionId,
+      sessionId: input.sessionId,
+      experienceId: input.experienceId,
+      semanticAction: policy.semanticAction,
+      stateBefore,
+      stateBeforeVersion: current.stateVersion,
+      stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+      selectedAction: policy.policyAction,
+      reasonPrimary: 'explicit_user_direction',
+      reasonSecondary: 'creation ASK: at most one clarifying question (08 §16); creation phase and creation version unchanged',
+      llmUsed: false,
+      userOverride: true,
+      inputEvent: null,
+      intentBefore: null,
+    });
+
+    // 5. 澄清问题流（单块；至多一个问题——08 §16）。
+    const header: SubmissionHeader = {
+      type: 'submission',
+      accepted: true,
+      experience_id: input.experienceId,
+      session_id: input.sessionId,
+      request_id: input.requestId,
+      policy_decision: {
+        decision_id: decisionId,
+        policy_version: POLICY_VERSION,
+        semantic_action: policy.semanticAction,
+        selected_action: policy.policyAction,
+        reason: 'creation_ask_clarification',
+      },
+      state_version: commit.state.stateVersion,
+      state: { status: commit.state.status, stage: commit.state.stage, waiting_for_user: commit.state.waitingForUser },
+      at: now,
+    };
+    const combinedSignal = input.signal
+      ? AbortSignal.any([input.signal, controller.signal])
+      : controller.signal;
+    const stream = this.wrapGenerationStream({
+      header,
+      experienceId: input.experienceId,
+      generationId,
+      streamOptions: {
+        semanticAction: policy.semanticAction,
+        policyAction: policy.policyAction,
+        fixtureId: 'creation_ask',
+        chunks: [question],
+        signal: combinedSignal,
+        chunkDelayMs: 0,
         audit: this.auditSink,
       },
       completionCommit: true,
@@ -1629,6 +2421,23 @@ export class ExperienceRuntime {
           { expected_state_version: input.expectedStateVersion, current_state_version: commit.currentStateVersion },
         ),
       };
+    }
+
+    // 6.5 创作域重评估（冻结文本 §4 变更 3：CORRECTION 在 CREATION 阶段
+    // 保持阶段且重评估创作子状态，不推进子状态机——完整 G07 操作语义属 F-3）。
+    const correctionCreation = this.creations.get(input.experienceId);
+    if (correctionCreation?.active) {
+      await this.recordEvent('creation_reevaluated', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: commit.state.stateVersion, request_id: input.requestId, decision_id: decisionId },
+        source: { layer: 'runtime', component: 'creation-runtime' },
+        properties: {
+          creation_id: correctionCreation.creation.creationId,
+          creation_version: correctionCreation.creation.version,
+          phase: correctionCreation.creation.phase,
+          detail: 'correction re-evaluates the active creation; creation phase unchanged (no sub-state advancement)',
+        },
+      });
     }
 
     // 7. generation epoch 登记 + 迁移事件 + 决策追踪。
@@ -2057,6 +2866,23 @@ export class ExperienceRuntime {
     }));
     if (!commit.ok) {
       return { ok: false, code: 'STATE_VERSION_CONFLICT', currentStateVersion: commit.currentStateVersion };
+    }
+    // 创作会话：PREVIEW → USER_FEEDBACK（流完成 = 预览已交付，用户获得
+    // 判断权——08 §18/§19）。非创作会话或非 PREVIEW 阶段（如 ASK 轮次
+    // 保持 USER_FEEDBACK）迁移非法——拒绝写入，不改变创作状态。
+    const creationPhase = await this.creations.advancePhase(experienceId, 'feedback_started', new Date().toISOString());
+    if (creationPhase.ok) {
+      await this.recordEvent('creation_phase_transitioned', {
+        identity: { user_id: this.userId, session_id: this.experiences.get(experienceId)?.sessionId ?? '' },
+        context: { experience_id: experienceId, intent_id: null, state_version: commit.state.stateVersion, request_id: null, decision_id: null },
+        source: { layer: 'runtime', component: 'creation-runtime' },
+        properties: {
+          creation_id: creationPhase.record.creation.creationId,
+          from_phase: creationPhase.from,
+          to_phase: creationPhase.to,
+          trigger: creationPhase.event,
+        },
+      });
     }
     // generation 正常完成：清理在途 controller（generation epoch 保留作迟到达守卫）。
     this.generationControllers.delete(experienceId);
