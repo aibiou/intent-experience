@@ -18,9 +18,10 @@
  */
 
 import type { SemanticAction } from './policy';
+import { MODIFY_PATTERNS, RESTORE_PATTERNS } from './correction';
 
 export type ClassificationResult =
-  | { semanticAction: SemanticAction }
+  | { semanticAction: SemanticAction; correctionIntent?: 'restore' }
   | { semanticAction: 'UNKNOWN' };
 
 const STOP_PATTERNS: ReadonlyArray<RegExp> = [
@@ -109,8 +110,21 @@ export function classifyInput(rawInput: string): ClassificationResult {
   }
   // PD-21 关闭切片：用户显式纠正 / 创造意图先于继续探索
   // （G04-NEG / G07-NEG 负向案例基础：CORRECTION / CREATE 优先于 WHY）。
-  if (CORRECTION_PATTERNS.some((pattern) => pattern.test(rawInput))) {
-    return { semanticAction: 'CORRECTION' };
+  // F-3（policy_v1.3.0 变更 1）：MODIFY 登记为 CORRECTION 用户面
+  // 别名（08 §10 修改类型族，与创作修改族同源——单一词表两处路由，
+  // D-01 选项 A；授权 §2(2)）；RESTORE 词表（D-04 选项 A）登记为
+  // CORRECTION 用户面恢复子型（correctionIntent='restore' 标记，
+  // 路由恢复预检用）。优先级层不变（STOP / CHANGE_DIRECTION 仍先判）。
+  const restoreIntent = RESTORE_PATTERNS.some((pattern) => pattern.test(rawInput));
+  if (
+    CORRECTION_PATTERNS.some((pattern) => pattern.test(rawInput)) ||
+    MODIFY_PATTERNS.some((pattern) => pattern.test(rawInput)) ||
+    restoreIntent
+  ) {
+    return {
+      semanticAction: 'CORRECTION',
+      ...(restoreIntent ? { correctionIntent: 'restore' as const } : {}),
+    };
   }
   if (CREATE_PATTERNS.some((pattern) => pattern.test(rawInput))) {
     return { semanticAction: 'CREATE' };

@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G07-NEG","event":"trace_started","at":"2026-10-09T08:06:50.957Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G07 Negative；P-02 同族（生成中 CORRECTION：取消旧生成、拒绝旧候选）；PD-21","goldenCase":"G07","dimension":"NEGATIVE"}
-{"caseId":"G3-GOLDEN-0001:G07-NEG","event":"trace_completed","at":"2026-10-09T08:06:51.343Z","startedAt":"2026-10-09T08:06:50.957Z","durationMs":386,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G07-NEG","event":"trace_started","at":"2026-10-09T08:46:56.057Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G07 Negative；P-02 同族（生成中 CORRECTION：取消旧生成、拒绝旧候选）；PD-21","goldenCase":"G07","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G07-NEG","event":"trace_completed","at":"2026-10-09T08:46:56.444Z","startedAt":"2026-10-09T08:46:56.056Z","durationMs":388,"result":"PASS","pass":true}

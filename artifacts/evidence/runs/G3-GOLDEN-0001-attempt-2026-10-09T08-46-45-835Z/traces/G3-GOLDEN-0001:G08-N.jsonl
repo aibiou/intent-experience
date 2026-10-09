@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G08-N","event":"trace_started","at":"2026-10-09T08:06:52.838Z","form":"in-process","sourceClause":"P2 Exit Gate & Sign-off §8 G08 Memory Boundary；Evaluation System V1 §5 G08（当前意图信号不得升级为持久偏好）；PD-21（产品负责人 2026-10-09 批准）；PD-07","goldenCase":"G08","dimension":"NORMAL"}
+{"caseId":"G3-GOLDEN-0001:G08-N","event":"trace_completed","at":"2026-10-09T08:06:53.213Z","startedAt":"2026-10-09T08:06:52.838Z","durationMs":375,"result":"PASS","pass":true}

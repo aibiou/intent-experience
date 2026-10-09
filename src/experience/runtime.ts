@@ -36,6 +36,8 @@ import {
 import { createSession, transitionSession, type SessionRecord } from './session';
 import { ExperienceStateStore, type ExperienceState } from './state-store';
 import {
+  CORRECTION_APPLIED_EVENT,
+  CORRECTION_RESTORED_EVENT,
   type EventSink,
   type ExperienceEvent,
   EventRecorder,
@@ -56,6 +58,7 @@ import {
   type CreationObject,
   type CreationPatch,
 } from './creation';
+import { deriveCorrectionTarget, isRestoreIntent } from './correction';
 import type { AuditSink } from './audit';
 
 /** S1 §28 错误契约代码（API 契约 §22 错误结构：{code, message, retryable}）。 */
@@ -592,6 +595,69 @@ export class ExperienceRuntime {
         };
       }
       // interpretation.kind === 'none'：保持 UNKNOWN，走下方通用升级拒绝。
+    }
+    // 创作会话路由保护（D-01 选项 A；policy_v1.3.0 变更 3）：
+    // MODIFY 别名登记为 CORRECTION 后，活跃创作会话内 CORRECTION
+    // 分类输入先经 RESTORE 预检（D-04 词表），再经创作修改族预检
+    // （复用 interpretCreationInput 词表族与 08 §16 冲突判据）——
+    // 命中创作 ADD/REMOVE/MODIFY 族 → 创作解释（CREATE 伞形动作 +
+    // 补丁轮次，F-2 机制不变）；命中冲突判据 → ASK（至多一个澄清
+    // 问题，08 §16）；未命中创作修改族 → 通用 CORRECTION 路径
+    // （executeCorrect；F-2 变更 3 保持：重评估创作子状态，不推进
+    // 子状态机）。非创作会话 CORRECTION 分类输入 → 通用 CORRECTION
+    // 路径（G07 完整语义）。
+    if (
+      classification.semanticAction === 'CORRECTION' &&
+      activeCreation?.active &&
+      activeCreation.creation.phase !== 'COMPLETE'
+    ) {
+      if (
+        classification.correctionIntent === 'restore' &&
+        activeCreation.creation.version > 1
+      ) {
+        // RESTORE 预检（D-04 选项 A）：恢复词表先判——"撤销刚才修改"
+        // 亦含修改词，须先按恢复语义路由（恢复为修改轮次特例；
+        // 创作版本 >1 才有上一版本可恢复）。
+        semanticAction = 'CREATE';
+        creationIntent = {
+          kind: 'modification',
+          patch: {
+            operation: 'restore',
+            target: 'creation',
+            change: { restoreFromVersion: activeCreation.creation.version - 1 },
+            summary: input.rawInput,
+          },
+        };
+      } else {
+        const correctionInterpretation = interpretCreationInput(
+          input.rawInput,
+          activeCreation.creation,
+        );
+        if (correctionInterpretation.kind === 'completion') {
+          // 08 §27 完成信号：经 STOP 执行路径在创作域登记（D-05 选项 A）。
+          semanticAction = 'STOP';
+          creationCompletionSignal = true;
+        } else if (
+          correctionInterpretation.kind === 'modification' ||
+          correctionInterpretation.kind === 'ambiguous'
+        ) {
+          // 创作修改意图 / 冲突判据：创作域伞形动作 CREATE
+          // （PD-23 §5：S2a 不新增动作集）。
+          semanticAction = 'CREATE';
+          creationIntent = correctionInterpretation;
+        } else if (correctionInterpretation.kind === 'unsupported') {
+          // S2b 保留操作（授权 §2 不授权）：升级拒绝，不实施未授权语义。
+          return {
+            ok: false,
+            error: runtimeError(
+              'INVALID_ACTION',
+              `creation operation ${correctionInterpretation.operation} is deferred to S2b (not authorized in S2a; P3-S2-IMPL-AUTH-01 §2)`,
+            ),
+          };
+        }
+        // correctionInterpretation.kind === 'none'：保持 CORRECTION，
+        // 走下方通用 CORRECTION 执行路径（executeCorrect）。
+      }
     }
     if (semanticAction === 'UNKNOWN') {
       return {
@@ -1897,6 +1963,27 @@ export class ExperienceRuntime {
         summary: patch.summary,
       },
     });
+    if (patch.operation === 'restore') {
+      // D-05 选项 A：纠正域恢复事实登记（C6 §14 命名模式
+      // <domain>_<past_participle>；C6 §5 事件为不可变权威事实）。
+      await this.recordEvent(CORRECTION_RESTORED_EVENT, {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: {
+          experience_id: input.experienceId,
+          intent_id: experience.intentId,
+          state_version: current.stateVersion,
+          request_id: input.requestId,
+          decision_id: decisionId,
+        },
+        source: { layer: 'runtime', component: 'correction-runtime' },
+        properties: {
+          restored_from_version: typeof patch.change.restoreFromVersion === 'number' ? patch.change.restoreFromVersion : null,
+          restored_to_version: patchCommit.record.creation.version,
+          creation_id: patchCommit.record.creation.creationId,
+          semantic_action: 'CORRECTION',
+        },
+      });
+    }
     const patchPhase = await this.creations.advancePhase(input.experienceId, 'patch_applied', now);
     await this.recordEvent('creation_phase_transitioned', {
       identity: { user_id: this.userId, session_id: input.sessionId },
@@ -1985,8 +2072,10 @@ export class ExperienceRuntime {
       stateBeforeVersion: current.stateVersion,
       stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
       selectedAction: policy.policyAction,
-      reasonPrimary: 'explicit_user_direction',
-      reasonSecondary: `creation modification applied as patch (creation v${expectedCreationVersion} → v${patchCommit.record.creation.version}; local patch, no whole-work regeneration, 08 §11)`,
+      reasonPrimary: patch.operation === 'restore' ? 'creation_restore' : 'explicit_user_direction',
+      reasonSecondary: patch.operation === 'restore'
+        ? `creation restore committed as monotonic revert patch (creation v${expectedCreationVersion} → v${patchCommit.record.creation.version}; new content = version ${typeof patch.change.restoreFromVersion === 'number' ? patch.change.restoreFromVersion : 'n/a'} content; version pointer never rolls back, S1-12; RESTORE_PREVIOUS_VERSION subtype of CORRECTION, 08 §28 / D-04 选项 A)`
+        : `creation modification applied as patch (creation v${expectedCreationVersion} → v${patchCommit.record.creation.version}; local patch, no whole-work regeneration, 08 §11)`,
       llmUsed: false,
       userOverride: true,
       inputEvent: null,
@@ -2006,7 +2095,7 @@ export class ExperienceRuntime {
         policy_version: POLICY_VERSION,
         semantic_action: policy.semanticAction,
         selected_action: policy.policyAction,
-        reason: 'creation_modification',
+          reason: patch.operation === 'restore' ? 'creation_restore' : 'creation_modification',
       },
       state_version: commit.state.stateVersion,
       state: { status: commit.state.status, stage: commit.state.stage, waiting_for_user: commit.state.waitingForUser },
@@ -2245,6 +2334,15 @@ export class ExperienceRuntime {
   ): Promise<SubmissionResult> {
     const now = new Date().toISOString();
 
+    // 纠正目标定位（D-02 选项 A：确定性规则派生——指代词表 +
+    // 默认当前候选 / 创作分量映射；登记于纠正域事件 properties
+    // 与决策追踪）。
+    const correctionCreation = this.creations.get(input.experienceId);
+    const correctionTarget = deriveCorrectionTarget(
+      input.rawInput,
+      correctionCreation?.active ? correctionCreation.creation : undefined,
+    );
+
     // 1. 取消在途 generation（纠正与在途生成互斥：旧生成被取代取消）。
     await this.interruptGeneration(input.experienceId, 'correction');
 
@@ -2423,9 +2521,29 @@ export class ExperienceRuntime {
       };
     }
 
+    // 6.1 纠正域事实登记（D-05 选项 A；C6 §5 事件为不可变权威
+    // 事实——纠正历史经事件日志权威可追溯；登记范围：非创作域 +
+    // 创作会话内未命中创作修改族的通用纠正）。
+    await this.recordEvent(CORRECTION_APPLIED_EVENT, {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: {
+        experience_id: input.experienceId,
+        intent_id: experience.intentId,
+        state_version: commit.state.stateVersion,
+        request_id: input.requestId,
+        decision_id: decisionId,
+      },
+      source: { layer: 'runtime', component: 'correction-runtime' },
+      properties: {
+        correction_target: correctionTarget,
+        correction_summary: input.rawInput,
+        corrected_candidate_id: proposal.proposal_id,
+        semantic_action: 'CORRECTION',
+      },
+    });
+
     // 6.5 创作域重评估（冻结文本 §4 变更 3：CORRECTION 在 CREATION 阶段
     // 保持阶段且重评估创作子状态，不推进子状态机——完整 G07 操作语义属 F-3）。
-    const correctionCreation = this.creations.get(input.experienceId);
     if (correctionCreation?.active) {
       await this.recordEvent('creation_reevaluated', {
         identity: { user_id: this.userId, session_id: input.sessionId },
@@ -2469,8 +2587,10 @@ export class ExperienceRuntime {
       stateBeforeVersion: current.stateVersion,
       stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
       selectedAction: policy.policyAction,
-      reasonPrimary: 'reassess',
-      reasonSecondary: 'CORRECTION cancels in-flight generation, removes the invalid inference, preserves valid context (session/intent/prior events intact), and reassesses the corrected candidate (G07; PD-21 closure slice)',
+      reasonPrimary: isRestoreIntent(input.rawInput) ? 'restore_previous_version' : 'reassess',
+      reasonSecondary: isRestoreIntent(input.rawInput)
+        ? `restore intent registered and the previous candidate reassessed as the corrected candidate (non-creation domain carries no versioned rollback; correction target: ${correctionTarget.kind}; RESTORE_PREVIOUS_VERSION as CORRECTION subtype, D-04 选项 A / 08 §28)`
+        : `CORRECTION cancels in-flight generation, removes the invalid inference, preserves valid context (session/intent/prior events intact), and reassesses the corrected candidate (G07; PD-21 closure slice; correction target: ${correctionTarget.kind})`,
       llmUsed: true,
       userOverride: true,
       inputEvent: null,
@@ -2488,7 +2608,7 @@ export class ExperienceRuntime {
         policy_version: POLICY_VERSION,
         semantic_action: policy.semanticAction,
         selected_action: policy.policyAction,
-        reason: 'reassess',
+          reason: isRestoreIntent(input.rawInput) ? 'restore_previous_version' : 'reassess',
       },
       state_version: commit.state.stateVersion,
       state: { status: commit.state.status, stage: commit.state.stage, waiting_for_user: commit.state.waitingForUser },

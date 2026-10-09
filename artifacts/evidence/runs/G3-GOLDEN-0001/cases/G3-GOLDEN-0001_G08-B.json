@@ -9,7 +9,7 @@
     "dynamicEquivalence": "相邻方向信号变体（\"今天不要这个\" / \"以后不要这个\"）运行时结构等价：分类、策略、事件序列、内容、终态、旧流取消、零 memory 事件"
   },
   "actual": {
-    "productTsFiles": 28,
+    "productTsFiles": 29,
     "memoryFiles": [],
     "memoryImports": [],
     "signalA": {
@@ -102,7 +102,7 @@
   ],
   "evidence": {
     "trace": "traces/G3-GOLDEN-0001:G08-B.jsonl",
-    "traceSha256": "1f6fa397df2039232ac7e9d9b19ed657e016ebc9a56edf81bcb78f9333a91a3d",
+    "traceSha256": "86ac1f5447237db9b887d99d5bfbe68cf5d0fc42950b6c952a6e91a59b877618",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },

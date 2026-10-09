@@ -71,6 +71,15 @@ export type EventSink = (event: ExperienceEvent) => void | Promise<void>;
 /** 事件版本（C6 §26：V1 事件统一 event_version 1.0.0）。 */
 export const EVENT_VERSION = '1.0.0';
 
+/**
+ * 纠正域事件词表（S2A-F3；D-05 选项 A；C6 §14 命名模式
+ * <domain>_<past_participle>——同 creation_patch_applied /
+ * creation_completed 先例；event_version 1.0.0 不变——词表扩展
+ * 经 C6 §14 派生）。
+ */
+export const CORRECTION_APPLIED_EVENT = 'correction_applied';
+export const CORRECTION_RESTORED_EVENT = 'correction_restored';
+
 const EVENT_ID_PATTERN = /^evt_[a-z0-9]+$/i;
 const ISO8601_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 const ALLOWED_LAYERS: ReadonlySet<string> = new Set<EventLayer>([

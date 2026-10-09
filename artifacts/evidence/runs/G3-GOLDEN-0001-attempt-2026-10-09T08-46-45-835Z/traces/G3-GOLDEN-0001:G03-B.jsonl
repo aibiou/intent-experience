@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G03-B","event":"trace_started","at":"2026-10-09T08:06:44.184Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G03 Boundary；PD-12 同一优先级层内解释顺序 WHY > WHAT_IF","goldenCase":"G03","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G03-B","event":"trace_completed","at":"2026-10-09T08:06:44.186Z","startedAt":"2026-10-09T08:06:44.184Z","durationMs":2,"result":"PASS","pass":true}

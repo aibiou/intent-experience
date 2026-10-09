@@ -51,25 +51,34 @@ const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
 
 /** S1 策略版本（决策追踪与策略事件记录使用，C6 §18/§22）。 */
 /**
- * policy_v1.2.0（S2a F-2 版本化变更，2026-10-09 产品负责人批准——
- * S2A-F2-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 §3）：
- * CREATE 语义动作完整化（PD-21 关闭切片最小形态 → 完整 G04 语义）：
- * E2 Stage 5 完整编排（CREATE → CONTEXT_INHERIT → MINIMAL_BUILD →
- * PREVIEW → USER_FEEDBACK）；上下文继承（08 §4/§6/§25 五项）；
- * 创作对象模型（08 §8/§9）；创作域子策略（08 §15——创作执行内部
- * 决策记录，不新增顶层 SemanticAction / PolicyAction）；ASK 纪律
- * （08 §16：能推断即做，至多一个澄清问题）；用户主权（08 §17：
- * AI 建议 ≠ AI 决定，补丁经版本化历史可逆，预览即确认）；
- * 安全禁区（08 §14 / 13 §23：禁止自动扩张 / 自动发布 / 自动分享 /
- * 自动长期记忆保存 / 自动继续创作）；创作会话内输入路由（修改意图
- * 由创作运行时解释，不落入通用 CORRECTION → EXPLAIN 路径；完成信号
- * 经 STOP 执行路径在创作域登记——D-05 选项 A）。
+ * policy_v1.3.0（S2a F-3 版本化变更，2026-10-09 产品负责人批准——
+ * S2A-F3-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 §3）：
+ * CORRECTION 语义动作完整化（PD-21 关闭切片最小形态 → 完整 G07
+ * 语义）：
+ * 变更 1——MODIFY 登记为 CORRECTION 用户面别名（08 §10 修改类型族，
+ * 与创作修改族同源，单一词表两处路由；策略映射 CORRECTION → EXPLAIN
+ * 不变；不新增顶层 SemanticAction / PolicyAction——PD-23 §5；分类
+ * 优先级层不变）；
+ * 变更 2——G07 完整操作语义（定位目标：确定性规则派生——指代词表 +
+ * 默认当前候选 / 创作分量映射，D-02 选项 A；局部修改：创作域经 F-2
+ * 补丁机制、非创作域经重评估候选替换，D-03 选项 A；重生成：既有
+ * 重评估链路保持；历史版本化：纠正域事件 correction_applied /
+ * correction_restored，D-05 选项 A）；
+ * 变更 3——CREATION 阶段纠正保持（F-2 变更 3：保持阶段且重评估创作
+ * 子状态，不推进子状态机）+ 创作会话路由保护（D-01 选项 A：RESTORE
+ * 预检 → 创作修改族预检 → 命中创作族 CREATE 伞形 / 冲突判据 ASK /
+ * 未命中通用 CORRECTION）；
+ * 变更 4——RESTORE_PREVIOUS_VERSION 登记为 CORRECTION 用户面恢复
+ * 子型（词表：刚才那个更好 / 退回刚才那个 / 撤销刚才修改；创作域经
+ * 创作存储回滚提交——版本单调 +1、新版本内容 = 目标历史版本内容、
+ * user_changes 登记 restore 条目；非创作域经意图登记 + 重评估，
+ * decision-trace reason=restore_previous_version；不新增体验轴
+ * 触发器）。
  * 不变：CORRECTION → EXPLAIN、WHAT_IF → SIMULATE 关闭切片映射；
- * SEARCH 仍表外（PD-06）；完整 CORRECTION 语义随 F-3
- * （policy_v1.3.0）、WHAT_IF 完整分支随 F-4（policy_v1.4.0）
- * 各自版本化变更冻结实施（P3-S2-IMPL-AUTH-01 v1.2.0 §4 逐切片升版）。
+ * SEARCH 仍表外（PD-06）；WHAT_IF 完整分支随 F-4（policy_v1.4.0）
+ * 版本化变更冻结实施（P3-S2-IMPL-AUTH-01 v1.2.0 §4 逐切片升版）。
  */
-export const POLICY_VERSION = 'policy_v1.2.0';
+export const POLICY_VERSION = 'policy_v1.3.0';
 
 export type PolicyResolution =
   | { ok: true; semanticAction: SemanticAction; policyAction: PolicyAction }

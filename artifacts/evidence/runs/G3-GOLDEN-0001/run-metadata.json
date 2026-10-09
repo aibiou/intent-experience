@@ -1,6 +1,6 @@
 {
   "runId": "G3-GOLDEN-0001",
-  "recordedAt": "2026-10-09T08:06:37.590Z",
+  "recordedAt": "2026-10-09T08:46:42.640Z",
   "executor": {
     "executedBy": "工程负责人角色（代理，Codex）",
     "independentEvaluator": "独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）"
@@ -230,9 +230,9 @@
     "closureSlice": "CREATION 阶段 + CREATE/CORRECTION 触发（PD-21 关闭切片最小形态）；完整 WHAT_IF 分支 / Creation / Correction 属 S2"
   },
   "policy": {
-    "version": "policy_v1.2.0（S2a F-2 版本化变更）",
+    "version": "policy_v1.3.0（S2a F-3 版本化变更）",
     "source": "SRC-06 / 14",
-    "status": "S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2，policy_v1.2.0）；SEARCH 仍表外（PD-06）；完整 CORRECTION / WHAT_IF 语义 DEFERRED 至 F-3 / F-4（P3-S2-IMPL-AUTH-01 v1.2.0 §4）"
+    "status": "S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）；SEARCH 仍表外（PD-06）；完整 WHAT_IF 语义 DEFERRED 至 F-4（P3-S2-IMPL-AUTH-01 v1.2.0 §4）"
   },
   "api": {
     "version": "api_v1.0.0",
@@ -248,16 +248,25 @@
     "note": "G5 16 项评测包已执行并双签署（P3-S1-G5-WORKSHEET-01 v1.7.0）；G3 逐项判定属本运行后的独立评测范畴"
   },
   "code": {
-    "gitHead": "29b5a8d637efd6e175b15e3f2c392b016d445c2a",
-    "workTreeClean": true,
-    "uncommittedEntries": [],
+    "gitHead": "7ed44e3f14f3656dffdd76f846dc54ff7ffa9bf8",
+    "workTreeClean": false,
+    "uncommittedEntries": [
+      "M src/experience/classifier.ts",
+      " M src/experience/creation.ts",
+      " M src/experience/events.ts",
+      " M src/experience/policy.ts",
+      " M src/experience/runtime.ts",
+      " M tools/evidence/src/golden.mjs",
+      "?? src/experience/correction.ts"
+    ],
     "runtimeFiles": {
       "audit.ts": "1da20af50e24cde6e4638a78f22e05ec847fa153c0a4655b86134474291ddf0b",
       "chunks.ts": "733a16552bc0fdd120bd2e202ee17de26078307f9c79821fe2599f3915fc89ec",
-      "classifier.ts": "bdac1985df81b70d47b06b81d0be45aba61c8df5c8f8401750353156d591800d",
-      "creation.ts": "9af3d2ece9d8ed61a28833150021d54bd1a579032e8c7ba4032ba2ab75b3f77f",
+      "classifier.ts": "b4a1b008f0b258d882804f34b4f2dd2ffe73c5131b95c279b808fcc1419edbec",
+      "correction.ts": "72897fcf8b3d8a64ceb9d6600a228cd2c447f772cc79c2aa8e46ab63a9d4674c",
+      "creation.ts": "28f14267903c219cbcdfc98588c396c1fcc1506a9f3a59baee3183398548a5ca",
       "decision-trace.ts": "6606aa6e01c100b0217bafd7b49810a174e3dd7cda36a15668ebf0b42506f0c8",
-      "events.ts": "6dadf4bc19845eace20fc1440e3982a5ab704b47b4d0035d8e3487dbe189ac5e",
+      "events.ts": "525a41e1db2453f6727e21086088b2bce9f20fd71ced19cc195ebaf4d5721e92",
       "fixtures/change-direction.ts": "8db3861f3a0693492054d4aeb9d73ed42a3fb561bcc7f45ed8de0fc47ed6468a",
       "fixtures/correction.ts": "27393524ebcb51cf2f26e32fa163e3c2a787f0cfe2cf9b11fc242dbe7db03f68",
       "fixtures/create.ts": "e84eba657c582b8947d10988ed9389ab5eb56563f8d07de97ef7f81f486b7b99",
@@ -266,8 +275,8 @@
       "fixtures/why.ts": "8e597e2d9c4082ee4a80e19557c82d3be54ed917f3dbfd68bb8a4752787757e0",
       "http.ts": "d26961966a134880732b9ae22a9368c821ce6680fff2c1df4349d0a7f731b13d",
       "llm-gateway.ts": "858dea8a666c6bed47142f39b32695418e88d564d54096b8373ed80f955a1601",
-      "policy.ts": "0cd49e83fd9d81a973cc2f13d6115ece5555b744fd8a4cf7cae26f9608f62641",
-      "runtime.ts": "48e613299cf945718c50d4553dfef365ae6c378df838cdce9172a26a1d200b6e",
+      "policy.ts": "b9e2ae492328f56a149feab02aad2dcc7e2855e566a75f713bbbba56db7f32d5",
+      "runtime.ts": "8579fbb2dc7c12a5200317d2a6bbb6a5169debfabe31ffe8882be3fafa1efd2b",
       "server-runtime.ts": "b6b3f83166d085e72013661915f2f79398f961081310bd35c5ad4d10412f5700",
       "session.ts": "d7a21131bfb848730643ca7808e71a714e4a757e917cf1103f23c549d68589ae",
       "state-machine.ts": "79a5cba41afcd6c9288e903acc12400871a7c178330aaa3844f00c1235447da7",
@@ -350,8 +359,8 @@
     "failed": 0
   },
   "run": {
-    "startedAt": "2026-10-09T08:06:37.590Z",
-    "finishedAt": "2026-10-09T08:06:54.851Z",
+    "startedAt": "2026-10-09T08:46:42.640Z",
+    "finishedAt": "2026-10-09T08:46:59.852Z",
     "command": "npm run golden (node tools/evidence/src/golden.mjs, from tools/evidence)",
     "exitCode": 0,
     "form": "in-process（真实 .ts 源字节；HTTP 形态回归证据见 F2-GS-0001 / F3-EB-0001）"

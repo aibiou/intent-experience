@@ -43,8 +43,12 @@ export type CreationPhase =
   | 'USER_FEEDBACK'
   | 'COMPLETE';
 
-/** 创作补丁操作（08 §12 示例 operation 值域；D-04 选项 A 收敛）。 */
-export type CreationOperation = 'add' | 'remove' | 'modify';
+/**
+ * 创作补丁操作（08 §12 示例 operation 值域；D-04 选项 A 收敛；
+ * restore 为 F-3 D-04 选项 A 的恢复轮次特例——修改轮次特例，
+ * 版本单调 +1，新版本内容 = 目标历史版本内容）。
+ */
+export type CreationOperation = 'add' | 'remove' | 'modify' | 'restore';
 
 /** modify 的 change 子型（08 §10 修改类型中非 S2b 保留项；D-04 选项 A）。 */
 export type CreationModifyKind =
@@ -273,12 +277,17 @@ function cloneCreation(creation: CreationObject): CreationObject {
  * - modify：rename → 对象重命名；数值 delta / value → 变量调整；
  *   其余（tune / rebalance / restyle / replace 及未命中目标的结构）
  *   变更事实经 userChanges 权威登记，版本 +1，结构保持（局部修改）。
+ * - restore（D-04 选项 A；08 §28）：恢复目标历史版本内容——新版本
+ *   内容 = 目标历史版本内容（经版本快照历史定位，D-04 实施承载）；
+ *   版本单调 +1（S1-12 不变式：版本指针永不回退）；user_changes
+ *   登记 restore 条目（含恢复来源版本号——change.restoreFromVersion）。
  * 任何补丁：version +1、userChanges 追加（版本化提交；08 §28 单调历史）。
  */
 export function applyCreationPatch(
   creation: CreationObject,
   patch: CreationPatch,
   now: string,
+  history?: ReadonlyArray<CreationObject>,
 ): CreationObject {
   const next = cloneCreation(creation);
   next.version = creation.version + 1;
@@ -312,6 +321,27 @@ export function applyCreationPatch(
     });
     const countKey = `${patch.target}_count`;
     next.variables[countKey] = Math.max(0, (next.variables[countKey] ?? 0) - count);
+  } else if (patch.operation === 'restore') {
+    // RESTORE（D-04 选项 A；08 §28）：恢复目标历史版本内容——
+    // 新版本内容 = 目标历史版本内容；版本单调 +1（S1-12 不变式：
+    // 版本指针永不回退）；user_changes 登记 restore 条目（含来源
+    // 版本号——上方已追加）。目标版本快照缺失（不应发生——调用方
+    // 经版本前置校验）时结构保持当前版本，版本与变更事实照常登记。
+    const fromVersion =
+      typeof patch.change.restoreFromVersion === 'number'
+        ? patch.change.restoreFromVersion
+        : creation.version;
+    const snapshot = history?.find((candidate) => candidate.version === fromVersion);
+    if (snapshot) {
+      const restored = cloneCreation(snapshot);
+      next.concept = restored.concept;
+      next.objects = restored.objects;
+      next.rules = restored.rules;
+      next.variables = restored.variables;
+      next.interactions = restored.interactions;
+      next.presentation = restored.presentation;
+      next.goal = restored.goal;
+    }
   } else {
     // modify
     if (patch.change.kind === 'rename' && typeof patch.change.to === 'string') {
@@ -381,8 +411,12 @@ function extractCount(rawInput: string): number {
   return 1;
 }
 
-/** 目标名词映射（确定性同义词表；未命中默认 'creation' 级修改）。 */
-const TARGET_SYNONYMS: ReadonlyArray<{ pattern: RegExp; target: string }> = [
+/**
+ * 目标名词映射（确定性同义词表；未命中默认 'creation' 级修改）。
+ * F-3 起导出（D-02 选项 A：纠正目标派生经同一同义词表映射创作
+ * 分量——单一词表两处路由）。
+ */
+export const TARGET_SYNONYMS: ReadonlyArray<{ pattern: RegExp; target: string }> = [
   { pattern: /出口/, target: 'exit' },
   { pattern: /障碍/, target: 'obstacle' },
   { pattern: /玩家|角色/, target: 'player' },
@@ -525,10 +559,17 @@ export type CreationPhaseResult =
  */
 export class CreationStore {
   private readonly records = new Map<string, CreationRecord>();
+  /**
+   * 版本内容快照历史（D-04 实施承载——RESTORE 恢复源；08 §28
+   * 版本化历史）。每次合法提交（create / commitPatch）快照当前
+   * 版本；会话内持久（D-03 选项 A——历史保留至会话结束）。
+   */
+  private readonly histories = new Map<string, CreationObject[]>();
   private readonly locks = new Map<string, Promise<unknown>>();
 
   create(record: CreationRecord): CreationRecord {
     this.records.set(record.creation.sourceExperience.experienceId, record);
+    this.histories.set(record.creation.sourceExperience.experienceId, [record.creation]);
     return record;
   }
 
@@ -576,11 +617,13 @@ export class CreationStore {
           currentVersion: record.creation.version,
         };
       }
+      const history = this.histories.get(experienceId) ?? [];
       const next: CreationRecord = {
-        creation: applyCreationPatch(record.creation, patch, now),
+        creation: applyCreationPatch(record.creation, patch, now, history),
         active: true,
       };
       this.records.set(experienceId, next);
+      this.histories.set(experienceId, [...history, next.creation]);
       return { ok: true as const, record: next };
     });
   }
