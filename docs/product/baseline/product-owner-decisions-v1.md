@@ -1,7 +1,7 @@
 # 产品负责人决策记录 V1
 
 **编号：** PODR-001
-**版本：** 1.0.8（2026-10-09 增补：PD-21——P2 关闭切片产品能力范围裁决：批准为使 P2 G01–G08 完整可执行所需的最小 G04 Creation / G07 Correction / G08 Memory Boundary 能力进入实施（产品负责人 2026-10-09 批准；策略版本升 policy_v1.1.0 为版本化变更；完整 Creation / 多轮分支 / 持久 Memory 仍属 S2，PD-05 / PD-06 / PD-07 范围不变）；其余内容与 v1.0.7 相同）
+**版本：** 1.0.9（2026-10-09 增补：PD-22——P2 正式关闭接受：产品负责人接受 G3 裁决（PASS）与 G8 签署（六类责任人，Decision 一致 APPROVE WITH DOCUMENTED DEBT），P2 = CLOSED（2026-10-09）；S2 范围不变；完整 G04/G07/G08 语义与 OBL-01 首个 S2 迭代义务不变）；其余内容与 v1.0.8 相同）
 **决策日期：** 2026-10-08
 **状态：** 已作产品决策；实现仍受准入门禁约束
 **决策人：** 代理产品负责人（用户本会话明确委托 Codex 履行）
@@ -37,6 +37,7 @@
 | PD-19 | G3（黄金案例套件）处置裁决：DEFERRED TO S2/P2 关闭切片。G3 属 P2 关闭义务（P2 G08 黄金案例回归套件），S1 范围外（G5 第 3 项裁决 N/A；S1 范围已冻结，PD-05，本裁决不扩大 S1 范围）。G3 保持 NOT PASSED，直至黄金案例套件在 S2 / P2 关闭切片创建并执行通过；登记为跟踪义务 OBL-03（decision-register v0.16.0）。P2 关闭收束仍须 G1–G8 全 PASSED + P2 G01–G08 完整执行。 | G3 处置裁决（产品负责人 2026-10-09） |
 | PD-20 | P2 收束路径方向裁决：先关再建。P2 收束阶段先执行"P2 关闭切片"，再进入 S2 功能构建；关闭切片以履行 P2 关闭义务为目标——G3 黄金案例套件执行（OBL-03）、OBL-01 处置、OBL-02 方法批准，以及为使 P2 G01–G08 完整可执行所需的最小 G04 Creation / G07 Correction / G08 Memory Boundary 能力（最小形态见 E2 §13 / Stage 5；G04/G07/G08 案例语义见 Evaluation System §5）。关闭切片的产品能力增量属 S1 冻结范围（PD-05）之外，其实施范围须另经产品负责人版本化裁决（PD-21）后方可实施；本裁决仅确定顺序与方向，不授权产品源码变更、不改变任何已执行证据或 Gate 状态。G3/G8 仍 NOT PASSED，P2 仍 CLOSURE CANDIDATE / BLOCKED。 | P2 收束路径方向裁决（用户 2026-10-09"先关再建"指令，产品负责人 2026-10-09） |
 | PD-21 | P2 关闭切片产品能力范围裁决：批准为使 P2 G01–G08 完整可执行所需的最小 G04 Creation / G07 Correction / G08 Memory Boundary 能力进入实施（PD-20 遗留待决项）。范围限定：CREATE / CORRECTION 语义动作与 CREATE Policy Action 仅在关闭切片启用；策略版本升 policy_v1.1.0（版本化变更）；新增 CREATION 体验阶段与 CREATE / CORRECTION 触发；G08 关闭切片形态仅为当前会话内边界证明（不持久化任何跨会话记忆，PD-07 不变）；完整 Creation、多轮分支与持久 Memory 仍冻结至 S2（PD-05 / PD-06 / PD-07 范围不变；本裁决不扩大 S1 冻结范围、不改变 S2 候选范围、不改变任何已执行证据或 Gate 状态）。G3/G8 仍 NOT PASSED，P2 仍 CLOSURE CANDIDATE / BLOCKED。 | P2 关闭切片产品能力增量范围裁决（产品负责人 2026-10-09 批准） |
+| PD-22 | P2 正式关闭接受：产品负责人接受 G3 裁决（PASS——角色 5 独立评测负责人 2026-10-09 裁决并签署，P2-G3-WORKSHEET-01 v1.0.0；G3-GOLDEN-0001 32/32 案例 PASS，断言 A1–A10 全通过，无 DEFERRED 登记）与 G8 签署（六类责任人逐行签署，P2-SIGNOFF-01 v1.0.0，六行 Decision 一致 APPROVE WITH DOCUMENTED DEBT；一人多角色已按 owner-roster 规则 3 逐行分别签署并声明冲突）。P2 = CLOSED（2026-10-09；P2 Exit Gate §15 关闭公式满足：G1–G8 全 PASSED，P0 / Agency / StateIntegrity / PolicyCompliance 阻断 = 0）。S2 范围不变：完整 Creation / 多轮分支 / 持久 Memory 语义仍属 S2（PD-05 / PD-06 / PD-07）；OBL-01 HTTP 形态 503 首个 S2 迭代补测义务不变；OBL-02 延迟测量方法 v1.0.0 已批准但无统计阈值、无指标宣称（PB-03 / PD-08）；G3 黄金套件跨迭代回归义务延续入 S2。产品进入 S2 功能构建阶段（PD-20“先关再建”——关闭已完成，进入“建”）。 | P2 正式关闭接受（产品负责人 2026-10-09 签署） |
 
 ## 3. P2 与 P3 状态
 

@@ -1,7 +1,7 @@
 # 产品冲突与未决决策登记册
 
 **编号：** BASELINE-DECISIONS-01
-**版本：** 0.20.0（2026-10-09：G3-GOLDEN-0001 关闭切片执行记录登记——PD-21 关闭切片实施并执行通过（32/32 案例 PASS：G01–G08 × 四维度；G04/G07/G08 最小实现；断言 A1–A10 全通过，退出码 0；无 DEFERRED 登记——PD-19 延期义务经关闭切片履行；历史尝试归档留存）；G3 Gate 判定仍属独立评测范畴（角色 5），G3 仍 NOT PASSED；其余内容与 v0.19.0 相同）
+**版本：** 0.21.0（2026-10-09：G3 Gate 判定登记——角色 5 独立评测负责人 2026-10-09 裁决并签署：八黄金案例逐项裁决全 PASS，**G3 判定 PASS**（P2-G3-WORKSHEET-01 v1.0.0，产品负责人同日接受）；G8 六类责任人签署登记（P2-SIGNOFF-01 v1.0.0，六行 Decision 一致 APPROVE WITH DOCUMENTED DEBT）；**P2 = CLOSED 登记**（P2 Exit Gate §15 关闭公式满足：G1–G8 全 PASSED，P0 / Agency / StateIntegrity / PolicyCompliance 阻断 = 0）；OBL-03 履行完成（G3 PASSED）；执行器缺陷 G3-E-3 登记并修复（提交 9054c53）；其余内容与 v0.20.0 相同）
 **状态：** PODR-001 v1.0.4 已裁决 CR-01…CR-07、CR-09、CR-12、CR-13、CR-14，并增补 PD-14 / PD-15 / PD-16 / PD-17；CR-07 / CR-08 / CR-09 / CR-10 / CR-11 / CR-12 / CR-13 / CR-15 / CR-16 / CR-17 / CR-18 已关闭（CR-08 于 2026-10-09 关闭：隐私六要素全部裁决签署，P3-S1-PRIVACY-SIX-01 v0.4.0；CR-16 / CR-17 于 2026-10-09 经 REVIEW-009 非作者复核签署关闭；CR-18 于 2026-10-09 经产品负责人裁决关闭：选项 B——维持不暴露网关注入缝，HTTP 形态 LLM 故障 503 登记 DEFERRED TO 后续切片；CR-15 于 2026-10-08 经 PD-17 裁决关闭：选项 A，scoped 预授权许可签发）；G6 处置表（PB-01…PB-04）已建立，PB-01 解除条件已满足（2026-10-08）。
 **规则：** 执行团队不得自行把产品决策解释为运行证据或 Gate PASS。
 
@@ -209,7 +209,7 @@
 - **严重度：** N/A（方向裁决，非冲突）。
 - **决策负责人：** 产品负责人（用户本人，PD-15）。
 - **所需变更：** 登记本裁决并回写 PODR-001 / 本登记册 / readiness-record / owner-roster；PD-21 范围裁决待产品负责人作出；OBL-01 / OBL-02 / OBL-03 跟踪表按本裁决调度。
-- **状态：** RECORDED（2026-10-09：产品负责人"先关再建"指令经代理产品负责人登记为 PD-20；关闭切片产品能力范围经 PD-21 裁决（2026-10-09 批准，关闭切片进入实施）；G3/G8 仍 NOT PASSED，P2 仍 CLOSURE CANDIDATE / BLOCKED）。
+- **状态：** RECORDED（2026-10-09：产品负责人"先关再建"指令经代理产品负责人登记为 PD-20；关闭切片产品能力范围经 PD-21 裁决（2026-10-09 批准，关闭切片进入实施）；关闭切片已执行通过（G3-GOLDEN-0001 32/32 PASS）；G3 判定 PASS、G8 签署完成（2026-10-09），**P2 = CLOSED**——"先关"完成，进入 S2"建"阶段）。
 
 ## PD-21｜P2 关闭切片产品能力范围裁决（最小 G04 / G07 / G08）
 
@@ -219,17 +219,57 @@
 - **严重度：** N/A（范围裁决，非冲突）。
 - **决策负责人：** 产品负责人（用户本人，PD-15）。
 - **所需变更：** 登记本裁决并回写 PODR-001 / 本登记册 / readiness-record / owner-roster / acceptance-mapping；策略版本升 policy_v1.1.0；实施后执行扩展黄金套件并登记证据；G3/G8 Gate 判定仍属独立评测（角色 5）。
-- **状态：** APPROVED（产品负责人 2026-10-09“批准”——PD-21、OBL-01 处置、OBL-02 方法三项一并批准）；关闭切片源码变更授权生效；G3/G8 仍 NOT PASSED，P2 仍 CLOSURE CANDIDATE / BLOCKED。
+- **状态：** APPROVED（产品负责人 2026-10-09“批准”——PD-21、OBL-01 处置、OBL-02 方法三项一并批准）；关闭切片源码变更授权生效；关闭切片已实施并经 G3-GOLDEN-0001 执行通过（32/32 PASS）；G3 判定 PASS、G8 签署完成（2026-10-09），**P2 = CLOSED**。
 
 ## 黄金套件执行记录（G3-GOLDEN-0001）
 
 - **证据：** 证据执行器 `tools/evidence/src/golden.mjs`（提交 `2779ef1`；案例设计修复 `bc38fb5`；关闭切片实施 `b480757`）；动态证据 G3-GOLDEN-0001（`artifacts/evidence/runs/G3-GOLDEN-0001/`：32/32 案例 PASS、断言 A1–A10 全通过、退出码 0；G01–G08 八黄金案例 × NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度 = 32 案例；含 PD-21 关闭切片 G04 Creation / G07 Correction / G08 Memory Boundary 最小实现（CREATE / CORRECTION 语义动作 + CREATION 阶段 + 当前会话方向信号，policy_v1.1.0）；进程内形态，真实 .ts 源字节；期望冻结自 F2-GS-0001 / F3-EB-0001 回归基线；运行绑定 git 提交 `b480757`，工作树干净；无 DEFERRED 登记——PD-19 延期义务经本关闭切片履行，完整语义仍 DEFERRED TO S2（acceptance-mapping §B））；历史尝试按 ADR-0002 §5 归档留存：`G3-GOLDEN-0001-attempt-2026-10-09T03-39-36-322Z/`（首次尝试失败：G02-NEG / G05-FR 失败——执行器侧案例设计缺陷 G3-E-1 / G3-E-2；产品源码零改动；修复登记于 `bc38fb5`）与 `G3-GOLDEN-0001-attempt-2026-10-09T04-37-02-222Z/`（关闭切片前 20/20 PASS + 3 DEFERRED 登记尝试）。
-- **影响：** OBL-03（G3 黄金套件）执行义务履行：套件已创建并执行通过（本运行断言层面；关闭切片义务 PD-19 履行完毕）。G3 Gate 判定本身属独立评测范畴（角色 5）——审阅包 staged 于 `G3-GOLDEN-0001/review/README.md`（含 G3 逐项裁决表，八案例全覆盖），待独立评测人签署；G3 仍 NOT PASSED 直至评测人裁决。
-- **建议：** 独立评测负责人（用户本人，角色 5）审阅 G3-GOLDEN-0001 审阅包并填写逐项裁决表（尤其 G04/G07/G08 关闭切片最小形态是否足以接受为 P2 关闭条件）；P2 关闭签署（G8）待 G3 裁决后作出。
+- **影响：** OBL-03（G3 黄金套件）执行义务履行：套件已创建并执行通过（本运行断言层面；关闭切片义务 PD-19 履行完毕）。G3 Gate 判定本身属独立评测范畴（角色 5）——审阅包裁决表已由独立评测人填写（`G3-GOLDEN-0001/review/README.md`，八案例裁决全 PASS，2026-10-09）；G3 判定 PASS（P2-G3-WORKSHEET-01 v1.0.0，角色 5 签署、产品负责人接受）。
+- **建议：** 无（裁决已作出）；遗留项（完整 G04/G07/G08 语义、OBL-01、OBL-02）按 P2-SIGNOFF-01 遗留债务登记 D-01/D-02/D-03 跟踪。
 - **严重度：** N/A（义务履行记录，非冲突）。
 - **决策负责人：** 工程负责人（执行）；独立评测负责人（评测与否决）。
 - **所需变更：** 无（义务履行登记）；G3 Gate 判定与 P2 关闭签署待独立评测 / 产品负责人。
-- **状态：** RECORDED（2026-10-09：G3-GOLDEN-0001 关闭切片执行通过（本运行断言；32/32 PASS，无 DEFERRED）；G3 Gate 仍 NOT PASSED 待独立评测；P2 仍 CLOSURE CANDIDATE / BLOCKED）。
+- **状态：** RECORDED（2026-10-09：G3-GOLDEN-0001 关闭切片执行通过（本运行断言；32/32 PASS，无 DEFERRED）；G3 Gate 判定 PASS（角色 5 裁决并签署，2026-10-09）；G8 签署完成（2026-10-09）；**P2 = CLOSED**。
+
+## G3 Gate 判定登记（P2-G3-WORKSHEET-01）
+
+- **证据：** G3-GOLDEN-0001 证据包（32/32 案例 PASS；断言 A1–A10 全通过；无 DEFERRED 登记）；审阅包裁决表八案例逐项裁决全 PASS（`artifacts/evidence/runs/G3-GOLDEN-0001/review/README.md`）；G3 独立评测工作表 P2-G3-WORKSHEET-01 v1.0.0（`../p3-s1/g3-evaluation-worksheet.md`）。
+- **影响：** G3 Gate 判定：**PASS**（2026-10-09）。G04/G07/G08 以 PD-21 关闭切片最小形态执行，评测人接受其为 P2 关闭条件；完整语义 DEFERRED TO S2 登记为遗留项（acceptance-mapping §B，PD-05/PD-06/PD-07）。
+- **建议：** 无（判定已作出）；遗留项按 P2-SIGNOFF-01 遗留债务登记 D-01/D-02/D-03 跟踪。
+- **严重度：** N/A（判定登记，非冲突）。
+- **决策负责人：** 独立评测负责人（角色 5，PD-15）；产品负责人接受。
+- **所需变更：** 无；Gate 状态同步 readiness-record / owner-roster。
+- **状态：** PASSED（2026-10-09：G3 判定 PASS 经角色 5 独立评测负责人裁决并签署、产品负责人接受；双行签署登记于 P2-G3-WORKSHEET-01 v1.0.0 签署区）。
+
+## G8 正式签署登记（P2-SIGNOFF-01）
+
+- **证据：** P2 正式签署工作表 P2-SIGNOFF-01 v1.0.0（`../p3-s1/p2-signoff-worksheet.md`）：六类责任人（产品负责人 / 契约负责人 / 运行时架构负责人 / 策略与 AI 负责人 / 独立评测负责人 / 工程负责人）逐行签署，每行含 §14 签署包九要素（Signer Role / Signer Identity / Document Version / Evidence Package Version / Date / Decision / Comments / Outstanding Risks / Signature / Approval Record）。
+- **影响：** G8 Gate 判定：**PASSED**（2026-10-09）。六行 Decision 一致为 APPROVE WITH DOCUMENTED DEBT；签署人均为用户本人（PD-15），一人多角色已按 owner-roster 规则 3 逐行分别签署并声明冲突。
+- **建议：** 无（签署已完成）；遗留债务 D-01/D-02/D-03 按 P2-SIGNOFF-01 登记跟踪。
+- **严重度：** N/A（签署登记，非冲突）。
+- **决策负责人：** 六类责任人（用户本人，PD-15，逐行分别签署）。
+- **所需变更：** 无；P2 关闭状态同步 readiness-record / owner-roster / acceptance-mapping。
+- **状态：** PASSED（2026-10-09：G8 六类责任人签署完成，Decision 一致 APPROVE WITH DOCUMENTED DEBT）。
+
+## P2 关闭登记（P2 = CLOSED）
+
+- **证据：** P2 Exit Gate §15 关闭公式满足：G1 PASSED（2026-10-08）∧ G2 PASSED（经 G5，2026-10-09）∧ G3 PASSED（2026-10-09）∧ G4 PASSED（经 G5，2026-10-09）∧ G5 PASSED（有条件，2026-10-09）∧ G6 PASSED（2026-10-08）∧ G7 PASSED（2026-10-08）∧ G8 PASSED（2026-10-09）；P0 Violations = 0、Agency Blockers = 0、State Integrity Blockers = 0、Policy Compliance Blockers = 0。
+- **影响：** **P2 = CLOSED**（2026-10-09）。产品进入 S2 功能构建阶段（PD-20"先关再建"——关闭已完成，进入"建"）。
+- **建议：** S2 范围不变：完整 Creation / 多轮分支 / 持久 Memory 语义（PD-05/PD-06/PD-07）；OBL-01 HTTP 形态 503 首个 S2 迭代补测；OBL-02 延迟指标（方法 v1.0.0 已批准，指标宣称前须满足样本纪律并经 E3 统计 Gate）；G3 黄金套件跨迭代回归延续入 S2。
+- **严重度：** N/A（阶段关闭登记，非冲突）。
+- **决策负责人：** 产品负责人（用户本人，PD-15）。
+- **所需变更：** 登记本状态并回写 PODR-001（PD-22）/ readiness-record / owner-roster / acceptance-mapping；S2 规划另经产品负责人版本化裁决。
+- **状态：** CLOSED（P2 = CLOSED，2026-10-09；经 PD-22 产品负责人接受）。
+
+## 执行器缺陷登记（G3-E-3）
+
+- **证据：** golden.mjs 写入顺序缺陷：SHA256SUMS 于中间态计算，其后 summary.json / run-metadata.json 定稿重写（追加 A10 断言条目与最终退出码），致磁盘清单与最终汇总单文件不一致（summary.json）；独立重算 65/66 精确匹配；三个 G3 运行目录（本次 + 两次归档尝试）呈同一单文件模式；内容交叉核验为真（与 32 案例记录 / 轨迹一致）。
+- **影响：** 证据清单时点性不匹配（同 F1/F2 风险 R6 模式）；非篡改；已提交证据保持冻结不改写。
+- **建议：** 执行器修复：最终产物写入后重算 SHA256SUMS（提交 9054c53），保障未来运行（S2 回归）清单自洽。
+- **严重度：** 低（执行器侧，不影响证据有效性）。
+- **决策负责人：** 工程负责人（执行）。
+- **所需变更：** 无（缺陷登记 + 修复提交 9054c53）。
+- **状态：** RESOLVED（2026-10-09：修复提交 9054c53；已提交证据冻结保留，时点性模式登记为非篡改）。
 
 ## 后续切片义务跟踪（OBL-01 / OBL-02 / OBL-03）
 
@@ -239,7 +279,7 @@ G5 = PASSED（有条件）（2026-10-09，P3-S1-G5-WORKSHEET-01 v1.7.0）登记�
 |---|---|---|---|---|---|
 | OBL-01 | HTTP 形态 LLM 故障 503 后续切片补测（CR-18 选项 B，2026-10-09；G5 第 8 项维持 DEFERRED；风险 R1） | 在后续迭代切片中补测 HTTP 形态 LLM 故障 503 行为（当前进程内形态经 `LlmGateway` 接口注入覆盖 S1 范围故障语义、逐案通过；HTTP 形态因 S1 服务端运行时未暴露网关注入缝而执行时 NOT RUN） | 首个 S2 迭代（产品负责人 2026-10-09 处置：不暴露网关注入缝，关闭切片不补测；作为已知限制在 Gate 披露中明示） | 工程负责人（执行）；产品负责人（注入缝决策）；独立评测负责人（评测） | RESOLVED（产品负责人 2026-10-09 批准，维持 CR-18 选项 B 延续处置：DEFERRED 贯穿 P2 关闭切片、已知限制披露、首个 S2 迭代补测；本处置不改变 G5 第 8 项既有 DEFERRED 记录） |
 | OBL-02 | 延迟测量方法定义（G5 第 9 项 DEFERRED，2026-10-09；风险 R3） | 定义延迟测量方法（环境 / 模型 / 请求类别分层、样本窗口），经产品负责人按 E3 批准后方可进行任何延迟指标宣称；S1 当前不设统计阈值、运行耗时登记为参考值 | 任何延迟指标宣称或公开发布评估之前 | 产品负责人（批准）；工程负责人（定义草案） | RESOLVED（2026-10-09：方法草案 v0.1.0 经产品负责人按 E3 批准为 v1.0.0——`obl-02-latency-measurement-method-v1.md`；批准范围仅测量方法，不含统计阈值（PB-03 / PD-08）；任何延迟指标宣称仍须满足方法第 5 节样本纪律并注明分层；公开发布仍须另行满足 E3 统计 Gate） |
-| OBL-03 | 黄金案例套件（G3 Gate；P2 G08 黄金案例回归套件义务；G5 第 3 项裁决 N/A——S1 范围外） | 创建并执行黄金案例回归套件（跨迭代回归基准），作为 G3 Gate 证据；S1 范围已冻结（PD-05），本义务不扩大 S1 范围 | S2 / P2 关闭切片（P2 关闭收束前）；G3 保持 NOT PASSED 直至套件执行并通过 | 产品负责人（范围批准）；工程负责人（执行）；独立评测负责人（评测） | 执行履行（2026-10-09：G3-GOLDEN-0001 关闭切片执行通过——32/32 PASS（G01–G08 × 四维度），断言 A1–A10 通过，无 DEFERRED 登记；PD-19 延期义务经 PD-21 关闭切片履行；G3 Gate 判定待独立评测角色 5 裁决，裁决前 G3 仍 NOT PASSED） |
+| OBL-03 | 黄金案例套件（G3 Gate；P2 G08 黄金案例回归套件义务；G5 第 3 项裁决 N/A——S1 范围外） | 创建并执行黄金案例回归套件（跨迭代回归基准），作为 G3 Gate 证据；S1 范围已冻结（PD-05），本义务不扩大 S1 范围 | S2 / P2 关闭切片（P2 关闭收束前）；G3 保持 NOT PASSED 直至套件执行并通过 | 产品负责人（范围批准）；工程负责人（执行）；独立评测负责人（评测） | 履行完成（2026-10-09：G3-GOLDEN-0001 关闭切片执行通过——32/32 PASS（G01–G08 × 四维度），断言 A1–A10 通过，无 DEFERRED 登记；PD-19 延期义务经 PD-21 关闭切片履行；G3 Gate 判定 PASS（角色 5 独立评测负责人 2026-10-09 裁决并签署，P2-G3-WORKSHEET-01 v1.0.0）；**G3 PASSED**） |
 
 ## G6 产品债务处置表（PB-01…PB-04）
 

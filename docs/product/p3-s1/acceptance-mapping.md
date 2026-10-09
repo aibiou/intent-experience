@@ -1,8 +1,8 @@
 # P3-S1 验收映射（范围已批准；运行证据待执行）
 
 **编号：** P3-S1-ACCEPTANCE-MAP-01
-**版本：** 0.4.0（2026-10-09：PD-21 范围回写——§B G04/G07/G08 与 §C CREATE 行从 DEFERRED TO S2 更新为 P2 关闭切片最小范围（产品负责人 2026-10-09 批准；能力待实施、执行待扩展黄金套件）；其余内容与 v0.3.2 相同）
-**状态：** APPROVED FOR S1 SCOPE BY PODR-001；评测负责人复核待办；所有运行证据 NOT RUN
+**版本：** 0.5.0（2026-10-09：关闭切片执行回写——§B G04/G07/G08 与 §C CREATE 行更新：PD-21 关闭切片最小形态已实施并经 G3-GOLDEN-0001 执行通过（32/32 案例 PASS，2026-10-09），G3 判定 PASS（P2-G3-WORKSHEET-01 v1.0.0），**P2 = CLOSED**（P2-SIGNOFF-01 v1.0.0）；完整语义仍 DEFERRED TO S2，PD-05/PD-06/PD-07 不变）；其余内容与 v0.4.0 相同）
+**状态：** APPROVED FOR S1 SCOPE BY PODR-001；评测负责人复核待办；S1 运行证据 NOT RUN（PD-21 关闭切片 G04/G07/G08 最小形态已经 G3-GOLDEN-0001 执行通过、G3 判定 PASS，2026-10-09；完整语义仍 DEFERRED TO S2）
 **提醒：** 下表是来源条款的工作映射，不是测试结果；所有运行证据均为 `NOT RUN`。未批准动作不在此臆定语义。
 
 ## A. S1 Golden Subset
@@ -26,18 +26,18 @@
 | G01 Direct Answer | Evaluation System V1 §5 Golden Cases | 与 GS-01 名称相近，需逐项核对输入、轨迹、边界和评分 | PROPOSED；S1 映射候选；运行 NOT RUN | 名称相似不等于验收等价或 PASS |
 | G02 Why | Evaluation System V1 §5 | 与 GS-02 名称相近，需核对事实与解释标准 | PROPOSED；S1 映射候选；运行 NOT RUN | 不以回答流畅替代产品契约正确 |
 | G03 What If | Evaluation System V1 §5；API Contract V1 Case 02；S1 §11 / §14 / §26 | S1 支持基础 WHAT_IF 契约动作；完整 WHAT_IF 多轮 / 持久分支属于 S2 | 基础动作测试 S1 NOT RUN；完整 P2 G03 NOT RUN / DEFERRED TO S2 | S1 动作支持不等于完整 G03 通过；不可扩大为分支体验 |
-| G04 Creation | Evaluation System V1 §5；API Contract V1 CREATE 示例；P3 Entry / Creation 参考 | S1 明确排除完整 Creation；E2 的最小 Creation 安排到 S2；P2 关闭切片（PD-21）实施最小 Creation 能力（CREATE 语义动作 → CREATE Policy Action → CREATION 阶段） | P2 关闭切片（PD-21，2026-10-09 批准）：最小 Creation 能力待实施，实施后经扩展黄金套件执行；完整 Creation 仍 DEFERRED TO S2（按 PD-05 / PD-06） | API 存在 CREATE 不代表 S1 必须实现；P2 G04 仍须未来验收 |
+| G04 Creation | Evaluation System V1 §5；API Contract V1 CREATE 示例；P3 Entry / Creation 参考 | S1 明确排除完整 Creation；E2 的最小 Creation 安排到 S2；P2 关闭切片（PD-21）实施最小 Creation 能力（CREATE 语义动作 → CREATE Policy Action → CREATION 阶段） | P2 关闭切片（PD-21，2026-10-09 批准）：最小 Creation 能力已实施并经 G3-GOLDEN-0001 执行通过（32/32 案例 PASS，2026-10-09）；G3 判定 PASS（P2-G3-WORKSHEET-01 v1.0.0）；完整 Creation 仍 DEFERRED TO S2（按 PD-05 / PD-06） | API 存在 CREATE 不代表 S1 必须实现；P2 G04 仍须未来验收 |
 | G05 Change | Evaluation System V1 §5；S1 GS-03；API Contract V1 Case 03 | S1 映射候选 | PROPOSED；需验证取消、旧候选拒绝及状态轨迹；NOT RUN | 需对照完整 G05 原始输入、指标、并发要求，不仅测单一路径 |
 | G06 Stop | Evaluation System V1 §5；S1 GS-04；CC02 STOP；API Contract V1 Case 04 | S1 映射候选 | PROPOSED；P0 blocker；NOT RUN | STOP 后继续 / 后台续行不能被平均分抵消 |
-| G07 Correction | Evaluation System V1 §5 G07 Correction | S1 没有启用 Correction Semantic Action；S2 候选；P2 关闭切片（PD-21）实施最小 Correction 能力（CORRECTION 语义动作 → EXPLAIN——重评估为内部过程，须落到合法 Policy Action） | P2 关闭切片（PD-21，2026-10-09 批准）：最小 Correction 能力待实施，实施后经扩展黄金套件执行；完整 Correction 仍 DEFERRED TO S2（按 PD-05） | 不推断 correction 的状态写入和确认语义；P2 G07 保留 |
-| G08 Memory Boundary | Evaluation System V1 §5 G08；Memory/User State V1；PODR-001 / PD-07 | S1 无持久跨会话 Memory；隔离测试上下文验证当前意图优先；完整 Memory Boundary 评测放 S2；P2 关闭切片（PD-21）验证当前会话内边界（不持久化任何跨会话记忆，PD-07 不变） | P2 关闭切片（PD-21，2026-10-09 批准）：当前会话边界证明待实施与执行（零持久化事件）；完整 Memory Boundary 仍 NOT RUN / DEFERRED TO S2 | 不将测试夹具描述为已建成记忆产品；不声称完整 G08 通过 |
+| G07 Correction | Evaluation System V1 §5 G07 Correction | S1 没有启用 Correction Semantic Action；S2 候选；P2 关闭切片（PD-21）实施最小 Correction 能力（CORRECTION 语义动作 → EXPLAIN——重评估为内部过程，须落到合法 Policy Action） | P2 关闭切片（PD-21，2026-10-09 批准）：最小 Correction 能力已实施并经 G3-GOLDEN-0001 执行通过（32/32 案例 PASS，2026-10-09）；G3 判定 PASS（P2-G3-WORKSHEET-01 v1.0.0）；完整 Correction 仍 DEFERRED TO S2（按 PD-05） | 不推断 correction 的状态写入和确认语义；P2 G07 保留 |
+| G08 Memory Boundary | Evaluation System V1 §5 G08；Memory/User State V1；PODR-001 / PD-07 | S1 无持久跨会话 Memory；隔离测试上下文验证当前意图优先；完整 Memory Boundary 评测放 S2；P2 关闭切片（PD-21）验证当前会话内边界（不持久化任何跨会话记忆，PD-07 不变） | P2 关闭切片（PD-21，2026-10-09 批准）：当前会话边界证明已实施并经 G3-GOLDEN-0001 执行通过（32/32 案例 PASS，零持久化事件，2026-10-09）；G3 判定 PASS（P2-G3-WORKSHEET-01 v1.0.0）；完整 Memory Boundary 仍 NOT RUN / DEFERRED TO S2 | 不将测试夹具描述为已建成记忆产品；不声称完整 G08 通过 |
 
 ## C. 动作、API 与范围边界
 
 | 项目 | 归档事实 | S1 处理 | 状态 |
 |---|---|---|---|
 | `WHAT_IF` | S1 §11 启用该动作；§14 定义 `WHAT_IF → SIMULATE`；完整 WHAT_IF 分支在 S2 | S1 只做当前单次模拟提案，不建立持久 / 多轮分支；尊重 STOP 优先和状态不越权 | 范围已由 PD-06 决定；执行 NOT RUN |
-| `CREATE` | API 示例包含 CREATE；S1 §11 将其列为未来动作，且明确完整 Creation 非目标 | S1 禁用；最小 Creation Branch 属 S2 候选；完整 IDE 不在 P3 初始范围；P2 关闭切片（PD-21）实施最小 CREATE 语义动作（仅关闭切片启用） | P2 关闭切片（PD-21，2026-10-09 批准）：最小 CREATE 已批准待实施；完整 Creation 仍属 S2；G04 待执行 |
+| `CREATE` | API 示例包含 CREATE；S1 §11 将其列为未来动作，且明确完整 Creation 非目标 | S1 禁用；最小 Creation Branch 属 S2 候选；完整 IDE 不在 P3 初始范围；P2 关闭切片（PD-21）实施最小 CREATE 语义动作（仅关闭切片启用） | P2 关闭切片（PD-21，2026-10-09 批准）：最小 CREATE 已实施并经 G3-GOLDEN-0001 执行通过（32/32）；G3 判定 PASS（P2-G3-WORKSHEET-01 v1.0.0）；完整 Creation 仍属 S2 |
 | `SEARCH` | API / 功能表出现 SEARCH；S1 §11 将其列为未来动作 | S1 禁用；接口示例不授权搜索产品能力 | S1 范围已由 PD-06 决定 |
 | STOP 与 CHANGE | 多份契约均规定用户控制不可覆盖，CC02 强调中断旧生成与阻止旧状态污染 | 是 S1 硬边界；具体动态测试仍待实现后执行 | 范围明确；NOT RUN |
 

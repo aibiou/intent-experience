@@ -1,8 +1,8 @@
 # P3-S1 实现准入记录
 
 **编号：** P3-S1-READINESS-01
-**版本：** 1.14.0（2026-10-09：G3-GOLDEN-0001 关闭切片执行登记——PD-21 关闭切片实施并执行通过（G3-GOLDEN-0001：32/32 案例 PASS，断言 A1–A10 全通过，退出码 0，无 DEFERRED 登记——PD-19 延期义务经关闭切片履行）；G3 Gate 判定仍属独立评测范畴（角色 5），G3 仍 NOT PASSED 直至评测人裁决；其余内容与 v1.13.0 相同）
-**状态：** READY / AUTHORIZED / THIRD ITERATION EVIDENCE PRODUCED / G5 EVALUATION PASSED WITH CONDITIONS（G1/G2/G4/G5/G6/G7 PASSED——G5 为有条件通过，2026-10-09；G3 仍 NOT PASSED——关闭切片已执行通过（G3-GOLDEN-0001：32/32 PASS，本运行断言；PD-19 义务经 PD-21 关闭切片履行），G3 Gate 判定待独立评测（角色 5）；G8 仍 NOT PASSED；P2 关闭切片已获产品能力范围授权（PD-21，2026-10-09）并已实施执行；P2 仍 CLOSURE CANDIDATE / BLOCKED）
+**版本：** 1.15.0（2026-10-09：G3 Gate 判定 PASS 登记（角色 5 独立评测负责人 2026-10-09 裁决并签署——P2-G3-WORKSHEET-01 v1.0.0，八案例裁决全 PASS）+ G8 六类责任人签署登记（P2-SIGNOFF-01 v1.0.0，Decision 一致 APPROVE WITH DOCUMENTED DEBT）+ **P2 = CLOSED**（P2 Exit Gate §15 关闭公式满足：G1–G8 全 PASSED，P0 / Agency / StateIntegrity / PolicyCompliance 阻断 = 0）；其余内容与 v1.14.0 相同）
+**状态：** READY / AUTHORIZED / THIRD ITERATION EVIDENCE PRODUCED / G5 EVALUATION PASSED WITH CONDITIONS / G3 PASSED / G8 SIGNED / **P2 CLOSED**（G1–G8 全部 PASSED——G5 为有条件通过，2026-10-09；G3 判定 PASS（角色 5 独立评测负责人 2026-10-09 裁决并签署，P2-G3-WORKSHEET-01 v1.0.0）；G8 六类责任人签署完成（P2-SIGNOFF-01 v1.0.0，Decision 一致 APPROVE WITH DOCUMENTED DEBT）；**P2 = CLOSED**（2026-10-09，P2 Exit Gate §15 关闭公式满足）；产品进入 S2 功能构建阶段（PD-20"先关再建"））
 **记录日期：** 2026-10-08
 **范围：** 仅检查 P3-S1 产品运行时代码是否已获准启动；本记录不代表 P2 关闭或产品验收通过。
 
@@ -25,17 +25,17 @@
 1. （已解除，2026-10-08：C1–C7 Steward 确认完成，G1 非作者核验完成，G1 PASSED）
 2. （已解除，2026-10-09：G5 独立评测完成——16 项评测包 12 PASS + 1 N/A（第 3 项黄金案例）+ 1 DEFERRED（第 9 项延迟）+ 发布建议 B（第 14 项），双行签署已登记（P3-S1-G5-WORKSHEET-01 v1.7.0）；G2/G4 的 Gate 判定经 G5 独立评测作出（第 2/4/5/8 项 PASS），G2/G4 PASSED；G5 PASSED（有条件），遗留两项：HTTP 形态 LLM 故障 503 后续切片补测 + 延迟测量方法定义）
 3. （已解除，2026-10-08：E5 环境搭建完成（PD-17 / E5-SCOPED-LICENSE-01），首次端到端试运行 E5-TRIAL-0001 通过（4 案例 PASS / 6 断言 / 退出码 0），A5 满足）
-4. P2 G01–G08 的完整执行仍待真实实现和评测；延期案例不计 PASS；G5 的 16 项评测包已登记实际运行结果（2026-10-09：12 PASS + 1 N/A + 1 DEFERRED + 建议 B——P3-S1-G5-WORKSHEET-01 v1.7.0）；G3（黄金套件）属 P2 关闭义务，S1 范围外（第 3 项裁决 N/A），处置已裁决：DEFERRED TO S2/P2 关闭切片（OBL-03，产品负责人 2026-10-09 裁决 / PD-19），关闭切片已执行通过（G3-GOLDEN-0001：32/32 PASS，本运行断言；2026-10-09）；G3 仍 NOT PASSED 直至独立评测人裁决。
+4. （已解除，2026-10-09：G3 判定 PASS——角色 5 独立评测负责人裁决并签署（P2-G3-WORKSHEET-01 v1.0.0，八案例裁决全 PASS；G3-GOLDEN-0001 32/32 PASS 本运行断言 + 断言 A1–A10 全通过）；G8 六类责任人签署完成（P2-SIGNOFF-01 v1.0.0）；**P2 = CLOSED**（2026-10-09）。遗留项：完整 G04/G07/G08 语义 DEFERRED TO S2（PD-05/PD-06/PD-07）；OBL-01 HTTP 形态 503 首个 S2 迭代补测；OBL-02 无统计阈值、无指标宣称。）
 5. （已解除，2026-10-08：G5 隔离声明已签署，独立评测人任命生效；G5 评测本身已于 2026-10-09 完成并签署——PASSED（有条件），见阻塞项 2 更新）
 6. P2 状态、S1 范围、技术栈和门禁顺序已有产品负责人决策，但准入 Gate 未完成。
 
 ## 授权判定
 
 ```text
-P2 Closure: CLOSURE CANDIDATE / BLOCKED; NOT CLOSED
+P2 Closure: CLOSED（2026-10-09；G1–G8 全部 PASSED，P2 Exit Gate §15 关闭公式满足；P0 / Agency / StateIntegrity / PolicyCompliance 阻断 = 0）
 P3-S1 Readiness: READY（A1–A6 全部满足，2026-10-08）
-P3-S1 Runtime Implementation: AUTHORIZED（2026-10-08 签发，P3-S1-IMPL-AUTH-01 v1.3.0；F-1 已履行，F-2 已履行，F-3 已履行）
-Runtime Code / Tests / Product Evidence: THIRD ITERATION EVIDENCED + G5 EVALUATED（F-1 切片动态证据 F1-E2E-0001：9/9 案例、12/12 断言、退出码 0；F-2 运行时核心动态证据 F2-GS-0001：40/40 案例、24/24 断言、退出码 0，覆盖 GS-01…GS-06 完整 + C6 事件契约 + F-1 回归；F-3 动态证据 F3-EB-0001：21/21 案例、28/28 断言、退出码 0，G2 动态跨契约一致性 + G4 工程边界 EB-01…EB-16 证据已产出；G5 独立评测已完成（2026-10-09：16 项 = 12 PASS + 1 N/A + 1 DEFERRED + 建议 B，双行签署已登记，P3-S1-G5-WORKSHEET-01 v1.7.0）——G2/G4 Gate 判定经 G5 作出：PASSED；G5 PASSED（有条件）；G3 关闭切片已执行通过（32/32 PASS，本运行断言）但 G3 Gate 判定仍待独立评测、G8 仍 NOT PASSED）
+P3-S1 Runtime Implementation: AUTHORIZED（2026-10-08 签发，P3-S1-IMPL-AUTH-01 v1.3.0；F-1 已履行，F-2 已履行，F-3 已履行；PD-21 关闭切片已履行）
+Runtime Code / Tests / Product Evidence: THIRD ITERATION EVIDENCED + G5 EVALUATED + G3 EVALUATED + G8 SIGNED（F-1 切片动态证据 F1-E2E-0001：9/9 案例、12/12 断言、退出码 0；F-2 运行时核心动态证据 F2-GS-0001：40/40 案例、24/24 断言、退出码 0，覆盖 GS-01…GS-06 完整 + C6 事件契约 + F-1 回归；F-3 动态证据 F3-EB-0001：21/21 案例、28/28 断言、退出码 0，G2 动态跨契约一致性 + G4 工程边界 EB-01…EB-16 证据已产出；G5 独立评测已完成（2026-10-09：16 项 = 12 PASS + 1 N/A + 1 DEFERRED + 建议 B，双行签署已登记，P3-S1-G5-WORKSHEET-01 v1.7.0）——G2/G4 Gate 判定经 G5 作出：PASSED；G5 PASSED（有条件）；G3 判定 PASS（2026-10-09，角色 5 裁决并签署，P2-G3-WORKSHEET-01 v1.0.0；G3-GOLDEN-0001 32/32 PASS）；G8 签署完成（2026-10-09，P2-SIGNOFF-01 v1.0.0））
 ```
 
 不得将 Markdown 格式检查、资料哈希校验、计划完成或未来测试跑绿解释为任何产品 Gate 的 PASS。只有真实运行证据、独立评测和正式签署，才能更新相应状态。
@@ -48,6 +48,8 @@ Runtime Code / Tests / Product Evidence: THIRD ITERATION EVIDENCED + G5 EVALUATE
 | 架构负责人 | PENDING | PENDING | PENDING | PENDING |
 | 独立评测负责人 | 用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效） | G5 16 项评测包签署：G5 通过（有条件）——12 PASS + 1 N/A + 1 DEFERRED + 建议 B；遗留两项（HTTP 503 后续切片补测、延迟测量方法定义） | 2026-10-09 | P3-S1-G5-WORKSHEET-01 v1.7.0 |
 | 产品负责人（G5 结果接受） | 用户本人（PD-15） | 接受 G5 结果（有条件通过），含两项 DEFERRED 遗留；未改变任何已执行案例的预期 | 2026-10-09 | P3-S1-G5-WORKSHEET-01 v1.7.0（签署区双行） |
+| 独立评测负责人（G3 判定） | 用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效） | G3 判定：PASS——八黄金案例逐项裁决全 PASS（G3-GOLDEN-0001：32/32 案例 PASS，断言 A1–A10 全通过，无 DEFERRED 登记；G04/G07/G08 关闭切片最小形态接受为 P2 关闭条件，完整语义 DEFERRED TO S2） | 2026-10-09 | P2-G3-WORKSHEET-01 v1.0.0；G3-GOLDEN-0001 证据包 |
+| 六类责任人（G8 签署） | 用户本人（PD-15；一人六角色，按 owner-roster 规则 3 逐行分别签署并声明冲突） | G8 签署完成：六行 Decision 一致 APPROVE WITH DOCUMENTED DEBT；**P2 = CLOSED**（遗留债务 D-01/D-02/D-03 登记于 P2-SIGNOFF-01） | 2026-10-09 | P2-SIGNOFF-01 v1.0.0 |
 | 工程负责人 | 用户本人（角色 4，PD-15；执行由代理履行） | 首个迭代（F-1）已实施并执行 F1-E2E-0001（9/9 案例、12/12 断言、退出码 0）；缺陷 D-1/D-2 已修复并登记；第二迭代（F-2）运行时核心已实施并执行 F2-GS-0001（40/40 案例、24/24 断言、退出码 0；无运行时缺陷）；第三迭代（F-3）执行 F3-EB-0001（21/21 案例、28/28 断言、退出码 0；G2 动态跨契约一致性 + G4 工程边界证据产出；无运行时缺陷；产品源码零改动） | 2026-10-08 | P3-S1-IMPL-ITER-001 v1.0.0；P3-S1-IMPL-ITER-002 v1.0.0；P3-S1-IMPL-ITER-003 v1.0.0；`artifacts/evidence/runs/F1-E2E-0001/`；`artifacts/evidence/runs/F2-GS-0001/`；`artifacts/evidence/runs/F3-EB-0001/` |
 
 ## 产品负责人裁决后的当前状态
@@ -78,4 +80,4 @@ Runtime Code / Tests / Product Evidence: THIRD ITERATION EVIDENCED + G5 EVALUATE
 | 状态版本字段命名 | 已由 PD-16 统一规范名为 `expected_state_version`（CR-14）；`expected_version`（SRC-27 §22）与 `state_version`（SRC-07 §30 Case 05）为别名；实现与测试须同时记录规范名与来源表述。 |
 | 文档状态声明中和 | SRC-27 §39"Implementation READY TO START"与头部"IMPLEMENTATION PREPARATION"为文档内部状态声明，不产生任何实施授权效力；实施授权以本记录"授权判定"节为准。 |
 
-**更新后的总判定：** 2026-10-08：A1–A6 准入条件全部满足；P3-S1 实施授权已签发（P3-S1-IMPL-AUTH-01 v1.3.0）；首个迭代（F-1）已实施并产出端到端动态证据（F1-E2E-0001：9/9 案例、12/12 断言、退出码 0）；第二迭代（F-2）运行时核心已实施并产出完整动态证据（F2-GS-0001：40/40 案例、24/24 断言、退出码 0，覆盖 GS-01…GS-06 完整 + C6 事件契约 + F-1 回归）；第三迭代（F-3）产出 G2 动态跨契约一致性与 G4 工程边界动态证据（F3-EB-0001：21/21 案例、28/28 断言、退出码 0——各运行只表示本运行中的断言通过，不设置任何 Gate 为 PASS）。隐私六要素全部裁决签署（2026-10-09，P3-S1-PRIVACY-SIX-01 v0.4.0：留存期限至少 6 个月、存储位置=中国大陆（cn）/ 阿里云 / 云存储、访问控制=最小所需权限、加密=两层机制 + 密钥分离、删除机制、批准责任）——真实用户数据禁收护栏解除（ADR-0002 §3 证据沙箱合成数据边界独立生效）；G2/G4 证据已产出，其 Gate 判定经 G5 独立评测作出（2026-10-09：G5 16 项评测包 12 PASS + 1 N/A（第 3 项黄金案例）+ 1 DEFERRED（第 9 项延迟）+ 发布建议 B（第 14 项），独立评测负责人与产品负责人双行签署已登记——P3-S1-G5-WORKSHEET-01 v1.7.0）；**G5 = PASSED（有条件）**，遗留两项：HTTP 形态 LLM 故障 503 后续切片补测（CR-18 选项 B）+ 延迟测量方法定义（第 9 项 DEFERRED）；G2/G4 PASSED（经 G5 评测，2026-10-09）；G3（黄金套件——属 P2 关闭义务，S1 范围外，第 3 项裁决 N/A；处置已裁决：DEFERRED TO S2/P2 关闭切片（OBL-03，2026-10-09 产品负责人裁决 / PD-19））已执行通过关闭切片（G3-GOLDEN-0001：32/32 PASS，本运行断言，2026-10-09）但 Gate 判定仍待独立评测，与 G8（P2 关闭签署）仍 NOT PASSED；P2 仍 CLOSURE CANDIDATE / BLOCKED。
+**更新后的总判定：** 2026-10-08：A1–A6 准入条件全部满足；P3-S1 实施授权已签发（P3-S1-IMPL-AUTH-01 v1.3.0）；首个迭代（F-1）已实施并产出端到端动态证据（F1-E2E-0001：9/9 案例、12/12 断言、退出码 0）；第二迭代（F-2）运行时核心已实施并产出完整动态证据（F2-GS-0001：40/40 案例、24/24 断言、退出码 0，覆盖 GS-01…GS-06 完整 + C6 事件契约 + F-1 回归）；第三迭代（F-3）产出 G2 动态跨契约一致性与 G4 工程边界动态证据（F3-EB-0001：21/21 案例、28/28 断言、退出码 0——各运行只表示本运行中的断言通过，不设置任何 Gate 为 PASS）。隐私六要素全部裁决签署（2026-10-09，P3-S1-PRIVACY-SIX-01 v0.4.0：留存期限至少 6 个月、存储位置=中国大陆（cn）/ 阿里云 / 云存储、访问控制=最小所需权限、加密=两层机制 + 密钥分离、删除机制、批准责任）——真实用户数据禁收护栏解除（ADR-0002 §3 证据沙箱合成数据边界独立生效）；G2/G4 证据已产出，其 Gate 判定经 G5 独立评测作出（2026-10-09：G5 16 项评测包 12 PASS + 1 N/A（第 3 项黄金案例）+ 1 DEFERRED（第 9 项延迟）+ 发布建议 B（第 14 项），独立评测负责人与产品负责人双行签署已登记——P3-S1-G5-WORKSHEET-01 v1.7.0）；**G5 = PASSED（有条件）**，遗留两项：HTTP 形态 LLM 故障 503 后续切片补测（CR-18 选项 B）+ 延迟测量方法定义（第 9 项 DEFERRED）；G2/G4 PASSED（经 G5 评测，2026-10-09）；G3（黄金套件——属 P2 关闭义务，S1 范围外，第 3 项裁决 N/A；处置已裁决：DEFERRED TO S2/P2 关闭切片（OBL-03，2026-10-09 产品负责人裁决 / PD-19））已执行通过关闭切片（G3-GOLDEN-0001：32/32 PASS，本运行断言，2026-10-09），**G3 Gate 判定 PASS**（2026-10-09，角色 5 独立评测负责人裁决并签署、产品负责人接受——P2-G3-WORKSHEET-01 v1.0.0）；**G8 PASSED**（2026-10-09，六类责任人签署完成——P2-SIGNOFF-01 v1.0.0，Decision 一致 APPROVE WITH DOCUMENTED DEBT）；**P2 = CLOSED**（2026-10-09，P2 Exit Gate §15 关闭公式满足）。
