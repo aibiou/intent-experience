@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G08-B","event":"trace_started","at":"2026-10-09T09:35:36.123Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G08 Boundary；相邻输入变体结构等价；PD-07（不持久化跨会话数据）；PD-21","goldenCase":"G08","dimension":"BOUNDARY"}
-{"caseId":"G3-GOLDEN-0001:G08-B","event":"trace_completed","at":"2026-10-09T09:35:36.882Z","startedAt":"2026-10-09T09:35:36.123Z","durationMs":759,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G08-B","event":"trace_started","at":"2026-10-09T09:54:25.512Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G08 Boundary；相邻输入变体结构等价；PD-07（不持久化跨会话数据）；PD-21","goldenCase":"G08","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G08-B","event":"trace_completed","at":"2026-10-09T09:54:26.278Z","startedAt":"2026-10-09T09:54:25.511Z","durationMs":767,"result":"PASS","pass":true}

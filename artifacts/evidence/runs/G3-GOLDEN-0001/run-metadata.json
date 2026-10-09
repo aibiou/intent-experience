@@ -1,6 +1,6 @@
 {
   "runId": "G3-GOLDEN-0001",
-  "recordedAt": "2026-10-09T09:35:17.823Z",
+  "recordedAt": "2026-10-09T09:54:06.725Z",
   "executor": {
     "executedBy": "工程负责人角色（代理，Codex）",
     "independentEvaluator": "独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）"
@@ -248,15 +248,9 @@
     "note": "G5 16 项评测包已执行并双签署（P3-S1-G5-WORKSHEET-01 v1.7.0）；G3 逐项判定属本运行后的独立评测范畴"
   },
   "code": {
-    "gitHead": "fbef255122f65a19596a922738951f547058ab37",
-    "workTreeClean": false,
-    "uncommittedEntries": [
-      "M src/experience/events.ts",
-      " M src/experience/policy.ts",
-      " M src/experience/runtime.ts",
-      " M tools/evidence/src/golden.mjs",
-      "?? src/experience/simulation.ts"
-    ],
+    "gitHead": "df375e4ae4c4233d91818c4ea65971775bf2bef9",
+    "workTreeClean": true,
+    "uncommittedEntries": [],
     "runtimeFiles": {
       "audit.ts": "1da20af50e24cde6e4638a78f22e05ec847fa153c0a4655b86134474291ddf0b",
       "chunks.ts": "733a16552bc0fdd120bd2e202ee17de26078307f9c79821fe2599f3915fc89ec",
@@ -358,8 +352,8 @@
     "failed": 0
   },
   "run": {
-    "startedAt": "2026-10-09T09:35:17.823Z",
-    "finishedAt": "2026-10-09T09:35:37.309Z",
+    "startedAt": "2026-10-09T09:54:06.725Z",
+    "finishedAt": "2026-10-09T09:54:26.664Z",
     "command": "npm run golden (node tools/evidence/src/golden.mjs, from tools/evidence)",
     "exitCode": 0,
     "form": "in-process（真实 .ts 源字节；HTTP 形态回归证据见 F2-GS-0001 / F3-EB-0001）"
