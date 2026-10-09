@@ -301,6 +301,16 @@
 - **所需变更：** 实施 F-4（feat(s2a-f4)）→ 动态证据 S2A-F4-0001 → 迭代记录写回。
 - **状态：** IMPLEMENTED（2026-10-09：F-4 实施完成——产品源码五文件（`src/experience/simulation.ts` 新增 437 行 / `src/experience/events.ts` / `src/experience/policy.ts` / `src/experience/runtime.ts` / `tools/evidence/src/golden.mjs` 断言同步，提交 `dcc94fc`）；黄金套件 policy_v1.4.0 断言同步后 G3-GOLDEN-0001 再生验证 32/32 案例 PASS；动态证据 S2A-F4-0001 通过（9/9 案例、16/16 断言、退出码 0，提交 `45abe78`；材料 `artifacts/evidence/runs/S2A-F4-0001/`）；迭代记录 P3-S2A-IMPL-ITER-F4 v1.0.0；readiness-record v1.24.0。退出码 0 不设置任何 Gate 为 PASS；G5 独立评测 NOT RUN（staged 审阅包待独立评测人审阅））。
 
+## OBL-02 延迟测量执行登记（CR-22）
+
+- **证据：** G5 = PASSED（有条件）遗留条件之一：OBL-02 延迟测量执行（本登记册"后续切片义务跟踪表"OBL-02；G5 工作表第 9 项 DEFERRED，2026-10-09；风险 R3）；测量方法 OBL-02-LATENCY-METHOD-01 v1.0.0 已经产品负责人按 E3 批准（2026-10-09；批准范围仅测量方法——分层与样本窗口纪律，不含统计阈值，PB-03 / PD-08）
+- **影响：** 测量执行属工程义务（方法已批准，无新增产品语义）：按方法第 1–6 节执行 16 分层（2 执行形态 × 7 请求类别正常路径 + 2 故障恢复分层）× 30 提交 = 480 提交连续执行窗口；原始值与参考统计量按形态 / 类别 / 路径分层登记；本运行不产生任何统计阈值宣称
+- **建议：** 动态证据 OBL02-LATENCY-0001（执行器 `tools/evidence/src/obl02.mjs`，npm run obl02；16/16 案例、12/12 断言、退出码 0——只表示本运行断言通过，不设置任何 Gate；材料 `artifacts/evidence/runs/OBL02-LATENCY-0001/`，SHA256SUMS 65 文件独立重算全部一致）；测量记录 P3-S1-OBL02-RECORD-01 v1.0.0（`docs/product/p3-s1/obl02-latency-measurement-record-v1.md`）；首次尝试（执行器侧 A5 断言缺陷：STOP 空语料路径 wallClockMs=0.00ms 低于客户端观测分辨率）按 ADR-0002 §5 归档保留（`OBL02-LATENCY-0001-attempt-2026-10-09T10-41-11-515Z`）
+- **严重度：** N/A（义务履行登记）
+- **决策负责人：** 产品负责人（方法批准，2026-10-09）；工程负责人（测量执行）
+- **所需变更：** 回写 readiness-record（v1.25.0）；G5 工作表第 9 项由 DEFERRED 关闭属角色 5 独立评测负责人逐项裁决，经 P3-S1-G5-WORKSHEET-01 签署后生效（staged 审阅包 `artifacts/evidence/runs/OBL02-LATENCY-0001/review/README.md`，含第 9 项裁决表，待评测人填写）
+- **状态：** EXECUTED（2026-10-09：测量执行完成——OBL02-LATENCY-0001 退出码 0；G5 = PASSED（有条件）遗留条件（OBL-02 延迟测量执行）已履行；本登记不改变任何 Gate 状态，G5 第 9 项 DEFERRED→PASS 待角色 5 签署）
+
 ## S2 范围裁决登记（PD-23）
 
 - **证据：** S2-SCOPE-PROPOSAL-01 v1.1.0（`s2-scope-proposal-v1.md`，§5 裁决区已填写、§6 裁决记录）；S1 规范 §37（P3-S2 九项）/ §11（保留动作 DEEPEN / SIMPLIFY / REFRAME / CREATE / MODIFY / SEARCH）；acceptance-mapping §B / §C；07 号契约（Memory & User State Engine：六类数据状态、优先级链、生命周期）；E2 Stage 5（Creation 编排）；PODR-001 PD-05 / PD-06 / PD-07 / PD-20 / PD-22；P2-SIGNOFF-01 遗留债务 D-01 / D-02 / D-03。
@@ -328,7 +338,7 @@ G5 = PASSED（有条件）（2026-10-09，P3-S1-G5-WORKSHEET-01 v1.7.0）登记�
 | 编号 | 义务（来源） | 内容 | 触发条件 | 责任人 | 状态 |
 |---|---|---|---|---|---|
 | OBL-01 | HTTP 形态 LLM 故障 503 后续切片补测（CR-18 选项 B，2026-10-09；G5 第 8 项维持 DEFERRED；风险 R1） | 在后续迭代切片中补测 HTTP 形态 LLM 故障 503 行为（当前进程内形态经 `LlmGateway` 接口注入覆盖 S1 范围故障语义、逐案通过；HTTP 形态因 S1 服务端运行时未暴露网关注入缝而执行时 NOT RUN） | 首个 S2 迭代（产品负责人 2026-10-09 处置：不暴露网关注入缝，关闭切片不补测；作为已知限制在 Gate 披露中明示） | 工程负责人（执行）；产品负责人（注入缝决策）；独立评测负责人（评测） | RESOLVED（产品负责人 2026-10-09 批准，维持 CR-18 选项 B 延续处置：DEFERRED 贯穿 P2 关闭切片、已知限制披露、首个 S2 迭代补测；本处置不改变 G5 第 8 项既有 DEFERRED 记录） |
-| OBL-02 | 延迟测量方法定义（G5 第 9 项 DEFERRED，2026-10-09；风险 R3） | 定义延迟测量方法（环境 / 模型 / 请求类别分层、样本窗口），经产品负责人按 E3 批准后方可进行任何延迟指标宣称；S1 当前不设统计阈值、运行耗时登记为参考值 | 任何延迟指标宣称或公开发布评估之前 | 产品负责人（批准）；工程负责人（定义草案） | RESOLVED（2026-10-09：方法草案 v0.1.0 经产品负责人按 E3 批准为 v1.0.0——`obl-02-latency-measurement-method-v1.md`；批准范围仅测量方法，不含统计阈值（PB-03 / PD-08）；任何延迟指标宣称仍须满足方法第 5 节样本纪律并注明分层；公开发布仍须另行满足 E3 统计 Gate） |
+| OBL-02 | 延迟测量方法定义（G5 第 9 项 DEFERRED，2026-10-09；风险 R3） | 定义延迟测量方法（环境 / 模型 / 请求类别分层、样本窗口），经产品负责人按 E3 批准后方可进行任何延迟指标宣称；S1 当前不设统计阈值、运行耗时登记为参考值 | 任何延迟指标宣称或公开发布评估之前 | 产品负责人（批准）；工程负责人（定义草案） | RESOLVED（2026-10-09：方法草案 v0.1.0 经产品负责人按 E3 批准为 v1.0.0——`obl-02-latency-measurement-method-v1.md`；批准范围仅测量方法，不含统计阈值（PB-03 / PD-08）；任何延迟指标宣称仍须满足方法第 5 节样本纪律并注明分层；公开发布仍须另行满足 E3 统计 Gate）；测量执行已履行（CR-22，2026-10-09：OBL02-LATENCY-0001——16 分层 / 480 提交 / 16/16 案例 / 12/12 断言 / 退出码 0；证据 `artifacts/evidence/runs/OBL02-LATENCY-0001/`；记录 P3-S1-OBL02-RECORD-01 v1.0.0；G5 第 9 项关闭待角色 5 独立评测人签署） |
 | OBL-03 | 黄金案例套件（G3 Gate；P2 G08 黄金案例回归套件义务；G5 第 3 项裁决 N/A——S1 范围外） | 创建并执行黄金案例回归套件（跨迭代回归基准），作为 G3 Gate 证据；S1 范围已冻结（PD-05），本义务不扩大 S1 范围 | S2 / P2 关闭切片（P2 关闭收束前）；G3 保持 NOT PASSED 直至套件执行并通过 | 产品负责人（范围批准）；工程负责人（执行）；独立评测负责人（评测） | 履行完成（2026-10-09：G3-GOLDEN-0001 关闭切片执行通过——32/32 PASS（G01–G08 × 四维度），断言 A1–A10 通过，无 DEFERRED 登记；PD-19 延期义务经 PD-21 关闭切片履行；G3 Gate 判定 PASS（角色 5 独立评测负责人 2026-10-09 裁决并签署，P2-G3-WORKSHEET-01 v1.0.0）；**G3 PASSED**） |
 
 ## G6 产品债务处置表（PB-01…PB-04）
