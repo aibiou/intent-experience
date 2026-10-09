@@ -279,7 +279,7 @@
 - **严重度：** N/A（语义冻结登记，非冲突）。
 - **决策负责人：** 产品负责人（用户本人，PD-15）。
 - **所需变更：** 实施 F-2（feat(s2a-f2)）→ 动态证据 S2A-F2-0001 → 迭代记录写回。
-- **状态：** FROZEN（2026-10-09：变更文本冻结 + Steward 确认完成；F-2 实施授权生效）。
+- **状态：** IMPLEMENTED（2026-10-09：F-2 实施完成——产品源码三文件（`src/experience/creation.ts` 新增 / `src/experience/runtime.ts` / `src/experience/policy.ts`，提交 `1fcadaf`）；动态证据 S2A-F2-0001 通过（10/10 案例、16/16 断言、退出码 0，提交 `c2155df`；材料 `artifacts/evidence/runs/S2A-F2-0001/`）；迭代记录 P3-S2A-IMPL-ITER-F2 v1.0.0；readiness-record v1.20.0。退出码 0 不设置任何 Gate 为 PASS；G5 独立评测 NOT RUN（staged 审阅包待独立评测人审阅））。
 
 ## S2 范围裁决登记（PD-23）
 
