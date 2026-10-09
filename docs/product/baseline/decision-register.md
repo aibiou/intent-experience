@@ -281,6 +281,16 @@
 - **所需变更：** 实施 F-2（feat(s2a-f2)）→ 动态证据 S2A-F2-0001 → 迭代记录写回。
 - **状态：** IMPLEMENTED（2026-10-09：F-2 实施完成——产品源码三文件（`src/experience/creation.ts` 新增 / `src/experience/runtime.ts` / `src/experience/policy.ts`，提交 `1fcadaf`）；动态证据 S2A-F2-0001 通过（10/10 案例、16/16 断言、退出码 0，提交 `c2155df`；材料 `artifacts/evidence/runs/S2A-F2-0001/`）；迭代记录 P3-S2A-IMPL-ITER-F2 v1.0.0；readiness-record v1.20.0。退出码 0 不设置任何 Gate 为 PASS；G5 独立评测 NOT RUN（staged 审阅包待独立评测人审阅））。
 
+## S2a F-3 语义冻结登记（CR-20）
+
+- **证据：** S2A-F3-SEMANTIC-FREEZE-01 v1.0.0（`../p3-s1/s2a-f3-semantic-freeze-staged.md`——§1 语义完备性评估：G07 全部 8 项语义元素在 frozen 源（C05.2/C05.3 / 08 号 §10–§13/§16/§27/§28 / Evaluation System V1 §5 G07 / S1 §37）中可机械派生、无产品语义空缺；§2 裁决区 D-01…D-05 全项裁决；§3 policy_v1.3.0 变更文本；§4 state_machine_v1.2.0 变更文本；§5 实施与证据计划大纲；§6 签署区产品负责人 + C1/C2/C3 Steward 确认完成）；P3-S2-IMPL-AUTH-01 v1.2.0 §2(2)/§3(3)/§4。
+- **影响：** S2a F-3（完整 G07 Correction 语义）语义文本冻结（2026-10-09 产品负责人签署"签署"）——D-01 选项 A（MODIFY 别名登记 + 创作会话路由保护：分类器登记 08 §10 修改类型族为 CORRECTION 用户面别名；活跃创作会话内 CORRECTION 分类输入先经 RESTORE 预检、再经创作修改族预检，命中 → 创作解释（CREATE 伞形 + 补丁轮次），冲突判据 → ASK（08 §16），未命中 → 通用 CORRECTION 路径）；D-02 选项 A（纠正目标确定性规则派生，无新增模型调用）；D-03 选项 A（创作域由 F-2 补丁机制承载不重建，非创作域重评估链路完整化）；D-04 选项 A（RESTORE_PREVIOUS_VERSION 登记为 CORRECTION 用户面恢复子型——创作域回滚提交版本单调 +1，非创作域重评估 reason=restore_previous_version，不新增轴触发器）；D-05 选项 A（纠正域事件 correction_applied / correction_restored，C6 §14 命名模式）。
+- **建议：** F-3 实施按冻结文本 §5 大纲执行（classifier.ts MODIFY/RESTORE 词表；新增 correction.ts；creation.ts 版本快照历史 + restore 补丁操作；policy_v1.3.0；runtime.ts 路由扩展 + executeCorrect 扩展；events.ts 纠正域事件词表；golden 套件 policy_version 断言同步）；证据执行器 tools/evidence/src/s2a-f3.mjs（8 案例草案见冻结文本 §5）；独立评测人（角色 5）保留审阅与否决权。
+- **严重度：** N/A（语义冻结登记，非冲突）。
+- **决策负责人：** 产品负责人（用户本人，PD-15）。
+- **所需变更：** 实施 F-3（feat(s2a-f3)）→ 动态证据 S2A-F3-0001 → 迭代记录写回。
+- **状态：** FROZEN（2026-10-09 产品负责人签署"签署"；C1/C2/C3 Steward 确认完成；F-3 实施授权生效）。
+
 ## S2 范围裁决登记（PD-23）
 
 - **证据：** S2-SCOPE-PROPOSAL-01 v1.1.0（`s2-scope-proposal-v1.md`，§5 裁决区已填写、§6 裁决记录）；S1 规范 §37（P3-S2 九项）/ §11（保留动作 DEEPEN / SIMPLIFY / REFRAME / CREATE / MODIFY / SEARCH）；acceptance-mapping §B / §C；07 号契约（Memory & User State Engine：六类数据状态、优先级链、生命周期）；E2 Stage 5（Creation 编排）；PODR-001 PD-05 / PD-06 / PD-07 / PD-20 / PD-22；P2-SIGNOFF-01 遗留债务 D-01 / D-02 / D-03。
