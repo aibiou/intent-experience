@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G08-FR","event":"trace_started","at":"2026-10-09T08:46:59.466Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G08 Failure/Recovery；授权 §5.7（升级路径零副作用）；PD-07；PD-21","goldenCase":"G08","dimension":"FAILURE_RECOVERY"}
-{"caseId":"G3-GOLDEN-0001:G08-FR","event":"trace_completed","at":"2026-10-09T08:46:59.840Z","startedAt":"2026-10-09T08:46:59.466Z","durationMs":374,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G08-FR","event":"trace_started","at":"2026-10-09T09:35:36.883Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G08 Failure/Recovery；授权 §5.7（升级路径零副作用）；PD-07；PD-21","goldenCase":"G08","dimension":"FAILURE_RECOVERY"}
+{"caseId":"G3-GOLDEN-0001:G08-FR","event":"trace_completed","at":"2026-10-09T09:35:37.274Z","startedAt":"2026-10-09T09:35:36.883Z","durationMs":391,"result":"PASS","pass":true}

@@ -75,10 +75,37 @@ const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
  * decision-trace reason=restore_previous_version；不新增体验轴
  * 触发器）。
  * 不变：CORRECTION → EXPLAIN、WHAT_IF → SIMULATE 关闭切片映射；
- * SEARCH 仍表外（PD-06）；WHAT_IF 完整分支随 F-4（policy_v1.4.0）
- * 版本化变更冻结实施（P3-S2-IMPL-AUTH-01 v1.2.0 §4 逐切片升版）。
+ * SEARCH 仍表外（PD-06）。
  */
-export const POLICY_VERSION = 'policy_v1.3.0';
+/**
+ * policy_v1.4.0（S2a F-4 版本化变更，2026-10-09 产品负责人批准——
+ * S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 §3，分层——D-01 选项 A：
+ * 第一层随本版生效；第二层分支语义经 D-02…D-04 产品负责人版本化
+ * 定义后于本版冻结文本内补写生效）：
+ * 变更 1——WHAT_IF 多轮模拟持久化（第一层，frozen 源可机械派生）：
+ * WHAT_IF → SIMULATE 映射不变；执行语义由 PD-06 单次模拟提案扩展
+ * 为多轮模拟持久化——每轮模拟结果经模拟域事件登记（simulation_recorded，
+ * D-05 选项 A：properties 含 fact / inference / hypothesis / simulation
+ * 四元分离字段 + 源输入摘要，模拟结果不得表现为事实——E2 Stage 3 /
+ * E8-G2-CC07）；模拟历史会话内持久（D-04 选项 A——07 §3 Session State
+ * 纪律，跨会话属 F-5）；多轮模拟阶段迁移保持 SIMULATION（13 §15.3）；
+ * 每次合法提交版本恰好 +1（S1-12；stale 拒绝）；不新建 Session /
+ * Experience（G03-N 不变式）。
+ * 变更 2——WHAT_IF 分支语义（第二层，经 D-02…D-04 裁决补写生效）：
+ * 轴外分支子状态机（D-02 选项 A——分支记录含 branch_id / 源模拟轮次 /
+ * 模拟结果记录（四元分离）/ 版本 / 生命周期状态；体验阶段轴不变，
+ * WHAT_IF 轮次保持 SIMULATION 阶段；分支模拟结果默认不回流为主线
+ * 结论）+ 分支生命周期四操作最小集（D-03 选项 A——CREATE（WHAT_IF
+ * 首轮自动创建分支记录）/ SWITCH（显式切换激活分支）/ ABANDON（放弃
+ * 分支）/ RETURN（返回主线模拟上下文）；操作识别为确定性规则词表，
+ * 具体词表为实现细节）+ 分支状态会话内持久、会话结束失效（D-04 选项 A）。
+ * 不变：STOP / CHANGE_DIRECTION / DIRECT_ANSWER / CREATE / CORRECTION /
+ * WHY 映射；SEARCH 仍表外（PD-06）；SIMULATION → CREATION 衔接
+ * （13 §15.5，CREATE 触发器规则已覆盖）；Minimal Memory 语义随 F-5
+ * （policy_v1.5.0）版本化变更冻结实施（P3-S2-IMPL-AUTH-01 v1.2.0 §4
+ * 逐切片升版）。
+ */
+export const POLICY_VERSION = 'policy_v1.4.0';
 
 export type PolicyResolution =
   | { ok: true; semanticAction: SemanticAction; policyAction: PolicyAction }

@@ -38,6 +38,7 @@ import { ExperienceStateStore, type ExperienceState } from './state-store';
 import {
   CORRECTION_APPLIED_EVENT,
   CORRECTION_RESTORED_EVENT,
+  SIMULATION_RECORDED_EVENT,
   type EventSink,
   type ExperienceEvent,
   EventRecorder,
@@ -58,6 +59,13 @@ import {
   type CreationObject,
   type CreationPatch,
 } from './creation';
+import {
+  SimulationStore,
+  deriveSimulationSeparation,
+  interpretBranchOperation,
+  type BranchOperation,
+  type SimulationSnapshot,
+} from './simulation';
 import { deriveCorrectionTarget, isRestoreIntent } from './correction';
 import type { AuditSink } from './audit';
 
@@ -197,6 +205,7 @@ export class ExperienceRuntime {
   private readonly store = new ExperienceStateStore();
   /** 创作状态存储（G04 完整 Creation 语义；S2A-F2-SEMANTIC-FREEZE-01 §4/D-03 选项 A——会话内持久）。 */
   private readonly creations = new CreationStore();
+  private readonly simulations = new SimulationStore();
   /** 语义动作历史（创作上下文继承派生用；08 §6 五项。仅登记已提交动作）。 */
   private readonly actionHistory = new Map<string, SemanticAction[]>();
   private readonly recorder: EventRecorder;
@@ -491,6 +500,20 @@ export class ExperienceRuntime {
     return { ok: true, creation: record.creation, active: record.active };
   }
 
+  /**
+   * 模拟域快照查询（S2a F-4——E5 进程内形态取证入口；
+   * D-04 选项 A 会话内持久：分支 / 模拟历史 / 当前激活分支）。
+   */
+  getSimulation(
+    experienceId: string,
+  ): { ok: true; simulation: SimulationSnapshot } | { ok: false; error: RuntimeError } {
+    const snapshot = this.simulations.getSnapshot(experienceId);
+    if (!snapshot) {
+      return { ok: false, error: runtimeError('INVALID_REQUEST', `no simulation context for experience: ${experienceId}`) };
+    }
+    return { ok: true, simulation: snapshot };
+  }
+
   // ---------------------------------------------------------------------
   // S1-09/S1-10/S1-11 核心：提交体验事件（POST /experience/{id}/event）
   // ---------------------------------------------------------------------
@@ -708,6 +731,17 @@ export class ExperienceRuntime {
     const stateBefore: ExperienceView = { status: current.status, stage: current.stage };
     const decisionId = nextDecisionId();
 
+    // --- WHAT_IF 分支操作路由（D-03 选项 A；policy_v1.4.0 变更 2） ---
+    // WHAT_IF 分类输入经分支操作词表识别（确定性规则词表——同分类器
+    // 纪律，具体词表为实现细节）：命中 → 分支操作轮次（确定性系统
+    // 回合，无 LLM 提案——llm_used=false）；未命中 → 通用 SIMULATE
+    // 执行路径（每轮模拟结果登记 simulation_recorded——变更 1；
+    // WHAT_IF 首轮自动创建分支记录——D-03 选项 A CREATE）。
+    const branchOperation =
+      policy.policyAction === 'SIMULATE'
+        ? interpretBranchOperation(input.rawInput)
+        : null;
+
     // --- 策略分支（S1-06；P-05：LLM 不允许自己选择最终 Action） ------
     let branchResult: SubmissionResult;
     if (creationIntent?.kind === 'modification') {
@@ -722,6 +756,19 @@ export class ExperienceRuntime {
       branchResult = await this.executeChange(input, session, experience, current, stateBefore, policy, decisionId);
     } else if (policy.policyAction === 'CREATE') {
       branchResult = await this.executeCreate(input, session, experience, current, stateBefore, policy, decisionId);
+    } else if (branchOperation) {
+      // WHAT_IF 分支操作轮次（D-03 选项 A——四操作最小集
+      // SWITCH / ABANDON / RETURN；CREATE 由模拟轮次自动执行）。
+      branchResult = await this.executeBranchOperation(
+        input,
+        session,
+        experience,
+        current,
+        stateBefore,
+        policy,
+        decisionId,
+        branchOperation,
+      );
     } else if (policy.semanticAction === 'CORRECTION') {
       // CORRECTION 的 Policy Action 为 EXPLAIN（重评估落到合法动作），
       // 须在 executeContentGeneration 兜底前按语义动作分派（PD-21 关闭切片）。
@@ -894,6 +941,9 @@ export class ExperienceRuntime {
       decisionId,
       stateVersion: commit.state.stateVersion,
     });
+    // 模拟域失效（D-04 选项 A——分支状态会话内持久，体验
+    // 完成即失效；事件为不可变权威事实——C6 §5）。
+    this.simulations.invalidate(input.experienceId);
 
     // Session 收尾：ACTIVE → ENDING → ENDED（§4.3/§4.4；ENDING 非常短）。
     const sessionEnding = transitionSession(session.state, 'SESSION_ENDING');
@@ -1230,6 +1280,9 @@ export class ExperienceRuntime {
       decisionId,
       stateVersion: commit.state.stateVersion,
     });
+    // 模拟域失效（D-04 选项 A——方向变更后旧方向模拟上下文
+    // 失效；下一方向 WHAT_IF 首轮自动创建新分支——D-03 CREATE）。
+    this.simulations.invalidate(input.experienceId);
 
     // 8. generation epoch 切换（旧 generation 迟到达提交由此守卫拒绝）。
     this.activeGenerations.set(input.experienceId, generationId);
@@ -1524,6 +1577,9 @@ export class ExperienceRuntime {
         decisionId,
         stateVersion: commit.state.stateVersion,
       });
+      // 模拟域失效（D-04 选项 A——相邻重复 CREATE 取代在途
+      // 创作会话，旧方向模拟上下文同步失效——与创作会话纪律一致）。
+      this.simulations.invalidate(input.experienceId);
     }
     this.counters.creation += 1;
     const creationId = `creation_${String(this.counters.creation).padStart(4, '0')}`;
@@ -2313,6 +2369,236 @@ export class ExperienceRuntime {
   }
 
   // ---------------------------------------------------------------------
+  // WHAT_IF 分支操作执行（S2a F-4；D-03 选项 A——四操作最小集
+  // SWITCH / ABANDON / RETURN；CREATE 由模拟轮次自动执行）
+  // ---------------------------------------------------------------------
+
+  private async executeBranchOperation(
+    input: {
+      experienceId: string;
+      sessionId: string;
+      requestId: string;
+      expectedStateVersion: number;
+      signal?: AbortSignal;
+      rawInput: string;
+    },
+    session: SessionRecord,
+    experience: ExperienceRecord,
+    current: ExperienceState,
+    stateBefore: ExperienceView,
+    policy: { semanticAction: SemanticAction; policyAction: PolicyAction },
+    decisionId: string,
+    branchOperation: BranchOperation,
+  ): Promise<SubmissionResult> {
+    const now = new Date().toISOString();
+
+    // 1. 分支操作前置校验（确定性——拒绝先于任何写入；
+    //    失败不消耗版本号——OBL-01 同族纪律）。
+    const validation = this.simulations.validateBranchOperation(input.experienceId, branchOperation);
+    if (!validation.ok) {
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'invalid_state_transition',
+        reasonSecondary: validation.reason,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError('INVALID_STATE_TRANSITION', validation.reason, false),
+      };
+    }
+
+    // 2. 取消在途 generation（分支操作轮次与在途生成互斥——
+    //    P-02 同族纪律）。
+    await this.interruptGeneration(input.experienceId, 'simulation_branch_operation');
+
+    // 3. 状态迁移合法性校验（WHAT_IF_SIMULATE 触发器逐步合法
+    //    校验——分支操作轮次保持 SIMULATION 阶段，13 §15.3；
+    //    体验阶段轴不变——D-02 选项 A）。
+    const steps: ExperienceTrigger[] = ['USER_ACTION', 'WHAT_IF_SIMULATE'];
+    let view: ExperienceView = { status: current.status, stage: current.stage };
+    for (const trigger of steps) {
+      const step = transitionExperience(view, trigger);
+      if (!step.ok) {
+        await this.writeDecisionTrace({
+          decisionId,
+          sessionId: input.sessionId,
+          experienceId: input.experienceId,
+          semanticAction: policy.semanticAction,
+          stateBefore,
+          stateBeforeVersion: current.stateVersion,
+          stateAfter: null,
+          selectedAction: policy.policyAction,
+          reasonPrimary: 'invalid_state_transition',
+          reasonSecondary: `step ${trigger} illegal from ${view.status}/${view.stage}`,
+          llmUsed: false,
+          userOverride: true,
+          inputEvent: null,
+          intentBefore: null,
+        });
+        return {
+          ok: false,
+          error: runtimeError(
+            'INVALID_STATE_TRANSITION',
+            `step ${trigger} illegal from ${view.status}/${view.stage} (branch operation rounds keep the SIMULATION stage, 13 §15.3)`,
+            true,
+          ),
+        };
+      }
+      view = step.next;
+    }
+
+    // 4. 版本化提交（分支操作轮次——阶段保持 SIMULATION，
+    //    lastSemanticAction=WHAT_IF；每次合法提交恰好 +1，S1-12）。
+    const commit = await this.store.commit(input.experienceId, input.expectedStateVersion, (state) => ({
+      ...state,
+      status: view.status,
+      stage: view.stage,
+      waitingForUser: false,
+      lastSemanticAction: 'WHAT_IF',
+      updatedAt: now,
+    }));
+    if (!commit.ok) {
+      await this.recordEvent('state_version_conflict', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId },
+        source: { layer: 'runtime', component: 'state-store' },
+        properties: {
+          expected_state_version: input.expectedStateVersion,
+          current_state_version: commit.currentStateVersion,
+          trigger: 'WHAT_IF',
+        },
+      });
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'state_version_conflict',
+        reasonSecondary: `expected ${input.expectedStateVersion}, current ${commit.currentStateVersion}`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'STATE_VERSION_CONFLICT',
+          `stale expected_state_version: expected ${input.expectedStateVersion}, current ${commit.currentStateVersion} (no overwrite, S1-12)`,
+          false,
+          { expected_state_version: input.expectedStateVersion, current_state_version: commit.currentStateVersion },
+        ),
+      };
+    }
+
+    // 5. 分支操作应用（版本化提交后——D-02/D-03 选项 A 形态；
+    //    分支模拟结果默认不回流为主线结论——D-02 选项 A 推导）。
+    const applied = this.simulations.applyBranchOperation(input.experienceId, branchOperation, now);
+
+    // 6. generation epoch 登记 + 迁移事件 + 决策追踪
+    //    （确定性系统回合——llm_used=false）。
+    this.counters.generation += 1;
+    const generationId = `gen_synthetic_${String(this.counters.generation).padStart(4, '0')}`;
+    this.activeGenerations.set(input.experienceId, generationId);
+    const controller = new AbortController();
+    this.generationControllers.set(input.experienceId, controller);
+
+    await this.recordEvent('state_transitioned', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: commit.state.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'state-machine' },
+      properties: {
+        from: { status: stateBefore.status, stage: stateBefore.stage },
+        event: policy.semanticAction,
+        action: policy.policyAction,
+        to: { status: commit.state.status, stage: commit.state.stage },
+        state_version_before: current.stateVersion,
+        state_version_after: commit.state.stateVersion,
+        steps,
+      },
+    });
+
+    await this.writeDecisionTrace({
+      decisionId,
+      sessionId: input.sessionId,
+      experienceId: input.experienceId,
+      semanticAction: policy.semanticAction,
+      stateBefore,
+      stateBeforeVersion: current.stateVersion,
+      stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+      selectedAction: policy.policyAction,
+      reasonPrimary: 'explicit_user_direction',
+      reasonSecondary: `WHAT_IF branch operation ${branchOperation.operation}: ${applied.summary}`,
+      llmUsed: false,
+      userOverride: true,
+      inputEvent: null,
+      intentBefore: null,
+    });
+
+    // 7. 分支操作结果流（单块确定性内容——无 LLM 提案，
+    //    同创作 ASK 轮纪律）。
+    const operationLabel =
+      branchOperation.operation === 'SWITCH'
+        ? '切换激活分支'
+        : branchOperation.operation === 'ABANDON'
+          ? '放弃分支'
+          : '返回主线模拟上下文';
+    const header: SubmissionHeader = {
+      type: 'submission',
+      accepted: true,
+      experience_id: input.experienceId,
+      session_id: input.sessionId,
+      request_id: input.requestId,
+      policy_decision: {
+        decision_id: decisionId,
+        policy_version: POLICY_VERSION,
+        semantic_action: policy.semanticAction,
+        selected_action: policy.policyAction,
+        reason: 'simulation_branch_operation',
+      },
+      state_version: commit.state.stateVersion,
+      state: { status: commit.state.status, stage: commit.state.stage, waiting_for_user: commit.state.waitingForUser },
+      at: now,
+    };
+    const combinedSignal = input.signal
+      ? AbortSignal.any([input.signal, controller.signal])
+      : controller.signal;
+    const stream = this.wrapGenerationStream({
+      header,
+      experienceId: input.experienceId,
+      generationId,
+      streamOptions: {
+        semanticAction: policy.semanticAction,
+        policyAction: policy.policyAction,
+        fixtureId: 'simulation_branch_operation',
+        chunks: [`分支操作（确定性规则词表，D-03 选项 A）：${operationLabel}——${applied.summary}（流式结束）`],
+        signal: combinedSignal,
+        chunkDelayMs: 0,
+        audit: this.auditSink,
+      },
+      completionCommit: true,
+      stateTransitionedEvent: undefined,
+    });
+
+    return { ok: true, header, stream, generationId };
+  }
+
+  // ---------------------------------------------------------------------
   // CORRECTION 执行（PD-21 关闭切片：最小 Correction；G07）
   // ---------------------------------------------------------------------
 
@@ -2848,6 +3134,44 @@ export class ExperienceRuntime {
       },
     });
 
+    // WHAT_IF 模拟结果登记（policy_v1.4.0 变更 1；D-05 选项 A）：
+    // 每轮模拟结果经模拟域事件登记——四元分离（事实 / 推断 /
+    // 假设 / 模拟结果——E8-G2-CC07），模拟结果不得表现为事实
+    // （事件 properties 互斥注记 separation_invariant + 语料分离
+    // 格式双重保证）；模拟历史会话内持久（D-04 选项 A）；
+    // WHAT_IF 首轮自动创建分支记录（D-03 选项 A CREATE——
+    // 无激活分支上下文时自动开启新分支）。
+    if (policy.policyAction === 'SIMULATE') {
+      const recorded = this.simulations.recordRound({
+        experienceId: input.experienceId,
+        sessionId: input.sessionId,
+        sourceInput: input.rawInput,
+        separation: deriveSimulationSeparation(proposal.content),
+        stateVersion: commit.state.stateVersion,
+        proposalId: proposal.proposal_id,
+        generationId,
+        now,
+      });
+      await this.recordEvent(SIMULATION_RECORDED_EVENT, {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: commit.state.stateVersion, request_id: input.requestId, decision_id: decisionId },
+        source: { layer: 'runtime', component: 'simulation-runtime' },
+        properties: {
+          simulation_id: recorded.round.roundId,
+          round: recorded.round.round,
+          branch_id: recorded.round.branchId,
+          branch_created: recorded.branchCreated,
+          source_input: recorded.round.sourceInput,
+          fact: recorded.round.separation.fact,
+          inference: recorded.round.separation.inference,
+          hypothesis: recorded.round.separation.hypothesis,
+          simulation: recorded.round.separation.simulation,
+          separation_invariant: 'simulation_result_is_not_fact',
+          proposal_id: proposal.proposal_id,
+          generation_id: generationId,
+        },
+      });
+    }
     await this.writeDecisionTrace({
       decisionId,
       sessionId: input.sessionId,

@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G02-B","event":"trace_started","at":"2026-10-09T08:46:47.585Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G02 Boundary；相邻重复输入；版本链 +1 不变式","goldenCase":"G02","dimension":"BOUNDARY"}
-{"caseId":"G3-GOLDEN-0001:G02-B","event":"trace_completed","at":"2026-10-09T08:46:48.331Z","startedAt":"2026-10-09T08:46:47.585Z","durationMs":746,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G02-B","event":"trace_started","at":"2026-10-09T09:35:25.046Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G02 Boundary；相邻重复输入；版本链 +1 不变式","goldenCase":"G02","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G02-B","event":"trace_completed","at":"2026-10-09T09:35:25.799Z","startedAt":"2026-10-09T09:35:25.046Z","durationMs":753,"result":"PASS","pass":true}

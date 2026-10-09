@@ -80,6 +80,16 @@ export const EVENT_VERSION = '1.0.0';
 export const CORRECTION_APPLIED_EVENT = 'correction_applied';
 export const CORRECTION_RESTORED_EVENT = 'correction_restored';
 
+/**
+ * 模拟域事件词表（S2a F-4；D-05 选项 A；C6 §14 命名模式
+ * <domain>_<past_participle>——同 correction_applied 先例；
+ * event_version 1.0.0 不变——词表扩展经 C6 §14 派生）。
+ * properties 含 fact / inference / hypothesis / simulation 四元
+ * 分离字段（E8-G2-CC07 字段化承载）+ 源输入摘要；模拟结果
+ * 不得表现为事实（separation_invariant 互斥注记）。
+ */
+export const SIMULATION_RECORDED_EVENT = 'simulation_recorded';
+
 const EVENT_ID_PATTERN = /^evt_[a-z0-9]+$/i;
 const ISO8601_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 const ALLOWED_LAYERS: ReadonlySet<string> = new Set<EventLayer>([

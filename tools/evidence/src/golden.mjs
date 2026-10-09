@@ -1340,7 +1340,7 @@ async function caseG04Normal(trace) {
   const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
   const expected = {
     classification: 'CREATE（"做成"模式；PD-21 关闭切片）',
-    policy: 'CREATE → CREATE（policy_v1.3.0）',
+    policy: 'CREATE → CREATE（policy_v1.4.0）',
     stream: 'submission → chunks → done → state_updated',
     content: createFixture.chunks.join(''),
     headerState: 'ACTIVE/CREATION（迁移提交时视图）',
@@ -1373,7 +1373,7 @@ async function caseG04Normal(trace) {
     classification.semanticAction === 'CREATE' &&
     create.ok &&
     actual.policyAction === 'CREATE' &&
-    actual.policyVersion === 'policy_v1.3.0' &&
+    actual.policyVersion === 'policy_v1.4.0' &&
     actual.stateVersion === 5 &&
     actual.headerState === 'ACTIVE/CREATION' &&
     createEvents[0].type === 'submission' &&
@@ -1386,7 +1386,7 @@ async function caseG04Normal(trace) {
     actual.whyRequestedEvents === 1 &&
     actual.stateTransitionedCreate &&
     actual.decisionTraceSemanticAction === 'CREATE' &&
-    actual.decisionTracePolicyVersion === 'policy_v1.3.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v1.4.0' &&
     actual.decisionTraceReason === 'explicit_user_direction' &&
     finalState.ok &&
     finalState.state.stateVersion === 6 &&
@@ -1680,7 +1680,7 @@ async function caseG07Normal(trace) {
   const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
   const expected = {
     classification: 'CORRECTION（"不是"模式；PD-21 关闭切片）',
-    policy: 'CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v1.3.0）',
+    policy: 'CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v1.4.0）',
     stream: 'submission → chunks → done → state_updated',
     content: correctionFixture.chunks.join(''),
     headerState: 'ACTIVE/UNDERSTANDING（迁移提交时视图；阶段保持）',
@@ -1714,7 +1714,7 @@ async function caseG07Normal(trace) {
     classification.semanticAction === 'CORRECTION' &&
     correct.ok &&
     actual.selectedAction === 'EXPLAIN' &&
-    actual.policyVersion === 'policy_v1.3.0' &&
+    actual.policyVersion === 'policy_v1.4.0' &&
     actual.stateVersion === 5 &&
     actual.headerState === 'ACTIVE/UNDERSTANDING' &&
     correctEvents[0].type === 'submission' &&
@@ -1728,7 +1728,7 @@ async function caseG07Normal(trace) {
     actual.interrupted.filter((reason) => reason === 'correction').length === 1 &&
     actual.stateTransitionedCorrection &&
     actual.decisionTraceSemanticAction === 'CORRECTION' &&
-    actual.decisionTracePolicyVersion === 'policy_v1.3.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v1.4.0' &&
     actual.decisionTraceReason === 'reassess' &&
     finalState.ok &&
     finalState.state.stateVersion === 6 &&
@@ -2989,7 +2989,7 @@ async function main() {
       .filter((entry) => entry.path.startsWith('P3-S1'))
       .map((entry) => ({ source: `docs/product/reference/${entry.path}`, sha256: entry.computed, archiveIntegrity: entry.match ? 'VERIFIED vs SHA256SUMS' : 'MISMATCH' })),
     stateMachine: { version: 'state_machine_v1.0.0', source: 'SRC-05 / 13', closureSlice: 'CREATION 阶段 + CREATE/CORRECTION 触发（PD-21 关闭切片最小形态）；完整 WHAT_IF 分支 / Creation / Correction 属 S2' },
-    policy: { version: 'policy_v1.3.0（S2a F-3 版本化变更）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）；SEARCH 仍表外（PD-06）；完整 WHAT_IF 语义 DEFERRED 至 F-4（P3-S2-IMPL-AUTH-01 v1.2.0 §4）' },
+    policy: { version: 'policy_v1.4.0（S2a F-3 版本化变更）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.4.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）；SEARCH 仍表外（PD-06）；完整 WHAT_IF 语义 DEFERRED 至 F-4（P3-S2-IMPL-AUTH-01 v1.2.0 §4）' },
     api: { version: 'api_v1.0.0', source: 'SRC-07 / 16' },
     event: { version: 'analytics_v1.0.0', source: 'SRC-08 / 17' },
     evaluation: { contract: 'C7', version: 'evaluation_v1.0.0', note: 'G5 16 项评测包已执行并双签署（P3-S1-G5-WORKSHEET-01 v1.7.0）；G3 逐项判定属本运行后的独立评测范畴' },

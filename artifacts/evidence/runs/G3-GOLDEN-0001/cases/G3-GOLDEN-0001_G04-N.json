@@ -6,7 +6,7 @@
   "inputFault": "无（正向路径：显式 CREATE）",
   "expected": {
     "classification": "CREATE（\"做成\"模式；PD-21 关闭切片）",
-    "policy": "CREATE → CREATE（policy_v1.3.0）",
+    "policy": "CREATE → CREATE（policy_v1.4.0）",
     "stream": "submission → chunks → done → state_updated",
     "content": "已接收创造意图（合成数据）。在当前探索上下文上构建最小可玩形态：沿用本会话的问题与已有推断，产出首个可试玩构建并等你反馈。（流式结束）",
     "headerState": "ACTIVE/CREATION（迁移提交时视图）",
@@ -17,7 +17,7 @@
   "actual": {
     "classification": "CREATE",
     "policyAction": "CREATE",
-    "policyVersion": "policy_v1.3.0",
+    "policyVersion": "policy_v1.4.0",
     "stateVersion": 5,
     "headerState": "ACTIVE/CREATION",
     "streamTypes": [
@@ -41,7 +41,7 @@
     "whyRequestedEvents": 1,
     "stateTransitionedCreate": true,
     "decisionTraceSemanticAction": "CREATE",
-    "decisionTracePolicyVersion": "policy_v1.3.0",
+    "decisionTracePolicyVersion": "policy_v1.4.0",
     "decisionTraceReason": "explicit_user_direction",
     "finalState": "WAITING/CREATION",
     "finalStateVersion": 6,
@@ -60,7 +60,7 @@
   ],
   "evidence": {
     "trace": "traces/G3-GOLDEN-0001:G04-N.jsonl",
-    "traceSha256": "406ce7cc2f44a16522c9300b43aa9d35fca42d29fc33676dabe50cc50489653e",
+    "traceSha256": "420d4c9b6838337e3f398d632ef33f3549e0a0fe3341918b79de6cf3980fc9a9",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },
