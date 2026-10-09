@@ -1,9 +1,9 @@
 # 产品文档权威来源与版本登记册
 
 **编号：** BASELINE-SOT-01
-**版本：** 0.2.0
+**版本：** 0.3.0（2026-10-09 增补："状态权威记录登记"与"治理规则索引"两节——状态变更单一权威记录机制与治理规则位置索引）
 **状态：** 产品负责人已选定契约来源；G1 证据与责任人复核仍待完成
-**用途：** 记录归档文档的来源与拟议权威角色。登记不等于批准、冻结或解除阻塞。
+**用途：** 记录归档文档的来源与拟议权威角色；另登记各类治理状态的权威记录（单一状态源）与治理规则位置。登记不等于批准、冻结或解除阻塞。
 
 ## 判定规则
 
@@ -60,4 +60,36 @@
 
 ## 产品负责人来源裁决更新
 
-PODR-001 / PD-03、PD-04 已选定 C1–C7 权威来源，具体版本、哈希、职责角色及候选 / 待复核状态见 contract-authority-baseline-v1.md。该产品裁决解决“采用哪份来源”的问题，但不表示 E1 所要求的 G1 已通过：责任角色复核、C4 范围完整性确认及独立静态核验仍待完成。E8 现行状态仍是 P2 CLOSURE CANDIDATE / BLOCKED。
+PODR-001 / PD-03、PD-04 已选定 C1–C7 权威来源，具体版本、哈希、职责角色及候选 / 待复核状态见 contract-authority-baseline-v1.md。该产品裁决解决”采用哪份来源”的问题，但不表示 E1 所要求的 G1 已通过：责任角色复核、C4 范围完整性确认及独立静态核验仍待完成。E8 现行状态仍是 P2 CLOSURE CANDIDATE / BLOCKED。
+
+## 状态权威记录登记（2026-10-09 增补）
+
+**规范：** 状态变更只在权威记录登记；其他治理文档仅引用权威记录的编号与版本号，不复述状态细节。既有文档已同步的状态文本保留为时点记录，后续变更按本规范以版本引用方式同步（降低多文档回写成本与不一致风险）。权威记录版本号随每次变更递增。
+
+| 状态类别 | 权威记录 | 位置 |
+|---|---|---|
+| 冲突与未决决策（CR-01…）、G6 处置表 | BASELINE-DECISIONS-01 | `docs/product/baseline/decision-register.md` |
+| 隐私六要素裁决 | P3-S1-PRIVACY-SIX-01 | `docs/product/baseline/signing/privacy-six-elements-approval.md` |
+| G5 16 项评测结论、前置裁决与签署 | P3-S1-G5-WORKSHEET-01 | `docs/product/p3-s1/g5-evaluation-worksheet.md` |
+| 准入与授权状态、G1–G8 判定 | P3-S1-READINESS-01 | `docs/product/p3-s1/readiness-record.md` |
+| 角色矩阵与签署矩阵 | OWNER-ROSTER-01 | `docs/product/baseline/owner-roster-v1.md` |
+| 证据运行事实与独立审计 | P3-S1-IMPL-ITER-001/002/003 | `docs/product/p3-s1/implementation-iteration-f1/f2/f3.md` |
+| 证据操作规范、G5 输入就绪度 | P2-EVIDENCE-E5.1 | `docs/product/baseline/evidence-execution-plan.md` |
+| 归档文档来源权威登记（SRC-01…SRC-36） | 本登记册 BASELINE-SOT-01 | `docs/product/baseline/source-of-truth.md` |
+
+## 治理规则索引（2026-10-09 增补）
+
+| 规则 | 位置 |
+|---|---|
+| 案例状态词汇（NOT RUN / RUNNING / PASS / FAIL / BLOCKED / DEFERRED）与退出码语义（退出码 0 只表示断言通过，不设置任何 Gate 或产品状态） | P2-EVIDENCE-E5.1 §2 |
+| 每次运行必须记录的版本（Run ID、契约 / 代码 / 环境版本与哈希等） | P2-EVIDENCE-E5.1 §3 |
+| 隐私护栏：密钥、访问令牌、原始个人隐私数据不得进入证据文件；真实用户数据收集的六要素前置条件（2026-10-09 已全部裁决签署，禁收护栏解除；ADR-0002 §3 证据沙箱合成数据边界独立生效） | P2-EVIDENCE-E5.1 §3 末段；P3-S1-PRIVACY-SIX-01 |
+| 单案例证据记录最少字段（含 Evaluator 字段：同一人不可兼任同一案例的实现作者与独立评测者） | P2-EVIDENCE-E5.1 §4 |
+| 必测维度（正常 / 边界 / 负向 / 故障；须验证”不应该发生的事情没有发生”） | P2-EVIDENCE-E5.1 §5 |
+| 独立评测与 Gate 责任（实现作者不得自行批准其实现的 Gate；评测人指定与独立性声明；Gate 通过须 16 项适用版本化真实材料 + 独立评测者复核 + 产品负责人正式签署；任何 P0 失败直接阻断；缺项或 NOT RUN 不得被平均分抵消） | P2-EVIDENCE-E5.1 §6、§6.1 末段 |
+| G5 16 项必需评测包与判定公式 | E8（P2-EVIDENCE-8.0）§6；P2-EVIDENCE-E5.1 §6.1 |
+| 角色兼任逐行声明、利益冲突声明不得代填、角色 5 与实现作者冲突时须换人或书面记录隔离 | OWNER-ROSTER-01 头部规则与 §2；PD-15（`docs/product/baseline/product-owner-decisions-v1.md`） |
+| 复核人不得复核自己撰写的内容；Codex 起草方不得兼任 A2 非作者复核人 | PD-15；OWNER-ROSTER-01 §2；独立复核记录（REVIEW-*） |
+| 失败结果必须如实登记，不得重跑至通过为止而不留失败记录 | ADR-0002 §5（`docs/architecture/decisions/ADR-0002-engineering-validation-spike.md`） |
+| 证据沙箱硬边界（仅合成数据；不得产出 Gate / Golden / G2–G5 / A 条件证据等七条禁止） | ADR-0002 §3 |
+| 状态权威记录登记与版本引用规范 | 本登记册 BASELINE-SOT-01”状态权威记录登记”节 |
