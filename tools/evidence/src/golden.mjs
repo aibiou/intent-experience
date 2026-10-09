@@ -3,12 +3,13 @@
 // 语料定义（P2 Exit Gate & Sign-off §8）：P2 核心产品验收 G01–G08，
 // 每个黄金案例至少具备 Normal / Negative / Boundary / Failure-Recovery
 // 四维度 + Expected / Observed / Evidence Location / Evaluator。
-// 本运行执行 S1 已实现黄金子集（G01 Direct Answer / G02 Why /
-// G03 What If 基础单次模拟形态 / G05 Change / G06 Stop）共
-// 5 黄金案例 × 4 维度 = 20 案例。G04 Creation / G07 Correction /
-// G08 Memory Boundary 属 S2 范围（PD-05/PD-06/PD-07 范围冻结），
-// 按 PD-19 登记 DEFERRED TO S2/P2 关闭切片（最小实现与黄金证据
-// 在关闭切片补齐；本运行不扩大 S1 范围）。
+// 本运行执行 8 黄金案例 × 4 维度 = 32 案例：S1 已实现黄金子集
+// （G01 Direct Answer / G02 Why / G03 What If 基础单次模拟形态 /
+// G05 Change / G06 Stop）+ P2 关闭切片最小实现（G04 Creation /
+// G07 Correction / G08 Memory Boundary——PD-21，产品负责人
+// 2026-10-09 批准：CREATE / CORRECTION 语义动作 + CREATION 阶段 +
+// 当前会话方向信号的最小形态）。完整 Creation / Correction / 持久
+// Memory 语义仍属 S2（PD-05/PD-06/PD-07 范围不变；acceptance-mapping §B）。
 //
 // 跨迭代回归基准：案例期望冻结自 F2-GS-0001 行为基线；本运行绑定
 // git HEAD，运行时代码行为漂移即案例失败（回归基线见 run-metadata
@@ -52,6 +53,8 @@ const { directAnswer } = await import('../../../src/experience/fixtures/direct-a
 const { why } = await import('../../../src/experience/fixtures/why');
 const { simulate } = await import('../../../src/experience/fixtures/simulate');
 const { changeDirection } = await import('../../../src/experience/fixtures/change-direction');
+const { create: createFixture } = await import('../../../src/experience/fixtures/create');
+const { correction: correctionFixture } = await import('../../../src/experience/fixtures/correction');
 
 const { sha256OfBuffer, sha256OfFile, hashTree, writeSha256Sums, verifySha256Sums } = await import('./hashes.mjs');
 const { TraceWriter } = await import('./trace.mjs');
@@ -198,6 +201,37 @@ function contentOf(streamEvents) {
 
 function eventsOf(events, type) {
   return events.filter((event) => event.event_type === type);
+}
+
+/** 产品源码文件列举（静态缺席证明；F3-EB-0001 EB-10 同源形态）。 */
+async function listProductTsFiles(dir) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await listProductTsFiles(full)));
+    } else if (entry.name.endsWith('.ts')) {
+      files.push(full);
+    }
+  }
+  return files;
+}
+
+/** 源码中的导入说明符提取（静态导入扫描）。 */
+function importSpecifiers(source) {
+  const specifiers = [];
+  const patterns = [
+    /import\s+[^'"]*?from\s+['"]([^'"]+)['"]/g,
+    /import\s+['"]([^'"]+)['"]/g,
+    /export\s+[^'"]*?from\s+['"]([^'"]+)['"]/g,
+  ];
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      specifiers.push(match[1]);
+    }
+  }
+  return specifiers;
 }
 
 // ---------------------------------------------------------------------------
@@ -1269,7 +1303,1037 @@ async function caseG06FailureRecovery(trace) {
 }
 
 // ---------------------------------------------------------------------------
-// 案例注册表（执行的 20 案例）+ 延期黄金案例（G04/G07/G08，PD-19）
+// 黄金案例（G04 Creation——P2 Exit Gate §8 G04；PD-21 关闭切片最小实现）
+// ---------------------------------------------------------------------------
+
+// --- G04-N：正常路径（WHY 完成后 CREATE：最小 Creation Branch） -------------
+async function caseG04Normal(trace) {
+  const { runtime, events, traces } = createCaseRuntime();
+  const classification = classifyInput('这个可以做成一个小游戏。');
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const why = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g04n-1',
+  });
+  if (!why.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: why.error.code }, pass: false };
+  }
+  await consume(why.stream);
+  const stateAfterWhy = runtime.getExperienceState(exp.experienceId);
+  // CREATE：当前会话方向信号（最小 Creation Branch；继承当前探索上下文）。
+  const create = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CREATE',
+    rawInput: '这个可以做成一个小游戏。',
+    expectedStateVersion: stateAfterWhy.state.stateVersion,
+    requestId: 'req-g04n-2',
+  });
+  const createEvents = create.ok ? await consume(create.stream) : [];
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const createRequested = eventsOf(events, 'create_requested');
+  const createTrace = traces.find((entry) => entry.semantic_action === 'CREATE');
+  const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
+  const expected = {
+    classification: 'CREATE（"做成"模式；PD-21 关闭切片）',
+    policy: 'CREATE → CREATE（policy_v1.1.0）',
+    stream: 'submission → chunks → done → state_updated',
+    content: createFixture.chunks.join(''),
+    headerState: 'ACTIVE/CREATION（迁移提交时视图）',
+    finalState: 'WAITING/CREATION（阶段迁移 UNDERSTANDING → CREATION）',
+    stateVersion: '6（v4 + CREATE 迁移 v5 + 完成提交 v6）',
+    persistence: '零 memory 事件（当前会话信号不持久化；PD-07）',
+  };
+  const actual = {
+    classification: classification.semanticAction,
+    policyAction: create.ok ? create.header.policy_decision.selected_action : create.error.code,
+    policyVersion: create.ok ? create.header.policy_decision.policy_version : null,
+    stateVersion: create.ok ? create.header.state_version : null,
+    headerState: create.ok ? `${create.header.state.status}/${create.header.state.stage}` : 'ERROR',
+    streamTypes: createEvents.map((event) => event.type),
+    contentEqualsFixture: contentOf(createEvents) === createFixture.chunks.join(''),
+    eventExperienceId: createRequested[0]?.context.experience_id ?? null,
+    eventSessionId: createRequested[0]?.identity.session_id ?? null,
+    createRequestedEvents: createRequested.length,
+    whyRequestedEvents: eventsOf(events, 'why_requested').length,
+    stateTransitionedCreate: eventsOf(events, 'state_transitioned').some((event) => event.properties.event === 'CREATE'),
+    decisionTraceSemanticAction: createTrace?.semantic_action ?? null,
+    decisionTracePolicyVersion: createTrace?.policy?.policy_version ?? null,
+    decisionTraceReason: createTrace?.reason?.primary ?? null,
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage}` : 'ERROR',
+    finalStateVersion: finalState.ok ? finalState.state.stateVersion : null,
+    lastSemanticAction: finalState.ok ? finalState.state.lastSemanticAction : null,
+    memoryEvents: memoryEvents.length,
+  };
+  const pass =
+    classification.semanticAction === 'CREATE' &&
+    create.ok &&
+    actual.policyAction === 'CREATE' &&
+    actual.policyVersion === 'policy_v1.1.0' &&
+    actual.stateVersion === 5 &&
+    actual.headerState === 'ACTIVE/CREATION' &&
+    createEvents[0].type === 'submission' &&
+    createEvents.some((event) => event.type === 'done') &&
+    createEvents.some((event) => event.type === 'state_updated') &&
+    actual.contentEqualsFixture &&
+    actual.eventExperienceId === exp.experienceId &&
+    actual.eventSessionId === session.sessionId &&
+    actual.createRequestedEvents === 1 &&
+    actual.whyRequestedEvents === 1 &&
+    actual.stateTransitionedCreate &&
+    actual.decisionTraceSemanticAction === 'CREATE' &&
+    actual.decisionTracePolicyVersion === 'policy_v1.1.0' &&
+    actual.decisionTraceReason === 'explicit_user_direction' &&
+    finalState.ok &&
+    finalState.state.stateVersion === 6 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'CREATION' &&
+    actual.lastSemanticAction === 'CREATE' &&
+    actual.memoryEvents === 0;
+  return { expected, actual, pass };
+}
+
+// --- G04-NEG：负向（生成中 CREATE：取消旧生成、拒绝旧候选；CREATE 优先于 WHY）
+async function caseG04Negative(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const classification = classifyInput('为什么不做成一个小游戏');
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const first = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g04neg-1',
+  });
+  if (!first.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: first.error.code }, pass: false };
+  }
+  // 生成在途：仅消费 submission 事件，保持流开启以观测取消终止。
+  const iterator = first.stream[Symbol.asyncIterator]();
+  await iterator.next(); // submission
+  const stateInFlight = runtime.getExperienceState(exp.experienceId);
+  const create = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CREATE',
+    rawInput: '为什么不做成一个小游戏',
+    expectedStateVersion: stateInFlight.state.stateVersion,
+    requestId: 'req-g04neg-2',
+  });
+  const createEvents = create.ok ? await consume(create.stream) : [];
+  const oldRest = [];
+  for (;;) {
+    const next = await iterator.next();
+    if (next.done) break;
+    oldRest.push(next.value);
+  }
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const expected = {
+    classification: 'CREATE（CREATE 模式优先于 WHY 标记：PD-21 显式用户方向优先于探索继续）',
+    inFlightCancel: 'generation_cancelled（reason=superseded_by_create；P-02 同族）',
+    oldCandidateRejected: 'experience_interrupted（reason=create，old_generation_rejected）',
+    newStream: 'submission → chunks → done → state_updated',
+    oldStream: '取消终止（零内容分块交付）',
+    finalState: 'WAITING/CREATION',
+    stateVersion: '5（v3 + CREATE 迁移 v4 + 完成提交 v5）',
+  };
+  const actual = {
+    classification: classification.semanticAction,
+    inFlightState: `${stateInFlight.state.status} v${stateInFlight.state.stateVersion}`,
+    createAccepted: create.ok,
+    createPolicy: create.ok ? create.header.policy_decision.selected_action : create.error.code,
+    createStreamTypes: createEvents.map((event) => event.type),
+    generationCancelled: eventsOf(events, 'generation_cancelled').map((event) => event.properties.reason),
+    interrupted: eventsOf(events, 'experience_interrupted').map((event) => event.properties.reason),
+    oldStreamChunkCount: oldRest.filter((event) => event.type === 'chunk').length,
+    oldStreamCancelled: oldRest.some((event) => event.type === 'cancelled'),
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+  };
+  const pass =
+    classification.semanticAction === 'CREATE' &&
+    stateInFlight.state.status === 'ACTIVE' &&
+    stateInFlight.state.stateVersion === 3 &&
+    create.ok &&
+    actual.createPolicy === 'CREATE' &&
+    createEvents[0].type === 'submission' &&
+    createEvents.some((event) => event.type === 'done') &&
+    createEvents.some((event) => event.type === 'state_updated') &&
+    actual.generationCancelled.filter((reason) => reason === 'superseded_by_create').length === 1 &&
+    actual.interrupted.filter((reason) => reason === 'create').length === 1 &&
+    actual.oldStreamChunkCount === 0 &&
+    actual.oldStreamCancelled &&
+    finalState.ok &&
+    finalState.state.stateVersion === 5 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'CREATION';
+  return { expected, actual, pass };
+}
+
+// --- G04-B：边界（相邻重复 CREATE：每次完整执行；版本链 +1 不变式） --------
+async function caseG04Boundary(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const why = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g04b-1',
+  });
+  if (!why.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: why.error.code }, pass: false };
+  }
+  await consume(why.stream);
+  const stateAfterWhy = runtime.getExperienceState(exp.experienceId);
+  const first = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CREATE',
+    rawInput: '这个可以做成一个小游戏。',
+    expectedStateVersion: stateAfterWhy.state.stateVersion,
+    requestId: 'req-g04b-2',
+  });
+  const firstEvents = first.ok ? await consume(first.stream) : [];
+  const stateAfterFirst = runtime.getExperienceState(exp.experienceId);
+  const second = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CREATE',
+    rawInput: '再做一个这样的小游戏。',
+    expectedStateVersion: stateAfterFirst.state.stateVersion,
+    requestId: 'req-g04b-3',
+  });
+  const secondEvents = second.ok ? await consume(second.stream) : [];
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const versionMarks = [
+    ...eventsOf(events, 'state_transitioned').map((event) => event.properties.state_version_after),
+    ...eventsOf(events, 'runtime_waiting').map((event) => event.context.state_version),
+  ].sort((left, right) => left - right);
+  const expected = {
+    repeatBehavior: '相邻重复 CREATE：每次均生成完整最小构建（内容逐字节等于 fixture；不省略、不累积）',
+    versionChain: '每次合法提交恰好 +1（v4 → v8）',
+  };
+  const actual = {
+    firstPolicy: first.ok ? first.header.policy_decision.selected_action : first.error.code,
+    firstContentEqualsFixture: contentOf(firstEvents) === createFixture.chunks.join(''),
+    secondClassification: classifyInput('再做一个这样的小游戏。').semanticAction,
+    secondPolicy: second.ok ? second.header.policy_decision.selected_action : second.error.code,
+    secondContentEqualsFixture: contentOf(secondEvents) === createFixture.chunks.join(''),
+    createRequestedEvents: eventsOf(events, 'create_requested').length,
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+    versionMarks,
+  };
+  const pass =
+    first.ok &&
+    actual.firstPolicy === 'CREATE' &&
+    actual.firstContentEqualsFixture &&
+    stateAfterFirst.state.stateVersion === 6 &&
+    actual.secondClassification === 'CREATE' &&
+    second.ok &&
+    actual.secondPolicy === 'CREATE' &&
+    actual.secondContentEqualsFixture &&
+    actual.createRequestedEvents === 2 &&
+    finalState.ok &&
+    finalState.state.stateVersion === 8 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'CREATION' &&
+    JSON.stringify(versionMarks) === JSON.stringify([2, 3, 4, 5, 6, 7, 8]);
+  return { expected, actual, pass };
+}
+
+// --- G04-FR：故障恢复（CREATE 期间网关不可用 → 恢复后最小创作完成） --------
+async function caseG04FailureRecovery(trace) {
+  // 可切换网关（WHY 生成在途时健康；故障窗口内 propose 抛错；恢复后健康）。
+  // 网关接口是既定证据注入点（llm-gateway.ts 头部声明；G05-FR 同源形态）。
+  const healthyGateway = new SyntheticLlmGateway(allFixtures());
+  let activeGateway = healthyGateway;
+  const swappableGateway = { propose: (request) => activeGateway.propose(request) };
+  const { runtime, events } = createCaseRuntime(swappableGateway);
+  const { session, intent, exp } = await setupChain(runtime, {
+    rawInput: '为什么',
+    intentRequestId: 'req-g04fr-i1',
+    experienceRequestId: 'req-g04fr-e1',
+  });
+  const why = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g04fr-0',
+  });
+  if (!why.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: why.error.code }, pass: false };
+  }
+  const whyIterator = why.stream[Symbol.asyncIterator]();
+  await whyIterator.next(); // submission；流保持开启
+  const inFlight = runtime.getExperienceState(exp.experienceId);
+  // 故障：网关不可用窗口内 CREATE → LLM_UNAVAILABLE。
+  // （P-02：取消旧 generation 先于 LLM 调用；EB-02：propose 失败不提交、
+  //  不消耗版本号、旧状态不被污染。）
+  activeGateway = failingGateway();
+  const failed = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CREATE',
+    rawInput: '这个可以做成一个小游戏。',
+    expectedStateVersion: inFlight.state.stateVersion,
+    requestId: 'req-g04fr-1',
+  });
+  const failedState = runtime.getExperienceState(exp.experienceId);
+  // 恢复：健康网关重试 CREATE → 最小创作完成（取代已取消的旧候选）。
+  activeGateway = healthyGateway;
+  const ok = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CREATE',
+    rawInput: '这个可以做成一个小游戏。',
+    expectedStateVersion: failedState.ok ? failedState.state.stateVersion : inFlight.state.stateVersion,
+    requestId: 'req-g04fr-2',
+  });
+  const okEvents = ok.ok ? await consume(ok.stream) : [];
+  const oldRest = [];
+  for (;;) {
+    const next = await whyIterator.next();
+    if (next.done) break;
+    oldRest.push(next.value);
+  }
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const expected = {
+    failure: 'LLM_UNAVAILABLE（如实上报；版本不消耗 EB-02；旧状态不被污染）',
+    recovery: '健康网关重试 CREATE → 最小创作完成：generation_cancelled(superseded_by_create) + experience_interrupted(create) + 新候选流完成（内容 = create fixture）',
+  };
+  const actual = {
+    inFlightState: `${inFlight.state.status} v${inFlight.state.stateVersion}`,
+    failureResult: failed.ok ? 'OK（缺陷！）' : failed.error.code,
+    versionAfterFailure: failedState.ok ? failedState.state.stateVersion : null,
+    recoveryPolicy: ok.ok ? ok.header.policy_decision.selected_action : ok.error.code,
+    recoveryContentEqualsFixture: contentOf(okEvents) === createFixture.chunks.join(''),
+    oldStreamChunkCount: oldRest.filter((event) => event.type === 'chunk').length,
+    oldStreamCancelled: oldRest.some((event) => event.type === 'cancelled'),
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+    interrupted: eventsOf(events, 'experience_interrupted').map((event) => event.properties.reason),
+    generationCancelled: eventsOf(events, 'generation_cancelled').map((event) => event.properties.reason),
+  };
+  const pass =
+    inFlight.state.status === 'ACTIVE' &&
+    inFlight.state.stateVersion === 3 &&
+    !failed.ok &&
+    failed.error.code === 'LLM_UNAVAILABLE' &&
+    failedState.ok &&
+    failedState.state.stateVersion === inFlight.state.stateVersion &&
+    ok.ok &&
+    actual.recoveryPolicy === 'CREATE' &&
+    actual.recoveryContentEqualsFixture &&
+    actual.oldStreamChunkCount === 0 &&
+    actual.oldStreamCancelled &&
+    finalState.ok &&
+    finalState.state.stateVersion === 5 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'CREATION' &&
+    actual.interrupted.filter((reason) => reason === 'create').length === 2 &&
+    actual.generationCancelled.filter((reason) => reason === 'superseded_by_create').length === 1 &&
+    actual.generationCancelled.includes('superseded_by_create');
+  return { expected, actual, pass };
+}
+
+// 黄金案例（G07 Correction——P2 Exit Gate §8 G07；PD-21 关闭切片最小实现）
+// ---------------------------------------------------------------------------
+
+// --- G07-N：正常路径（WHY 完成后 CORRECTION：最小 Correction，阶段保持） ---
+async function caseG07Normal(trace) {
+  const { runtime, events, traces } = createCaseRuntime();
+  const classification = classifyInput('不是这个意思。');
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const why = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g07n-1',
+  });
+  if (!why.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: why.error.code }, pass: false };
+  }
+  await consume(why.stream);
+  const stateAfterWhy = runtime.getExperienceState(exp.experienceId);
+  // CORRECTION：用户纠正（最小 Correction：移除无效推断、保留有效上下文）。
+  const correct = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CORRECTION',
+    rawInput: '不是这个意思。',
+    expectedStateVersion: stateAfterWhy.state.stateVersion,
+    requestId: 'req-g07n-2',
+  });
+  const correctEvents = correct.ok ? await consume(correct.stream) : [];
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const correctionRequested = eventsOf(events, 'correction_requested');
+  const correctionTrace = traces.find((entry) => entry.semantic_action === 'CORRECTION');
+  const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
+  const expected = {
+    classification: 'CORRECTION（"不是"模式；PD-21 关闭切片）',
+    policy: 'CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v1.1.0）',
+    stream: 'submission → chunks → done → state_updated',
+    content: correctionFixture.chunks.join(''),
+    headerState: 'ACTIVE/UNDERSTANDING（迁移提交时视图；阶段保持）',
+    finalState: 'WAITING/UNDERSTANDING（阶段保持：重评估当前阶段）',
+    stateVersion: '6（v4 + CORRECTION 迁移 v5 + 完成提交 v6）',
+    persistence: '零 memory 事件（纠正不持久化为跨会话偏好；PD-07）',
+  };
+  const actual = {
+    classification: classification.semanticAction,
+    selectedAction: correct.ok ? correct.header.policy_decision.selected_action : correct.error.code,
+    policyVersion: correct.ok ? correct.header.policy_decision.policy_version : null,
+    stateVersion: correct.ok ? correct.header.state_version : null,
+    headerState: correct.ok ? `${correct.header.state.status}/${correct.header.state.stage}` : 'ERROR',
+    streamTypes: correctEvents.map((event) => event.type),
+    contentEqualsFixture: contentOf(correctEvents) === correctionFixture.chunks.join(''),
+    eventExperienceId: correctionRequested[0]?.context.experience_id ?? null,
+    eventSessionId: correctionRequested[0]?.identity.session_id ?? null,
+    correctionRequestedEvents: correctionRequested.length,
+    whyRequestedEvents: eventsOf(events, 'why_requested').length,
+    interrupted: eventsOf(events, 'experience_interrupted').map((event) => event.properties.reason),
+    stateTransitionedCorrection: eventsOf(events, 'state_transitioned').some((event) => event.properties.event === 'CORRECTION'),
+    decisionTraceSemanticAction: correctionTrace?.semantic_action ?? null,
+    decisionTracePolicyVersion: correctionTrace?.policy?.policy_version ?? null,
+    decisionTraceReason: correctionTrace?.reason?.primary ?? null,
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage}` : 'ERROR',
+    finalStateVersion: finalState.ok ? finalState.state.stateVersion : null,
+    lastSemanticAction: finalState.ok ? finalState.state.lastSemanticAction : null,
+    memoryEvents: memoryEvents.length,
+  };
+  const pass =
+    classification.semanticAction === 'CORRECTION' &&
+    correct.ok &&
+    actual.selectedAction === 'EXPLAIN' &&
+    actual.policyVersion === 'policy_v1.1.0' &&
+    actual.stateVersion === 5 &&
+    actual.headerState === 'ACTIVE/UNDERSTANDING' &&
+    correctEvents[0].type === 'submission' &&
+    correctEvents.some((event) => event.type === 'done') &&
+    correctEvents.some((event) => event.type === 'state_updated') &&
+    actual.contentEqualsFixture &&
+    actual.eventExperienceId === exp.experienceId &&
+    actual.eventSessionId === session.sessionId &&
+    actual.correctionRequestedEvents === 1 &&
+    actual.whyRequestedEvents === 1 &&
+    actual.interrupted.filter((reason) => reason === 'correction').length === 1 &&
+    actual.stateTransitionedCorrection &&
+    actual.decisionTraceSemanticAction === 'CORRECTION' &&
+    actual.decisionTracePolicyVersion === 'policy_v1.1.0' &&
+    actual.decisionTraceReason === 'reassess' &&
+    finalState.ok &&
+    finalState.state.stateVersion === 6 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'UNDERSTANDING' &&
+    actual.lastSemanticAction === 'CORRECTION' &&
+    actual.memoryEvents === 0;
+  return { expected, actual, pass };
+}
+
+// --- G07-NEG：负向（生成中 CORRECTION：取消旧生成、拒绝旧候选；纠正优先于 WHY）
+async function caseG07Negative(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const classification = classifyInput('不是这个意思，为什么');
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const first = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g07neg-1',
+  });
+  if (!first.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: first.error.code }, pass: false };
+  }
+  // 生成在途：仅消费 submission 事件，保持流开启以观测取消终止。
+  const iterator = first.stream[Symbol.asyncIterator]();
+  await iterator.next(); // submission
+  const stateInFlight = runtime.getExperienceState(exp.experienceId);
+  const correct = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CORRECTION',
+    rawInput: '不是这个意思，为什么',
+    expectedStateVersion: stateInFlight.state.stateVersion,
+    requestId: 'req-g07neg-2',
+  });
+  const correctEvents = correct.ok ? await consume(correct.stream) : [];
+  const oldRest = [];
+  for (;;) {
+    const next = await iterator.next();
+    if (next.done) break;
+    oldRest.push(next.value);
+  }
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const expected = {
+    classification: 'CORRECTION（纠正优先于 WHY 标记：PD-21 显式用户方向优先）',
+    inFlightCancel: 'generation_cancelled（reason=correction）',
+    oldCandidateRejected: 'experience_interrupted（reason=correction，old_generation_rejected）',
+    newStream: 'submission → chunks → done → state_updated',
+    oldStream: '取消终止（零内容分块交付）',
+    finalState: 'WAITING/UNDERSTANDING（阶段保持）',
+    stateVersion: '5（v3 + CORRECTION 迁移 v4 + 完成提交 v5）',
+  };
+  const actual = {
+    classification: classification.semanticAction,
+    inFlightState: `${stateInFlight.state.status} v${stateInFlight.state.stateVersion}`,
+    correctAccepted: correct.ok,
+    correctPolicy: correct.ok ? correct.header.policy_decision.selected_action : correct.error.code,
+    correctStreamTypes: correctEvents.map((event) => event.type),
+    generationCancelled: eventsOf(events, 'generation_cancelled').map((event) => event.properties.reason),
+    interrupted: eventsOf(events, 'experience_interrupted').map((event) => event.properties.reason),
+    oldStreamChunkCount: oldRest.filter((event) => event.type === 'chunk').length,
+    oldStreamCancelled: oldRest.some((event) => event.type === 'cancelled'),
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+  };
+  const pass =
+    classification.semanticAction === 'CORRECTION' &&
+    stateInFlight.state.status === 'ACTIVE' &&
+    stateInFlight.state.stateVersion === 3 &&
+    correct.ok &&
+    actual.correctPolicy === 'EXPLAIN' &&
+    correctEvents[0].type === 'submission' &&
+    correctEvents.some((event) => event.type === 'done') &&
+    correctEvents.some((event) => event.type === 'state_updated') &&
+    actual.generationCancelled.filter((reason) => reason === 'correction').length === 1 &&
+    actual.interrupted.filter((reason) => reason === 'correction').length === 1 &&
+    actual.oldStreamChunkCount === 0 &&
+    actual.oldStreamCancelled &&
+    finalState.ok &&
+    finalState.state.stateVersion === 5 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'UNDERSTANDING';
+  return { expected, actual, pass };
+}
+
+// --- G07-B：边界（纠正后继续 WHY 探索：有效上下文保留；版本链 +1 不变式） --
+async function caseG07Boundary(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const first = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g07b-1',
+  });
+  if (!first.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: first.error.code }, pass: false };
+  }
+  await consume(first.stream);
+  const stateAfterWhy = runtime.getExperienceState(exp.experienceId);
+  // 纠正：重评估当前阶段（UNDERSTANDING 保持；无效推断移除）。
+  const correction = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CORRECTION',
+    rawInput: '不对，这个理解错了',
+    expectedStateVersion: stateAfterWhy.state.stateVersion,
+    requestId: 'req-g07b-2',
+  });
+  const correctionEvents = correction.ok ? await consume(correction.stream) : [];
+  const stateAfterCorrection = runtime.getExperienceState(exp.experienceId);
+  // 纠正后继续 WHY 探索（同一会话 / 意图：有效上下文保留）。
+  const secondWhy = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: stateAfterCorrection.state.stateVersion,
+    requestId: 'req-g07b-3',
+  });
+  const secondWhyEvents = secondWhy.ok ? await consume(secondWhy.stream) : [];
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const sessionIds = new Set([session.sessionId]);
+  const intentIds = new Set([intent.intent.intentId]);
+  const versionMarks = [
+    ...eventsOf(events, 'state_transitioned').map((event) => event.properties.state_version_after),
+    ...eventsOf(events, 'runtime_waiting').map((event) => event.context.state_version),
+  ].sort((left, right) => left - right);
+  const expected = {
+    correctionThenExploration: '纠正后 WHY 探索继续（同一会话 / 意图：有效上下文保留，无效推断移除）',
+    versionChain: '每次合法提交恰好 +1（v4 → v8）',
+  };
+  const actual = {
+    correctionPolicy: correction.ok ? correction.header.policy_decision.selected_action : correction.error.code,
+    correctionContentEqualsFixture: contentOf(correctionEvents) === correctionFixture.chunks.join(''),
+    stateAfterCorrection: stateAfterCorrection.ok ? `${stateAfterCorrection.state.status}/${stateAfterCorrection.state.stage} v${stateAfterCorrection.state.stateVersion}` : 'ERROR',
+    secondWhyPolicy: secondWhy.ok ? secondWhy.header.policy_decision.selected_action : secondWhy.error.code,
+    secondWhyContentEqualsFixture: contentOf(secondWhyEvents) === why.chunks.join(''),
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+    sessionIdsSize: sessionIds.size,
+    intentIdsSize: intentIds.size,
+    whyRequestedEvents: eventsOf(events, 'why_requested').length,
+    versionMarks,
+  };
+  const pass =
+    correction.ok &&
+    actual.correctionPolicy === 'EXPLAIN' &&
+    actual.correctionContentEqualsFixture &&
+    stateAfterCorrection.state.stateVersion === 6 &&
+    stateAfterCorrection.state.stage === 'UNDERSTANDING' &&
+    secondWhy.ok &&
+    actual.secondWhyPolicy === 'EXPLAIN' &&
+    actual.secondWhyContentEqualsFixture &&
+    finalState.ok &&
+    finalState.state.stateVersion === 8 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'UNDERSTANDING' &&
+    actual.sessionIdsSize === 1 &&
+    actual.intentIdsSize === 1 &&
+    actual.whyRequestedEvents === 2 &&
+    JSON.stringify(versionMarks) === JSON.stringify([2, 3, 4, 5, 6, 7, 8]);
+  return { expected, actual, pass };
+}
+
+// --- G07-FR：故障恢复（CORRECTION 期间网关不可用 → 恢复后重评估完成） ------
+async function caseG07FailureRecovery(trace) {
+  // 可切换网关（WHY 生成在途时健康；故障窗口内 propose 抛错；恢复后健康）。
+  // 网关接口是既定证据注入点（llm-gateway.ts 头部声明；G05-FR 同源形态）。
+  const healthyGateway = new SyntheticLlmGateway(allFixtures());
+  let activeGateway = healthyGateway;
+  const swappableGateway = { propose: (request) => activeGateway.propose(request) };
+  const { runtime, events } = createCaseRuntime(swappableGateway);
+  const { session, intent, exp } = await setupChain(runtime, {
+    rawInput: '为什么',
+    intentRequestId: 'req-g07fr-i1',
+    experienceRequestId: 'req-g07fr-e1',
+  });
+  const why = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g07fr-0',
+  });
+  if (!why.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: why.error.code }, pass: false };
+  }
+  const whyIterator = why.stream[Symbol.asyncIterator]();
+  await whyIterator.next(); // submission；流保持开启
+  const inFlight = runtime.getExperienceState(exp.experienceId);
+  // 故障：网关不可用窗口内 CORRECTION → LLM_UNAVAILABLE（EB-02）。
+  activeGateway = failingGateway();
+  const failed = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CORRECTION',
+    rawInput: '不是这个意思。',
+    expectedStateVersion: inFlight.state.stateVersion,
+    requestId: 'req-g07fr-1',
+  });
+  const failedState = runtime.getExperienceState(exp.experienceId);
+  // 恢复：健康网关重试 CORRECTION → 重评估完成（取代已取消的旧候选）。
+  activeGateway = healthyGateway;
+  const ok = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CORRECTION',
+    rawInput: '不是这个意思。',
+    expectedStateVersion: failedState.ok ? failedState.state.stateVersion : inFlight.state.stateVersion,
+    requestId: 'req-g07fr-2',
+  });
+  const okEvents = ok.ok ? await consume(ok.stream) : [];
+  const oldRest = [];
+  for (;;) {
+    const next = await whyIterator.next();
+    if (next.done) break;
+    oldRest.push(next.value);
+  }
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const expected = {
+    failure: 'LLM_UNAVAILABLE（如实上报；版本不消耗 EB-02；旧状态不被污染）',
+    recovery: '健康网关重试 CORRECTION → 重评估完成：generation_cancelled(correction) + experience_interrupted(correction) + 新候选流完成（内容 = correction fixture）',
+  };
+  const actual = {
+    inFlightState: `${inFlight.state.status} v${inFlight.state.stateVersion}`,
+    failureResult: failed.ok ? 'OK（缺陷！）' : failed.error.code,
+    versionAfterFailure: failedState.ok ? failedState.state.stateVersion : null,
+    recoveryPolicy: ok.ok ? ok.header.policy_decision.selected_action : ok.error.code,
+    recoveryContentEqualsFixture: contentOf(okEvents) === correctionFixture.chunks.join(''),
+    oldStreamChunkCount: oldRest.filter((event) => event.type === 'chunk').length,
+    oldStreamCancelled: oldRest.some((event) => event.type === 'cancelled'),
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+    interrupted: eventsOf(events, 'experience_interrupted').map((event) => event.properties.reason),
+    generationCancelled: eventsOf(events, 'generation_cancelled').map((event) => event.properties.reason),
+  };
+  const pass =
+    inFlight.state.status === 'ACTIVE' &&
+    inFlight.state.stateVersion === 3 &&
+    !failed.ok &&
+    failed.error.code === 'LLM_UNAVAILABLE' &&
+    failedState.ok &&
+    failedState.state.stateVersion === inFlight.state.stateVersion &&
+    ok.ok &&
+    actual.recoveryPolicy === 'EXPLAIN' &&
+    actual.recoveryContentEqualsFixture &&
+    actual.oldStreamChunkCount === 0 &&
+    actual.oldStreamCancelled &&
+    finalState.ok &&
+    finalState.state.stateVersion === 5 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'UNDERSTANDING' &&
+    actual.interrupted.filter((reason) => reason === 'correction').length === 2 &&
+    actual.generationCancelled.filter((reason) => reason === 'correction').length === 1 &&
+    actual.generationCancelled.includes('correction');
+  return { expected, actual, pass };
+}
+
+// 黄金案例（G08 Memory Boundary——P2 Exit Gate §8 G08；PD-21 关闭切片最小实现）
+// ---------------------------------------------------------------------------
+
+// --- G08-N：正常路径（生成中方向信号：当前会话信号不持久化为跨会话偏好） -
+async function caseG08Normal(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const classification = classifyInput('今天不要这个');
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const first = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g08n-1',
+  });
+  if (!first.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: first.error.code }, pass: false };
+  }
+  // 生成在途：仅消费 submission 事件，保持流开启以观测取消终止。
+  const iterator = first.stream[Symbol.asyncIterator]();
+  await iterator.next(); // submission
+  const stateInFlight = runtime.getExperienceState(exp.experienceId);
+  const change = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CHANGE_DIRECTION',
+    rawInput: '今天不要这个',
+    expectedStateVersion: stateInFlight.state.stateVersion,
+    requestId: 'req-g08n-2',
+  });
+  const changeEvents = change.ok ? await consume(change.stream) : [];
+  const oldRest = [];
+  for (;;) {
+    const next = await iterator.next();
+    if (next.done) break;
+    oldRest.push(next.value);
+  }
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
+  const expected = {
+    classification: 'CHANGE_DIRECTION（"不要这个"为当前会话方向信号；G08 最小形态：不持久化为跨会话偏好）',
+    designNote: 'CHANGE_DIRECTION 从 WAITING 在冻结状态机中非法（无 WAITING→ENTERING 规则）；本案例从在途 ACTIVE v3 观测（与 G05-N 同源形态）',
+    flow: '生成中 CHANGE：取消旧生成、拒绝旧候选、新方向（与 G05 同族；P-02）',
+    content: changeDirection.chunks.join(''),
+    finalState: 'WAITING/UNDERSTANDING（新方向完成）',
+    stateVersion: '5（v3 + 复合迁移 v4 + 完成提交 v5）',
+    persistence: '无跨会话持久化（无 memory 层事件；PD-07）',
+  };
+  const actual = {
+    classification: classification.semanticAction,
+    inFlightState: `${stateInFlight.state.status} v${stateInFlight.state.stateVersion}`,
+    changeAccepted: change.ok,
+    changePolicy: change.ok ? change.header.policy_decision.selected_action : change.error.code,
+    contentEqualsFixture: contentOf(changeEvents) === changeDirection.chunks.join(''),
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+    generationCancelled: eventsOf(events, 'generation_cancelled').map((event) => event.properties.reason),
+    interrupted: eventsOf(events, 'experience_interrupted').map((event) => event.properties.reason),
+    stateTransitions: eventsOf(events, 'state_transitioned').map((event) => event.properties.event),
+    oldStreamChunkCount: oldRest.filter((event) => event.type === 'chunk').length,
+    oldStreamCancelled: oldRest.some((event) => event.type === 'cancelled'),
+    memoryEvents: memoryEvents.length,
+  };
+  const pass =
+    classification.semanticAction === 'CHANGE_DIRECTION' &&
+    stateInFlight.state.status === 'ACTIVE' &&
+    stateInFlight.state.stateVersion === 3 &&
+    change.ok &&
+    actual.changePolicy === 'CHANGE_EXPERIENCE' &&
+    actual.contentEqualsFixture &&
+    finalState.ok &&
+    finalState.state.stateVersion === 5 &&
+    finalState.state.status === 'WAITING' &&
+    actual.generationCancelled.filter((reason) => reason === 'superseded_by_change').length === 1 &&
+    actual.interrupted.filter((reason) => reason === 'change_direction').length === 1 &&
+    actual.stateTransitions.includes('CHANGE_DIRECTION') &&
+    actual.oldStreamChunkCount === 0 &&
+    actual.oldStreamCancelled &&
+    actual.memoryEvents === 0;
+  return { expected, actual, pass };
+}
+
+// --- G08-NEG：负向（方向信号变体仍为 CHANGE；记忆升级尝试被升级拒绝） ------
+async function caseG08Negative(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const changeClassification = classifyInput('以后不要这个');
+  const rememberClassification = classifyInput('记住这个');
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const first = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g08neg-1',
+  });
+  if (!first.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: first.error.code }, pass: false };
+  }
+  const iterator = first.stream[Symbol.asyncIterator]();
+  await iterator.next(); // submission；生成在途
+  const stateInFlight = runtime.getExperienceState(exp.experienceId);
+  const change = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CHANGE_DIRECTION',
+    rawInput: '以后不要这个',
+    expectedStateVersion: stateInFlight.state.stateVersion,
+    requestId: 'req-g08neg-2',
+  });
+  const changeEvents = change.ok ? await consume(change.stream) : [];
+  const stateAfterChange = runtime.getExperienceState(exp.experienceId);
+  const eventsBeforeRemember = events.length;
+  // 负向核心：记忆升级尝试——"记住这个"不可分类（UNKNOWN）→ 升级拒绝。
+  // 未知情况升级而非由 LLM 决定（授权 §5.7）；不产生事件、不消耗版本。
+  const remember = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'DIRECT_ANSWER',
+    rawInput: '记住这个',
+    expectedStateVersion: stateAfterChange.state.stateVersion,
+    requestId: 'req-g08neg-3',
+  });
+  const eventsAddedByRemember = events.length - eventsBeforeRemember;
+  const oldRest = [];
+  for (;;) {
+    const next = await iterator.next();
+    if (next.done) break;
+    oldRest.push(next.value);
+  }
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
+  const expected = {
+    directionVariant: '"以后不要这个" → CHANGE_DIRECTION（当前会话方向信号；相邻变体不改变分类）',
+    memoryUpgrade: '"记住这个" → UNKNOWN → INVALID_ACTION（未知情况升级而非由 LLM 决定；授权 §5.7）',
+    noPersistence: '记忆升级尝试零事件、零版本消耗、零持久化（G08 硬边界；PD-07）',
+  };
+  const actual = {
+    changeClassification: changeClassification.semanticAction,
+    rememberClassification: rememberClassification.semanticAction,
+    changeAccepted: change.ok,
+    changePolicy: change.ok ? change.header.policy_decision.selected_action : change.error.code,
+    changeContentEqualsFixture: contentOf(changeEvents) === changeDirection.chunks.join(''),
+    rememberResult: remember.ok ? 'OK（缺陷！）' : remember.error.code,
+    eventsAddedByRemember,
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+    oldStreamChunkCount: oldRest.filter((event) => event.type === 'chunk').length,
+    oldStreamCancelled: oldRest.some((event) => event.type === 'cancelled'),
+    memoryEvents: memoryEvents.length,
+  };
+  const pass =
+    changeClassification.semanticAction === 'CHANGE_DIRECTION' &&
+    rememberClassification.semanticAction === 'UNKNOWN' &&
+    change.ok &&
+    actual.changePolicy === 'CHANGE_EXPERIENCE' &&
+    actual.changeContentEqualsFixture &&
+    !remember.ok &&
+    remember.error.code === 'INVALID_ACTION' &&
+    actual.eventsAddedByRemember === 0 &&
+    finalState.ok &&
+    finalState.state.stateVersion === 5 &&
+    actual.oldStreamChunkCount === 0 &&
+    actual.oldStreamCancelled &&
+    actual.memoryEvents === 0;
+  return { expected, actual, pass };
+}
+
+// --- G08-B：边界（静态缺席证明 + 相邻方向信号变体运行时结构等价） --------
+async function caseG08Boundary(trace) {
+  // 静态缺席证明：产品源码中无 memory 层实现（PD-07；不持久化跨会话数据）。
+  const productDirs = [path.join(repoRoot, 'src', 'experience'), path.join(repoRoot, 'app', 'api')];
+  const productFiles = [];
+  for (const dir of productDirs) {
+    productFiles.push(...(await listProductTsFiles(dir)));
+  }
+  const memoryFiles = productFiles.filter((file) => /memory/i.test(path.basename(file)));
+  const memoryImports = [];
+  for (const file of productFiles) {
+    const source = await readFile(file, 'utf8');
+    memoryImports.push(...importSpecifiers(source).filter((specifier) => /memory/i.test(specifier)));
+  }
+  // 动态证明：两个相邻方向信号变体在运行时结构上等价
+  // （分类 → 策略 → 事件序列 → 内容 → 终态 → 旧流取消 → 零 memory 事件）。
+  const runSignal = async (signal) => {
+    const { runtime, events } = createCaseRuntime();
+    const { session, intent, exp } = await setupChain(runtime, {
+      rawInput: '为什么',
+      intentRequestId: `req-g08b-i-${signal}`,
+      experienceRequestId: `req-g08b-e-${signal}`,
+    });
+    const first = await runtime.submitExperienceEvent({
+      experienceId: exp.experienceId,
+      sessionId: session.sessionId,
+      semanticAction: 'WHY',
+      rawInput: '为什么？',
+      expectedStateVersion: exp.stateVersion,
+      requestId: `req-g08b-1-${signal}`,
+    });
+    const iterator = first.stream[Symbol.asyncIterator]();
+    await iterator.next(); // submission；生成在途
+    const stateInFlight = runtime.getExperienceState(exp.experienceId);
+    const change = await runtime.submitExperienceEvent({
+      experienceId: exp.experienceId,
+      sessionId: session.sessionId,
+      semanticAction: 'CHANGE_DIRECTION',
+      rawInput: signal,
+      expectedStateVersion: stateInFlight.state.stateVersion,
+      requestId: `req-g08b-2-${signal}`,
+    });
+    const changeEvents = change.ok ? await consume(change.stream) : [];
+    const oldRest = [];
+    for (;;) {
+      const next = await iterator.next();
+      if (next.done) break;
+      oldRest.push(next.value);
+    }
+    const finalState = runtime.getExperienceState(exp.experienceId);
+    const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
+    return {
+      classification: classifyInput(signal).semanticAction,
+      accepted: change.ok,
+      policyAction: change.ok ? change.header.policy_decision.selected_action : change.error.code,
+      eventTypes: events.map((event) => event.event_type),
+      contentEqualsFixture: contentOf(changeEvents) === changeDirection.chunks.join(''),
+      finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+      oldStreamCancelled: oldRest.some((event) => event.type === 'cancelled'),
+      memoryEvents: memoryEvents.length,
+    };
+  };
+  const signalA = await runSignal('今天不要这个');
+  const signalB = await runSignal('以后不要这个');
+  const structurallyIdentical =
+    signalA.classification === signalB.classification &&
+    signalA.accepted === signalB.accepted &&
+    signalA.policyAction === signalB.policyAction &&
+    JSON.stringify(signalA.eventTypes) === JSON.stringify(signalB.eventTypes) &&
+    signalA.contentEqualsFixture === signalB.contentEqualsFixture &&
+    signalA.finalState === signalB.finalState &&
+    signalA.oldStreamCancelled === signalB.oldStreamCancelled &&
+    signalA.memoryEvents === signalB.memoryEvents;
+  const expected = {
+    staticAbsence: '产品源码（src/experience + app/api）无 memory 层文件与导入（PD-07：不持久化跨会话数据）',
+    dynamicEquivalence: '相邻方向信号变体（"今天不要这个" / "以后不要这个"）运行时结构等价：分类、策略、事件序列、内容、终态、旧流取消、零 memory 事件',
+  };
+  const actual = {
+    productTsFiles: productFiles.length,
+    memoryFiles,
+    memoryImports,
+    signalA,
+    signalB,
+    structurallyIdentical,
+  };
+  const pass =
+    memoryFiles.length === 0 &&
+    memoryImports.length === 0 &&
+    signalA.classification === 'CHANGE_DIRECTION' &&
+    signalB.classification === 'CHANGE_DIRECTION' &&
+    signalA.policyAction === 'CHANGE_EXPERIENCE' &&
+    signalB.policyAction === 'CHANGE_EXPERIENCE' &&
+    signalA.contentEqualsFixture &&
+    signalB.contentEqualsFixture &&
+    signalA.memoryEvents === 0 &&
+    signalB.memoryEvents === 0 &&
+    signalA.oldStreamCancelled &&
+    signalB.oldStreamCancelled &&
+    structurallyIdentical;
+  return { expected, actual, pass };
+}
+
+// --- G08-FR：故障恢复（对抗记忆升级尝试 → 在途 WHY 生成不受干扰地完成） --
+async function caseG08FailureRecovery(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  const first = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g08fr-1',
+  });
+  if (!first.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: first.error.code }, pass: false };
+  }
+  // 生成在途：持有迭代器但尚未拉取（观测对抗尝试的零副作用）。
+  const iterator = first.stream[Symbol.asyncIterator]();
+  const stateInFlight = runtime.getExperienceState(exp.experienceId);
+  const eventsBeforeAdversarial = events.length;
+  // 对抗输入："记住这个"（记忆升级尝试）→ 升级拒绝，零副作用。
+  const adversarial = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'DIRECT_ANSWER',
+    rawInput: '记住这个',
+    expectedStateVersion: stateInFlight.state.stateVersion,
+    requestId: 'req-g08fr-2',
+  });
+  const eventsAddedByAdversarial = events.length - eventsBeforeAdversarial;
+  // 恢复：在途 WHY 生成继续完成（不受对抗尝试影响）。
+  const whyRest = [];
+  for (;;) {
+    const next = await iterator.next();
+    if (next.done) break;
+    whyRest.push(next.value);
+  }
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const stateTransitions = eventsOf(events, 'state_transitioned').map((event) => event.properties.event);
+  const generationCancelledCount = eventsOf(events, 'generation_cancelled').length;
+  const versionMarks = [
+    ...eventsOf(events, 'state_transitioned').map((event) => event.properties.state_version_after),
+    ...eventsOf(events, 'runtime_waiting').map((event) => event.context.state_version),
+  ].sort((left, right) => left - right);
+  const expected = {
+    adversarial: '"记住这个" → UNKNOWN → INVALID_ACTION（不消耗版本、零事件、零取消；G08 硬边界）',
+    recovery: '在途 WHY 生成不受干扰地完成（内容逐字节等于 why fixture；版本链完整）',
+  };
+  const actual = {
+    inFlightState: `${stateInFlight.state.status} v${stateInFlight.state.stateVersion}`,
+    adversarialResult: adversarial.ok ? 'OK（缺陷！）' : adversarial.error.code,
+    eventsAddedByAdversarial,
+    whyContentEqualsFixture: contentOf(whyRest) === why.chunks.join(''),
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+    generationCancelledCount,
+    stateTransitions,
+    versionMarks,
+  };
+  const pass =
+    stateInFlight.state.status === 'ACTIVE' &&
+    stateInFlight.state.stateVersion === 3 &&
+    !adversarial.ok &&
+    adversarial.error.code === 'INVALID_ACTION' &&
+    actual.eventsAddedByAdversarial === 0 &&
+    actual.whyContentEqualsFixture &&
+    finalState.ok &&
+    finalState.state.stateVersion === 4 &&
+    finalState.state.status === 'WAITING' &&
+    actual.generationCancelledCount === 0 &&
+    JSON.stringify(stateTransitions) === JSON.stringify(['EXPERIENCE_STARTED', 'WHY']) &&
+    JSON.stringify(versionMarks) === JSON.stringify([2, 3, 4]);
+  return { expected, actual, pass };
+}
+
+// 案例注册表（执行的 32 案例；PD-21 关闭切片：G04/G07/G08 最小实现，无 DEFERRED 登记）
 // ---------------------------------------------------------------------------
 const CASE_REGISTRY = [
   // G01 Direct Answer
@@ -1497,38 +2561,143 @@ const CASE_REGISTRY = [
     inputFault: '生成中客户端中止 → 随后 STOP 终止',
     run: caseG06FailureRecovery,
   },
+  // G04 Creation（PD-21 关闭切片最小实现；完整 Creation 语义 DEFERRED TO S2）
+  {
+    caseId: 'G04-N',
+    goldenCase: 'G04',
+    dimension: 'NORMAL',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate & Sign-off §8 G04 Creation；Evaluation System V1 §5 G04；E2 Stage 5（最小 Creation Branch）；PD-21（产品负责人 2026-10-09 批准）',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整 Creation 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: 'WHY 探索完成（WAITING/UNDERSTANDING，v4）',
+    inputFault: '无（正向路径：显式 CREATE）',
+    run: caseG04Normal,
+  },
+  {
+    caseId: 'G04-NEG',
+    goldenCase: 'G04',
+    dimension: 'NEGATIVE',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate §8 G04 Negative；P-02 同族（生成中 CREATE：取消旧生成、拒绝旧候选）；PD-21',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整 Creation 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: 'WHY 生成在途（ACTIVE/UNDERSTANDING，v3）',
+    inputFault: '生成中 CREATE（"为什么不做成一个小游戏"——CREATE 优先于 WHY 标记）',
+    run: caseG04Negative,
+  },
+  {
+    caseId: 'G04-B',
+    goldenCase: 'G04',
+    dimension: 'BOUNDARY',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate §8 G04 Boundary；相邻重复输入；版本链 +1 不变式；PD-21',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整 Creation 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: 'WHY 探索完成（WAITING/UNDERSTANDING，v4）',
+    inputFault: '相邻 CREATE 变体两次（"这个可以做成一个小游戏。" / "再做一个这样的小游戏。"）',
+    run: caseG04Boundary,
+  },
+  {
+    caseId: 'G04-FR',
+    goldenCase: 'G04',
+    dimension: 'FAILURE_RECOVERY',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate §8 G04 Failure/Recovery；C4 故障语义（LLM_UNAVAILABLE）；EB-02；P-02；PD-21',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整 Creation 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: 'WHY 生成在途（ACTIVE v3）；可切换网关（故障窗口内 propose 抛错）',
+    inputFault: 'CREATE 期间网关不可用 → 健康网关重试（同一体验恢复）',
+    run: caseG04FailureRecovery,
+  },
+  // G07 Correction（PD-21 关闭切片最小实现；完整 Correction 语义 DEFERRED TO S2）
+  {
+    caseId: 'G07-N',
+    goldenCase: 'G07',
+    dimension: 'NORMAL',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate & Sign-off §8 G07 Correction；Evaluation System V1 §5 G07（remove invalid inference / preserve valid context / reassess）；PD-21（产品负责人 2026-10-09 批准）',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整 Correction 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: 'WHY 探索完成（WAITING/UNDERSTANDING，v4）',
+    inputFault: '无（正向路径：显式 CORRECTION）',
+    run: caseG07Normal,
+  },
+  {
+    caseId: 'G07-NEG',
+    goldenCase: 'G07',
+    dimension: 'NEGATIVE',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate §8 G07 Negative；P-02 同族（生成中 CORRECTION：取消旧生成、拒绝旧候选）；PD-21',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整 Correction 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: 'WHY 生成在途（ACTIVE/UNDERSTANDING，v3）',
+    inputFault: '生成中 CORRECTION（"不是这个意思，为什么"——CORRECTION 优先于 WHY 标记）',
+    run: caseG07Negative,
+  },
+  {
+    caseId: 'G07-B',
+    goldenCase: 'G07',
+    dimension: 'BOUNDARY',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate §8 G07 Boundary；纠正后继续探索（有效上下文保留）；版本链 +1 不变式；PD-21',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整 Correction 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: 'WHY 探索完成（WAITING/UNDERSTANDING，v4）',
+    inputFault: 'CORRECTION 后继续 WHY 探索（"不对，这个理解错了" → "为什么？"）',
+    run: caseG07Boundary,
+  },
+  {
+    caseId: 'G07-FR',
+    goldenCase: 'G07',
+    dimension: 'FAILURE_RECOVERY',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate §8 G07 Failure/Recovery；C4 故障语义（LLM_UNAVAILABLE）；EB-02；P-02；PD-21',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整 Correction 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: 'WHY 生成在途（ACTIVE v3）；可切换网关（故障窗口内 propose 抛错）',
+    inputFault: 'CORRECTION 期间网关不可用 → 健康网关重试（同一体验恢复）',
+    run: caseG07FailureRecovery,
+  },
+  // G08 Memory Boundary（PD-21 关闭切片最小实现；完整持久 Memory 语义 DEFERRED TO S2）
+  {
+    caseId: 'G08-N',
+    goldenCase: 'G08',
+    dimension: 'NORMAL',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate & Sign-off §8 G08 Memory Boundary；Evaluation System V1 §5 G08（当前意图信号不得升级为持久偏好）；PD-21（产品负责人 2026-10-09 批准）；PD-07',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整持久 Memory 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: 'WHY 生成在途（ACTIVE/UNDERSTANDING，v3；流部分消费）',
+    inputFault: '无（生成中方向信号正向路径；CHANGE_DIRECTION 自 WAITING 在冻结状态机非法，故自在途态观测）',
+    run: caseG08Normal,
+  },
+  {
+    caseId: 'G08-NEG',
+    goldenCase: 'G08',
+    dimension: 'NEGATIVE',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate §8 G08 Negative；授权 §5.7（未知情况升级而非由 LLM 决定）；PD-07；PD-21',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整持久 Memory 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: 'WHY 生成在途（ACTIVE v3）→ 方向信号 CHANGE 完成（v5）',
+    inputFault: '方向信号变体（"以后不要这个"）+ 记忆升级尝试（"记住这个"）',
+    run: caseG08Negative,
+  },
+  {
+    caseId: 'G08-B',
+    goldenCase: 'G08',
+    dimension: 'BOUNDARY',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate §8 G08 Boundary；相邻输入变体结构等价；PD-07（不持久化跨会话数据）；PD-21',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整持久 Memory 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: '分类器可用（无状态）；产品源码静态可扫描（src/experience + app/api）',
+    inputFault: '相邻方向信号变体对（"今天不要这个" / "以后不要这个"）+ memory 层静态缺席证明',
+    run: caseG08Boundary,
+  },
+  {
+    caseId: 'G08-FR',
+    goldenCase: 'G08',
+    dimension: 'FAILURE_RECOVERY',
+    form: 'in-process',
+    sourceClause: 'P2 Exit Gate §8 G08 Failure/Recovery；授权 §5.7（升级路径零副作用）；PD-07；PD-21',
+    scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整持久 Memory 语义 DEFERRED TO S2，acceptance-mapping §B）',
+    precondition: 'WHY 生成在途（ACTIVE v3；流未消费）',
+    inputFault: '对抗记忆升级尝试（"记住这个"）→ 在途 WHY 生成继续完成',
+    run: caseG08FailureRecovery,
+  },
 ];
 
-/** 延期黄金案例（P2 Exit Gate §8 语料完整性声明；PD-19 / OBL-03）。 */
-const DEFERRED_GOLDEN_CASES = [
-  {
-    caseId: 'G04-CREATION',
-    goldenCase: 'G04',
-    goldenName: 'Creation',
-    sourceClause: 'P2 Exit Gate §8 G04 Creation；Evaluation System V1 §5 G04；E2 Stage 5（最小 Creation Branch）；acceptance-mapping §B（G04 DEFERRED TO S2，PD-05/PD-06）',
-    scope: 'S2 范围（S1 冻结排除完整 Creation；E2 最小 Creation 安排于 S2）',
-    deferralAuthority: 'PD-19（产品负责人 2026-10-09 裁决；decision-register OBL-03）',
-    dimensions: 'Normal / Negative / Boundary / Failure-Recovery 四维度证据待 S2/P2 关闭切片创建并执行（最小 Creation 实现后）',
-  },
-  {
-    caseId: 'G07-CORRECTION',
-    goldenCase: 'G07',
-    goldenName: 'Correction',
-    sourceClause: 'P2 Exit Gate §8 G07 Correction；Evaluation System V1 §5 G07（remove invalid inference / preserve valid context / reassess）；acceptance-mapping §B（G07 DEFERRED TO S2，PD-05）',
-    scope: 'S2 范围（S1 未启用 Correction Semantic Action）',
-    deferralAuthority: 'PD-19（产品负责人 2026-10-09 裁决；decision-register OBL-03）',
-    dimensions: 'Normal / Negative / Boundary / Failure-Recovery 四维度证据待 S2/P2 关闭切片创建并执行（Correction 动作启用后）',
-  },
-  {
-    caseId: 'G08-MEMORY-BOUNDARY',
-    goldenCase: 'G08',
-    goldenName: 'Memory Boundary',
-    sourceClause: 'P2 Exit Gate §8 G08 Memory Boundary；Evaluation System V1 §5 G08（当前意图信号不得升级为持久偏好）；acceptance-mapping §B（G08 DEFERRED TO S2，PD-07）',
-    scope: 'S2 范围（S1 不持久化跨会话 Memory，PD-07；最小持久 Memory 须另作版本化决策）',
-    deferralAuthority: 'PD-19（产品负责人 2026-10-09 裁决；decision-register OBL-03）',
-    dimensions: 'Normal / Negative / Boundary / Failure-Recovery 四维度证据待 S2/P2 关闭切片创建并执行（最小 Memory 边界实现后）',
-  },
-];
 
 // ---------------------------------------------------------------------------
 // 主流程
@@ -1636,7 +2805,7 @@ async function main() {
       result: outcome.pass ? 'PASS' : 'FAIL',
       evaluator: EVALUATOR_SEPARATION,
       defectsFollowUp: outcome.pass
-        ? '无（本案例）；G3 Gate 逐项判定属独立评测范畴（角色 5）；G04/G07/G08 DEFERRED（PD-19）待 S2/P2 关闭切片'
+        ? '无（本案例）；G3 Gate 逐项判定属独立评测范畴（角色 5）；G04/G07/G08 完整语义 DEFERRED TO S2（acceptance-mapping §B）'
         : '本案例未通过——按 ADR-0002 §5 如实登记，不得重跑至通过为止；缺陷须在关闭切片处置',
     };
     const validation = validateCaseRecord(caseRecord);
@@ -1655,43 +2824,6 @@ async function main() {
     log(`case ${definition.caseId}: ${caseRecord.result}`);
   }
 
-  // Deferred golden case records (G04/G07/G08 — PD-19; DEFERRED is not PASS).
-  for (const deferred of DEFERRED_GOLDEN_CASES) {
-    const caseRecord = {
-      caseIdNamespace: `${RUN_ID}:${deferred.caseId}`,
-      sourceClause: deferred.sourceClause,
-      scope: deferred.scope,
-      precondition: 'P2 Exit Gate §8 黄金语料完整性声明（本运行不执行）',
-      inputFault: '不适用（范围外；S1 范围已冻结 PD-05/PD-06/PD-07）',
-      expected: '黄金案例四维度证据（Normal / Negative / Boundary / Failure-Recovery；Expected / Observed / Evidence Location / Evaluator）',
-      actual: `NOT RUN——${deferred.dimensions}`,
-      invariants: [
-        'DEFERRED 经产品负责人批准（E5 §2 词汇表）；不计为通过',
-        'S1 范围冻结（PD-05/PD-06/PD-07）；本登记不扩大 S1 范围',
-      ],
-      evidence: {
-        deferralAuthority: deferred.deferralAuthority,
-        trackedObligation: 'OBL-03（decision-register v0.16.0）',
-        closureSlice: 'S2/P2 关闭切片（最小实现 + 四维度黄金证据）',
-      },
-      result: 'DEFERRED',
-      evaluator: EVALUATOR_SEPARATION,
-      defectsFollowUp: '无缺陷——范围外延期（PD-19）；关闭切片须创建最小实现并执行四维度黄金证据',
-    };
-    const validation = validateCaseRecord(caseRecord);
-    if (!validation.valid) {
-      log(`case ${deferred.caseId}: DEFERRED record INVALID ${JSON.stringify(validation)}`);
-    }
-    await writeCaseRecord(casesDir, caseRecord);
-    caseResults.push({
-      caseId: deferred.caseId,
-      goldenCase: deferred.goldenCase,
-      dimension: 'DEFERRED',
-      result: 'DEFERRED',
-      pass: null,
-    });
-    log(`case ${deferred.caseId}: DEFERRED (PD-19 / OBL-03)`);
-  }
 
   // Assertions.
   const assertions = [];
@@ -1721,11 +2853,11 @@ async function main() {
     { engines: productPackage.engines, nodeVersion: process.version, lockfileVersion: lockfile.lockfileVersion },
   );
 
-  // A3: case records complete for all cases (20 executed + 3 deferred).
+  // A3: case records complete for all cases (32 executed; no deferred).
   const recordFiles = (await readdir(casesDir)).filter((name) => name.endsWith('.json'));
   assert(
     'A3',
-    `全部 ${caseResults.length} 案例记录齐备且 12 字段完整（E5 §4；${executedResults.length} 执行 + ${deferredResults.length} DEFERRED）`,
+    `全部 ${caseResults.length} 案例记录齐备且 12 字段完整（E5 §4；${executedResults.length} 执行；PD-19 延期义务已履行——G04/G07/G08 关闭切片执行，无 DEFERRED 登记）`,
     recordFiles.length === caseResults.length && allCasesPass,
     { recordFiles: recordFiles.length, expected: caseResults.length, allCasesPass },
   );
@@ -1749,15 +2881,15 @@ async function main() {
     { traceFiles: traceFiles.length, expected: CASE_REGISTRY.length },
   );
 
-  // A5: golden dimension coverage — each S1 golden case has all four dimensions.
-  const goldenCases = ['G01', 'G02', 'G03', 'G05', 'G06'];
+  // A5: golden dimension coverage — each golden case (G01–G08) has all four dimensions.
+  const goldenCases = ['G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08'];
   const dimensionCoverage = goldenCases.map((goldenCase) => {
     const dims = executedResults.filter((entry) => entry.goldenCase === goldenCase).map((entry) => entry.dimension);
     return { goldenCase, dimensions: dims, complete: GOLDEN_DIMENSIONS.every((dim) => dims.includes(dim)) };
   });
   assert(
     'A5',
-    '黄金维度覆盖：G01/G02/G03/G05/G06 各具备 NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度（P2 Exit Gate §8）',
+    '黄金维度覆盖：G01–G08 各具备 NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度（P2 Exit Gate §8；G04/G07/G08 为 PD-21 关闭切片最小实现）',
     dimensionCoverage.every((entry) => entry.complete),
     { dimensionCoverage },
   );
@@ -1766,11 +2898,13 @@ async function main() {
   const staleCase = executedResults.find((entry) => entry.caseId === 'G05-NEG');
   const abortCase = executedResults.find((entry) => entry.caseId === 'G06-FR');
   const inflightCase = executedResults.find((entry) => entry.caseId === 'G05-N');
+  const inflightCreateCase = executedResults.find((entry) => entry.caseId === 'G04-NEG');
+  const inflightCorrectCase = executedResults.find((entry) => entry.caseId === 'G07-NEG');
   assert(
     'A6',
-    'G05/G06 in-flight generation / stale response 必测维度已覆盖且通过（G05-N 生成中 CHANGE、G05-NEG 旧 generation 迟到达拒绝、G06-FR 生成中客户端中止）',
-    inflightCase?.pass === true && staleCase?.pass === true && abortCase?.pass === true,
-    { inflight: inflightCase?.result, stale: staleCase?.result, abort: abortCase?.result },
+    'G04/G05/G06/G07 in-flight generation / stale response 必测维度已覆盖且通过（G04-NEG 生成中 CREATE、G05-N 生成中 CHANGE、G05-NEG 旧 generation 迟到达拒绝、G06-FR 生成中客户端中止、G07-NEG 生成中 CORRECTION）',
+    inflightCase?.pass === true && staleCase?.pass === true && abortCase?.pass === true && inflightCreateCase?.pass === true && inflightCorrectCase?.pass === true,
+    { inflight: inflightCase?.result, stale: staleCase?.result, abort: abortCase?.result, inflightCreate: inflightCreateCase?.result, inflightCorrect: inflightCorrectCase?.result },
   );
 
   // A7: regression baseline binding (cross-iteration regression baseline per OBL-03).
@@ -1783,15 +2917,17 @@ async function main() {
     { baselineRunIds, baselineExists },
   );
 
-  // A8: deferred golden cases registered with PD-19 authority (not silently skipped).
-  const deferredRegistry = deferredResults.map((entry) => entry.caseId);
+  // A8: PD-19 延期义务履行——G04/G07/G08 关闭切片四维度黄金证据齐备，无 DEFERRED 登记。
+  const closureSliceCases = ['G04', 'G07', 'G08'].map((goldenCase) => ({
+    goldenCase,
+    dimensions: executedResults.filter((entry) => entry.goldenCase === goldenCase).map((entry) => entry.dimension),
+  }));
   assert(
     'A8',
-    '延期黄金案例经 PD-19 权威登记（DEFERRED ≠ PASS）：G04/G07/G08 三案例登记于案例记录并引用 OBL-03',
-    deferredResults.length === 3 &&
-      deferredResults.every((entry) => entry.result === 'DEFERRED') &&
-      deferredRegistry.join(',') === 'G04-CREATION,G07-CORRECTION,G08-MEMORY-BOUNDARY',
-    { deferredRegistry },
+    'PD-19 延期义务履行：G04/G07/G08 最小实现（PD-21 关闭切片）四维度黄金证据齐备且无 DEFERRED 登记（完整语义仍 DEFERRED TO S2，acceptance-mapping §B）',
+    closureSliceCases.every((entry) => GOLDEN_DIMENSIONS.every((dim) => entry.dimensions.includes(dim))) &&
+      deferredResults.length === 0,
+    { closureSliceCases, deferredCount: deferredResults.length },
   );
 
   // A9: all executed cases PASS.
@@ -1812,6 +2948,8 @@ async function main() {
     'src/experience/fixtures/why.ts': await sha256OfFile(path.join(repoRoot, 'src/experience/fixtures/why.ts')),
     'src/experience/fixtures/simulate.ts': await sha256OfFile(path.join(repoRoot, 'src/experience/fixtures/simulate.ts')),
     'src/experience/fixtures/change-direction.ts': await sha256OfFile(path.join(repoRoot, 'src/experience/fixtures/change-direction.ts')),
+    'src/experience/fixtures/create.ts': await sha256OfFile(path.join(repoRoot, 'src/experience/fixtures/create.ts')),
+    'src/experience/fixtures/correction.ts': await sha256OfFile(path.join(repoRoot, 'src/experience/fixtures/correction.ts')),
   };
   const finishedAt = new Date().toISOString();
   const durationMs = Date.now() - startedAtMs;
@@ -1822,7 +2960,7 @@ async function main() {
       executedBy: '工程负责人角色（代理，Codex）',
       independentEvaluator: '独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）',
     },
-    obligation: 'P2 G08 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片）',
+    obligation: 'P2 G08 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行）',
     authorization: 'P3-S1-IMPL-AUTH-01 v1.3.0 §2（动态证据执行）；E5-SCOPED-LICENSE-01（PD-17 / CR-15 选项 A）',
     goldenCorpus: {
       definition: 'P2 核心产品验收 G01–G08；每案例至少 Normal/Negative/Boundary/Failure-Recovery 四维度 + Expected/Observed/Evidence/Evaluator（P2 Exit Gate §8）',
@@ -1830,15 +2968,13 @@ async function main() {
         goldenCases,
         caseIds: CASE_REGISTRY.map((definition) => definition.caseId),
         count: CASE_REGISTRY.length,
-        note: 'G03 为 S1 基础单次模拟形态（PD-06）；完整多轮/持久分支 DEFERRED TO S2（acceptance-mapping §B）',
+        note: 'G03 为 S1 基础单次模拟形态（PD-06）；G04/G07/G08 为 PD-21 关闭切片最小实现（完整语义 DEFERRED TO S2，acceptance-mapping §B）',
       },
-      deferred: DEFERRED_GOLDEN_CASES.map((deferred) => ({
-        caseId: deferred.caseId,
-        goldenCase: deferred.goldenCase,
-        goldenName: deferred.goldenName,
-        authority: 'PD-19 / OBL-03',
-        closureSlice: 'S2/P2 关闭切片（最小实现 + 四维度黄金证据）',
-      })),
+      closureSlice: {
+        authority: 'PD-21（产品负责人 2026-10-09 批准；decision-register v0.19.0）',
+        goldenCases: ['G04', 'G07', 'G08'],
+        note: '最小实现（CREATE / CORRECTION 语义动作 + CREATION 阶段 + 当前会话方向信号）四维度黄金证据齐备；完整 Creation / Correction / 持久 Memory 语义仍 DEFERRED TO S2（acceptance-mapping §B，PD-05/PD-06/PD-07）',
+      },
     },
     regression: {
       baselineRunIds,
@@ -1852,8 +2988,8 @@ async function main() {
     s1Specifications: referenceCheck.entries
       .filter((entry) => entry.path.startsWith('P3-S1'))
       .map((entry) => ({ source: `docs/product/reference/${entry.path}`, sha256: entry.computed, archiveIntegrity: entry.match ? 'VERIFIED vs SHA256SUMS' : 'MISMATCH' })),
-    stateMachine: { version: 'state_machine_v1.0.0', source: 'SRC-05 / 13' },
-    policy: { version: 'action_policy_v1.0.0（基线赋予）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）；CREATE/CORRECTION/SEARCH 表外（PD-05/PD-06）' },
+    stateMachine: { version: 'state_machine_v1.0.0', source: 'SRC-05 / 13', closureSlice: 'CREATION 阶段 + CREATE/CORRECTION 触发（PD-21 关闭切片最小形态）；完整 WHAT_IF 分支 / Creation / Correction 属 S2' },
+    policy: { version: 'policy_v1.1.0（PD-21 关闭切片版本化变更）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）；SEARCH 仍表外（PD-06）；完整语义 DEFERRED TO S2' },
     api: { version: 'api_v1.0.0', source: 'SRC-07 / 16' },
     event: { version: 'analytics_v1.0.0', source: 'SRC-08 / 17' },
     evaluation: { contract: 'C7', version: 'evaluation_v1.0.0', note: 'G5 16 项评测包已执行并双签署（P3-S1-G5-WORKSHEET-01 v1.7.0）；G3 逐项判定属本运行后的独立评测范畴' },
@@ -1875,6 +3011,8 @@ async function main() {
         { fixtureId: why.fixtureId, file: 'src/experience/fixtures/why.ts', sha256: fixtureHashes['src/experience/fixtures/why.ts'] },
         { fixtureId: simulate.fixtureId, file: 'src/experience/fixtures/simulate.ts', sha256: fixtureHashes['src/experience/fixtures/simulate.ts'] },
         { fixtureId: changeDirection.fixtureId, file: 'src/experience/fixtures/change-direction.ts', sha256: fixtureHashes['src/experience/fixtures/change-direction.ts'] },
+        { fixtureId: createFixture.fixtureId, file: 'src/experience/fixtures/create.ts', sha256: fixtureHashes['src/experience/fixtures/create.ts'] },
+        { fixtureId: correctionFixture.fixtureId, file: 'src/experience/fixtures/correction.ts', sha256: fixtureHashes['src/experience/fixtures/correction.ts'] },
         { fixtureId: 'synthetic/stop/v1', file: '（运行时内联构造：STOP 无内容分块）', sha256: null },
       ],
       realUserData: false,
@@ -1950,7 +3088,7 @@ async function main() {
     allAssertionsPass,
     allPassed,
     exitCode,
-    vocabularyNote: '退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置 G3 或任何产品 Gate 状态为 PASS（E5 §2）。G3 Gate 判定由独立评测人经逐项裁决作出；G04/G07/G08 为经产品负责人批准的延期（PD-19），不计为通过。',
+    vocabularyNote: '退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置 G3 或任何产品 Gate 状态为 PASS（E5 §2）。G3 Gate 判定由独立评测人经逐项裁决作出；G04/G07/G08 以 PD-21 关闭切片最小形态执行（完整语义 DEFERRED TO S2，acceptance-mapping §B），是否接受为关闭条件属产品负责人与评测人共同裁决。',
   };
   await writeFile(path.join(runDir, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
   log(`summary.json written: cases=${caseResults.length} (executed=${executedResults.length} allPass=${allCasesPass}, deferred=${deferredResults.length}) assertions=${assertions.length} allAssertionsPass=${allAssertionsPass}`);
@@ -1980,14 +3118,14 @@ async function main() {
   // Review README for the independent evaluator (G3 item-by-item ruling aid).
   const reviewReadme = `# G3-GOLDEN-0001 — 独立评测人审阅包（staged，待审阅与否决）
 
-运行：G3-GOLDEN-0001（P2 G3 黄金案例回归套件——OBL-03 / PD-19；S1 已实现黄金子集 5 案例 × 4 维度 = 20 案例执行 + G04/G07/G08 经批准延期登记）
+运行：G3-GOLDEN-0001（P2 G3 黄金案例回归套件——OBL-03 / PD-19；8 黄金案例 × 4 维度 = 32 案例执行；PD-21 关闭切片：G04/G07/G08 最小实现）
 日期：${finishedAt}
 执行器：工程负责人角色（代理）；独立评测负责人：用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）
 
 ## 结果
 
 - 执行案例：${executedResults.length}/${executedResults.length} ${allCasesPass ? '全部 PASS' : '存在 FAIL——见 cases/'}
-- 延期案例：${deferredResults.length}（G04 Creation / G07 Correction / G08 Memory Boundary——PD-19 批准 DEFERRED TO S2/P2 关闭切片；DEFERRED 不计为通过）
+- 延期案例：${deferredResults.length}（PD-19 延期义务已履行：G04/G07/G08 以 PD-21 关闭切片最小形态执行；完整语义 DEFERRED TO S2，acceptance-mapping §B；DEFERRED 不计为通过）
 - 断言：${assertions.filter((entry) => entry.passed).length}/${assertions.length} 通过（A1–A10）
 - 退出码：${finalExitCode}（只表示本运行断言通过；不设置 G3 或任何产品 Gate 状态）
 
@@ -1998,23 +3136,23 @@ async function main() {
 | G01 Direct Answer | N/NEG/B/FR | 4/4 PASS | 待裁决 | |
 | G02 Why | N/NEG/B/FR | 4/4 PASS | 待裁决 | |
 | G03 What If（S1 基础单次模拟形态） | N/NEG/B/FR | 4/4 PASS | 待裁决 | 完整多轮/持久分支属 S2（acceptance-mapping §B） |
-| G04 Creation | 未执行 | DEFERRED（PD-19） | 待裁决 | S2/P2 关闭切片：最小 Creation 实现 + 四维度证据 |
+| G04 Creation（PD-21 关闭切片最小实现） | N/NEG/B/FR | 4/4 PASS | 待裁决 | 完整 Creation 语义属 S2（acceptance-mapping §B，PD-05/PD-06） |
 | G05 Change | N/NEG/B/FR（含 in-flight/stale 必测维度） | 4/4 PASS | 待裁决 | |
 | G06 Stop | N/NEG/B/FR | 4/4 PASS | 待裁决 | |
-| G07 Correction | 未执行 | DEFERRED（PD-19） | 待裁决 | S2/P2 关闭切片：Correction 动作启用 + 四维度证据 |
-| G08 Memory Boundary | 未执行 | DEFERRED（PD-19） | 待裁决 | S2/P2 关闭切片：最小 Memory 边界实现 + 四维度证据 |
+| G07 Correction（PD-21 关闭切片最小实现） | N/NEG/B/FR | 4/4 PASS | 待裁决 | 完整 Correction 语义属 S2（acceptance-mapping §B，PD-05） |
+| G08 Memory Boundary（PD-21 关闭切片最小实现） | N/NEG/B/FR | 4/4 PASS | 待裁决 | 完整持久 Memory 语义属 S2（acceptance-mapping §B，PD-07） |
 
 ## 审阅清单（不得只看汇总）
 
-1. cases/ —— 23 份 E5 §4 案例记录（12 字段），含预期 / 实际 / 不变式 / 证据哈希；20 份执行 + 3 份 DEFERRED 登记
-2. traces/ —— 20 份 JSONL 轨迹（每案例 trace_started → 案例事实 → trace_completed）
+1. cases/ —— 32 份 E5 §4 案例记录（12 字段），含预期 / 实际 / 不变式 / 证据哈希；32 份执行（无 DEFERRED 登记）
+2. traces/ —— 32 份 JSONL 轨迹（每案例 trace_started → 案例事实 → trace_completed）
 3. run-metadata.json —— E5 §3 版本矩阵（黄金语料定义、回归基线绑定 F2-GS-0001/F3-EB-0001、契约指纹、代码字节绑定）
 4. SHA256SUMS —— 证据包清单（可独立重算验证）
 
 ## 语料范围声明
 
-- 已执行（本运行）：S1 已实现黄金子集（G01/G02/G03 基础形态/G05/G06）四维度共 20 案例，进程内形态（真实 .ts 源字节）。
-- 延期（经批准）：G04/G07/G08——S1 范围冻结（PD-05/PD-06/PD-07），最小实现与黄金证据安排在 S2/P2 关闭切片（PD-19 / OBL-03）。
+- 已执行（本运行）：G01–G08 八黄金案例四维度共 32 案例，进程内形态（真实 .ts 源字节）；G03 为 S1 基础单次模拟形态（PD-06）。
+- 关闭切片（PD-21）：G04/G07/G08 最小实现（CREATE / CORRECTION 语义动作 + CREATION 阶段 + 当前会话方向信号）；完整 Creation / Correction / 持久 Memory 语义仍属 S2（PD-05/PD-06/PD-07；acceptance-mapping §B）。
 - 形态覆盖：HTTP 形态回归证据见 F2-GS-0001 / F3-EB-0001（本套件为跨迭代回归基准的进程内形态）。
 - 未执行（NOT RUN）：真实 LLM 提供方接入（须另经产品决策与隐私六要素批准）；真实用户数据收集（按 ADR-0002 §3 证据运行仅使用合成数据）。
 
@@ -2026,7 +3164,7 @@ async function main() {
 
 ## 否决权
 
-独立评测人可审阅任意原始轨迹与预期，并对本运行结论提出否决；否决须登记于独立复核记录。评测人不得由本运行执行者担任（角色分离见各案例记录 evaluator 字段）。G3 Gate 的最终判定（尤其 G04/G07/G08 的 DEFERRED 是否可接受为关闭条件）属产品负责人与评测人共同裁决范畴。
+独立评测人可审阅任意原始轨迹与预期，并对本运行结论提出否决；否决须登记于独立复核记录。评测人不得由本运行执行者担任（角色分离见各案例记录 evaluator 字段）。G3 Gate 的最终判定（尤其 G04/G07/G08 关闭切片最小形态是否足以接受为 P2 关闭条件）属产品负责人与评测人共同裁决范畴。
 `;
   await writeFile(path.join(reviewDir, 'README.md'), reviewReadme, 'utf8');
 

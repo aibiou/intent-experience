@@ -77,6 +77,8 @@ const INTERACTION_EVENT_BY_SEMANTIC_ACTION: Readonly<Record<SemanticAction, stri
   WHAT_IF: 'what_if_requested',
   CHANGE_DIRECTION: 'change_direction_requested',
   STOP: 'stop_requested',
+  CREATE: 'create_requested', // PD-21 关闭切片（C6 §14 交互事件命名模式）
+  CORRECTION: 'correction_requested', // PD-21 关闭切片（C6 §14 交互事件命名模式）
 };
 
 function errorCodeStatus(code: RuntimeErrorCode): number {
@@ -582,6 +584,12 @@ export class ExperienceRuntime {
       branchResult = await this.executeStop(input, session, current, stateBefore, policy, decisionId, interactionEventType);
     } else if (policy.policyAction === 'CHANGE_EXPERIENCE') {
       branchResult = await this.executeChange(input, session, experience, current, stateBefore, policy, decisionId);
+    } else if (policy.policyAction === 'CREATE') {
+      branchResult = await this.executeCreate(input, session, experience, current, stateBefore, policy, decisionId);
+    } else if (policy.semanticAction === 'CORRECTION') {
+      // CORRECTION 的 Policy Action 为 EXPLAIN（重评估落到合法动作），
+      // 须在 executeContentGeneration 兜底前按语义动作分派（PD-21 关闭切片）。
+      branchResult = await this.executeCorrect(input, session, experience, current, stateBefore, policy, decisionId);
     } else {
       branchResult = await this.executeContentGeneration(
         input,
@@ -1108,6 +1116,570 @@ export class ExperienceRuntime {
         semantic_action: policy.semanticAction,
         selected_action: policy.policyAction,
         reason: 'explicit_user_direction',
+      },
+      state_version: commit.state.stateVersion,
+      state: { status: commit.state.status, stage: commit.state.stage, waiting_for_user: commit.state.waitingForUser },
+      at: now,
+    };
+
+    const fixture = loadChunkFixture(policy.semanticAction);
+    if (!fixture.ok) {
+      return { ok: false, error: runtimeError('INTERNAL_ERROR', `fixture missing for ${policy.semanticAction}`) };
+    }
+    const combinedSignal = input.signal
+      ? AbortSignal.any([input.signal, controller.signal])
+      : controller.signal;
+    const stream = this.wrapGenerationStream({
+      header,
+      experienceId: input.experienceId,
+      generationId,
+      streamOptions: {
+        semanticAction: policy.semanticAction,
+        policyAction: policy.policyAction,
+        fixtureId: fixture.fixture.fixtureId,
+        chunks: fixture.fixture.chunks,
+        signal: combinedSignal,
+        chunkDelayMs: 40,
+        audit: this.auditSink,
+      },
+      completionCommit: true,
+      stateTransitionedEvent: stateTransitions,
+    });
+
+    return { ok: true, header, stream, generationId };
+  }
+
+  // ---------------------------------------------------------------------
+  // CREATE 执行（PD-21 关闭切片：最小 Creation Branch；G04）
+  // ---------------------------------------------------------------------
+
+  private async executeCreate(
+    input: {
+      experienceId: string;
+      sessionId: string;
+      requestId: string;
+      expectedStateVersion: number;
+      signal?: AbortSignal;
+      rawInput: string;
+    },
+    session: SessionRecord,
+    experience: ExperienceRecord,
+    current: ExperienceState,
+    stateBefore: ExperienceView,
+    policy: { semanticAction: SemanticAction; policyAction: PolicyAction },
+    decisionId: string,
+  ): Promise<SubmissionResult> {
+    const now = new Date().toISOString();
+
+    // 1. 取消在途 generation（P-02 同族约束：CREATE 取代在途生成）。
+    await this.interruptGeneration(input.experienceId, 'superseded_by_create');
+
+    // 2. 拒绝旧候选（与 CHANGE 同族：旧候选被取代拒绝）。
+    await this.recordEvent('experience_interrupted', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: {
+        experience_id: input.experienceId,
+        intent_id: experience.intentId,
+        state_version: current.stateVersion,
+        request_id: input.requestId,
+      },
+      source: { layer: 'runtime', component: 'interrupt-controller' },
+      properties: {
+        interrupted_candidate_id: experience.candidateId,
+        reason: 'create',
+        old_generation_rejected: true,
+      },
+    });
+
+    // 3. 状态迁移（CREATE：当前视图 → ACTIVE/CREATION，单步合法校验）。
+    const steps: ExperienceTrigger[] = ['CREATE'];
+    const transition = transitionExperience(stateBefore, 'CREATE');
+    if (!transition.ok) {
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'invalid_state_transition',
+        reasonSecondary: `CREATE illegal from ${stateBefore.status}/${stateBefore.stage}`,
+        llmUsed: true,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'INVALID_STATE_TRANSITION',
+          `CREATE illegal from ${stateBefore.status}/${stateBefore.stage} (state machine allows CREATE from READY/ACTIVE/WAITING)`,
+        ),
+      };
+    }
+    const view = transition.next;
+
+    // 4. 能力层：结构化 LLM 请求 → 提案（S1-07）。
+    this.counters.generation += 1;
+    const generationId = `gen_synthetic_${String(this.counters.generation).padStart(4, '0')}`;
+    const llmRequestId = `req_${generationId}`;
+    await this.recordEvent('generation_started', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'generation' },
+      properties: { generation_id: generationId },
+    });
+    await this.recordEvent('llm_request_started', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+      source: { layer: 'llm', component: 'llm-gateway' },
+      properties: { generation_id: generationId, semantic_action: policy.semanticAction, allowed_action: policy.policyAction },
+    });
+    let proposal;
+    try {
+      proposal = await this.gateway.propose({
+        request_id: llmRequestId,
+        session_id: input.sessionId,
+        experience_id: input.experienceId,
+        intent: { intent_id: experience.intentId },
+        experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
+        semantic_action: policy.semanticAction,
+        allowed_action: policy.policyAction,
+        context: { raw_input: input.rawInput },
+      });
+    } catch {
+      // EB-02：propose 失败不提交、不消耗版本号（在途 generation 已被取代取消）。
+      return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'synthetic gateway failed', true) };
+    }
+    await this.recordEvent('llm_request_completed', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+      source: { layer: 'llm', component: 'llm-gateway' },
+      properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
+    });
+
+    // 5. 验证（S1-08；GS-06：任何越权状态写入提案在此拒绝）。
+    const validation = validateProposal(proposal);
+    if (!validation.ok) {
+      await this.recordEvent('llm_output_rejected', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+        source: { layer: 'llm', component: 'validator' },
+        properties: { generation_id: generationId, proposal_id: proposal.proposal_id, code: validation.code, reason: validation.reason },
+      });
+      if (validation.code === 'POLICY_REJECTED') {
+        await this.recordEvent('state_write_rejected', {
+          identity: { user_id: this.userId, session_id: input.sessionId },
+          context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+          source: { layer: 'runtime', component: 'validator' },
+          properties: { reason: 'llm_state_mutation_forbidden', generation_id: generationId, detail: validation.reason },
+        });
+      }
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'proposal_rejected',
+        reasonSecondary: `${validation.code}: ${validation.reason}`,
+        llmUsed: true,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return { ok: false, error: runtimeError(validation.code, validation.reason) };
+    }
+    await this.recordEvent('llm_output_validated', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+      source: { layer: 'llm', component: 'validator' },
+      properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
+    });
+
+    // 6. 版本化提交（CREATE 迁移结果；expected_state_version 陈旧 → 冲突拒绝）。
+    const commit = await this.store.commit(input.experienceId, input.expectedStateVersion, (state) => ({
+      ...state,
+      status: view.status,
+      stage: view.stage,
+      waitingForUser: false,
+      lastSemanticAction: 'CREATE',
+      updatedAt: now,
+    }));
+    if (!commit.ok) {
+      await this.recordEvent('state_version_conflict', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId },
+        source: { layer: 'runtime', component: 'state-store' },
+        properties: {
+          expected_state_version: input.expectedStateVersion,
+          current_state_version: commit.currentStateVersion,
+          trigger: 'CREATE',
+        },
+      });
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'state_version_conflict',
+        reasonSecondary: `expected ${input.expectedStateVersion}, current ${commit.currentStateVersion}`,
+        llmUsed: true,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'STATE_VERSION_CONFLICT',
+          `stale expected_state_version: expected ${input.expectedStateVersion}, current ${commit.currentStateVersion} (no overwrite, S1-12)`,
+          false,
+          { expected_state_version: input.expectedStateVersion, current_state_version: commit.currentStateVersion },
+        ),
+      };
+    }
+
+    // 7. generation epoch 登记 + 迁移事件 + 决策追踪。
+    this.activeGenerations.set(input.experienceId, generationId);
+    const controller = new AbortController();
+    this.generationControllers.set(input.experienceId, controller);
+
+    const stateTransitions = await this.recordEvent('state_transitioned', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: commit.state.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'state-machine' },
+      properties: {
+        from: { status: stateBefore.status, stage: stateBefore.stage },
+        event: 'CREATE',
+        action: policy.policyAction,
+        to: { status: commit.state.status, stage: commit.state.stage },
+        state_version_before: current.stateVersion,
+        state_version_after: commit.state.stateVersion,
+        steps,
+      },
+    });
+
+    await this.writeDecisionTrace({
+      decisionId,
+      sessionId: input.sessionId,
+      experienceId: input.experienceId,
+      semanticAction: policy.semanticAction,
+      stateBefore,
+      stateBeforeVersion: current.stateVersion,
+      stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+      selectedAction: policy.policyAction,
+      reasonPrimary: 'explicit_user_direction',
+      reasonSecondary: 'CREATE cancels in-flight generation and starts the minimal creation turn on the inherited context (PD-21 closure slice)',
+      llmUsed: true,
+      userOverride: true,
+      inputEvent: null,
+      intentBefore: null,
+    });
+
+    const header: SubmissionHeader = {
+      type: 'submission',
+      accepted: true,
+      experience_id: input.experienceId,
+      session_id: input.sessionId,
+      request_id: input.requestId,
+      policy_decision: {
+        decision_id: decisionId,
+        policy_version: POLICY_VERSION,
+        semantic_action: policy.semanticAction,
+        selected_action: policy.policyAction,
+        reason: 'explicit_user_direction',
+      },
+      state_version: commit.state.stateVersion,
+      state: { status: commit.state.status, stage: commit.state.stage, waiting_for_user: commit.state.waitingForUser },
+      at: now,
+    };
+
+    const fixture = loadChunkFixture(policy.semanticAction);
+    if (!fixture.ok) {
+      return { ok: false, error: runtimeError('INTERNAL_ERROR', `fixture missing for ${policy.semanticAction}`) };
+    }
+    const combinedSignal = input.signal
+      ? AbortSignal.any([input.signal, controller.signal])
+      : controller.signal;
+    const stream = this.wrapGenerationStream({
+      header,
+      experienceId: input.experienceId,
+      generationId,
+      streamOptions: {
+        semanticAction: policy.semanticAction,
+        policyAction: policy.policyAction,
+        fixtureId: fixture.fixture.fixtureId,
+        chunks: fixture.fixture.chunks,
+        signal: combinedSignal,
+        chunkDelayMs: 40,
+        audit: this.auditSink,
+      },
+      completionCommit: true,
+      stateTransitionedEvent: stateTransitions,
+    });
+
+    return { ok: true, header, stream, generationId };
+  }
+
+  // ---------------------------------------------------------------------
+  // CORRECTION 执行（PD-21 关闭切片：最小 Correction；G07）
+  // ---------------------------------------------------------------------
+
+  private async executeCorrect(
+    input: {
+      experienceId: string;
+      sessionId: string;
+      requestId: string;
+      expectedStateVersion: number;
+      signal?: AbortSignal;
+      rawInput: string;
+    },
+    session: SessionRecord,
+    experience: ExperienceRecord,
+    current: ExperienceState,
+    stateBefore: ExperienceView,
+    policy: { semanticAction: SemanticAction; policyAction: PolicyAction },
+    decisionId: string,
+  ): Promise<SubmissionResult> {
+    const now = new Date().toISOString();
+
+    // 1. 取消在途 generation（纠正与在途生成互斥：旧生成被取代取消）。
+    await this.interruptGeneration(input.experienceId, 'correction');
+
+    // 2. 拒绝旧候选（纠正否定旧候选的推断）。
+    await this.recordEvent('experience_interrupted', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: {
+        experience_id: input.experienceId,
+        intent_id: experience.intentId,
+        state_version: current.stateVersion,
+        request_id: input.requestId,
+      },
+      source: { layer: 'runtime', component: 'interrupt-controller' },
+      properties: {
+        interrupted_candidate_id: experience.candidateId,
+        reason: 'correction',
+        old_generation_rejected: true,
+      },
+    });
+
+    // 3. 状态迁移（CORRECTION：当前视图 → ACTIVE，阶段保持——重评估当前阶段）。
+    const steps: ExperienceTrigger[] = ['CORRECTION'];
+    const transition = transitionExperience(stateBefore, 'CORRECTION');
+    if (!transition.ok) {
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'invalid_state_transition',
+        reasonSecondary: `CORRECTION illegal from ${stateBefore.status}/${stateBefore.stage}`,
+        llmUsed: true,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'INVALID_STATE_TRANSITION',
+          `CORRECTION illegal from ${stateBefore.status}/${stateBefore.stage} (state machine allows CORRECTION from READY/ACTIVE/WAITING)`,
+        ),
+      };
+    }
+    const view = transition.next;
+
+    // 4. 能力层：结构化 LLM 请求 → 提案（S1-07；重评估后的纠正候选）。
+    this.counters.generation += 1;
+    const generationId = `gen_synthetic_${String(this.counters.generation).padStart(4, '0')}`;
+    const llmRequestId = `req_${generationId}`;
+    await this.recordEvent('generation_started', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'generation' },
+      properties: { generation_id: generationId },
+    });
+    await this.recordEvent('llm_request_started', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+      source: { layer: 'llm', component: 'llm-gateway' },
+      properties: { generation_id: generationId, semantic_action: policy.semanticAction, allowed_action: policy.policyAction },
+    });
+    let proposal;
+    try {
+      proposal = await this.gateway.propose({
+        request_id: llmRequestId,
+        session_id: input.sessionId,
+        experience_id: input.experienceId,
+        intent: { intent_id: experience.intentId },
+        experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
+        semantic_action: policy.semanticAction,
+        allowed_action: policy.policyAction,
+        context: { raw_input: input.rawInput },
+      });
+    } catch {
+      // EB-02：propose 失败不提交、不消耗版本号（在途 generation 已被取消）。
+      return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'synthetic gateway failed', true) };
+    }
+    await this.recordEvent('llm_request_completed', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+      source: { layer: 'llm', component: 'llm-gateway' },
+      properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
+    });
+
+    // 5. 验证（S1-08；GS-06：任何越权状态写入提案在此拒绝）。
+    const validation = validateProposal(proposal);
+    if (!validation.ok) {
+      await this.recordEvent('llm_output_rejected', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+        source: { layer: 'llm', component: 'validator' },
+        properties: { generation_id: generationId, proposal_id: proposal.proposal_id, code: validation.code, reason: validation.reason },
+      });
+      if (validation.code === 'POLICY_REJECTED') {
+        await this.recordEvent('state_write_rejected', {
+          identity: { user_id: this.userId, session_id: input.sessionId },
+          context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+          source: { layer: 'runtime', component: 'validator' },
+          properties: { reason: 'llm_state_mutation_forbidden', generation_id: generationId, detail: validation.reason },
+        });
+      }
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'proposal_rejected',
+        reasonSecondary: `${validation.code}: ${validation.reason}`,
+        llmUsed: true,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return { ok: false, error: runtimeError(validation.code, validation.reason) };
+    }
+    await this.recordEvent('llm_output_validated', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+      source: { layer: 'llm', component: 'validator' },
+      properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
+    });
+
+    // 6. 版本化提交（CORRECTION 迁移结果；expected_state_version 陈旧 → 冲突拒绝）。
+    const commit = await this.store.commit(input.experienceId, input.expectedStateVersion, (state) => ({
+      ...state,
+      status: view.status,
+      stage: view.stage,
+      waitingForUser: false,
+      lastSemanticAction: 'CORRECTION',
+      updatedAt: now,
+    }));
+    if (!commit.ok) {
+      await this.recordEvent('state_version_conflict', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId },
+        source: { layer: 'runtime', component: 'state-store' },
+        properties: {
+          expected_state_version: input.expectedStateVersion,
+          current_state_version: commit.currentStateVersion,
+          trigger: 'CORRECTION',
+        },
+      });
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'state_version_conflict',
+        reasonSecondary: `expected ${input.expectedStateVersion}, current ${commit.currentStateVersion}`,
+        llmUsed: true,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'STATE_VERSION_CONFLICT',
+          `stale expected_state_version: expected ${input.expectedStateVersion}, current ${commit.currentStateVersion} (no overwrite, S1-12)`,
+          false,
+          { expected_state_version: input.expectedStateVersion, current_state_version: commit.currentStateVersion },
+        ),
+      };
+    }
+
+    // 7. generation epoch 登记 + 迁移事件 + 决策追踪。
+    this.activeGenerations.set(input.experienceId, generationId);
+    const controller = new AbortController();
+    this.generationControllers.set(input.experienceId, controller);
+
+    const stateTransitions = await this.recordEvent('state_transitioned', {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: commit.state.stateVersion, request_id: input.requestId, decision_id: decisionId },
+      source: { layer: 'runtime', component: 'state-machine' },
+      properties: {
+        from: { status: stateBefore.status, stage: stateBefore.stage },
+        event: 'CORRECTION',
+        action: policy.policyAction,
+        to: { status: commit.state.status, stage: commit.state.stage },
+        state_version_before: current.stateVersion,
+        state_version_after: commit.state.stateVersion,
+        steps,
+      },
+    });
+
+    await this.writeDecisionTrace({
+      decisionId,
+      sessionId: input.sessionId,
+      experienceId: input.experienceId,
+      semanticAction: policy.semanticAction,
+      stateBefore,
+      stateBeforeVersion: current.stateVersion,
+      stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+      selectedAction: policy.policyAction,
+      reasonPrimary: 'reassess',
+      reasonSecondary: 'CORRECTION cancels in-flight generation, removes the invalid inference, preserves valid context (session/intent/prior events intact), and reassesses the corrected candidate (G07; PD-21 closure slice)',
+      llmUsed: true,
+      userOverride: true,
+      inputEvent: null,
+      intentBefore: null,
+    });
+
+    const header: SubmissionHeader = {
+      type: 'submission',
+      accepted: true,
+      experience_id: input.experienceId,
+      session_id: input.sessionId,
+      request_id: input.requestId,
+      policy_decision: {
+        decision_id: decisionId,
+        policy_version: POLICY_VERSION,
+        semantic_action: policy.semanticAction,
+        selected_action: policy.policyAction,
+        reason: 'reassess',
       },
       state_version: commit.state.stateVersion,
       state: { status: commit.state.status, stage: commit.state.stage, waiting_for_user: commit.state.waitingForUser },

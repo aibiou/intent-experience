@@ -9,6 +9,8 @@ import { directAnswer } from './fixtures/direct-answer';
 import { why } from './fixtures/why';
 import { changeDirection } from './fixtures/change-direction';
 import { simulate } from './fixtures/simulate';
+import { create } from './fixtures/create';
+import { correction } from './fixtures/correction';
 
 export interface ChunkFixture {
   fixtureId: string;
@@ -22,6 +24,8 @@ const FIXTURES: Readonly<Record<string, ChunkFixture>> = {
   [why.semanticAction]: why,
   [changeDirection.semanticAction]: changeDirection,
   [simulate.semanticAction]: simulate,
+  [create.semanticAction]: create,
+  [correction.semanticAction]: correction,
 };
 
 export type ChunkResolution =

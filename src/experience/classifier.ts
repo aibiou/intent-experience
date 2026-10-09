@@ -2,17 +2,19 @@
  * 语义动作分类器（S1-05；S1 规范 §26 GS-01…GS-04 定义行为）。
  *
  * 确定性规则分类（合成模式）：输入自然语言 → S1 冻结语义动作。
- * 优先级（P-01 STOP 永远优先；P-03 显式用户方向优先；PD-12 解释顺序
- * WHY > WHAT_IF）：
- *   STOP > CHANGE_DIRECTION > WHY > WHAT_IF > DIRECT_ANSWER
+ * 优先级（P-01 STOP 永远优先；P-03 显式用户方向优先；C3 §4 用户控制
+ * 优先；PD-12 解释顺序 WHY > WHAT_IF；PD-21 关闭切片）：
+ *   STOP > CHANGE_DIRECTION > CORRECTION > CREATE > WHY > WHAT_IF >
+ *   DIRECT_ANSWER
  *
  * 治理约束：
  * - 分类是确定性规则，不调用任何模型：模型异常不存在于本路径，
  *   因此"模型异常时不得改写用户意图"（GS-01 负向）由构造保证。
  * - 无法分类的输入返回 UNKNOWN 并升级（未知情况升级而非由 LLM 决定，
  *   授权 §5.7）；不在运行时发明语义。
- * - 仅覆盖 S1 冻结语义动作词汇表；CREATE/SEARCH 等 S1 禁用动作
- *   永不产生（PD-05/PD-06）。
+ * - 语义动作词汇表：S1 冻结动作 + PD-21 关闭切片启用的 CREATE /
+ *   CORRECTION（最小形态）；SEARCH 仍表外；完整 Creation / Correction
+ *   语义属 S2（PD-05/PD-06/PD-07 范围不变）。
  */
 
 import type { SemanticAction } from './policy';
@@ -38,6 +40,28 @@ const CHANGE_DIRECTION_PATTERNS: ReadonlyArray<RegExp> = [
   /换个方向/,
   /换一个方向/,
   /换个话题/,
+  // PD-21 关闭切片（G08 当前会话方向信号：不持久化为跨会话偏好）：
+  /不要这个/,
+  /不要了/,
+  /别这样/,
+];
+
+const CORRECTION_PATTERNS: ReadonlyArray<RegExp> = [
+  /不是/,
+  /不对/,
+  /错了/,
+  /理解错/,
+  /误解/,
+];
+
+const CREATE_PATTERNS: ReadonlyArray<RegExp> = [
+  /做成/,
+  /做一个/,
+  /做出来/,
+  /做个小?游戏/,
+  /我想试试/,
+  /创造/,
+  /创作/,
 ];
 
 const WHY_PATTERNS: ReadonlyArray<RegExp> = [/为什么/, /为何/, /为啥/, /什么缘故/];
@@ -82,6 +106,14 @@ export function classifyInput(rawInput: string): ClassificationResult {
   // P-03：显式方向变更优先于探索继续。
   if (CHANGE_DIRECTION_PATTERNS.some((pattern) => pattern.test(rawInput))) {
     return { semanticAction: 'CHANGE_DIRECTION' };
+  }
+  // PD-21 关闭切片：用户显式纠正 / 创造意图先于继续探索
+  // （G04-NEG / G07-NEG 负向案例基础：CORRECTION / CREATE 优先于 WHY）。
+  if (CORRECTION_PATTERNS.some((pattern) => pattern.test(rawInput))) {
+    return { semanticAction: 'CORRECTION' };
+  }
+  if (CREATE_PATTERNS.some((pattern) => pattern.test(rawInput))) {
+    return { semanticAction: 'CREATE' };
   }
   // PD-12：WHY > WHAT_IF（同一优先级层内的解释顺序）。
   if (WHY_PATTERNS.some((pattern) => pattern.test(rawInput))) {

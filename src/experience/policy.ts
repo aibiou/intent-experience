@@ -8,17 +8,35 @@
  * - WHAT_IF → SIMULATE（S1 §14；仅基础单次模拟提案，不建立持久/多轮分支，PD-06）
  * - CHANGE_DIRECTION → CHANGE_EXPERIENCE（S1 §14；S1 硬边界，必须取消旧操作，P-02）
  * - STOP → STOP（C3 §7 单目标映射；S1 硬边界，永远优先，P-01）
+ * - CREATE → CREATE（PD-21 关闭切片：最小 Creation Branch，C3 §7/§8 合法动作；
+ *   完整 Creation 语义属 S2，PD-05/PD-06）
+ * - CORRECTION → EXPLAIN（PD-21 关闭切片：重评估是内部过程，必须落到
+ *   合法 Policy Action；EXPLAIN = 重评估后的纠正候选，G07）
  *
  * 治理约束：
  * - C3 行为语义空缺（G-1…G-7，见 c3-semantic-gap-register-v1.md）未由编码者补写：
  *   冻结点之外一律拒绝并升级，不在运行时发明语义。
- * - S1 范围边界（PD-05/PD-06/PD-07）：CREATE / SEARCH 禁用；不持久化跨会话 Memory。
+ * - 范围边界（PD-05/PD-06/PD-07/PD-21）：SEARCH 禁用；不持久化跨会话 Memory；
+ *   CREATE / CORRECTION 仅在 P2 关闭切片以最小形态启用，完整语义属 S2。
  * - 策略不生成事实内容（P-04）；LLM 不允许自己选择最终 Action（P-05）。
  */
 
-export type SemanticAction = 'DIRECT_ANSWER' | 'WHY' | 'WHAT_IF' | 'CHANGE_DIRECTION' | 'STOP';
+export type SemanticAction =
+  | 'DIRECT_ANSWER'
+  | 'WHY'
+  | 'WHAT_IF'
+  | 'CHANGE_DIRECTION'
+  | 'STOP'
+  | 'CREATE'
+  | 'CORRECTION';
 
-export type PolicyAction = 'ANSWER' | 'EXPLAIN' | 'SIMULATE' | 'CHANGE_EXPERIENCE' | 'STOP';
+export type PolicyAction =
+  | 'ANSWER'
+  | 'EXPLAIN'
+  | 'SIMULATE'
+  | 'CHANGE_EXPERIENCE'
+  | 'STOP'
+  | 'CREATE';
 
 /** 冻结映射表：键为 S1 范围内语义动作，值为对应策略动作（S1 §14）。 */
 const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
@@ -27,10 +45,16 @@ const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
   WHAT_IF: 'SIMULATE', // S1 §14；仅当前单次模拟提案（PD-06：不建立持久/多轮分支）
   CHANGE_DIRECTION: 'CHANGE_EXPERIENCE', // S1 §14；S1 硬边界（P-02：必须取消旧操作）
   STOP: 'STOP', // C3 §7 单目标映射；S1 硬边界（P-01：永远优先）
+  CREATE: 'CREATE', // PD-21 关闭切片：最小 Creation Branch（C3 §7/§8 合法动作；完整语义属 S2）
+  CORRECTION: 'EXPLAIN', // PD-21 关闭切片：重评估为内部过程，落到合法 Policy Action EXPLAIN（重评估后的纠正候选）
 };
 
 /** S1 策略版本（决策追踪与策略事件记录使用，C6 §18/§22）。 */
-export const POLICY_VERSION = 'policy_v1.0.0';
+/**
+ * policy_v1.1.0（PD-21 关闭切片版本化变更，2026-10-09 产品负责人批准）：
+ * 新增 CREATE / CORRECTION 语义动作与 CREATE Policy Action。
+ */
+export const POLICY_VERSION = 'policy_v1.1.0';
 
 export type PolicyResolution =
   | { ok: true; semanticAction: SemanticAction; policyAction: PolicyAction }
