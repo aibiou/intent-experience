@@ -45,6 +45,8 @@ registerHooks({
 });
 
 const { ExperienceRuntime } = await import('../../../src/experience/runtime');
+const { SyntheticLlmGateway } = await import('../../../src/experience/llm-gateway');
+const { allFixtures } = await import('../../../src/experience/chunks');
 const { classifyInput } = await import('../../../src/experience/classifier');
 const { directAnswer } = await import('../../../src/experience/fixtures/direct-answer');
 const { why } = await import('../../../src/experience/fixtures/why');
@@ -422,26 +424,54 @@ async function caseG02Normal(trace) {
 async function caseG02Negative(trace) {
   const { runtime, events } = createCaseRuntime();
   const { session, intent, exp } = await setupChain(runtime, { rawInput: '为什么' });
+  // WHY 探索进行中：提交 WHY 问题，仅消费 submission 事件，保持生成在途
+  // （状态 ACTIVE v3；异步生成器为拉取式，未拉取即不产生内容分块）。
+  const why = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g02neg-0',
+  });
+  if (!why.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: why.error.code }, pass: false };
+  }
+  const whyIterator = why.stream[Symbol.asyncIterator]();
+  await whyIterator.next(); // submission 事件；流保持开启
+  const inFlight = runtime.getExperienceState(exp.experienceId);
+  // STOP：输入同时含 STOP 与 WHY 标记（P-01：STOP 永远优先，不误读为 WHY）。
   const sub = await runtime.submitExperienceEvent({
     experienceId: exp.experienceId,
     sessionId: session.sessionId,
     semanticAction: 'STOP',
     rawInput: '停止为什么',
-    expectedStateVersion: exp.stateVersion,
+    expectedStateVersion: inFlight.state.stateVersion,
     requestId: 'req-g02neg-1',
   });
   const streamEvents = sub.ok ? await consume(sub.stream) : [];
+  // 旧 WHY 流恢复：观测取消终止（零内容分块——无 EXPLAIN 生成交付）。
+  const oldRest = [];
+  for (;;) {
+    const next = await whyIterator.next();
+    if (next.done) break;
+    oldRest.push(next.value);
+  }
   const finalState = runtime.getExperienceState(exp.experienceId);
   const expected = {
-    input: '停止为什么（探索进行中；含 STOP 与 WHY 标记）',
+    input: '停止为什么（WHY 探索进行中；含 STOP 与 WHY 标记）',
     classification: 'STOP（P-01：STOP 永远优先，不误读为 WHY）',
-    endToEnd: 'STOP → COMPLETED；零内容分块（无 EXPLAIN 生成）',
+    endToEnd: 'STOP → COMPLETED；零内容分块（无 EXPLAIN 生成；在途 WHY 生成被取消）',
+    stateVersion: 'v3（WHY 提交）→ v4（STOP 完成提交）',
   };
   const actual = {
     classification: classifyInput('停止为什么').semanticAction,
     controlWhy: classifyInput('为什么').semanticAction,
+    inFlightState: `${inFlight.state.status} v${inFlight.state.stateVersion}`,
     policyAction: sub.ok ? sub.header.policy_decision.selected_action : sub.error.code,
     chunkCount: streamEvents.filter((event) => event.type === 'chunk').length,
+    oldStreamChunkCount: oldRest.filter((event) => event.type === 'chunk').length,
+    oldStreamCancelled: oldRest.some((event) => event.type === 'cancelled'),
     stopEvents: eventsOf(events, 'stop_requested').length,
     explainEvents: eventsOf(events, 'why_requested').length,
     finalState: finalState.ok ? `${finalState.state.status} v${finalState.state.stateVersion}` : 'ERROR',
@@ -449,13 +479,18 @@ async function caseG02Negative(trace) {
   const pass =
     classifyInput('停止为什么').semanticAction === 'STOP' &&
     classifyInput('为什么').semanticAction === 'WHY' &&
+    inFlight.state.status === 'ACTIVE' &&
+    inFlight.state.stateVersion === 3 &&
     sub.ok &&
     actual.policyAction === 'STOP' &&
     actual.chunkCount === 0 &&
+    actual.oldStreamChunkCount === 0 &&
+    actual.oldStreamCancelled &&
     actual.stopEvents === 1 &&
-    actual.explainEvents === 1 && // 仅 setupChain 的 WHY
+    actual.explainEvents === 1 && // 仅 WHY 提交的 why_requested
     finalState.ok &&
-    finalState.state.status === 'COMPLETED';
+    finalState.state.status === 'COMPLETED' &&
+    finalState.state.stateVersion === 4;
   return { expected, actual, pass };
 }
 
@@ -887,66 +922,101 @@ async function caseG05Boundary(trace) {
 
 // --- G05-FR：故障恢复（CHANGE 期间网关不可用 → 恢复后新方向完成） --
 async function caseG05FailureRecovery(trace) {
-  // 故障：CHANGE 期间网关不可用 → LLM_UNAVAILABLE；旧体验状态不被污染，版本不消耗（EB-02）。
-  const failing = createCaseRuntime(failingGateway());
-  const failChain = await setupChain(failing.runtime, {
+  // 同一体验上的故障 → 恢复：可切换网关（WHY 生成在途时健康；故障窗口内
+  // propose 抛错；恢复后健康网关重试）。网关接口是既定证据注入点
+  // （llm-gateway.ts 头部声明；F3-EB-0001 EB-06/EB-07 同源形态）。
+  const healthyGateway = new SyntheticLlmGateway(allFixtures());
+  let activeGateway = healthyGateway;
+  const swappableGateway = { propose: (request) => activeGateway.propose(request) };
+  const { runtime, events } = createCaseRuntime(swappableGateway);
+  const { session, intent, exp } = await setupChain(runtime, {
     rawInput: '为什么',
     intentRequestId: 'req-g05fr-i1',
     experienceRequestId: 'req-g05fr-e1',
   });
-  const failed = await failing.runtime.submitExperienceEvent({
-    experienceId: failChain.exp.experienceId,
-    sessionId: failChain.session.sessionId,
+  // WHY 生成在途（ACTIVE v3；拉取式异步生成器：仅消费 submission 事件，
+  // 未拉取即不产生内容分块）。
+  const why = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么？',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g05fr-0',
+  });
+  if (!why.ok) {
+    return { expected: { setup: 'WHY 提交应被接受' }, actual: { setupError: why.error.code }, pass: false };
+  }
+  const whyIterator = why.stream[Symbol.asyncIterator]();
+  await whyIterator.next(); // submission 事件；流保持开启
+  const inFlight = runtime.getExperienceState(exp.experienceId);
+  // 故障：网关不可用窗口内 CHANGE → LLM_UNAVAILABLE。
+  // （P-02：取消旧 generation 先于 LLM 调用——在途 WHY 生成已被取代取消；
+  //  EB-02：propose 失败不提交、不消耗版本号、旧状态不被污染。）
+  activeGateway = failingGateway();
+  const failed = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
     semanticAction: 'CHANGE_DIRECTION',
     rawInput: '换一个',
-    expectedStateVersion: failChain.exp.stateVersion,
+    expectedStateVersion: inFlight.state.stateVersion,
     requestId: 'req-g05fr-1',
   });
-  const failedState = failing.runtime.getExperienceState(failChain.exp.experienceId);
-  // 恢复：健康网关 CHANGE → 新方向完成（旧候选已拒绝，新候选内容 = change-direction fixture）。
-  const healthy = createCaseRuntime();
-  const okChain = await setupChain(healthy.runtime, {
-    rawInput: '为什么',
-    intentRequestId: 'req-g05fr-i2',
-    experienceRequestId: 'req-g05fr-e2',
-  });
-  const ok = await healthy.runtime.submitExperienceEvent({
-    experienceId: okChain.exp.experienceId,
-    sessionId: okChain.session.sessionId,
+  const failedState = runtime.getExperienceState(exp.experienceId);
+  // 恢复：健康网关重试 CHANGE → 新方向完成（取代已取消的旧候选）。
+  activeGateway = healthyGateway;
+  const ok = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
     semanticAction: 'CHANGE_DIRECTION',
     rawInput: '换一个',
-    expectedStateVersion: okChain.exp.stateVersion,
+    expectedStateVersion: failedState.ok ? failedState.state.stateVersion : inFlight.state.stateVersion,
     requestId: 'req-g05fr-2',
   });
   const okEvents = ok.ok ? await consume(ok.stream) : [];
-  const finalState = healthy.runtime.getExperienceState(okChain.exp.experienceId);
+  // 旧 WHY 流恢复：观测取消终止（零内容分块交付）。
+  const oldRest = [];
+  for (;;) {
+    const next = await whyIterator.next();
+    if (next.done) break;
+    oldRest.push(next.value);
+  }
+  const finalState = runtime.getExperienceState(exp.experienceId);
   const expected = {
     failure: 'LLM_UNAVAILABLE（如实上报；版本不消耗 EB-02；旧状态不被污染）',
-    recovery: '健康网关 CHANGE → 新方向完成：generation_cancelled(superseded_by_change) + experience_interrupted + 新候选流完成（内容 = change-direction fixture）',
+    recovery: '健康网关重试 CHANGE → 新方向完成：generation_cancelled(superseded_by_change) + experience_interrupted + 新候选流完成（内容 = change-direction fixture）',
   };
   const actual = {
+    inFlightState: `${inFlight.state.status} v${inFlight.state.stateVersion}`,
     failureResult: failed.ok ? 'OK（缺陷！）' : failed.error.code,
     versionAfterFailure: failedState.ok ? failedState.state.stateVersion : null,
-    versionExpected: failChain.exp.stateVersion,
+    versionExpected: inFlight.state.stateVersion,
     recoveryPolicy: ok.ok ? ok.header.policy_decision.selected_action : ok.error.code,
     recoveryContent: contentOf(okEvents),
     recoveryContentEqualsFixture: contentOf(okEvents) === changeDirection.chunks.join(''),
+    oldStreamChunkCount: oldRest.filter((event) => event.type === 'chunk').length,
+    oldStreamCancelled: oldRest.some((event) => event.type === 'cancelled'),
     finalState: finalState.ok ? `${finalState.state.status} v${finalState.state.stateVersion}` : 'ERROR',
-    interrupted: eventsOf(healthy.events, 'experience_interrupted').length,
-    generationCancelled: eventsOf(healthy.events, 'generation_cancelled').map((event) => event.properties.reason),
+    interrupted: eventsOf(events, 'experience_interrupted').length,
+    generationCancelled: eventsOf(events, 'generation_cancelled').map((event) => event.properties.reason),
   };
   const pass =
+    inFlight.state.status === 'ACTIVE' &&
+    inFlight.state.stateVersion === 3 &&
     !failed.ok &&
     failed.error.code === 'LLM_UNAVAILABLE' &&
     failedState.ok &&
-    failedState.state.stateVersion === failChain.exp.stateVersion &&
+    failedState.state.stateVersion === inFlight.state.stateVersion &&
     ok.ok &&
     ok.header.policy_decision.selected_action === 'CHANGE_EXPERIENCE' &&
     actual.recoveryContentEqualsFixture &&
+    actual.oldStreamChunkCount === 0 &&
+    actual.oldStreamCancelled &&
     finalState.ok &&
-    finalState.state.stateVersion === 4 &&
+    finalState.state.stateVersion === 5 &&
     finalState.state.status === 'WAITING' &&
-    actual.interrupted === 1 &&
+    actual.interrupted === 2 && // 故障尝试与恢复尝试各登记一次旧候选拒绝
+    actual.generationCancelled.filter((reason) => reason === 'superseded_by_change').length === 1 &&
     actual.generationCancelled.includes('superseded_by_change');
   return { expected, actual, pass };
 }
@@ -1266,7 +1336,7 @@ const CASE_REGISTRY = [
     form: 'in-process',
     sourceClause: 'P2 Exit Gate §8 G02 Negative；P-01 STOP 永远优先（含 STOP 标记的输入不误读为 WHY）',
     scope: 'P2 G3 黄金套件——S1 已实现黄金子集',
-    precondition: 'WHY 探索进行中（v2）',
+    precondition: 'WHY 探索进行中（生成在途，ACTIVE v3）',
     inputFault: '输入"停止为什么"（含 STOP 与 WHY 标记）',
     run: caseG02Negative,
   },
@@ -1378,8 +1448,8 @@ const CASE_REGISTRY = [
     form: 'in-process',
     sourceClause: 'P2 Exit Gate §8 G05 Failure/Recovery；C4 故障语义（LLM_UNAVAILABLE）；EB-02；P-02（恢复后新方向完成）',
     scope: 'P2 G3 黄金套件——S1 已实现黄金子集',
-    precondition: '证据注入网关（propose 抛错）',
-    inputFault: 'CHANGE 期间网关不可用 → 健康网关重试',
+    precondition: 'WHY 生成在途（ACTIVE v3）；可切换网关（故障窗口内 propose 抛错）',
+    inputFault: 'CHANGE 期间网关不可用 → 健康网关重试（同一体验恢复）',
     run: caseG05FailureRecovery,
   },
   // G06 Stop（S1 GS-04；P0 硬边界）
