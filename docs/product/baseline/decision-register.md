@@ -349,7 +349,17 @@
 - **严重度：** N/A（评测范围定义提案登记）
 - **决策负责人：** 产品负责人（用户本人，PD-15——选项 A/B/C 裁决）；评测执行：独立评测负责人（角色 5，用户本人，PD-15——实现作者不得兼任独立评测人）
 - **所需变更：** 产品负责人裁决选项 A/B/C → 本登记结论填写 →（选项 A）新建 P3-S2-G5-WORKSHEET-01 staged → 角色 5 逐项评测签署 → readiness-record 升版
-- **状态：** STAGED（2026-10-09：提案 staged 待产品负责人裁决；EVIDENCE-MANIFEST-01 升版 v1.3.0 随提案同批提交——S2 时代 7 运行追加（含 30 个尝试归档）；7 运行 SHA256SUMS 独立重算全部精确通过，30 个尝试归档中 27 个全部精确通过、3 个各 1 项 summary.json 时点性不符（与 F1/F2 同类，实质内容经交叉核验为真））
+- **状态：** RULED（2026-10-09：产品负责人裁决选项 A——复用 16 项框架对 S2 证据执行独立评测；S2-G5-EVAL-DEF-01 升版 v1.0.0 RULED；P3-S2-G5-WORKSHEET-01 v0.1.0 staged 新建（`../p3-s1/s2-g5-evaluation-worksheet.md`——16 项骨架，结论列全部 NOT RUN，待角色 5 逐项裁决签署）；角色分离不变——实现作者不得兼任独立评测人；EVIDENCE-MANIFEST-01 v1.3.0 随提案同批提交——S2 时代 7 运行追加（含 30 个尝试归档），7 运行 SHA256SUMS 独立重算全部精确通过，30 个尝试归档中 27 个全部精确通过、3 个各 1 项 summary.json 时点性不符（与 F1/F2 同类，实质内容经交叉核验为真））
+
+## S2 分支回流操作版本化定义裁决登记（CR-27）
+
+- **证据：** S2-BRANCH-REFLOW-DEF-01 v1.0.0（`../p3-s1/branch-reflow-operation-def-staged.md`——v0.1.0 staged 提案（实现方起草）经产品负责人 2026-10-09 裁决"选项 A"升版 RULED：启用显式回流操作 ADOPT_BRANCH；§1 事实取证 / §2 语义空缺分析 / §3 裁决选项 A/B/C / §4 选项 A 实施影响 / §5 明确非结论 / §6 签署区裁决填写）
+- **影响：** 分支操作词表定义扩展为五操作（CREATE / SWITCH / ABANDON / RETURN / ADOPT_BRANCH——词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH，须命中分支作用域词表 + 可解析目标序号，否则走通用 SIMULATE 执行路径）；ADOPT_BRANCH 语义经本裁决版本化冻结：目标分支记录附加 adopted 标记（lifecycle 契约不变——ACTIVE / RETURNED / ABANDONED 三态不增第四态，adopted 为分支记录附加属性而非生命周期状态）；经模拟域事件 simulation_adopted 登记（C6 §14 命名模式 `<domain>_<past_participle>` 派生，properties 含 branch_id / source_round / adopted_content 摘要 / separation_invariant=simulation_result_is_not_fact——采纳结果仍标记为模拟来源）；采纳结果呈现为新一轮模拟上下文（主线当前上下文不变，用户须另行 CREATE 提交方将采纳内容纳入作品——创作版本化纪律不变）；确定性系统回合（llm_used=false、reasonPrimary=explicit_user_direction）；不改变任何既有分支操作语义（纯增量）；不改变"分支模拟结果默认不回流为主线结论"默认语义——显式回流是经用户指令的例外通道
+- **建议：** 裁决后登记（本登记）+ 迭代记录（s2a-f4 / s2a-f5 / s2b / corpus-alignment §6/§5 后续义务行）+ readiness-record 升版 v1.33.0（已执行，2026-10-09）；ADOPT_BRANCH 产品实施按授权路径另行签发（实施授权 → 实施 → 动态证据 S2A-F4 回归扩展 ADOPT 案例或新 RUN_ID → 黄金套件扩展 → G3-GOLDEN-0001 再生；policy 版本化变更文本经语义冻结程序）
+- **严重度：** N/A（语义定义裁决登记）
+- **决策负责人：** 产品负责人（用户本人，PD-15——选项 A 裁决，2026-10-09）
+- **所需变更：** 本登记 + 迭代记录写回 + readiness-record 升版；ADOPT_BRANCH 产品实施待另行授权签发
+- **状态：** RULED（2026-10-09：选项 A 裁决生效——ADOPT_BRANCH 语义定义冻结；产品实施 NOT STARTED（按授权路径另行签发）；已提交证据保持冻结不改写（ADR-0002 §5））
 
 ## S2 范围裁决登记（PD-23）
 

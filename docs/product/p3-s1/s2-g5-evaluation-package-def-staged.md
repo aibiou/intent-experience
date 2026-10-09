@@ -1,17 +1,17 @@
-# S2 时代 G5 评测包范围定义提案（S2-G5-EVAL-DEF-01 v0.1.0）
+# S2 时代 G5 评测包范围定义提案（S2-G5-EVAL-DEF-01 v1.0.0）
 
-**状态：** STAGED——待产品负责人（用户本人，PD-15）版本化裁决（选项 A / B / C）
+**状态：** RULED——产品负责人（用户本人，PD-15）2026-10-09 裁决选项 A（复用 16 项框架对 S2 证据执行独立评测）
 **编号：** S2-G5-EVAL-DEF-01
-**版本：** 0.1.0（2026-10-09：实现方起草 staged）
+**版本：** 1.0.0（2026-10-09：产品负责人裁决"选项 A"升版 RULED）
 **起草：** 工程负责人角色（代理，Codex 履行，PD-15 委托）
-**关联：** P3-S1-G5-WORKSHEET-01 v1.8.0（P2 时代 G5 16 项评测包——PASSED 无条件，2026-10-09）/ P2-EVIDENCE-E5.1（E5 证据执行环境与独立评测计划）§6.1/§6.2 / EVIDENCE-MANIFEST-01 v1.3.0（S2 时代运行追加）/ readiness-record v1.31.0
+**关联：** P3-S1-G5-WORKSHEET-01 v1.8.0（P2 时代 G5 16 项评测包——PASSED 无条件，2026-10-09）/ P2-EVIDENCE-E5.1（E5 证据执行环境与独立评测计划）§6.1/§6.2 / EVIDENCE-MANIFEST-01 v1.3.0（S2 时代运行追加）/ readiness-record v1.31.0 / P3-S2-G5-WORKSHEET-01 v0.1.0（选项 A 裁决产物——`s2-g5-evaluation-worksheet.md`，STAGED FOR EVALUATOR）
 
 ## 1. 事实取证
 
 - **P2 时代 G5 16 项评测包已完成**（2026-10-09）：PASSED 无条件——16 项 = 13 PASS + 1 N/A（第 3 项黄金案例，S1 范围未定义黄金套件）+ 发布建议 B（第 14 项，遗留条件已全数履行）；双行签署 + 第 9 项关闭签署已登记。评测对象为 S1 时代证据：E5-TRIAL-0001 / F1-E2E-0001 / F2-GS-0001 / F3-EB-0001 三运行体系。
 - **S2 时代证据 7 运行全部通过**（2026-10-09）：S2A-OBL-01-0001（7/7 案例、12/12 断言）/ S2A-F2-0001（10/10、16/16）/ S2A-F3-0001（8/8、15/15）/ S2A-F4-0001（9/9、16/16）/ S2A-F5-0001（9/9、14/14）/ S2B-0001（7/7、14/14）/ G3-GOLDEN-0001 再生产物（36/36、10/10）——合计 86/86 案例、97/97 断言、退出码 0。**退出码 0 只表示各运行中的断言通过；不设置任何 Gate 为 PASS（E5 §2）。**
 - **每运行 staged 审阅包齐备**：`artifacts/evidence/runs/<run>/review/README.md` ×7（其中 S2B-0001 审阅包已经角色 5 审阅——PASS，2026-10-09，S2b 独立评测关闭；其余 6 份待角色 5 审阅）。
-- **证据索引已覆盖 S2 运行**：EVIDENCE-MANIFEST-01 升版 v1.3.0（MANIFEST.json + INDEX.md——7 运行追加，全部 SHA256SUMS 含 30 个尝试归档独立重算精确通过、零不符；生成方法与 v1.0.0 一致）。
+- **证据索引已覆盖 S2 运行**：EVIDENCE-MANIFEST-01 升版 v1.3.0（MANIFEST.json + INDEX.md——7 运行追加，7 运行 SHA256SUMS 独立重算全部精确通过；30 个尝试归档中 27 个全部精确通过、3 个各 1 项 summary.json 时点性不符（与 F1/F2 同类——执行器写入顺序，实质内容经交叉核验为真）；生成方法与 v1.0.0 一致）。
 - **现行 16 项框架为 S1 证据设计**：P3-S1-G5-WORKSHEET-01 的 staged 输入映射（三运行 run-metadata、F2 GS-01…GS-06 案例组、F3 G2 5 案例 + EB-01…EB-16、S1 合成 fixtures 4 件套、decision-register v0.14.0 快照）不覆盖 S2 证据。
 
 ## 2. 语义空缺分析
@@ -28,7 +28,7 @@ S2 时代证据与 G5 评测之间的空缺（约束自有 frozen 源派生：E5
 
 ### 选项 A（实现方建议）：复用 16 项框架对 S2 证据执行独立评测
 
-新建 **P3-S2-G5-WORKSHEET-01**（工作表骨架见 §4），沿用 P3-S1-G5-WORKSHEET-01 的 16 项结构与执行规则（结论取值 PASS / FAIL / DEFERRED / N/A，默认 NOT RUN；任何 P0 失败、缺项或 NOT RUN 均不得被平均分或建议性报告抵消），逐项映射 S2 证据，结论由角色 5 独立评测人逐项裁决签署。优点：与 P2 时代评测框架一致、可比、可复用既有执行规则与隔离声明；缺点：工作量与 P2 时代相当（16 项）。
+新建 **P3-S2-G5-WORKSHEET-01**（工作表骨架见 §4），沿用 P3-S1-G5-WORKSHEET-01 的 16 项结构与执行规则（结论取值 PASS / FAIL / DEFERRED / N/A，默认 NOT RUN；任何 P0 失败、缺项或 NOT RUN 均不得被平均分或建议性报告抵消），逐项映射 S2 证据，结论由角色 5 独立评测人逐项裁决签署。**（2026-10-09 经产品负责人裁决采纳——见 §6）** 优点：与 P2 时代评测框架一致、可比、可复用既有执行规则与隔离声明；缺点：工作量与 P2 时代相当（16 项）。
 
 ### 选项 B：S2 专属精简框架
 
@@ -40,11 +40,11 @@ S2 证据暂不单独评测，待 P3 退出 Gate（或产品负责人指定的�
 
 ## 4. 选项 A 实施影响
 
-- 新建 `docs/product/p3-s1/s2-g5-evaluation-worksheet.md`（P3-S2-G5-WORKSHEET-01 v0.1.0，STAGED FOR EVALUATOR——骨架见下表；结论列全部 NOT RUN，由角色 5 逐项填写）。
+- 新建 `docs/product/p3-s1/s2-g5-evaluation-worksheet.md`（P3-S2-G5-WORKSHEET-01 v0.1.0，STAGED FOR EVALUATOR——骨架见下表；结论列全部 NOT RUN，由角色 5 逐项填写）。**（2026-10-09 已按本骨架新建 staged——`s2-g5-evaluation-worksheet.md`）**
 - 评测输入：7 运行 staged 审阅包 ×7 + EVIDENCE-MANIFEST-01 v1.3.0 + 各 SEMANTIC-FREEZE-01 冻结文本 + decision-register 当前版本快照 + acceptance-mapping / XCC-MAP（S2 范围项）。
 - 角色分离不变：实现作者（工程负责人角色代理）不得兼任独立评测人；本提案由实现方起草，裁决权归产品负责人，评测执行权归角色 5（用户本人，PD-15；G5 隔离声明 2026-10-08 签署生效）。
 - 不改变任何已冻结证据：各运行产物（summary.json / cases / traces / SHA256SUMS）为 hash-bound 冻结证据；工作表为评测工具，不是 Gate 证据。
-- 裁决后登记：CR-26（S2 时代 G5 评测包范围定义裁决）+ readiness-record 升版 + 本提案 §6 签署区填写。
+- 裁决后登记：CR-26 状态 STAGED→RULED（S2 时代 G5 评测包范围定义裁决——选项 A）+ 新建 P3-S2-G5-WORKSHEET-01 v0.1.0 staged（`s2-g5-evaluation-worksheet.md`——16 项骨架，结论列全部 NOT RUN，待角色 5 逐项裁决）+ readiness-record 升版 v1.33.0 + 本提案 §6 签署区填写（均已执行，2026-10-09）。
 
 ### 16 项工作表骨架（选项 A；结论列待角色 5 逐项裁决）
 
@@ -76,5 +76,5 @@ S2 证据暂不单独评测，待 P3 退出 Gate（或产品负责人指定的�
 ## 6. 签署区
 
 - 起草：工程负责人角色（代理，Codex），2026-10-09。
-- 产品负责人裁决：（待裁决——选项 A / B / C；签署日期：______）
-- 独立评测人（角色 5，用户本人，PD-15）：（待评测执行——签署日期：______）
+- 产品负责人裁决：**选项 A（复用 16 项框架对 S2 证据执行独立评测），2026-10-09**。
+- 独立评测人（角色 5，用户本人，PD-15）：（待评测执行——P3-S2-G5-WORKSHEET-01 v0.1.0 staged 已建，结论列全部 NOT RUN，待角色 5 逐项裁决签署）
