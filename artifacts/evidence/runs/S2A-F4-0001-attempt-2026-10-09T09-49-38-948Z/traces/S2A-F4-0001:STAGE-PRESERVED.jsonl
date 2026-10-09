@@ -1,0 +1,2 @@
+{"caseId":"S2A-F4-0001:STAGE-PRESERVED","event":"trace_started","at":"2026-10-09T09:49:25.315Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §1 元素 3/4 / §5（S2A-F4-STAGE-PRESERVED 案例大纲）；13 §15.3（多轮 SIMULATION 保持）/ §15.5（SIMULATION → CREATION 衔接）；D-02 选项 A（体验阶段轴不变）","servers":[]}
+{"caseId":"S2A-F4-0001:STAGE-PRESERVED","event":"trace_completed","at":"2026-10-09T09:49:26.856Z","startedAt":"2026-10-09T09:49:25.315Z","durationMs":1541,"result":"PASS","pass":true}

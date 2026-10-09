@@ -1,0 +1,194 @@
+{
+  "runId": "S2A-F4-0001",
+  "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表）",
+  "startedAt": "2026-10-09T09:49:33.133Z",
+  "finishedAt": "2026-10-09T09:49:49.813Z",
+  "durationMs": 16679,
+  "cases": [
+    {
+      "caseId": "MULTI-ROUND",
+      "result": "PASS"
+    },
+    {
+      "caseId": "SEPARATION",
+      "result": "PASS"
+    },
+    {
+      "caseId": "NO-NEW-EXPERIENCE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "STAGE-PRESERVED",
+      "result": "PASS"
+    },
+    {
+      "caseId": "STALE-REJECT",
+      "result": "PASS"
+    },
+    {
+      "caseId": "STOP-PRIORITY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "NONCREATION-INERT",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "INPROC-REGRESSION",
+      "result": "PASS"
+    },
+    {
+      "caseId": "BRANCH-LIFECYCLE",
+      "result": "PASS"
+    }
+  ],
+  "allCasesPass": false,
+  "assertions": [
+    {
+      "id": "A1",
+      "description": "MULTI-ROUND：多轮模拟持久化——两轮 WHAT_IF（\"如果摩擦力为零会怎样\" → \"假如速度再高一点会怎样\"）各一次合法提交两次版本化提交（版本链 2→3→4→5→6，每次合法提交恰好 +1，S1-12）；selected_action=SIMULATE；阶段 UNDERSTANDING → SIMULATION → SIMULATION（13 §15.3）；simulation_recorded ×2（round 1/2 同一分支，branch_created [true, false]，separation_invariant=simulation_result_is_not_fact）；内容逐字节等于 simulate 语料；决策追踪 reasonPrimary=semantic_action，llm_used=true，policy_version=policy_v1.4.0；模拟域快照 1 分支（ACTIVE，version=2，sourceRound=1）",
+      "passed": true,
+      "detail": {
+        "multiRound": true
+      }
+    },
+    {
+      "id": "A2",
+      "description": "SEPARATION：每轮 simulation_recorded properties 含 fact / inference / hypothesis / simulation 四元字段（E8-G2-CC07 字段化承载——D-05 选项 A）——fact / inference / hypothesis 逐字段等于语料分段（由已提交语料字节机械派生），simulation = 完整提案语料（含 事实——/推断——/假设—— 标记），simulation ≠ fact（模拟结果不表现为事实），separation_invariant=simulation_result_is_not_fact；源输入摘要、simulation_id / proposal_id / generation_id 关联齐备；模拟域快照 separation 与事件 properties 逐字段一致",
+      "passed": true,
+      "detail": {
+        "separation": true
+      }
+    },
+    {
+      "id": "A3",
+      "description": "NO-NEW-EXPERIENCE：G03-N 不变式——多轮模拟 + 分支操作轮不创建新 Session / Experience（session_started=1，experience_started=1，session_ended=0）；会话保持 SESSION_ACTIVE；全部体验事件共享同一 session_id / experience_id",
+      "passed": true,
+      "detail": {
+        "noNewExperience": true
+      }
+    },
+    {
+      "id": "A4",
+      "description": "STAGE-PRESERVED：阶段迁移序列 CURIOSITY → UNDERSTANDING → SIMULATION（轮 1）→ SIMULATION（轮 2，13 §15.3）→ CREATION（CREATE 衔接，13 §15.5）→ COMPLETION（STOP 完成）；WHAT_IF 轮次保持 SIMULATION 阶段（体验阶段轴不变——D-02 选项 A）；创作建立 creation_started ×1（phase USER_FEEDBACK v1）；创作完成 creation_completed ×1（COMPLETE，active=false，v1）；CREATE 内容逐字节等于 create 语料；终态 COMPLETED/COMPLETION；会话 SESSION_ENDED",
+      "passed": true,
+      "detail": {
+        "stagePreserved": true
+      }
+    },
+    {
+      "id": "A5",
+      "description": "STALE-REJECT：陈旧 expected_state_version（3 vs 4）模拟提交 → STATE_VERSION_CONFLICT（retryable=false，details 含 expected/current_state_version）；状态逐字节不变（JSON 序列化前后一致）；无新 simulation_recorded（失败不登记模拟轮次）；无新 state_transitioned（state_version > 4）；拒绝事实经 state_version_conflict 事件登记（trigger=WHAT_IF，expected=3，current=4）；失败写入不消耗任何版本号（OBL-01）；携带当前版本（4）重试 → SIMULATE 成功（v6，simulation_recorded round 2）",
+      "passed": true,
+      "detail": {
+        "staleReject": true
+      }
+    },
+    {
+      "id": "A6",
+      "description": "STOP-PRIORITY：分类器优先级静态断言——\"如果摩擦力为零就好了\" 分类为 STOP（P-01：STOP 永远优先于 WHAT_IF）；\"如果为什么\" 分类为 WHY（PD-12：同层解释顺序 WHY > WHAT_IF）；\"如果摩擦力为零会怎样\" 分类为 WHAT_IF（对照不变）；动态声明校验——声明 WHAT_IF 但输入含 STOP / WHY 标记 → INVALID_REQUEST（semantic_action mismatch——clients cannot inject policy actions）；拒绝后状态逐字节不变；零 simulation_recorded；无模拟域上下文",
+      "passed": true,
+      "detail": {
+        "stopPriority": true
+      }
+    },
+    {
+      "id": "A7",
+      "description": "NONCREATION-INERT：非模拟场景（WHY → EXPLAIN）行为与前置版本一致——why_requested ×1，state_transitioned steps [USER_ACTION]，终态 WAITING/UNDERSTANDING v4，内容逐字节等于 why 语料，决策追踪 llm_used=true；与前置版本仅有的差异为 policy_version=policy_v1.4.0（版本化变更文本同步）；模拟域零事件（simulation_recorded=0）且无模拟上下文（getSimulation 拒绝——非模拟路径不受 F-4 影响）",
+      "passed": false,
+      "detail": {
+        "noncreationInert": false
+      }
+    },
+    {
+      "id": "A8",
+      "description": "INPROC-REGRESSION：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（RETURN 后首轮自动 CREATE 新分支）→ CREATE 衔接（13 §15.5）→ 完成信号（STOP）全链路——信封全量有效（C6 §7）、sequence_number 严格单调（C6 §25）、全部决策追踪 policy_version=policy_v1.4.0；WHY / 模拟轮 / CREATE 内容逐字节等于 why / simulate / create 语料；RETURN 轮 selected_action=SIMULATE 且 reason=simulation_branch_operation（确定性系统回合）；simulation_recorded ×3（round 1/2 同一分支，round 3 新分支）；终态 COMPLETED/COMPLETION；创作 COMPLETE（active=false，v1）；会话 SESSION_ENDED；模拟域随会话结束失效（D-04 选项 A——getSimulation 拒绝）",
+      "passed": true,
+      "detail": {
+        "inprocRegression": true
+      }
+    },
+    {
+      "id": "A9",
+      "description": "BRANCH-LIFECYCLE：轴外分支子状态机全生命周期（D-02/D-03 选项 A）——轮 1 自动 CREATE 分支 1（sourceRound=1，ACTIVE）→ 轮 2 累积（分支 version=2）→ RETURN（分支 1 RETURNED，currentBranchId=null，模拟历史不变）→ 轮 3 自动 CREATE 分支 2（sourceRound=3）→ SWITCH 分支 1（RETURNED 恢复 ACTIVE，currentBranchId=分支 1）→ ABANDON 分支 2（ABANDONED，当前激活保持分支 1）→ 负向：切换已放弃分支 2 INVALID_STATE_TRANSITION（版本保持 14，不消耗版本号）→ RETURN（分支 1 RETURNED）→ 负向：无激活分支 RETURN INVALID_STATE_TRANSITION（版本保持 16）；simulation_recorded ×3（round 1/2/3——仅模拟轮登记）；分支操作决策追踪 6 轮（含 2 拒绝轮）llm_used=false（确定性系统回合），reasonPrimary ∈ {explicit_user_direction, invalid_state_transition}",
+      "passed": true,
+      "detail": {
+        "branchLifecycle": true
+      }
+    },
+    {
+      "id": "A10",
+      "description": "全部 9 案例记录齐备且 12 字段完整（E5 §4；9 执行；PD-19 延期义务已履行——G04/G07/G08 关闭切片执行，无 DEFERRED 登记）",
+      "passed": true,
+      "detail": {
+        "recordFiles": 9,
+        "expected": 9,
+        "allCasesPass": false
+      }
+    },
+    {
+      "id": "A11",
+      "description": "全部 9 案例轨迹文件齐备且非空",
+      "passed": true,
+      "detail": {
+        "traceFiles": 9
+      }
+    },
+    {
+      "id": "A12-PREFLIGHT",
+      "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配（失败为 FATAL，不计入断言池）",
+      "passed": true,
+      "detail": {
+        "typecheckExitCode": 0,
+        "buildExitCode": 0,
+        "referenceVerified": "36/36",
+        "fingerprintsAllMatch": true
+      }
+    },
+    {
+      "id": "A13",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + F-4 模拟语义专项 simulationSemantics + obligationTraceability）",
+      "passed": true,
+      "detail": {
+        "missingSections": []
+      }
+    },
+    {
+      "id": "A14",
+      "description": "环境锁定：engines.node === \"24.21.0\"（F-2 精确锁定，F-4 延续）且执行于 Node v24.21.0；lockfileVersion 3；Next.js / React / TypeScript 版本登记",
+      "passed": true,
+      "detail": {
+        "enginesNode": "24.21.0",
+        "processVersion": "v24.21.0",
+        "lockfileVersion": 3,
+        "next": "16.4.0",
+        "react": "19.3.0",
+        "typescript": "7.0.2"
+      }
+    },
+    {
+      "id": "A15",
+      "description": "F-4 版本矩阵义务绑定：policy 版本 policy_v1.4.0（S2A-F4-SEMANTIC-FREEZE-01 §3）；state_machine 版本 state_machine_v1.3.0（§4）；frozenDecisions D-01…D-05 齐备（全项选项 A）；黄金回归绑定 G3-GOLDEN-0001（断言已同步 policy_v1.4.0）；实施文件清单 5 项齐备（含 simulation.ts 新增）",
+      "passed": true,
+      "detail": {
+        "policyVersion": "policy_v1.4.0",
+        "stateMachineVersion": "state_machine_v1.3.0",
+        "frozenDecisionCount": 5,
+        "implementationFileCount": 5
+      }
+    },
+    {
+      "id": "A16",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
+      "passed": true,
+      "detail": {
+        "verified": 20,
+        "failed": []
+      }
+    }
+  ],
+  "allAssertionsPass": false,
+  "allPassed": false,
+  "exitCode": 1,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2/G4/G8）或产品状态为 PASS（E5 §2）。F-4 证据本运行已执行；G5 独立评测 NOT RUN（独立评测人须先审阅本运行 staged 材料）。"
+}

@@ -1,0 +1,2 @@
+{"caseId":"S2A-F4-0001:SEPARATION","event":"trace_started","at":"2026-10-09T09:49:22.995Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §2 D-05 选项 A（四元分离事件记录）；E8-G2-CC07（假设 / 事实 / 模拟结果分离不变）；E2 Stage 3；C6 §14（命名模式 <domain>_<past_participle>）","servers":[]}
+{"caseId":"S2A-F4-0001:SEPARATION","event":"trace_completed","at":"2026-10-09T09:49:24.149Z","startedAt":"2026-10-09T09:49:22.995Z","durationMs":1154,"result":"PASS","pass":true}

@@ -1,0 +1,2 @@
+{"caseId":"S2A-F4-0001:NO-NEW-EXPERIENCE","event":"trace_started","at":"2026-10-09T09:49:24.150Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §1 元素 5 / §5（S2A-F4-NO-NEW-EXPERIENCE 案例大纲）；G03-N 黄金不变式（不创建新 Session / Experience）","servers":[]}
+{"caseId":"S2A-F4-0001:NO-NEW-EXPERIENCE","event":"trace_completed","at":"2026-10-09T09:49:25.315Z","startedAt":"2026-10-09T09:49:24.150Z","durationMs":1165,"result":"PASS","pass":true}
