@@ -319,7 +319,7 @@
 - **严重度：** N/A（语义冻结登记，非冲突）
 - **决策负责人：** 产品负责人（用户本人，PD-15）
 - **所需变更：** 实施 F-5（feat(s2a-f5)）→ 动态证据 S2A-F5-0001 → 迭代记录写回
-- **状态：** FROZEN（2026-10-09：语义文本冻结完成——产品负责人裁决 D-01…D-05 全项选项 A + 签署 + C1/C2/C3 Steward 确认完成（G1 式纪律）；F-5 实施授权生效（P3-S2-IMPL-AUTH-01 v1.2.0 §3(5)）；待实施与动态证据 S2A-F5-0001）
+- **状态：** IMPLEMENTED（2026-10-09：F-5 实施完成——产品源码七文件（`src/experience/memory.ts` 新增 533 行 / `runtime.ts` / `classifier.ts` / `events.ts` / `policy.ts` / `state-machine.ts` / `tools/evidence/src/golden.mjs` 断言同步，实施提交 `084fbcd`）；衰减时钟修复（`5a09e00`——applyDecay IN_USE→DECAYING 迁移不刷新 updatedAt，07 §11 单调纪律）；黄金套件 policy_v1.5.0 断言同步后 G3-GOLDEN-0001 再生验证 32/32 案例 PASS；动态证据 S2A-F5-0001 通过（9/9 案例、14/14 断言、退出码 0，提交 `1cc0083`；材料 `artifacts/evidence/runs/S2A-F5-0001/`）；迭代记录 P3-S2A-IMPL-ITER-F5 v1.0.0；readiness-record v1.28.0。退出码 0 不设置任何 Gate 为 PASS；G5 独立评测 NOT RUN（staged 审阅包待独立评测人审阅））
 
 ## S2b 语义冻结登记（CR-24）
 
