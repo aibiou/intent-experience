@@ -1,0 +1,78 @@
+{
+  "caseIdNamespace": "S2A-OBL-01-0001:SEAM-INERT",
+  "sourceClause": "P3-S2-IMPL-AUTH-01 §2 OBL-01 / CR-18 选项 A（仅证据/测试环境启用，默认合成模式不变）/ ADR-0002 §3（无真实提供方调用）",
+  "scope": "注入缝惰性不变式：未启用环境变量时行为与 S1 完全一致；门控字节静态断言",
+  "precondition": "S3 服务器（端口 4333）未设置 EXPERIENCE_LLM_GATEWAY_SEAM / EXPERIENCE_GATEWAY_FAULT_MODE；体验处于 WAITING v2",
+  "inputFault": "无故障注入（WHY 正常提交）；另对已提交源码字节做门控存在性与无网络出口静态断言",
+  "expected": {
+    "http": "注入缝未设置：WHY → 200 NDJSON 全链路（内容分块 + done + state_updated），内容逐字节等于合成语料",
+    "llmCalls": "网关调用 1 次（llm_request_started = 1 且 llm_request_completed = 1，经服务端事件日志验证）",
+    "finalState": "终态 WAITING v4",
+    "staticGate": "server-runtime.ts 字节包含环境门控（EXPERIENCE_LLM_GATEWAY_SEAM !== '1' → resolveServerGateway 返回 undefined）；两文件均无网络出口（fetch/node:http/URL）字节"
+  },
+  "actual": {
+    "status": 200,
+    "streamTypes": [
+      "submission",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "done",
+      "state_updated"
+    ],
+    "content": "为什么推荐这条路线：因为当前路况（合成数据）显示北山街拥堵，而杨公堤畅通且风景更契合你的首体验目标。（流式结束）",
+    "fixtureContent": "为什么推荐这条路线：因为当前路况（合成数据）显示北山街拥堵，而杨公堤畅通且风景更契合你的首体验目标。（流式结束）",
+    "contentMatchesFixture": true,
+    "stateUpdatedVersion": 4,
+    "llmRequestStarted": 1,
+    "llmRequestCompleted": 1,
+    "stateVersionAfter": 4,
+    "statusAfter": "WAITING",
+    "staticChecks": {
+      "serverRuntimeHasGate": true,
+      "serverRuntimeHasResolver": true,
+      "serverRuntimeHasSeamConstruction": true,
+      "llmGatewayHasFaultClass": true,
+      "llmGatewayHasFaultModeEnv": true,
+      "serverRuntimeNoEgress": true,
+      "llmGatewayNoEgress": true
+    }
+  },
+  "invariants": [
+    "S1 范围边界：CREATE/SEARCH 禁用；WHAT_IF 仅单次模拟不建立持久/多轮分支；不持久化跨会话 Memory（PD-05/PD-06/PD-07）",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "旧 operation 不得提交（generation epoch 守卫 + 版本双重检查，S1-10；CC02 H03）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）",
+    "工程边界（P2-EVIDENCE-4.0）：重试是工程恢复机制而非产品决策机制（EB-06）；超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/S2A-OBL-01-0001:SEAM-INERT.jsonl",
+    "traceSha256": "e3f2e3ec4059dc4109f91c0d75f2a87a0950b0253b7893fe890927bfb84f7aca",
+    "form": "http",
+    "servers": [
+      "S3"
+    ],
+    "httpEventLogs": [
+      "traces/s3-events.jsonl"
+    ],
+    "httpDecisionTraceLogs": [
+      "traces/s3-decision-traces.jsonl"
+    ],
+    "httpAuditLogs": [
+      "traces/s3-audit.jsonl"
+    ]
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

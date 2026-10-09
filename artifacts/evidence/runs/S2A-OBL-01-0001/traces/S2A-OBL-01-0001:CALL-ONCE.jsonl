@@ -1,0 +1,2 @@
+{"caseId":"S2A-OBL-01-0001:CALL-ONCE","event":"trace_started","at":"2026-10-09T06:46:46.192Z","form":"http","sourceClause":"P3-S2-IMPL-AUTH-01 §2 OBL-01 / EB-06（重试是工程恢复机制，运行时无自动重试）/ C6 §8（llm_request_started/completed 事件规则）","servers":["S1"]}
+{"caseId":"S2A-OBL-01-0001:CALL-ONCE","event":"trace_completed","at":"2026-10-09T06:46:46.205Z","startedAt":"2026-10-09T06:46:46.192Z","durationMs":13,"result":"PASS","pass":true}

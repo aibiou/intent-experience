@@ -1,0 +1,10 @@
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":0,"totalChunks":9,"content":"为什么推荐这条路线","at":"2026-10-09T06:22:14.383Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":1,"totalChunks":9,"content":"：因为当前路况","at":"2026-10-09T06:22:14.425Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":2,"totalChunks":9,"content":"（合成数据）","at":"2026-10-09T06:22:14.467Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":3,"totalChunks":9,"content":"显示北山街拥堵","at":"2026-10-09T06:22:14.510Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":4,"totalChunks":9,"content":"，而杨公堤","at":"2026-10-09T06:22:14.552Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":5,"totalChunks":9,"content":"畅通且风景","at":"2026-10-09T06:22:14.594Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":6,"totalChunks":9,"content":"更契合你的","at":"2026-10-09T06:22:14.638Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":7,"totalChunks":9,"content":"首体验目标。","at":"2026-10-09T06:22:14.680Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":8,"totalChunks":9,"content":"（流式结束）","at":"2026-10-09T06:22:14.722Z"}
+{"type":"done","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":9,"totalChunks":9,"content":null,"at":"2026-10-09T06:22:14.723Z"}

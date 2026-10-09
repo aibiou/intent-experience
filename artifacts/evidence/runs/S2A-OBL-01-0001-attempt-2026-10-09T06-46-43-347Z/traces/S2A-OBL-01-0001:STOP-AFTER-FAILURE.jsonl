@@ -1,0 +1,2 @@
+{"caseId":"S2A-OBL-01-0001:STOP-AFTER-FAILURE","event":"trace_started","at":"2026-10-09T06:45:59.568Z","form":"http","sourceClause":"P3-S2-IMPL-AUTH-01 §2 OBL-01 / P-01（STOP 永远优先）/ S1 状态机 §7（WAITING 接受 STOP）/ EB-06（失败后 STOP 不触发网关调用）","servers":["S4"]}
+{"caseId":"S2A-OBL-01-0001:STOP-AFTER-FAILURE","event":"trace_completed","at":"2026-10-09T06:46:00.032Z","startedAt":"2026-10-09T06:45:59.568Z","durationMs":464,"result":"FAIL","pass":false}

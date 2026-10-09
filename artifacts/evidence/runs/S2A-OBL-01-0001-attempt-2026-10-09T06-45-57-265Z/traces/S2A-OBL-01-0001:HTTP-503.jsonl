@@ -1,0 +1,2 @@
+{"caseId":"S2A-OBL-01-0001:HTTP-503","event":"trace_started","at":"2026-10-09T06:44:40.947Z","form":"http","sourceClause":"P3-S2-IMPL-AUTH-01 §2 OBL-01 / S1 §28（LLM_UNAVAILABLE 错误词表）/ API 契约错误→HTTP 状态映射 / C5","servers":["S1"]}
+{"caseId":"S2A-OBL-01-0001:HTTP-503","event":"trace_completed","at":"2026-10-09T06:44:41.004Z","startedAt":"2026-10-09T06:44:40.945Z","durationMs":59,"result":"PASS","pass":true}

@@ -1,0 +1,2 @@
+{"caseId":"S2A-OBL-01-0001:INPROC-REGRESSION","event":"trace_started","at":"2026-10-09T06:44:42.518Z","form":"inprocess","sourceClause":"P3-S2-IMPL-AUTH-01 §2 OBL-01 / G2 动态跨契约一致性（进程内形态回归）/ C6 §7 信封 / C6 §25 sequence 单调","servers":[]}
+{"caseId":"S2A-OBL-01-0001:INPROC-REGRESSION","event":"trace_completed","at":"2026-10-09T06:44:42.905Z","startedAt":"2026-10-09T06:44:42.518Z","durationMs":387,"result":"PASS","pass":true}
