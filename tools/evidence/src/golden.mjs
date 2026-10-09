@@ -661,7 +661,7 @@ async function caseG03Normal(trace) {
   const expected = {
     semanticAction: 'WHAT_IF',
     policyAction: 'SIMULATE',
-    singleShot: '当前单次模拟提案；不建立持久/多轮分支状态',
+    singleShot: '单次模拟提案形态；F-4 起首轮模拟经 simulation_recorded 建立 ACTIVE 分支记录（会话内持久、会话结束失效，后续"如果"轮在分支上继续）',
     separation: '内容区分事实、推断与假设（E8-G2-CC07）',
     noNewExperience: '不创建新 Session/Experience',
     stage: 'SIMULATION（UNDERSTANDING → SIMULATION，§15.2）',

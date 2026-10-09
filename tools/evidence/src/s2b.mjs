@@ -1325,7 +1325,7 @@ async function main() {
     },
     prompt: { model: 'synthetic（确定性规则网关——不调用任何真实 LLM 提供方）', lock: 'N/A（合成形态）' },
     model: { provider: 'none（合成数据边界，ADR-0002 §3）', lock: 'N/A' },
-    corpus: { fixtures: ['synthetic/why/v1', 'synthetic/create/v1', 'synthetic/simulate/v1', 'synthetic/deepen/v1', 'synthetic/simplify/v1', 'synthetic/reframe/v1'], note: '全部合成数据；无真实用户数据' },
+    corpus: { fixtures: ['synthetic/why/v1', 'synthetic/create/v1', 'synthetic/simulate/v2', 'synthetic/deepen/v1', 'synthetic/simplify/v1', 'synthetic/reframe/v1'], note: '全部合成数据；无真实用户数据（simulate 语料经 S2-CORPUS-TAIL-RULING-01 v1.0.0 选项 A 裁决升 v2——尾句对齐 F-4 分支语义）' },
     environment: { node: process.version, npm: 'npm 随 Node 发行', next: nextVersion, react: reactVersion, typescript: typescriptVersion, engines: productPackage.engines, lockfileVersion: lockfile.lockfileVersion },
     referenceIntegrity: {
       verified: `${referenceCheck.verified}/${referenceCheck.total}`,
