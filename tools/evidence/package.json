@@ -13,6 +13,7 @@
     "f1": "node src/f1.mjs",
     "f2": "node src/f2.mjs",
     "f3": "node src/f3.mjs",
-    "golden": "node src/golden.mjs"
+    "golden": "node src/golden.mjs",
+    "s2a-f1": "node src/s2a-f1.mjs"
   }
 }

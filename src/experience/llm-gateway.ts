@@ -38,6 +38,43 @@ export interface LlmGateway {
   propose(request: LlmRequest): Promise<LlmProposal>;
 }
 
+/**
+ * 证据故障注入网关（S2a F-1 / OBL-01；CR-18 选项 A 形态）。
+ *
+ * 仅经 server-runtime.ts 的环境门控注入缝构造
+ * （EXPERIENCE_LLM_GATEWAY_SEAM === '1'），只服务于证据 / 测试环境：
+ * - mode=unavailable（默认）：每次调用均失败（上游不可用形态）；
+ * - mode=fail_once：首次调用失败，后续调用委托合成网关（有界恢复形态）。
+ * - mode=succeed_once：首次调用委托合成网关，后续调用均失败
+ *   （成功后故障形态——支撑“失败后 STOP 合法”证据：WHY 成功后
+ *   再次 WHY 失败，体验保持 WAITING，STOP 从 WAITING 合法终止）。
+ *
+ * 失败以异常向上抛出，由运行时统一捕获并映射为 LLM_UNAVAILABLE
+ * （HTTP 503，retryable=true）。默认合成模式不经过本网关。
+ */
+export class EvidenceFaultLlmGateway implements LlmGateway {
+  private readonly synthetic: SyntheticLlmGateway;
+  private calls = 0;
+
+  constructor(fixtures: Readonly<Record<string, ChunkFixture>>) {
+    this.synthetic = new SyntheticLlmGateway(fixtures);
+  }
+
+  async propose(request: LlmRequest): Promise<LlmProposal> {
+    this.calls += 1;
+    const mode = process.env.EXPERIENCE_GATEWAY_FAULT_MODE ?? 'unavailable';
+    if (mode === 'fail_once' && this.calls > 1) {
+      return this.synthetic.propose(request);
+    }
+    if (mode === 'succeed_once' && this.calls === 1) {
+      return this.synthetic.propose(request);
+    }
+    throw new Error(
+      `llm gateway upstream unavailable (evidence fault injection: mode=${mode}, call=${this.calls})`,
+    );
+  }
+}
+
 let proposalCounter = 0;
 
 /**
