@@ -1,7 +1,7 @@
 # P2 正式签署工作表（G8 Formal Sign-off）
 
 **编号：** P2-SIGNOFF-01
-**版本：** 1.0.0（2026-10-09：G8 六类责任人正式签署完成——六行 Decision 一致为 APPROVE WITH DOCUMENTED DEBT；**P2 = CLOSED**（P2 Exit Gate §15 关闭公式满足）；Gate 状态同步见 readiness-record P3-S1-READINESS-01 v1.15.0）
+**版本：** 1.1.0（2026-10-09：遗留债务 D-01 关闭登记——S2a 首个迭代 F-1（OBL-01）动态证据 S2A-OBL-01-0001 通过（7/7 案例、12/12 断言、退出码 0），环境门控 LlmGateway 注入缝（CR-18 选项 A 形态）已实施，HTTP 形态 LLM 故障 503 补测完成；D-01 关闭；其余内容与 v1.0.0 相同——六类责任人签署（v1.0.0）与 P2 = CLOSED 状态不变）
 **状态：** SIGNED（六类责任人签署完成，2026-10-09）
 **依据：** `../../reference/P2 Exit Gate & Sign-off（P2 退出门槛与签署）.md` §13（G8 六类责任人）/ §14（签署包九要素）/ §15（P2 关闭定义）
 **签署人：** 用户本人（PD-15）担任全部六类角色——一人多角色已按 owner-roster 规则 3 逐行分别签署并声明冲突
@@ -40,7 +40,7 @@
 
 | # | 债务 | 来源 | 处置 |
 |---|---|---|---|
-| D-01 | HTTP 形态 LLM 故障 503 补测 | OBL-01 / CR-18 选项 B / G5 第 8 项 DEFERRED / 风险 R1 | 首个 S2 迭代补测；进程内形态已经 `LlmGateway` 接口注入覆盖 S1 范围故障语义（EB-06/EB-06-NO-RETRY-STOP/EB-07 逐案通过） |
+| D-01 | HTTP 形态 LLM 故障 503 补测 | OBL-01 / CR-18 选项 B / G5 第 8 项 DEFERRED / 风险 R1 | **CLOSED（2026-10-09）**：S2a 首个迭代 F-1 履行——环境门控 `LlmGateway` 注入缝实施（CR-18 选项 A 形态，仅证据/测试环境启用，默认合成模式不变）；动态证据 S2A-OBL-01-0001 通过（7/7 案例、12/12 断言、退出码 0；材料 `artifacts/evidence/runs/S2A-OBL-01-0001/`；迭代记录 P3-S2A-IMPL-ITER-F1 v1.0.0；登记 decision-register v0.24.0）。进程内形态覆盖（EB-06/EB-06-NO-RETRY-STOP/EB-07）与 HTTP 形态补测（本债务）均已通过 |
 | D-02 | 完整 G04/G07/G08 语义 | PD-05/PD-06/PD-07 / acceptance-mapping §B | DEFERRED TO S2；PD-21 关闭切片最小形态已经 G3-GOLDEN-0001 执行通过（32/32）并经角色 5 裁决接受为 P2 关闭条件 |
 | D-03 | 延迟测量方法已批准、无统计阈值、无指标宣称 | OBL-02 / G5 第 9 项 DEFERRED / 风险 R3 / PB-03 / PD-08 | 方法 v1.0.0 已经产品负责人按 E3 批准（`obl-02-latency-measurement-method-v1.md`）；任何延迟指标宣称前须满足方法第 5 节样本纪律并注明分层；公开发布仍须另行满足 E3 统计 Gate |
 

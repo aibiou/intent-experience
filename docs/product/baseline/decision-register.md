@@ -1,7 +1,7 @@
 # 产品冲突与未决决策登记册
 
 **编号：** BASELINE-DECISIONS-01
-**版本：** 0.23.0（2026-10-09：S2 实施授权签发登记——产品负责人 2026-10-09 签署 P3-S2-IMPL-AUTH-01 v1.1.0（AUTHORIZED）；S2a 首个迭代 F-1（OBL-01）开工；其余内容与 v0.22.0 相同）
+**版本：** 0.24.0（2026-10-09：S2a 首个迭代 F-1（OBL-01）完成登记——动态证据 S2A-OBL-01-0001 通过（7/7 案例、12/12 断言、退出码 0，只表示本运行断言通过，不设置任何 Gate）；CR-18 选项 B 登记的 DEFERRED 项（HTTP 形态 LLM 故障 503 补测）已履行，P2-SIGNOFF-01 遗留债务 D-01 关闭；其余内容与 v0.23.0 相同）
 **状态：** PODR-001 v1.0.4 已裁决 CR-01…CR-07、CR-09、CR-12、CR-13、CR-14，并增补 PD-14 / PD-15 / PD-16 / PD-17；CR-07 / CR-08 / CR-09 / CR-10 / CR-11 / CR-12 / CR-13 / CR-15 / CR-16 / CR-17 / CR-18 已关闭（CR-08 于 2026-10-09 关闭：隐私六要素全部裁决签署，P3-S1-PRIVACY-SIX-01 v0.4.0；CR-16 / CR-17 于 2026-10-09 经 REVIEW-009 非作者复核签署关闭；CR-18 于 2026-10-09 经产品负责人裁决关闭：选项 B——维持不暴露网关注入缝，HTTP 形态 LLM 故障 503 登记 DEFERRED TO 后续切片；CR-15 于 2026-10-08 经 PD-17 裁决关闭：选项 A，scoped 预授权许可签发）；G6 处置表（PB-01…PB-04）已建立，PB-01 解除条件已满足（2026-10-08）。
 **规则：** 执行团队不得自行把产品决策解释为运行证据或 Gate PASS。
 
@@ -169,7 +169,7 @@
 - **严重度：** Important（证据完整性；非 P0——进程内形态已覆盖故障路径语义，用户主权与状态完整性不受影响）。
 - **决策负责人：** 产品负责人（用户本人，PD-15）。
 - **所需变更：** 产品负责人裁定选项 A/B/C；若 A，确认 P3-S1-IMPL-AUTH-01 实施授权范围扩展后实施；若 B/C，登记 DEFERRED 并回写 evidence-execution-plan §6.1 第 8 项与 F3 迭代记录 §3.4 的 NOT RUN 登记状态。
-- **状态：** RESOLVED（2026-10-09：产品负责人裁决选项 B——维持不暴露网关注入缝，HTTP 形态 LLM 故障 503 登记 DEFERRED TO 后续切片；G4 证据链该子项按产品负责人批准登记 DEFERRED；已回写 evidence-execution-plan §6.1 / §6.2 第 8 项（v1.8.0）与 P3-S1-IMPL-ITER-003 §3.4（v1.1.0）；F3-EB-0001 EB-12 子项执行时 NOT RUN 登记保留于迭代记录 §3.4 与审阅包"未执行"节作为时点事实——审阅包为哈希锁定证据，不因本裁决修改）。
+- **状态：** RESOLVED（2026-10-09：产品负责人裁决选项 B——维持不暴露网关注入缝，HTTP 形态 LLM 故障 503 登记 DEFERRED TO 后续切片；G4 证据链该子项按产品负责人批准登记 DEFERRED；已回写 evidence-execution-plan §6.1 / §6.2 第 8 项（v1.8.0）与 P3-S1-IMPL-ITER-003 §3.4（v1.1.0）；F3-EB-0001 EB-12 子项执行时 NOT RUN 登记保留于迭代记录 §3.4 与审阅包"未执行"节作为时点事实——审阅包为哈希锁定证据，不因本裁决修改）。**DEFERRED 项已履行（2026-10-09）：** S2a 首个迭代 F-1 经 P3-S2-IMPL-AUTH-01 v1.1.0 授权实施环境门控 `LlmGateway` 注入缝（CR-18 选项 A 形态——仅证据/测试环境启用，默认合成模式不变），动态证据 S2A-OBL-01-0001 通过（7/7 案例、12/12 断言、退出码 0；HTTP 形态 503 / LLM_UNAVAILABLE / retryable=true + 恰好一次调用 + 版本完整 + 失败后 STOP 合法 + 有界恢复 + 缝惰性 + 进程内回归）；P2-SIGNOFF-01 遗留债务 D-01 关闭（登记于 P2-SIGNOFF-01 v1.1.0 债务表）；本 CR 关闭切片完成。
 
 ## 实施迭代记录（首批义务 F-1）
 
@@ -260,6 +260,16 @@
 - **决策负责人：** 产品负责人（用户本人，PD-15）。
 - **所需变更：** 登记本状态并回写 PODR-001（PD-22）/ readiness-record / owner-roster / acceptance-mapping；S2 规划另经产品负责人版本化裁决。
 - **状态：** CLOSED（P2 = CLOSED，2026-10-09；经 PD-22 产品负责人接受）。
+
+## 实施迭代记录（S2a 首个迭代 F-1 / OBL-01）
+
+- **证据：** P3-S2A-IMPL-ITER-F1 v1.0.0（`../p3-s1/implementation-iteration-s2a-f1.md`）；产品源码两文件变更（`src/experience/llm-gateway.ts` 新增 `EvidenceFaultLlmGateway`——证据故障注入网关，故障形态 unavailable / fail_once / succeed_once；`src/experience/server-runtime.ts` 新增 `resolveServerGateway()`——环境门控注入缝，仅 `EXPERIENCE_LLM_GATEWAY_SEAM === '1'` 时启用，默认合成模式不变；提交 `ed2d468`，`runtime.ts` 零改动）；动态证据 S2A-OBL-01-0001（`artifacts/evidence/runs/S2A-OBL-01-0001/`：7/7 案例 PASS、12/12 断言 PASS、退出码 0、9.0s；四服务器姿态 S1 unavailable / S2 fail_once / S4 succeed_once / S3 无缝惰性；HTTP 形态 503 / LLM_UNAVAILABLE / retryable=true、网关恰好一次调用无自动重试（EB-06）、失败写入不消耗版本号、失败后 STOP 合法（WAITING v4 → COMPLETED v5，终止事实经事件日志权威登记）、fail_once 有界恢复（首次 503 → 用户重试 200 全链路，内容逐字节等于合成语料）、SEAM-INERT（缝未设置时行为与 S1 一致 + 静态字节断言：门控以环境变量为唯一开关、缝实现无网络出口字节）、INPROC-REGRESSION（进程内形态完整链路回归）；E5 §3 版本矩阵含 OBL-01 可追溯性映射与注入缝规范；SHA256SUMS 26 项经 G3-E-3 双遍生成）；失败尝试 3 次按 ADR-0002 §5 归档（`S2A-OBL-01-0001-attempt-2026-10-09T06-44-38-524Z/`、`...-06-45-57-265Z/`、`...-06-46-43-347Z/`，随证据提交 `7a03b40` 入库——三次均为执行器侧缺陷：C6 信封字段名误用、体验状态语义误设、STOP 版本与流事件断言误设；产品源码无缺陷，运行时对错误输入的拒绝路径（409 STATE_VERSION_CONFLICT 等）在失败尝试中被动态验证）；CR-18 选项 B 登记的 DEFERRED 项（HTTP 形态 LLM 故障 503 补测）经本迭代履行，P2-SIGNOFF-01 遗留债务 D-01 关闭（登记于 P2-SIGNOFF-01 v1.1.0 债务表）。
+- **影响：** OBL-01 履行；G5 第 8 项 DEFERRED 条件关闭（G5 = PASSED（有条件）的遗留条件之一解除；剩余遗留条件：OBL-02 延迟测量执行）；S2a 后续义务（G04 完整 Creation / G07 完整 Correction / WHAT_IF 完整分支 / Minimal Memory）NOT STARTED。
+- **建议：** 独立评测人（角色 5）审阅本迭代 staged 材料（`artifacts/evidence/runs/S2A-OBL-01-0001/review/README.md`）并保留否决权；S2a 后续迭代按 PD-23 裁决范围继续；OBL-02 延迟测量执行前须满足方法第 5 节样本纪律。
+- **严重度：** N/A（义务履行登记，非冲突）。
+- **决策负责人：** 工程负责人（执行）；独立评测负责人（审阅与否决）。
+- **所需变更：** 无（义务履行登记）；D-01 关闭已回写 P2-SIGNOFF-01 v1.1.0 / readiness-record v1.18.0。
+- **状态：** RECORDED（2026-10-09：OBL-01 已履行；退出码 0 不设置任何 Gate 为 PASS；S2a 后续义务 NOT STARTED）。
 
 ## S2 范围裁决登记（PD-23）
 
