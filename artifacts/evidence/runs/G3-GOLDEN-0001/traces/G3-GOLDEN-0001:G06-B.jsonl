@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G06-B","event":"trace_started","at":"2026-10-09T13:32:17.891Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G06 Boundary；终态拒绝（重复 STOP）","goldenCase":"G06","dimension":"BOUNDARY"}
-{"caseId":"G3-GOLDEN-0001:G06-B","event":"trace_completed","at":"2026-10-09T13:32:18.264Z","startedAt":"2026-10-09T13:32:17.891Z","durationMs":373,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G06-B","event":"trace_started","at":"2026-10-09T14:58:59.098Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G06 Boundary；终态拒绝（重复 STOP）","goldenCase":"G06","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G06-B","event":"trace_completed","at":"2026-10-09T14:58:59.477Z","startedAt":"2026-10-09T14:58:59.098Z","durationMs":379,"result":"PASS","pass":true}

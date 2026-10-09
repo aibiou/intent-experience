@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G05-B","event":"trace_started","at":"2026-10-09T14:48:56.169Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G05 Boundary；C6 §27 / API §2.4 请求幂等（REQUEST_DUPLICATE）","goldenCase":"G05","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G05-B","event":"trace_completed","at":"2026-10-09T14:48:56.563Z","startedAt":"2026-10-09T14:48:56.169Z","durationMs":394,"result":"PASS","pass":true}

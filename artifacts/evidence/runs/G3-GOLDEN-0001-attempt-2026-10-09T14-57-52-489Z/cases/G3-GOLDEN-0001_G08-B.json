@@ -1,0 +1,118 @@
+{
+  "caseIdNamespace": "G3-GOLDEN-0001:G08-B",
+  "sourceClause": "P2 Exit Gate §8 G08 Boundary；相邻输入变体结构等价；PD-07 纪律经授权 §2(4) 取代性扩展（F-5 短期记忆跨会话持久化）；PD-21",
+  "scope": "P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整持久 Memory 语义 DEFERRED TO S2，acceptance-mapping §B）",
+  "precondition": "分类器可用（无状态）；产品源码静态可扫描（src/experience + app/api）",
+  "inputFault": "相邻方向信号变体对（\"今天不要这个\" / \"以后不要这个\"）+ memory 层静态存在证明（F-5）",
+  "expected": {
+    "staticPresence": "记忆层存在且契约完整（src/experience/memory.ts；classifier.ts + runtime.ts 经 ./memory 导入——记忆操作识别 + Runtime 单一写入者集成；HTTP 层不直接触达记忆域——F-5 / S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §4）",
+    "dynamicEquivalence": "相邻方向信号变体（\"今天不要这个\" / \"以后不要这个\"）运行时结构等价：分类、策略、事件序列、内容、终态、旧流取消、零 memory 事件"
+  },
+  "actual": {
+    "productTsFiles": 36,
+    "memoryFiles": [
+      "/Users/pg014/Documents/Codex/intent-experience/src/experience/memory.ts"
+    ],
+    "memoryImports": [
+      "./memory",
+      "./memory"
+    ],
+    "httpMemoryImports": [],
+    "signalA": {
+      "classification": "CHANGE_DIRECTION",
+      "accepted": true,
+      "policyAction": "CHANGE_EXPERIENCE",
+      "eventTypes": [
+        "session_started",
+        "intent_received",
+        "intent_parsed",
+        "experience_candidate_generated",
+        "experience_candidate_selected",
+        "experience_started",
+        "state_transitioned",
+        "why_requested",
+        "generation_started",
+        "llm_request_started",
+        "llm_request_completed",
+        "llm_output_validated",
+        "state_transitioned",
+        "policy_decided",
+        "change_direction_requested",
+        "generation_cancelled",
+        "experience_interrupted",
+        "generation_started",
+        "llm_request_started",
+        "llm_request_completed",
+        "llm_output_validated",
+        "experience_candidate_generated",
+        "experience_candidate_selected",
+        "state_transitioned",
+        "policy_decided",
+        "generation_completed",
+        "runtime_waiting"
+      ],
+      "contentEqualsFixture": true,
+      "finalState": "WAITING/UNDERSTANDING v5",
+      "oldStreamCancelled": true,
+      "memoryEvents": 0
+    },
+    "signalB": {
+      "classification": "CHANGE_DIRECTION",
+      "accepted": true,
+      "policyAction": "CHANGE_EXPERIENCE",
+      "eventTypes": [
+        "session_started",
+        "intent_received",
+        "intent_parsed",
+        "experience_candidate_generated",
+        "experience_candidate_selected",
+        "experience_started",
+        "state_transitioned",
+        "why_requested",
+        "generation_started",
+        "llm_request_started",
+        "llm_request_completed",
+        "llm_output_validated",
+        "state_transitioned",
+        "policy_decided",
+        "change_direction_requested",
+        "generation_cancelled",
+        "experience_interrupted",
+        "generation_started",
+        "llm_request_started",
+        "llm_request_completed",
+        "llm_output_validated",
+        "experience_candidate_generated",
+        "experience_candidate_selected",
+        "state_transitioned",
+        "policy_decided",
+        "generation_completed",
+        "runtime_waiting"
+      ],
+      "contentEqualsFixture": true,
+      "finalState": "WAITING/UNDERSTANDING v5",
+      "oldStreamCancelled": true,
+      "memoryEvents": 0
+    },
+    "structurallyIdentical": true
+  },
+  "invariants": [
+    "P2 G3 黄金套件不变式（P2 Exit Gate §8）：每个黄金案例覆盖 Normal/Negative/Boundary/Failure-Recovery 四维度",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "旧 operation 不得提交（generation epoch 守卫 + 版本双重检查，S1-10；CC02 H03）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "失败不消耗版本号（EB-02）；取消的 generation 不提交（CC02 H02）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
+  ],
+  "evidence": {
+    "trace": "traces/G3-GOLDEN-0001:G08-B.jsonl",
+    "traceSha256": "c85fafa63f94a9dc25f876893a8d82e1212373a91bdd2c4d7085bebbaa150338",
+    "form": "in-process",
+    "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G3 Gate 逐项判定属独立评测范畴（角色 5）；G04/G07/G08 完整语义 DEFERRED TO S2（acceptance-mapping §B）"
+}

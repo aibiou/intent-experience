@@ -1,14 +1,14 @@
 {
   "runId": "G3-GOLDEN-0001",
-  "recordedAt": "2026-10-09T13:32:08.262Z",
+  "recordedAt": "2026-10-09T14:58:49.822Z",
   "executor": {
     "executedBy": "工程负责人角色（代理，Codex）",
     "independentEvaluator": "独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）"
   },
-  "obligation": "P2 G08 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行）",
+  "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）",
   "authorization": "P3-S1-IMPL-AUTH-01 v1.3.0 §2（动态证据执行）；E5-SCOPED-LICENSE-01（PD-17 / CR-15 选项 A）",
   "goldenCorpus": {
-    "definition": "P2 核心产品验收 G01–G08；每案例至少 Normal/Negative/Boundary/Failure-Recovery 四维度 + Expected/Observed/Evidence/Evaluator（P2 Exit Gate §8）",
+    "definition": "P2 核心产品验收 G01–G09；每案例至少 Normal/Negative/Boundary/Failure-Recovery 四维度 + Expected/Observed/Evidence/Evaluator（P2 Exit Gate §8；G09 为 S2b 方向性操作）",
     "s1Covered": {
       "goldenCases": [
         "G01",
@@ -18,7 +18,8 @@
         "G05",
         "G06",
         "G07",
-        "G08"
+        "G08",
+        "G09"
       ],
       "caseIds": [
         "G01-N",
@@ -52,9 +53,13 @@
         "G08-N",
         "G08-NEG",
         "G08-B",
-        "G08-FR"
+        "G08-FR",
+        "G09-N",
+        "G09-NEG",
+        "G09-B",
+        "G09-FR"
       ],
-      "count": 32,
+      "count": 36,
       "note": "G03 为 S1 基础单次模拟形态（PD-06）；G04/G07/G08 为 PD-21 关闭切片最小实现（完整语义 DEFERRED TO S2，acceptance-mapping §B）"
     },
     "closureSlice": {
@@ -107,7 +112,11 @@
       "G08-N",
       "G08-NEG",
       "G08-B",
-      "G08-FR"
+      "G08-FR",
+      "G09-N",
+      "G09-NEG",
+      "G09-B",
+      "G09-FR"
     ],
     "priorRunIds": [
       "F1-E2E-0001",
@@ -225,14 +234,14 @@
     }
   ],
   "stateMachine": {
-    "version": "state_machine_v1.0.0",
+    "version": "state_machine_v1.5.0",
     "source": "SRC-05 / 13",
-    "closureSlice": "CREATION 阶段 + CREATE/CORRECTION 触发（PD-21 关闭切片最小形态）；完整 WHAT_IF 分支 / Creation / Correction 属 S2"
+    "closureSlice": "CREATION 阶段 + CREATE/CORRECTION 触发（PD-21 关闭切片最小形态）+ 完整 WHAT_IF 分支语义（S2a F-4，state_machine_v1.4.0）+ S2b 变更 1–3（state_machine_v1.5.0：方向性操作 DEEPEN/SIMPLIFY/REFRAME 文档化——冻结迁移表无结构变更）"
   },
   "policy": {
-    "version": "policy_v1.5.0（S2a F-5 版本化变更）",
+    "version": "policy_v2.0.0（S2b 版本化变更）",
     "source": "SRC-06 / 14",
-    "status": "S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）+ 完整 WHAT_IF 分支语义（S2a F-4，policy_v1.4.0：多轮模拟持久化 + 轴外分支子状态机）+ Minimal Memory 语义（S2a F-5，policy_v1.5.0：轴外记忆子状态机 + L5 信号注入 + Runtime 单一写入者）；SEARCH 仍表外（PD-06）"
+    "status": "S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）+ 完整 WHAT_IF 分支语义（S2a F-4，policy_v1.4.0：多轮模拟持久化 + 轴外分支子状态机）+ Minimal Memory 语义（S2a F-5，policy_v1.5.0：轴外记忆子状态机 + L5 信号注入 + Runtime 单一写入者）+ S2b 方向性操作语义（policy_v2.0.0：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 14 §8 恒等映射 + 冻结优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER + 创作域顶层补丁操作承载）；SEARCH 仍表外（PD-06，内部能力动作 14 §7）"
   },
   "api": {
     "version": "api_v1.0.0",
@@ -248,39 +257,116 @@
     "note": "G5 16 项评测包已执行并双签署（P3-S1-G5-WORKSHEET-01 v1.7.0）；G3 逐项判定属本运行后的独立评测范畴"
   },
   "code": {
-    "gitHead": "084fbcd8766e497b64bac4a66c9eb4e682f8e079",
+    "gitHead": "65ea951ca3b3435ae7838fa2b55d66ab4a588984",
     "workTreeClean": false,
     "uncommittedEntries": [
-      "M src/experience/memory.ts",
-      " M tools/evidence/package.json",
-      "?? artifacts/evidence/runs/S2A-F5-0001-attempt-2026-10-09T13-27-49-284Z/",
-      "?? artifacts/evidence/runs/S2A-F5-0001/",
-      "?? tools/evidence/repro-f5.mjs",
-      "?? tools/evidence/src/s2a-f5.mjs"
+      "M artifacts/evidence/runs/G3-GOLDEN-0001/SHA256SUMS",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G01-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G01-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G01-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G01-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G02-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G02-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G02-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G02-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G03-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G03-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G03-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G03-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G04-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G04-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G04-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G04-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G05-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G05-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G05-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G05-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G06-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G06-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G06-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G06-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G07-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G07-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G07-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G07-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G08-B.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G08-FR.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G08-N.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G08-NEG.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/review/README.md",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/run-metadata.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/summary.json",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G01-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G01-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G01-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G01-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G02-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G02-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G02-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G02-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G03-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G03-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G03-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G03-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G04-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G04-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G04-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G04-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G05-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G05-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G05-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G05-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G06-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G06-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G06-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G06-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G07-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G07-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G07-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G07-NEG.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G08-B.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G08-FR.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G08-N.jsonl",
+      " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G08-NEG.jsonl",
+      "?? artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-09T14-48-51-128Z/",
+      "?? artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-09T14-57-52-489Z/",
+      "?? artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G09-B.json",
+      "?? artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G09-FR.json",
+      "?? artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G09-N.json",
+      "?? artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G09-NEG.json",
+      "?? artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G09-B.jsonl",
+      "?? artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G09-FR.jsonl",
+      "?? artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G09-N.jsonl",
+      "?? artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G09-NEG.jsonl"
     ],
     "runtimeFiles": {
       "audit.ts": "1da20af50e24cde6e4638a78f22e05ec847fa153c0a4655b86134474291ddf0b",
-      "chunks.ts": "733a16552bc0fdd120bd2e202ee17de26078307f9c79821fe2599f3915fc89ec",
-      "classifier.ts": "17961417af9366f0a47842083e7e96b98f310b7c8cd1cbcea51448dccb0739df",
+      "chunks.ts": "a26f6619842a23e853aae7f7800b94b161756121785e6fe4943a1f7bf01a1755",
+      "classifier.ts": "9745fd31eac696d7d374f8df78d1de149feb0230c0d0a99b395cc052c0749110",
       "correction.ts": "72897fcf8b3d8a64ceb9d6600a228cd2c447f772cc79c2aa8e46ab63a9d4674c",
-      "creation.ts": "28f14267903c219cbcdfc98588c396c1fcc1506a9f3a59baee3183398548a5ca",
+      "creation.ts": "a7fe504b7ffa711ed10820f2d568792819fdefc3e65f0a4af280a2da4da181d4",
       "decision-trace.ts": "6606aa6e01c100b0217bafd7b49810a174e3dd7cda36a15668ebf0b42506f0c8",
       "events.ts": "a000798fbdbbdb9409d18ea3f76d3c4e252fe1c7ddac4ac369d50f337c2c105a",
       "fixtures/change-direction.ts": "8db3861f3a0693492054d4aeb9d73ed42a3fb561bcc7f45ed8de0fc47ed6468a",
       "fixtures/correction.ts": "27393524ebcb51cf2f26e32fa163e3c2a787f0cfe2cf9b11fc242dbe7db03f68",
       "fixtures/create.ts": "e84eba657c582b8947d10988ed9389ab5eb56563f8d07de97ef7f81f486b7b99",
+      "fixtures/deepen.ts": "951909264e3e1fb5fa6918dd7e19aa009d85b572078aa8a412fef556b2d040eb",
       "fixtures/direct-answer.ts": "d2183d5f8fe5075540980462cf3774fba8fcc4c1f0740032654ba27331ed264c",
+      "fixtures/reframe.ts": "9b23a56c9030e18c331c9ff53fef71dd0f3a42f6e00feff2dec5d4fe8a757640",
+      "fixtures/simplify.ts": "a4b399d00e61e18949d47774fa48f63e4008c37faf7bb3fcec0557213119694d",
       "fixtures/simulate.ts": "77d51cfad3fb9beef78a367e767b0eb3aea582f9a9d7a189f98468ad14d55643",
       "fixtures/why.ts": "8e597e2d9c4082ee4a80e19557c82d3be54ed917f3dbfd68bb8a4752787757e0",
       "http.ts": "d26961966a134880732b9ae22a9368c821ce6680fff2c1df4349d0a7f731b13d",
       "llm-gateway.ts": "858dea8a666c6bed47142f39b32695418e88d564d54096b8373ed80f955a1601",
       "memory.ts": "daa35e0e02c522468d78b138787452e1e3c3ae82c7a1bdac94f8b62a38a60ef8",
-      "policy.ts": "c911af54e62aa6551c4b919b4bf9bcff6b39bd7ce7956cc533fae4bd8f39e88e",
-      "runtime.ts": "7cbb840b4d83ac20b1bf6e25324f4116bde1bdbffa539f976a448f8df0bdff6b",
+      "policy.ts": "c89a1f8387d6cfb0dd4fc4b2c86cefb20bfd20acd342a8d509bbfc3b17627366",
+      "presentation.ts": "683850285b94a814e296143ab1f3d9e0adc2fe81990818f53a7df989bc73344c",
+      "runtime.ts": "a5ee92e31bd5712327342710496f27b72bfc3ba1c57d04c5a5e131d490b0018a",
+      "search.ts": "30956c8b1ad0e109b18884aea4d4ab9e1d610a695f08d33a291e52d5834bfd3b",
       "server-runtime.ts": "b6b3f83166d085e72013661915f2f79398f961081310bd35c5ad4d10412f5700",
       "session.ts": "d7a21131bfb848730643ca7808e71a714e4a757e917cf1103f23c549d68589ae",
       "simulation.ts": "507cd3a6010a1edb193279f1be03ff2c1c9bd31d1ad9b382e8ab88ecfd46a2a6",
-      "state-machine.ts": "a3d0e72c945101d92edf2b9d649d6d98e18169cf88c40e01b24ca35747e776e1",
+      "state-machine.ts": "e78a54e5cc5ee6d9d9ddfb4520bdc7aaa8c0f37d48530b29e9a5bb2d7f9d9044",
       "state-store.ts": "625f747f39f589c8d3d99bf00a61dd58a89c5876e9b21cd2c1f59a346189e863",
       "stream.ts": "a2931765e29382e81f755be747a8dbb9097b94d3a42103a9d8ba87c988281010",
       "validator.ts": "46850fea758853531f6687551b8f96280772c7fe4c019ac76559ec93fdc4646a"
@@ -331,6 +417,21 @@
         "sha256": "27393524ebcb51cf2f26e32fa163e3c2a787f0cfe2cf9b11fc242dbe7db03f68"
       },
       {
+        "fixtureId": "synthetic/deepen/v1",
+        "file": "src/experience/fixtures/deepen.ts",
+        "sha256": "951909264e3e1fb5fa6918dd7e19aa009d85b572078aa8a412fef556b2d040eb"
+      },
+      {
+        "fixtureId": "synthetic/simplify/v1",
+        "file": "src/experience/fixtures/simplify.ts",
+        "sha256": "a4b399d00e61e18949d47774fa48f63e4008c37faf7bb3fcec0557213119694d"
+      },
+      {
+        "fixtureId": "synthetic/reframe/v1",
+        "file": "src/experience/fixtures/reframe.ts",
+        "sha256": "9b23a56c9030e18c331c9ff53fef71dd0f3a42f6e00feff2dec5d4fe8a757640"
+      },
+      {
         "fixtureId": "synthetic/stop/v1",
         "file": "（运行时内联构造：STOP 无内容分块）",
         "sha256": null
@@ -360,8 +461,8 @@
     "failed": 0
   },
   "run": {
-    "startedAt": "2026-10-09T13:32:08.262Z",
-    "finishedAt": "2026-10-09T13:32:25.538Z",
+    "startedAt": "2026-10-09T14:58:49.822Z",
+    "finishedAt": "2026-10-09T14:59:09.426Z",
     "command": "npm run golden (node tools/evidence/src/golden.mjs, from tools/evidence)",
     "exitCode": 0,
     "form": "in-process（真实 .ts 源字节；HTTP 形态回归证据见 F2-GS-0001 / F3-EB-0001）"

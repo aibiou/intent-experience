@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G08-NEG","event":"trace_started","at":"2026-10-09T14:58:05.163Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G08 Negative；授权 §5.7（未知情况升级而非由 LLM 决定）；PD-07；PD-21","goldenCase":"G08","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G08-NEG","event":"trace_completed","at":"2026-10-09T14:58:05.544Z","startedAt":"2026-10-09T14:58:05.163Z","durationMs":381,"result":"PASS","pass":true}
