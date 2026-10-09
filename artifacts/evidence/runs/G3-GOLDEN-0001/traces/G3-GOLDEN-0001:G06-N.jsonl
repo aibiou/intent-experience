@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G06-N","event":"trace_started","at":"2026-10-09T03:39:42.110Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G06 Stop；S1 §20/§26 GS-04；Evaluation System V1 §5 G06（P0 blocker）","goldenCase":"G06","dimension":"NORMAL"}
-{"caseId":"G3-GOLDEN-0001:G06-N","event":"trace_completed","at":"2026-10-09T03:39:42.503Z","startedAt":"2026-10-09T03:39:42.110Z","durationMs":393,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G06-N","event":"trace_started","at":"2026-10-09T04:37:07.922Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G06 Stop；S1 §20/§26 GS-04；Evaluation System V1 §5 G06（P0 blocker）","goldenCase":"G06","dimension":"NORMAL"}
+{"caseId":"G3-GOLDEN-0001:G06-N","event":"trace_completed","at":"2026-10-09T04:37:08.298Z","startedAt":"2026-10-09T04:37:07.922Z","durationMs":376,"result":"PASS","pass":true}

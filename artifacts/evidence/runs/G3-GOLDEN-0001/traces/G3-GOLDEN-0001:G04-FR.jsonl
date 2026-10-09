@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G04-FR","event":"trace_started","at":"2026-10-09T04:37:11.365Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G04 Failure/Recovery；C4 故障语义（LLM_UNAVAILABLE）；EB-02；P-02；PD-21","goldenCase":"G04","dimension":"FAILURE_RECOVERY"}
+{"caseId":"G3-GOLDEN-0001:G04-FR","event":"trace_completed","at":"2026-10-09T04:37:11.739Z","startedAt":"2026-10-09T04:37:11.365Z","durationMs":374,"result":"PASS","pass":true}
