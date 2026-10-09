@@ -1,0 +1,2 @@
+{"caseId":"S2A-F2-0001:STALE-REJECT","event":"trace_started","at":"2026-10-09T07:46:46.799Z","form":"inprocess","sourceClause":"S2A-F2-SEMANTIC-FREEZE-01 §2 D-01（逐切片升版）+ §4 变更 1；S1-12 同族纪律；OBL-01 纪律（失败写入不消耗版本号）；PD-16","servers":[]}
+{"caseId":"S2A-F2-0001:STALE-REJECT","event":"trace_completed","at":"2026-10-09T07:46:47.712Z","startedAt":"2026-10-09T07:46:46.799Z","durationMs":913,"result":"PASS","pass":true}

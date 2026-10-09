@@ -1,0 +1,195 @@
+{
+  "runId": "S2A-F2-0001",
+  "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2/§6：F-2——G04 完整 Creation 语义（S2A-F2-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：创作运行时 + 轴外子状态机 + 版本化补丁提交 + STOP 路径完成登记）",
+  "startedAt": "2026-10-09T07:47:41.817Z",
+  "finishedAt": "2026-10-09T07:47:54.678Z",
+  "durationMs": 12861,
+  "cases": [
+    {
+      "caseId": "CREATION-CHAIN",
+      "result": "PASS"
+    },
+    {
+      "caseId": "MULTI-TURN",
+      "result": "PASS"
+    },
+    {
+      "caseId": "STALE-REJECT",
+      "result": "PASS"
+    },
+    {
+      "caseId": "NO-AUTO-EXPANSION",
+      "result": "PASS"
+    },
+    {
+      "caseId": "COMPLETION",
+      "result": "PASS"
+    },
+    {
+      "caseId": "ASK-BOUND",
+      "result": "PASS"
+    },
+    {
+      "caseId": "DEFERRED-OP",
+      "result": "PASS"
+    },
+    {
+      "caseId": "RESTART-SUPERSEDED",
+      "result": "PASS"
+    },
+    {
+      "caseId": "PHASE-GUARD",
+      "result": "PASS"
+    },
+    {
+      "caseId": "INPROC-REGRESSION",
+      "result": "PASS"
+    }
+  ],
+  "allCasesPass": true,
+  "assertions": [
+    {
+      "id": "A1",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + F-2 创作语义专项 + obligationTraceability）",
+      "passed": true,
+      "detail": {
+        "missingSections": []
+      }
+    },
+    {
+      "id": "A2",
+      "description": "环境锁定：engines.node === \"24.21.0\"（F-2 精确锁定）且执行于 Node v24.21.0；lockfileVersion 3；Next.js / React / TypeScript 版本登记",
+      "passed": true,
+      "detail": {
+        "enginesNode": "24.21.0",
+        "processVersion": "v24.21.0",
+        "lockfileVersion": 3,
+        "next": "16.4.0",
+        "react": "19.3.0",
+        "typescript": "7.0.2"
+      }
+    },
+    {
+      "id": "A3",
+      "description": "全部 10 案例记录齐备且 12 字段完整（E5 §4）",
+      "passed": true,
+      "detail": {
+        "recordFiles": 10,
+        "expected": 10,
+        "allCasesPass": true
+      }
+    },
+    {
+      "id": "A4",
+      "description": "全部 10 案例轨迹文件齐备且非空",
+      "passed": true,
+      "detail": {
+        "traceFiles": 10
+      }
+    },
+    {
+      "id": "A5",
+      "description": "CREATION-CHAIN：WHY→CREATE 建立链——九分量创作对象（sourceExperience.stateVersion=5 / theme=为什么 / goal=一个小游戏）+ creation_started×1 + creation_phase_transitioned×3（CONTEXT_INHERIT→MINIMAL_BUILD→PREVIEW→USER_FEEDBACK）+ 终态 WAITING/CREATION v6 + 内容逐字节等于 create 语料",
+      "passed": true,
+      "detail": {
+        "creationChain": true
+      }
+    },
+    {
+      "id": "A6",
+      "description": "MULTI-TURN：三轮修改——创作版本单调 1→2→3→4、user_changes 累积 [2,3,4]、player/exit 保留（局部补丁不重新生成整个作品 08 §11）、add 结构化（obstacle_count 2→3）+ modify tune 非结构性登记、决策追踪 llm_used=false、头 reason=creation_modification、policy_version=policy_v1.2.0、终态 WAITING/CREATION v12",
+      "passed": true,
+      "detail": {
+        "multiTurn": true
+      }
+    },
+    {
+      "id": "A7",
+      "description": "STALE-REJECT：expectedCreationVersion 陈旧（100 vs 1）与 expectedStateVersion 陈旧（5 vs 6）均 STATE_VERSION_CONFLICT 拒绝；双重前置校验先于任何写入；失败不消耗版本号（状态 v6、创作 v1 USER_FEEDBACK 不变）；无 creation_patch_applied 事件",
+      "passed": true,
+      "detail": {
+        "staleReject": true
+      }
+    },
+    {
+      "id": "A8",
+      "description": "NO-AUTO-EXPANSION：最小可玩构建严格等于模板（objects=[player, exit] 恰 2 项 / rules 模板 2 项 / variables={progress: 0} / interactions=[move, observe] / presentation=text / coreMechanic=minimal_playable_loop——13 §23.4 不自动扩张）",
+      "passed": true,
+      "detail": {
+        "noAutoExpansion": true
+      }
+    },
+    {
+      "id": "A9",
+      "description": "COMPLETION：完成信号双路径（\"就这样\" 词表→STOP 适配 / \"好了\" 通用 STOP）均经 STOP 执行路径登记创作完成——USER_FEEDBACK→COMPLETE + creation_completed（completion_condition 区分 creation_completion_signal / user_stop）+ active=false + COMPLETED/COMPLETION 终态 + 零 generation 增量（不自动推荐/继续 13 §23.2）+ 决策追踪 reason 区分创作完成与停止体验（D-05）",
+      "passed": true,
+      "detail": {
+        "completion": true
+      }
+    },
+    {
+      "id": "A10",
+      "description": "ASK-BOUND：轴冲突输入（\"换玩法，加两个障碍\"）不自动判定——单块澄清问题流（fixtureId=creation_ask，含 CHANGE_DIRECTION 轴名与确认请求）、创作版本/阶段不变（v1 USER_FEEDBACK）、无 creation_patch_applied、头 reason=creation_ask_clarification、决策追踪 llm_used=false、终态 WAITING/CREATION v8",
+      "passed": true,
+      "detail": {
+        "askBound": true
+      }
+    },
+    {
+      "id": "A11",
+      "description": "DEFERRED-OP：S2b 保留操作（\"简单一点\" → SIMPLIFY）以 INVALID_ACTION 升级拒绝（不静默执行、不降级近似语义）；拒绝先于任何写入（状态 v6、创作 v1 USER_FEEDBACK 不变、本次提交零事件）",
+      "passed": true,
+      "detail": {
+        "deferredOp": true
+      }
+    },
+    {
+      "id": "A12",
+      "description": "RESTART-SUPERSEDED：相邻重复 CREATE 取代在途创作会话——creation_ended(creation_0001, superseded_by_create) + 全新 creation_0002 v1（objects=[player, exit] 不累积）+ creation_started×2 + 终态 WAITING/CREATION v8 + 内容逐字节等于 create 语料（G04-Boundary 契约保持）",
+      "passed": true,
+      "detail": {
+        "restartSuperseded": true
+      }
+    },
+    {
+      "id": "A13",
+      "description": "PHASE-GUARD：PREVIEW 阶段（预览在途）修改轮拒绝——INVALID_STATE_TRANSITION（illegal in phase PREVIEW，13 §21 补丁仅在 USER_FEEDBACK 轮应用）；拒绝不消耗版本号（状态 v5、创作 v1 PREVIEW 不变）",
+      "passed": true,
+      "detail": {
+        "phaseGuard": true
+      }
+    },
+    {
+      "id": "A14",
+      "description": "INPROC-REGRESSION：WHY→CREATE→修改轮→完成信号全链路——信封全量有效（C6 §7）、sequence_number 严格单调（C6 §25）、全部决策追踪 policy_version=policy_v1.2.0、修改轮内容逐字节等于 create 语料、终态 COMPLETED/COMPLETION + 创作 COMPLETE(active=false) + 会话 SESSION_ENDED",
+      "passed": true,
+      "detail": {
+        "inprocRegression": true
+      }
+    },
+    {
+      "id": "A15-PREFLIGHT",
+      "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配（失败为 FATAL，不计入断言池）",
+      "passed": true,
+      "detail": {
+        "typecheckExitCode": 0,
+        "buildExitCode": 0,
+        "referenceVerified": "36/36",
+        "fingerprintsAllMatch": true
+      }
+    },
+    {
+      "id": "A16",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
+      "passed": true,
+      "detail": {
+        "verified": 22,
+        "failed": []
+      }
+    }
+  ],
+  "allAssertionsPass": true,
+  "allPassed": true,
+  "exitCode": 0,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2/G4/G8）或产品状态为 PASS（E5 §2）。F-2 证据本运行已执行；G5 独立评测 NOT RUN（独立评测人须先审阅本运行 staged 材料）。"
+}

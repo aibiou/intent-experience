@@ -1,0 +1,2 @@
+{"caseId":"S2A-F2-0001:MULTI-TURN","event":"trace_started","at":"2026-10-09T07:47:45.663Z","form":"inprocess","sourceClause":"S2A-F2-SEMANTIC-FREEZE-01 §4 变更 1；08 §11/§12/§28（局部补丁 / 补丁形状 / 版本化历史）；D-04 选项 A（operation 值域收敛）","servers":[]}
+{"caseId":"S2A-F2-0001:MULTI-TURN","event":"trace_completed","at":"2026-10-09T07:47:47.527Z","startedAt":"2026-10-09T07:47:45.662Z","durationMs":1865,"result":"PASS","pass":true}

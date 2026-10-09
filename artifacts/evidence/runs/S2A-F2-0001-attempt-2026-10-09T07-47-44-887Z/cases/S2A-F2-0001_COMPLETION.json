@@ -1,0 +1,69 @@
+{
+  "caseIdNamespace": "S2A-F2-0001:COMPLETION",
+  "sourceClause": "S2A-F2-SEMANTIC-FREEZE-01 §2 D-05 + §4 变更 2；08 §27（完成信号词表）；13 §22/§23.2（完成语义：立即结束，不自动推荐/继续）",
+  "scope": "完成信号双路径：\"就这样\"（词表 → UNKNOWN → STOP 适配）与\"好了\"（通用 STOP 分类）均经 STOP 执行路径登记创作完成；决策追踪 reason 区分创作完成与停止体验",
+  "precondition": "两条独立 CREATION-CHAIN 基线（各 WAITING/CREATION v6，创作 v1 USER_FEEDBACK）",
+  "inputFault": "完成信号输入（声明 STOP）",
+  "expected": {
+    "completionSignal": "\"就这样\"（完成词表 08 §27）→ 分类 UNKNOWN → 创作解释 completion → 适配 STOP（声明 STOP 校验通过）→ executeStop：体验 ACTIVE/CREATION→COMPLETED/COMPLETION（v7）+ 创作 USER_FEEDBACK→COMPLETE + creation_completed（completion_condition=creation_completion_signal）+ active=false",
+    "directStop": "\"好了\"（通用 STOP 分类）→ 同一 STOP 执行路径：creation_completed（completion_condition=user_stop）——决策追踪 reason 区分\"创作完成\"与\"停止体验\"（D-05 选项 A）",
+    "invariants": "立即结束，不自动推荐、不自动继续（13 §23.2）：STOP 后零 generation_started 增量；STOP 流无内容分块（仅 submission + stopped）；creation_ended=0（完成不是终止）"
+  },
+  "actual": {
+    "signalChain": {
+      "ok": true,
+      "streamTypes": [
+        "submission",
+        "stopped"
+      ],
+      "finalState": "COMPLETED/COMPLETION v7",
+      "creationPhase": "COMPLETE",
+      "creationVersion": 1,
+      "creationActive": false,
+      "creationCompleted": 1,
+      "completionCondition": [
+        "creation_completion_signal"
+      ],
+      "creationEnded": 0,
+      "finalTransition": "USER_FEEDBACK->COMPLETE(completed)",
+      "generationStartedBefore": 2,
+      "generationStartedAfter": 2,
+      "decisionReasonSecondary": "CREATION_COMPLETE: completion signal ends the experience via the STOP execution path (08 §27; creation domain registered via creation_completed — D-05 选项 A)",
+      "decisionLlmUsed": false,
+      "sessionState": "SESSION_ENDED"
+    },
+    "directChain": {
+      "finalState": "COMPLETED/COMPLETION v7",
+      "creationPhase": "COMPLETE",
+      "creationActive": false,
+      "creationCompleted": 1,
+      "completionCondition": [
+        "user_stop"
+      ],
+      "decisionReasonSecondary": "STOP terminates the current experience (P-01: STOP always wins)"
+    }
+  },
+  "invariants": [
+    "S2a 范围边界（S2A-F2-SEMANTIC-FREEZE-01 §2）：创作子状态机轴外承载于持久创作对象，体验阶段轴不变；创作状态会话内持久（跨 USER_ACTION / RESPONSE_COMPLETED 周期存活）；补丁 operation 值域 {add, remove, modify}（REPLACE / TUNE / REBALANCE / RENAME / RESTYLE 作 modify 子型）；CREATION_COMPLETE 经 STOP 执行路径在创作域登记",
+    "S1 范围边界保持：CREATE/SEARCH 禁用旧词表项（CREATE 为 PD-21 关闭切片启用动作）；WHAT_IF 仅单次模拟；S2b 保留操作（SIMPLIFY / DEEPEN / REFRAME）识别后升级拒绝，不静默执行",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；创作修改轮次经 expectedCreationVersion 双重前置校验——陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12 同族）；失败写入不消耗任何版本号（OBL-01 纪律）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "补丁应用是局部变更（08 §11：不重新生成整个作品；版本单调 + user_changes 累积）；修改仅在 USER_FEEDBACK 轮应用（13 §21：存在未预览补丁不得 COMPLETE——补丁必经 PREVIEW）",
+    "创作 ASK 纪律（08 §16）：输入与既有轴触发器冲突时不自动判定——至多一个高价值澄清问题；创作子状态不推进",
+    "完成语义（08 §27 / 13 §22/§23.2）：完成信号词表识别后立即结束，不自动推荐、不自动继续；创作完成经 STOP 路径登记（USER_FEEDBACK → COMPLETE + creation_completed 事件；决策追踪 reason 区分\"创作完成\"与\"停止体验\"——D-05 选项 A）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）；创作修改轮次决策追踪 llm_used=false（确定性规则，非模型）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/S2A-F2-0001:COMPLETION.jsonl",
+    "traceSha256": "20c735805b4cb11b13df6a1472a020f54485ed976843b9401a148dff5a5a8800",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

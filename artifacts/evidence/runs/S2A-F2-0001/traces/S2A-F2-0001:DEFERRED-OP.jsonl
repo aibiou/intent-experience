@@ -1,0 +1,2 @@
+{"caseId":"S2A-F2-0001:DEFERRED-OP","event":"trace_started","at":"2026-10-09T07:47:51.266Z","form":"inprocess","sourceClause":"P3-S2-IMPL-AUTH-01 v1.2.0 §2（授权范围）；S2A-F2-SEMANTIC-FREEZE-01 §2 D-04 选项 A（SIMPLIFY/DEEPEN/REFRAME 显式 DEFERRED 至 S2b）","servers":[]}
+{"caseId":"S2A-F2-0001:DEFERRED-OP","event":"trace_completed","at":"2026-10-09T07:47:52.010Z","startedAt":"2026-10-09T07:47:51.266Z","durationMs":744,"result":"PASS","pass":true}

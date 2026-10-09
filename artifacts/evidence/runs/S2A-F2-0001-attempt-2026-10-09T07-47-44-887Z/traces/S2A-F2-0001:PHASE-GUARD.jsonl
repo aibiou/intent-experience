@@ -1,0 +1,2 @@
+{"caseId":"S2A-F2-0001:PHASE-GUARD","event":"trace_started","at":"2026-10-09T07:46:52.679Z","form":"inprocess","sourceClause":"S2A-F2-SEMANTIC-FREEZE-01 §4 变更 1；13 §21（修改必须先经 PREVIEW 再由用户判断；补丁仅在 USER_FEEDBACK 轮应用）","servers":[]}
+{"caseId":"S2A-F2-0001:PHASE-GUARD","event":"trace_completed","at":"2026-10-09T07:46:53.232Z","startedAt":"2026-10-09T07:46:52.679Z","durationMs":553,"result":"PASS","pass":true}
