@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G01-N","event":"trace_started","at":"2026-10-09T09:35:23.293Z","form":"in-process","sourceClause":"P2 Exit Gate & Sign-off §8 G01 Direct Answer；S1 §26 GS-01；Evaluation System V1 §5 G01；CC04","goldenCase":"G01","dimension":"NORMAL"}
+{"caseId":"G3-GOLDEN-0001:G01-N","event":"trace_completed","at":"2026-10-09T09:35:23.632Z","startedAt":"2026-10-09T09:35:23.293Z","durationMs":339,"result":"PASS","pass":true}
