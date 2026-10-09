@@ -1,0 +1,3 @@
+{"caseId":"S2A-F5-0001:RETRIEVAL-READONLY","event":"trace_started","at":"2026-10-09T13:26:06.820Z","form":"inprocess","sourceClause":"S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §1 元素 7 / §2 D-03 选项 A（检索只读）；07 §22（记忆检索不应改变体验）；07 §16（透明性经事件日志 + 用户控制面承载——非检索写事件）","servers":[]}
+{"caseId":"S2A-F5-0001:RETRIEVAL-READONLY","event":"executor-error","at":"2026-10-09T13:26:06.820Z","error":"TypeError: Cannot read properties of undefined (reading 'experienceId')"}
+{"caseId":"S2A-F5-0001:RETRIEVAL-READONLY","event":"trace_completed","at":"2026-10-09T13:26:06.821Z","startedAt":"2026-10-09T13:26:06.819Z","durationMs":2,"result":"FAIL","pass":false}

@@ -1,0 +1,2 @@
+{"caseId":"S2A-F5-0001:LIFECYCLE","event":"trace_started","at":"2026-10-09T13:27:50.035Z","form":"inprocess","sourceClause":"S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §2 D-02 选项 A（五阶段生命周期契约化）/ D-04 选项 A（保留期起算与删除执行）；07 §10（生命周期）/ §11（时间衰减——示例形态采纳为规范参数）；隐私六要素 P3-S1-PRIVACY-SIX-01 要素 1（保留 ≥6 个月）/ 要素 5（到期自动删除 + 删除审计记录）","servers":[]}
+{"caseId":"S2A-F5-0001:LIFECYCLE","event":"trace_completed","at":"2026-10-09T13:27:50.036Z","startedAt":"2026-10-09T13:27:50.035Z","durationMs":1,"result":"FAIL","pass":false}
