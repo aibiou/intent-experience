@@ -1,0 +1,95 @@
+{
+  "caseIdNamespace": "S2A-F3-0001:CREATION-INERT",
+  "sourceClause": "S2A-F3-SEMANTIC-FREEZE-01 §3 变更 3（D-01 选项 A 创作会话路由保护）；F-2 冻结文本 §3 变更 2/§4 变更 3（创作会话解释路由与 CREATION 阶段纠正保持）；08 §16 冲突判据",
+  "scope": "创作会话路由保护三轮：MODIFY 别名命中创作修改族 → 创作补丁轮次；否定纠正未命中 → 通用 CORRECTION 重评估（子状态不推进）；冲突判据 → ASK",
+  "precondition": "CREATION-CHAIN 基线（WAITING/CREATION v6，创作 v1 USER_FEEDBACK）",
+  "inputFault": "三轮输入：\"修改障碍颜色\"（声明 CREATE）/\"不对\"（声明 CORRECTION）/\"不对，加两个障碍\"（声明 CREATE）",
+  "expected": {
+    "round1": "\"修改障碍颜色\"（MODIFY 别名 → CORRECTION 分类）经创作修改族预检命中（/修改/ + 障碍 → obstacle）→ 创作解释 CREATE 伞形 + 补丁轮次：creation_patch_applied（operation=modify, target=obstacle, kind=tune）+ 创作 v2 + user_changes 登记；非 executeCorrect（无 correction_applied / 无 state_transitioned CORRECTION / 无 creation_reevaluated）",
+    "round2": "\"不对\"（否定纠正族）未命中创作修改族（interpretCreationInput 返回 none）→ 通用 CORRECTION 路径：executeCorrect 重评估创作子状态——creation_reevaluated（phase=USER_FEEDBACK 不变, creation_version=2 不变）+ correction_applied（target=current_candidate）+ state_transitioned CORRECTION；创作版本与子状态机不推进（F-2 变更 3 保持）",
+    "round3": "\"不对，加两个障碍\"同时命中否定纠正族与 ADD 族 → 冲突判据（08 §16）→ ASK：单块澄清问题流（含 CORRECTION 轴名与确认请求——本输入冲突轴为 CORRECTION）；创作版本 / 阶段 / user_changes 不变；无 creation_patch_applied",
+    "invariants": "三轮路由均不推进创作子状态机（除补丁轮次的 PREVIEW 循环）；决策追踪 llm_used：修改轮 false / 纠正轮 true / ASK 轮 false"
+  },
+  "actual": {
+    "round1": {
+      "ok": true,
+      "headerReason": "creation_modification",
+      "policyVersion": "policy_v1.3.0",
+      "contentMatchesFixture": true,
+      "patchApplied": [
+        {
+          "operation": "modify",
+          "target": "obstacle",
+          "kind": "tune"
+        }
+      ],
+      "decisionLlmUsed": false
+    },
+    "round2": {
+      "ok": true,
+      "headerReason": "reassess",
+      "reevaluated": [
+        {
+          "phase": "USER_FEEDBACK",
+          "creationVersion": 2
+        }
+      ],
+      "correctionApplied": [
+        {
+          "kind": "current_candidate"
+        }
+      ],
+      "correctionTransitions": 1,
+      "decisionLlmUsed": true
+    },
+    "round3": {
+      "ok": true,
+      "headerReason": "creation_ask_clarification",
+      "chunkCount": 1,
+      "content": "你的输入同时涉及修改当前作品与CORRECTION意图。请确认：要把它作为当前作品的修改，还是作为CORRECTION处理？（创作 ASK 纪律：至多一个澄清问题，08 §16）",
+      "decisionLlmUsed": false
+    },
+    "finalCreation": "v2 USER_FEEDBACK",
+    "finalState": "WAITING/CREATION v12",
+    "userChanges": [
+      {
+        "version": 2,
+        "operation": "modify"
+      }
+    ],
+    "totalPatchApplied": 1,
+    "totalCorrectionApplied": 1,
+    "round1Invariants": {
+      "patchApplied": 1,
+      "correctionApplied": 0,
+      "correctionTransitions": 0,
+      "reevaluated": 0
+    }
+  },
+  "invariants": [
+    "S2a 范围边界（S2A-F3-SEMANTIC-FREEZE-01 §2）：MODIFY 登记为 CORRECTION 用户面别名（授权 §2(2)）；不新增顶层 SemanticAction / PolicyAction（PD-23 §5）；分类优先级层不变（STOP > CHANGE_DIRECTION > CORRECTION > CREATE > WHY > WHAT_IF > DIRECT_ANSWER）",
+    "创作会话路由保护（D-01 选项 A）：活跃创作会话内 CORRECTION 分类输入先经 RESTORE 预检（D-04 词表，创作版本 >1），再经创作修改族预检（复用 interpretCreationInput 词表族与 08 §16 冲突判据）——命中创作 ADD/REMOVE/MODIFY 族 → 创作解释（CREATE 伞形 + 补丁轮次，F-2 机制不变）；命中冲突判据 → ASK（至多一个澄清问题）；未命中 → 通用 CORRECTION 路径（F-2 变更 3 保持：重评估创作子状态，不推进子状态机）",
+    "纠正目标确定性派生（D-02 选项 A）：指代词表（刚才 / 那个 / 上一步 / 上一个 / 上一版 / 上一个版本 → 上一候选）+ 创作分量映射（TARGET_SYNONYMS 同义词表）+ 默认当前候选；无新增模型调用",
+    "G07 操作语义承载（D-03 选项 A）：创作域经 F-2 补丁机制承载（不重建）；非创作域经重评估候选替换（不重放会话历史——重评估仅替换被纠正候选）",
+    "RESTORE_PREVIOUS_VERSION（D-04 选项 A）：CORRECTION 用户面恢复子型，不新增轴触发器；创作域经创作存储回滚提交——版本单调 +1（S1-12 不变式：版本指针永不回退），新版本内容 = 目标历史版本内容，user_changes 登记 restore 条目（含恢复来源版本号）；非创作域经意图登记 + 重评估（decision-trace reason=restore_previous_version）",
+    "纠正域事件（D-05 选项 A）：correction_applied（correction_target / correction_summary / corrected_candidate_id / semantic_action=CORRECTION）与 correction_restored（restored_from_version / restored_to_version / creation_id / semantic_action=CORRECTION）；C6 §14 命名模式；事件为不可变权威事实（C6 §5）",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；创作修改 / 恢复轮次经 expectedCreationVersion 双重前置校验——陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12 同族）；失败写入不消耗任何版本号（OBL-01 纪律）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "纠正与在途生成互斥（旧候选拒绝，old_generation_rejected=true）；重评估链路：取消在途 generation → 拒绝旧候选 → LLM 提案纠正候选 → 验证 → 版本化提交",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）；创作修改 / 恢复轮次决策追踪 llm_used=false（确定性规则，非模型）",
+    "纠正不持久化跨会话（PD-07——纠正域事件均为会话内事实登记，无 memory 层事件）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/S2A-F3-0001:CREATION-INERT.jsonl",
+    "traceSha256": "34594ad3042420363b2ecc51941b94cdc0caf22a0434f231e47d28cc773df55e",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

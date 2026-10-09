@@ -1,0 +1,182 @@
+{
+  "runId": "S2A-F3-0001",
+  "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2/§6：F-3——G07 完整 Correction 语义（S2A-F3-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：MODIFY 用户面别名登记 + 纠正目标确定性定位 + 创作会话路由保护 + RESTORE_PREVIOUS_VERSION 恢复子型 + 纠正域事件词表）",
+  "startedAt": "2026-10-09T09:10:24.830Z",
+  "finishedAt": "2026-10-09T09:10:40.248Z",
+  "durationMs": 15417,
+  "cases": [
+    {
+      "caseId": "MODIFY-ALIAS",
+      "result": "PASS"
+    },
+    {
+      "caseId": "CORRECTION-FULL",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "CREATION-INERT",
+      "result": "PASS"
+    },
+    {
+      "caseId": "RESTORE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "STALE-REJECT",
+      "result": "PASS"
+    },
+    {
+      "caseId": "NONCREATION-INERT",
+      "result": "PASS"
+    },
+    {
+      "caseId": "NO-MEMORY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "INPROC-REGRESSION",
+      "result": "PASS"
+    }
+  ],
+  "allCasesPass": false,
+  "assertions": [
+    {
+      "id": "A1",
+      "description": "MODIFY-ALIAS：MODIFY 词表（08 §10 修改类型族）分类为 CORRECTION 用户面别名（静态断言 13 项全过 + 优先级混合输入 2 项全过）；非创作会话 \"修改这个\" / \"调整一下\" 完整重评估链路（correction_requested semantic_action=CORRECTION → experience_interrupted old_generation_rejected=true → generation/llm 链路 → state_transitioned CORRECTION → v6）→ correction_applied（correction_target=current_candidate, corrected_candidate_id=提案 ID, semantic_action=CORRECTION）；策略 EXPLAIN；决策追踪 reason=reassess, llm_used=true, policy_version=policy_v1.3.0",
+      "passed": true,
+      "detail": {
+        "modifyAlias": true
+      }
+    },
+    {
+      "id": "A2",
+      "description": "CORRECTION-FULL：完整 G07 链路——纠正目标确定性登记（correction_target={kind:\"previous_candidate\"}，D-02 指代词表派生，无新增模型调用）；取消在途 generation（old_generation_rejected=true）；有效上下文保留（why_requested 保留 / session 未终止 / intentId 一致）；重评估候选提交（v5 → v6）；correction_applied（correction_summary=输入, corrected_candidate_id 与 llm_request_completed.proposal_id 一致）；决策追踪 reason=reassess 且 secondary 含 previous_candidate",
+      "passed": false,
+      "detail": {
+        "correctionFull": false
+      }
+    },
+    {
+      "id": "A3",
+      "description": "CREATION-INERT：创作会话路由保护（D-01 选项 A）——\"修改障碍颜色\"（MODIFY 别名 → CORRECTION 分类）经创作修改族预检命中 → 创作补丁轮次（creation_patch_applied operation=modify target=obstacle kind=tune，创作 v2，决策追踪 llm_used=false，无 correction_applied / 无 state_transitioned CORRECTION / 无 creation_reevaluated——非 executeCorrect）；\"不对\"未命中创作修改族 → 通用 CORRECTION（creation_reevaluated phase=USER_FEEDBACK creation_version=2 不变 + correction_applied + state_transitioned CORRECTION，llm_used=true——F-2 变更 3 保持）；\"不对，加两个障碍\"冲突判据 → ASK（单块澄清问题流含 CHANGE_DIRECTION 与确认，创作版本/阶段/user_changes 不变，无 creation_patch_applied，llm_used=false）",
+      "passed": true,
+      "detail": {
+        "creationInert": true
+      }
+    },
+    {
+      "id": "A4",
+      "description": "RESTORE：创作会话恢复（D-04 选项 A）——add 轮 v2（objects=[player,exit,obstacle,obstacle_2_2]，obstacle_count=2）；陈旧 expectedCreationVersion（=1 vs 2）恢复提交 STATE_VERSION_CONFLICT 拒绝（details 含 expected/current_creation_version）；恢复提交 v3（版本单调 +1——S1-12 不变式；objects=[player,exit]，variables={progress:0} 即 v1 快照——obstacle_count 消失证明内容恢复而非版本指针回滚；user_changes 2 条 [add@2, restore@3]，restore 条目 change.restoreFromVersion=1；correction_restored 事件 restored_from_version=1 / restored_to_version=3 / semantic_action=CORRECTION；creation_patch_applied operation=restore；头 reason=creation_restore；决策追踪 reason=creation_restore, llm_used=false, policy_version=policy_v1.3.0；终态 WAITING/CREATION）",
+      "passed": true,
+      "detail": {
+        "restore": true
+      }
+    },
+    {
+      "id": "A5",
+      "description": "STALE-REJECT：非创作会话陈旧 expected_state_version（3 vs 4）纠正提交 → STATE_VERSION_CONFLICT（retryable=false，details 含 expected/current_state_version）；状态逐字节不变（JSON 序列化前后一致）；无 correction_applied 事件；无新 state_transitioned 事件；事件计数不变（失败写入不消耗版本号——OBL-01 纪律）",
+      "passed": true,
+      "detail": {
+        "staleReject": true
+      }
+    },
+    {
+      "id": "A6",
+      "description": "NONCREATION-INERT：非创作会话行为与关闭切片一致（G07-N 黄金语义回归：correction_requested×1 + why_requested×1 + interrupted reason=correction×1 + state_transitioned CORRECTION + 决策追踪 reason=reassess + 终态 WAITING/UNDERSTANDING v6 + lastSemanticAction=CORRECTION + 零 memory 事件）；与关闭切片仅有的差异为 policy_version=policy_v1.3.0 与 correction_applied 事件登记（D-05）",
+      "passed": true,
+      "detail": {
+        "noncreationInert": true
+      }
+    },
+    {
+      "id": "A7",
+      "description": "NO-MEMORY：纠正域零 memory 事件（PD-07；G07-B 同族）——三域纠正事实齐备（非创作 correction_applied×1 + 创作会话 correction_applied×1 与 creation_reevaluated×1 + 创作恢复轮 correction_restored×1 与 creation_patch_applied operation=restore×1）；全部事件中 memory 事件 = 0",
+      "passed": true,
+      "detail": {
+        "noMemory": true
+      }
+    },
+    {
+      "id": "A8",
+      "description": "INPROC-REGRESSION：WHY → CREATE → 修改轮（\"把出口放远一点\"——MODIFY 别名经创作会话路由保护 → 创作补丁轮次，创作 v2，头 reason=creation_modification，内容逐字节等于 create 语料）→ 纠正轮（\"不对\"——通用 CORRECTION 重评估，头 reason=reassess，内容逐字节等于 correction 语料）→ 完成信号（\"就这样\" STOP 路径）全链路——信封全量有效（C6 §7）、sequence_number 严格单调（C6 §25）、全部决策追踪 policy_version=policy_v1.3.0、creation_patch_applied operation=modify×1、correction_applied×1、creation_reevaluated×1、终态 COMPLETED/COMPLETION + 创作 COMPLETE(active=false, v2) + 会话 SESSION_ENDED",
+      "passed": true,
+      "detail": {
+        "inprocRegression": true
+      }
+    },
+    {
+      "id": "A9",
+      "description": "全部 8 案例记录齐备且 12 字段完整（E5 §4；8 执行；PD-19 延期义务已履行——G04/G07/G08 关闭切片执行，无 DEFERRED 登记）",
+      "passed": true,
+      "detail": {
+        "recordFiles": 8,
+        "expected": 8,
+        "allCasesPass": false
+      }
+    },
+    {
+      "id": "A10",
+      "description": "全部 8 案例轨迹文件齐备且非空",
+      "passed": true,
+      "detail": {
+        "traceFiles": 8
+      }
+    },
+    {
+      "id": "A11-PREFLIGHT",
+      "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配（失败为 FATAL，不计入断言池）",
+      "passed": true,
+      "detail": {
+        "typecheckExitCode": 0,
+        "buildExitCode": 0,
+        "referenceVerified": "36/36",
+        "fingerprintsAllMatch": true
+      }
+    },
+    {
+      "id": "A12",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + F-3 纠正语义专项 correctionSemantics + obligationTraceability）",
+      "passed": true,
+      "detail": {
+        "missingSections": []
+      }
+    },
+    {
+      "id": "A13",
+      "description": "环境锁定：engines.node === \"24.21.0\"（F-2 精确锁定，F-3 延续）且执行于 Node v24.21.0；lockfileVersion 3；Next.js / React / TypeScript 版本登记",
+      "passed": true,
+      "detail": {
+        "enginesNode": "24.21.0",
+        "processVersion": "v24.21.0",
+        "lockfileVersion": 3,
+        "next": "16.4.0",
+        "react": "19.3.0",
+        "typescript": "7.0.2"
+      }
+    },
+    {
+      "id": "A14",
+      "description": "F-3 版本矩阵义务绑定：policy 版本 policy_v1.3.0（S2A-F3-SEMANTIC-FREEZE-01 §3）；state_machine 版本 state_machine_v1.2.0（§4）；frozenDecisions D-01…D-05 齐备（全项选项 A）；黄金回归绑定 G3-GOLDEN-0001（断言已同步 policy_v1.3.0）；实施文件清单 6 项齐备（含 correction.ts 新增）",
+      "passed": true,
+      "detail": {
+        "policyVersion": "policy_v1.3.0",
+        "stateMachineVersion": "state_machine_v1.2.0",
+        "frozenDecisionCount": 5,
+        "implementationFileCount": 6
+      }
+    },
+    {
+      "id": "A15",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
+      "passed": true,
+      "detail": {
+        "verified": 18,
+        "failed": []
+      }
+    }
+  ],
+  "allAssertionsPass": false,
+  "allPassed": false,
+  "exitCode": 1,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2/G4/G8）或产品状态为 PASS（E5 §2）。F-3 证据本运行已执行；G5 独立评测 NOT RUN（独立评测人须先审阅本运行 staged 材料）。"
+}

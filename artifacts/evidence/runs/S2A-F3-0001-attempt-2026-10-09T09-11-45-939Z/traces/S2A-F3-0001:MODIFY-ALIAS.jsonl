@@ -1,0 +1,2 @@
+{"caseId":"S2A-F3-0001:MODIFY-ALIAS","event":"trace_started","at":"2026-10-09T09:10:28.596Z","form":"inprocess","sourceClause":"P3-S2-IMPL-AUTH-01 v1.2.0 §2(2)；S2A-F3-SEMANTIC-FREEZE-01 v1.0.0 §3 变更 1；C05.2 动作表（MODIFY = \"用户要求修改已有结果\"）；08 §10 修改类型族","servers":[]}
+{"caseId":"S2A-F3-0001:MODIFY-ALIAS","event":"trace_completed","at":"2026-10-09T09:10:30.184Z","startedAt":"2026-10-09T09:10:28.596Z","durationMs":1588,"result":"PASS","pass":true}

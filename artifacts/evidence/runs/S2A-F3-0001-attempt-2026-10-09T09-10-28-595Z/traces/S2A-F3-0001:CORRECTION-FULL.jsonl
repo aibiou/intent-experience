@@ -1,0 +1,2 @@
+{"caseId":"S2A-F3-0001:CORRECTION-FULL","event":"trace_started","at":"2026-10-09T09:02:40.390Z","form":"inprocess","sourceClause":"S2A-F3-SEMANTIC-FREEZE-01 §3 变更 2；Evaluation System V1 §5 G07（remove invalid inference / preserve valid context / reassess）；D-02 选项 A（目标确定性派生）","servers":[]}
+{"caseId":"S2A-F3-0001:CORRECTION-FULL","event":"trace_completed","at":"2026-10-09T09:02:41.160Z","startedAt":"2026-10-09T09:02:40.389Z","durationMs":771,"result":"FAIL","pass":false}
