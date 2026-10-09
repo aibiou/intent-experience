@@ -1,10 +1,10 @@
 # G5 独立评测工作表（供独立评测人逐项执行填写）
 
 **编号：** P3-S1-G5-WORKSHEET-01
-**版本：** 1.2.0（2026-10-09：前置裁决三项登记（均选项 A，产品负责人 2026-10-09 裁决）——第 3 项黄金案例登记 N/A 附理由（S1 范围冻结未定义黄金案例套件）；第 6 项 rubric 定义为"合成 fixtures 上的契约一致性评测"、责任人用户本人（角色 5）批准生效；第 9 项暂不设统计阈值、运行耗时登记为参考值、测量方法待定义；第 6 / 9 项评测执行仍属评测人）
+**版本：** 1.3.0（2026-10-09：登记角色 5 staged 审阅包审阅通过——三份审阅包（F1-E2E-0001 / F2-GS-0001 / F3-EB-0001 之 review/README.md）经角色 5（用户本人，PD-15）审阅通过（2026-10-09，无否决登记）；此为输入审阅，不构成 16 项评测结论——16 项结论栏仍 NOT RUN 待逐项执行）
 **状态：** STAGED FOR EVALUATOR（staged 输入材料已备；本工作表为评测工具，不是 Gate 证据——不得由工作表存在推断 G5 PASS）
 **评测人：** 用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效——兼任实现相关角色，书面隔离措施已记录于 G5 隔离声明）
-**前置义务：** 评测人须先审阅三份 staged 审阅包后方可执行评测：`artifacts/evidence/runs/F1-E2E-0001/review/README.md`、`artifacts/evidence/runs/F2-GS-0001/review/README.md`、`artifacts/evidence/runs/F3-EB-0001/review/README.md`。
+**前置义务：** 评测人须先审阅三份 staged 审阅包后方可执行评测：`artifacts/evidence/runs/F1-E2E-0001/review/README.md`、`artifacts/evidence/runs/F2-GS-0001/review/README.md`、`artifacts/evidence/runs/F3-EB-0001/review/README.md`。**（已履行：角色 5 审阅通过，2026-10-09，无否决登记——见下"staged 审阅包审阅登记"节。）**
 
 ## 执行规则
 
@@ -13,6 +13,18 @@
 3. 第 16 项（评测负责人签署）须在 1–15 项均有适用结论后填写。
 4. 第 3 项前置裁决已登记 N/A（2026-10-09）；第 6 / 9 项前置裁决已批准（2026-10-09）——第 6 / 9 项评测执行与结论仍属评测人，保持 `NOT RUN` 直至逐项执行。
 5. 本工作表与三份 staged 审阅包、evidence-execution-plan §6.1/§6.2 交叉表、G5 证据要点简报（P3-S1-G5-BRIEFING-01——代理整理的定位辅助，非证据、非结论）配套使用；Gate 判定以产品负责人正式签署的 G5 结论为准。
+
+## staged 审阅包审阅登记（输入审阅，非评测结论）
+
+角色 5（用户本人，PD-15）已审阅三份 staged 审阅包并通过（2026-10-09）：
+
+| 审阅包 | 审阅结果 | 否决登记 |
+|---|---|---|
+| `artifacts/evidence/runs/F1-E2E-0001/review/README.md` | 通过（2026-10-09） | 无 |
+| `artifacts/evidence/runs/F2-GS-0001/review/README.md` | 通过（2026-10-09） | 无 |
+| `artifacts/evidence/runs/F3-EB-0001/review/README.md` | 通过（2026-10-09） | 无 |
+
+此登记为输入审阅事实：确认三份审阅包可作为 G5 评测的 staged 输入。**不构成 16 项评测结论**——16 项结论须评测人逐项执行后填写（当前全部 `NOT RUN`，第 3 项为已裁决 `N/A`）。
 
 ## 前置裁决（评测人 / 产品负责人，G5 执行前）
 
