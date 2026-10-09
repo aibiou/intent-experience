@@ -291,6 +291,16 @@
 - **所需变更：** 实施 F-3（feat(s2a-f3)）→ 动态证据 S2A-F3-0001 → 迭代记录写回。
 - **状态：** FROZEN（2026-10-09 产品负责人签署"签署"；C1/C2/C3 Steward 确认完成；F-3 实施授权生效）。
 
+## S2a F-4 语义冻结登记（CR-21）
+
+- **证据：** S2A-F4-SEMANTIC-FREEZE-01 v1.0.0（`../p3-s1/s2a-f4-semantic-freeze-staged.md`——§1 语义完备性评估：两层结构——第一层（多轮模拟持久化 + 四元分离）8 项元素在 frozen 源（13 号 §15.2/§15.3/§15.5 / E2 Stage 3 / E8-G2-CC07 / G03 黄金断言）中可机械派生；第二层（分支生命周期模型与分支-主线关系）经核查为 frozen 源语义空缺（E2 Stage 4"Branch"实为 CHANGE_DIRECTION 编排；07 §3 current_branch 为标量字段；13 §15.3 未定义分支记录结构），按授权 §5.7 纪律由产品负责人版本化定义；§2 裁决区 D-01…D-05 全项裁决（含第二层分支语义定义裁决 D-02/D-03）；§3 policy_v1.4.0 变更文本（分层）；§4 state_machine_v1.3.0 变更文本（分层）；§5 实施与证据计划大纲；§6 签署区产品负责人 + C1/C2/C3 Steward 确认完成）；P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§3(4)/§4。
+- **影响：** S2a F-4（WHAT_IF 完整分支）语义文本冻结（2026-10-09 产品负责人签署"签署"）——D-01 选项 A（分层实施：第一层多轮模拟持久化随本版实施；第二层分支生命周期语义经 D-02…D-04 产品负责人版本化定义后于同一 policy_v1.4.0 冻结文本内补写生效）；D-02 选项 A（轴外分支子状态机——分支记录含 branch_id / 源模拟轮次 / 模拟结果记录（四元分离）/ 版本 / 生命周期状态，体验阶段轴不变；分支模拟结果默认不回流为主线结论）；D-03 选项 A（四操作最小集 CREATE / SWITCH / ABANDON / RETURN，操作识别为确定性规则词表）；D-04 选项 A（分支状态会话内持久，会话结束失效，跨会话属 F-5）；D-05 选项 A（simulation_recorded 事件四元分离字段化承载）。
+- **建议：** F-4 实施按冻结文本 §5 大纲执行（events.ts 模拟域事件词表；新增 simulation.ts；runtime.ts WHAT_IF 执行扩展 + 分支操作路由；policy_v1.4.0；golden 套件 policy_version 断言同步）；证据执行器 tools/evidence/src/s2a-f4.mjs（8 案例草案见冻结文本 §5）；独立评测人（角色 5）保留审阅与否决权。
+- **严重度：** N/A（语义冻结登记，非冲突）。
+- **决策负责人：** 产品负责人（用户本人，PD-15）。
+- **所需变更：** 实施 F-4（feat(s2a-f4)）→ 动态证据 S2A-F4-0001 → 迭代记录写回。
+- **状态：** FROZEN（2026-10-09 产品负责人签署"签署"；C1/C2/C3 Steward 确认完成；F-4 实施授权生效）。
+
 ## S2 范围裁决登记（PD-23）
 
 - **证据：** S2-SCOPE-PROPOSAL-01 v1.1.0（`s2-scope-proposal-v1.md`，§5 裁决区已填写、§6 裁决记录）；S1 规范 §37（P3-S2 九项）/ §11（保留动作 DEEPEN / SIMPLIFY / REFRAME / CREATE / MODIFY / SEARCH）；acceptance-mapping §B / §C；07 号契约（Memory & User State Engine：六类数据状态、优先级链、生命周期）；E2 Stage 5（Creation 编排）；PODR-001 PD-05 / PD-06 / PD-07 / PD-20 / PD-22；P2-SIGNOFF-01 遗留债务 D-01 / D-02 / D-03。
