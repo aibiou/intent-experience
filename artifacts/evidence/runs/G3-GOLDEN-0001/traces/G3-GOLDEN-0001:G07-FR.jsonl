@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G07-FR","event":"trace_started","at":"2026-10-09T09:54:24.394Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G07 Failure/Recovery；C4 故障语义（LLM_UNAVAILABLE）；EB-02；P-02；PD-21","goldenCase":"G07","dimension":"FAILURE_RECOVERY"}
-{"caseId":"G3-GOLDEN-0001:G07-FR","event":"trace_completed","at":"2026-10-09T09:54:24.765Z","startedAt":"2026-10-09T09:54:24.394Z","durationMs":371,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G07-FR","event":"trace_started","at":"2026-10-09T12:58:03.110Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G07 Failure/Recovery；C4 故障语义（LLM_UNAVAILABLE）；EB-02；P-02；PD-21","goldenCase":"G07","dimension":"FAILURE_RECOVERY"}
+{"caseId":"G3-GOLDEN-0001:G07-FR","event":"trace_completed","at":"2026-10-09T12:58:03.494Z","startedAt":"2026-10-09T12:58:03.110Z","durationMs":384,"result":"PASS","pass":true}

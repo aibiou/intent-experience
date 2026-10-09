@@ -105,7 +105,37 @@ const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
  * （policy_v1.5.0）版本化变更冻结实施（P3-S2-IMPL-AUTH-01 v1.2.0 §4
  * 逐切片升版）。
  */
-export const POLICY_VERSION = 'policy_v1.4.0';
+/**
+ * policy_v1.5.0（S2a F-5 版本化变更，2026-10-09 产品负责人批准——
+ * S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 §3，分层生效）：
+ * Minimal Memory 策略章节（授权 §2(4)；PD-23）：
+ * 变更 1——记忆域范围：仅短期记忆（跨会话主题 / 意图信号 + 用户
+ * 显式纠正 / 撤回记录）；长期记忆 / 偏好画像禁用，写入路径不存在
+ * （负向不变式）；六类数据状态区分纪律（07 §2–§6 + §8 类型层）；
+ * 信号措辞纪律（"最近产生过较高兴趣" ≠ "用户喜欢 X"，07 §4）；
+ * 写入侧过滤（07 §7 不默认长期记住清单：临时情绪 / 一次性兴趣 /
+ * 一次性任务 / 当前环境 / 单次拒绝 / 推测人格不得写入）。
+ * 变更 2——作用面纪律：记忆仅作为 Context Builder 的 L5 相关短期
+ * 记忆信号注入（07 §21 优先级链 L0–L6；07 §20 检索纪律——以当前
+ * 意图为检索键，只取相关记录，不全量塞入）；L2 Current Intent
+ * 覆盖 L5（07 §12 不变式）；记忆检索为只读操作，不改变体验、不
+ * 触发任何产品动作（07 §22）；L6 长期记忆层 S2 不存在（负向不变式）。
+ * 变更 3——写入经 Runtime 单一写入者（授权 §5.8；GS-06 / CC02
+ * H01/H05：模型 state_update 类提案拒绝——validator.ts 既有覆盖）；
+ * 用户纠正 / 撤回经确定性规则词表识别（D-05 选项 A——model on
+ * F-4 D-03 纪律）进入记忆域操作并留痕（memory_corrected /
+ * memory_withdrawn 事件）。
+ * 变更 4——保留与删除：默认保留期自最后更新时间起算 6 个月，到期
+ * 自动删除 + 删除审计记录（隐私要素 1 / 5）；时间衰减采纳 07 §11
+ * 示例形态为规范参数（指数衰减：Day 0 = 0.90 → Day 3 ≈ 0.63；
+ * k = ln(0.9/0.63)/3 ≈ 0.1189 / 天）。
+ * 变更 5——版本不变式：记忆记录操作不改变体验状态版本链（S1-12
+ * 单调版本化仅约束体验状态；记忆域经自身记录与事件日志留痕）。
+ * 不变：语义动作映射（F-5 不新增语义动作——DEEPEN / SIMPLIFY /
+ * REFRAME / SEARCH 仍属 S2b 保留禁用，授权 §5.7；既有映射不变）；
+ * SEARCH 仍表外（PD-06）。
+ */
+export const POLICY_VERSION = 'policy_v1.5.0';
 
 export type PolicyResolution =
   | { ok: true; semanticAction: SemanticAction; policyAction: PolicyAction }

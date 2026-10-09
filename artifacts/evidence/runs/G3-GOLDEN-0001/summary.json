@@ -1,9 +1,9 @@
 {
   "runId": "G3-GOLDEN-0001",
   "obligation": "P2 G08 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行）",
-  "startedAt": "2026-10-09T09:54:06.725Z",
-  "finishedAt": "2026-10-09T09:54:26.664Z",
-  "durationMs": 19938,
+  "startedAt": "2026-10-09T12:57:47.714Z",
+  "finishedAt": "2026-10-09T12:58:05.430Z",
+  "durationMs": 17716,
   "goldenCases": [
     {
       "goldenCase": "G01",

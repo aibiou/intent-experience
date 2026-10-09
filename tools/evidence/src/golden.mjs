@@ -203,7 +203,7 @@ function eventsOf(events, type) {
   return events.filter((event) => event.event_type === type);
 }
 
-/** 产品源码文件列举（静态缺席证明；F3-EB-0001 EB-10 同源形态）。 */
+/** 产品源码文件列举（静态证据；F3-EB-0001 EB-10 同源形态；G08-B 静态存在证明——F-5）。 */
 async function listProductTsFiles(dir) {
   const entries = await readdir(dir, { withFileTypes: true });
   const files = [];
@@ -1340,13 +1340,13 @@ async function caseG04Normal(trace) {
   const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
   const expected = {
     classification: 'CREATE（"做成"模式；PD-21 关闭切片）',
-    policy: 'CREATE → CREATE（policy_v1.4.0）',
+    policy: 'CREATE → CREATE（policy_v1.5.0）',
     stream: 'submission → chunks → done → state_updated',
     content: createFixture.chunks.join(''),
     headerState: 'ACTIVE/CREATION（迁移提交时视图）',
     finalState: 'WAITING/CREATION（阶段迁移 UNDERSTANDING → CREATION）',
     stateVersion: '6（v4 + CREATE 迁移 v5 + 完成提交 v6）',
-    persistence: '零 memory 事件（当前会话信号不持久化；PD-07）',
+    persistence: '零 memory 事件（CREATE 流程不登记记忆——记忆仅经体验完成 STOP 路径与显式记忆操作登记，F-5）',
   };
   const actual = {
     classification: classification.semanticAction,
@@ -1373,7 +1373,7 @@ async function caseG04Normal(trace) {
     classification.semanticAction === 'CREATE' &&
     create.ok &&
     actual.policyAction === 'CREATE' &&
-    actual.policyVersion === 'policy_v1.4.0' &&
+    actual.policyVersion === 'policy_v1.5.0' &&
     actual.stateVersion === 5 &&
     actual.headerState === 'ACTIVE/CREATION' &&
     createEvents[0].type === 'submission' &&
@@ -1386,7 +1386,7 @@ async function caseG04Normal(trace) {
     actual.whyRequestedEvents === 1 &&
     actual.stateTransitionedCreate &&
     actual.decisionTraceSemanticAction === 'CREATE' &&
-    actual.decisionTracePolicyVersion === 'policy_v1.4.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v1.5.0' &&
     actual.decisionTraceReason === 'explicit_user_direction' &&
     finalState.ok &&
     finalState.state.stateVersion === 6 &&
@@ -1680,13 +1680,13 @@ async function caseG07Normal(trace) {
   const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
   const expected = {
     classification: 'CORRECTION（"不是"模式；PD-21 关闭切片）',
-    policy: 'CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v1.4.0）',
+    policy: 'CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v1.5.0）',
     stream: 'submission → chunks → done → state_updated',
     content: correctionFixture.chunks.join(''),
     headerState: 'ACTIVE/UNDERSTANDING（迁移提交时视图；阶段保持）',
     finalState: 'WAITING/UNDERSTANDING（阶段保持：重评估当前阶段）',
     stateVersion: '6（v4 + CORRECTION 迁移 v5 + 完成提交 v6）',
-    persistence: '零 memory 事件（纠正不持久化为跨会话偏好；PD-07）',
+    persistence: '零 memory 事件（CORRECTION 流程不登记记忆——记忆仅经体验完成 STOP 路径与显式记忆操作登记，F-5）',
   };
   const actual = {
     classification: classification.semanticAction,
@@ -1714,7 +1714,7 @@ async function caseG07Normal(trace) {
     classification.semanticAction === 'CORRECTION' &&
     correct.ok &&
     actual.selectedAction === 'EXPLAIN' &&
-    actual.policyVersion === 'policy_v1.4.0' &&
+    actual.policyVersion === 'policy_v1.5.0' &&
     actual.stateVersion === 5 &&
     actual.headerState === 'ACTIVE/UNDERSTANDING' &&
     correctEvents[0].type === 'submission' &&
@@ -1728,7 +1728,7 @@ async function caseG07Normal(trace) {
     actual.interrupted.filter((reason) => reason === 'correction').length === 1 &&
     actual.stateTransitionedCorrection &&
     actual.decisionTraceSemanticAction === 'CORRECTION' &&
-    actual.decisionTracePolicyVersion === 'policy_v1.4.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v1.5.0' &&
     actual.decisionTraceReason === 'reassess' &&
     finalState.ok &&
     finalState.state.stateVersion === 6 &&
@@ -2038,7 +2038,7 @@ async function caseG08Normal(trace) {
     content: changeDirection.chunks.join(''),
     finalState: 'WAITING/UNDERSTANDING（新方向完成）',
     stateVersion: '5（v3 + 复合迁移 v4 + 完成提交 v5）',
-    persistence: '无跨会话持久化（无 memory 层事件；PD-07）',
+    persistence: '无 memory 层事件（CHANGE_DIRECTION 方向信号不登记记忆——记忆仅经体验完成 STOP 路径与显式记忆操作登记，F-5）',
   };
   const actual = {
     classification: classification.semanticAction,
@@ -2158,9 +2158,13 @@ async function caseG08Negative(trace) {
   return { expected, actual, pass };
 }
 
-// --- G08-B：边界（静态缺席证明 + 相邻方向信号变体运行时结构等价） --------
+// --- G08-B：边界（静态存在证明 + 相邻方向信号变体运行时结构等价） --------
 async function caseG08Boundary(trace) {
-  // 静态缺席证明：产品源码中无 memory 层实现（PD-07；不持久化跨会话数据）。
+  // 静态存在证明（F-5：记忆层存在——S2A-F5-SEMANTIC-FREEZE-01
+  // v1.0.0 §4 轴外记忆子状态机；PD-07"不持久化跨会话数据"纪律
+  // 经 P3-S2-IMPL-AUTH-01 v1.2.0 §2(4) 取代性扩展为短期记忆
+  // 跨会话持久化；记忆域经 Runtime 单一写入者集成——HTTP 层
+  // 不直接触达记忆域）。
   const productDirs = [path.join(repoRoot, 'src', 'experience'), path.join(repoRoot, 'app', 'api')];
   const productFiles = [];
   for (const dir of productDirs) {
@@ -2172,6 +2176,8 @@ async function caseG08Boundary(trace) {
     const source = await readFile(file, 'utf8');
     memoryImports.push(...importSpecifiers(source).filter((specifier) => /memory/i.test(specifier)));
   }
+  const httpSource = await readFile(path.join(repoRoot, 'src', 'experience', 'http.ts'), 'utf8');
+  const httpMemoryImports = importSpecifiers(httpSource).filter((specifier) => /memory/i.test(specifier));
   // 动态证明：两个相邻方向信号变体在运行时结构上等价
   // （分类 → 策略 → 事件序列 → 内容 → 终态 → 旧流取消 → 零 memory 事件）。
   const runSignal = async (signal) => {
@@ -2232,20 +2238,24 @@ async function caseG08Boundary(trace) {
     signalA.oldStreamCancelled === signalB.oldStreamCancelled &&
     signalA.memoryEvents === signalB.memoryEvents;
   const expected = {
-    staticAbsence: '产品源码（src/experience + app/api）无 memory 层文件与导入（PD-07：不持久化跨会话数据）',
+    staticPresence: '记忆层存在且契约完整（src/experience/memory.ts；classifier.ts + runtime.ts 经 ./memory 导入——记忆操作识别 + Runtime 单一写入者集成；HTTP 层不直接触达记忆域——F-5 / S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §4）',
     dynamicEquivalence: '相邻方向信号变体（"今天不要这个" / "以后不要这个"）运行时结构等价：分类、策略、事件序列、内容、终态、旧流取消、零 memory 事件',
   };
   const actual = {
     productTsFiles: productFiles.length,
     memoryFiles,
     memoryImports,
+    httpMemoryImports,
     signalA,
     signalB,
     structurallyIdentical,
   };
+  const staticPresence =
+    memoryFiles.some((file) => path.basename(file) === 'memory.ts') &&
+    memoryImports.filter((specifier) => specifier === './memory').length === 2 &&
+    httpMemoryImports.length === 0;
   const pass =
-    memoryFiles.length === 0 &&
-    memoryImports.length === 0 &&
+    staticPresence &&
     signalA.classification === 'CHANGE_DIRECTION' &&
     signalB.classification === 'CHANGE_DIRECTION' &&
     signalA.policyAction === 'CHANGE_EXPERIENCE' &&
@@ -2679,10 +2689,10 @@ const CASE_REGISTRY = [
     goldenCase: 'G08',
     dimension: 'BOUNDARY',
     form: 'in-process',
-    sourceClause: 'P2 Exit Gate §8 G08 Boundary；相邻输入变体结构等价；PD-07（不持久化跨会话数据）；PD-21',
+    sourceClause: 'P2 Exit Gate §8 G08 Boundary；相邻输入变体结构等价；PD-07 纪律经授权 §2(4) 取代性扩展（F-5 短期记忆跨会话持久化）；PD-21',
     scope: 'P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整持久 Memory 语义 DEFERRED TO S2，acceptance-mapping §B）',
     precondition: '分类器可用（无状态）；产品源码静态可扫描（src/experience + app/api）',
-    inputFault: '相邻方向信号变体对（"今天不要这个" / "以后不要这个"）+ memory 层静态缺席证明',
+    inputFault: '相邻方向信号变体对（"今天不要这个" / "以后不要这个"）+ memory 层静态存在证明（F-5）',
     run: caseG08Boundary,
   },
   {
@@ -2989,7 +2999,7 @@ async function main() {
       .filter((entry) => entry.path.startsWith('P3-S1'))
       .map((entry) => ({ source: `docs/product/reference/${entry.path}`, sha256: entry.computed, archiveIntegrity: entry.match ? 'VERIFIED vs SHA256SUMS' : 'MISMATCH' })),
     stateMachine: { version: 'state_machine_v1.0.0', source: 'SRC-05 / 13', closureSlice: 'CREATION 阶段 + CREATE/CORRECTION 触发（PD-21 关闭切片最小形态）；完整 WHAT_IF 分支 / Creation / Correction 属 S2' },
-    policy: { version: 'policy_v1.4.0（S2a F-3 版本化变更）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.4.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）；SEARCH 仍表外（PD-06）；完整 WHAT_IF 语义 DEFERRED 至 F-4（P3-S2-IMPL-AUTH-01 v1.2.0 §4）' },
+    policy: { version: 'policy_v1.5.0（S2a F-5 版本化变更）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）+ 完整 WHAT_IF 分支语义（S2a F-4，policy_v1.4.0：多轮模拟持久化 + 轴外分支子状态机）+ Minimal Memory 语义（S2a F-5，policy_v1.5.0：轴外记忆子状态机 + L5 信号注入 + Runtime 单一写入者）；SEARCH 仍表外（PD-06）' },
     api: { version: 'api_v1.0.0', source: 'SRC-07 / 16' },
     event: { version: 'analytics_v1.0.0', source: 'SRC-08 / 17' },
     evaluation: { contract: 'C7', version: 'evaluation_v1.0.0', note: 'G5 16 项评测包已执行并双签署（P3-S1-G5-WORKSHEET-01 v1.7.0）；G3 逐项判定属本运行后的独立评测范畴' },

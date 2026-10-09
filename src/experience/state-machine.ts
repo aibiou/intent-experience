@@ -11,6 +11,25 @@
  * S1 边界（PD-05/PD-06/PD-07）：完整 WHAT_IF 分支、完整 Creation /
  * Correction 与持久 Memory 属 S2；CREATION 阶段与 CREATE / CORRECTION
  * 触发经 PD-21 在 P2 关闭切片以最小形态启用。
+ *
+ * 轴外记忆子状态机（state_machine_v1.4.0；S2a F-5；
+ * S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 §4——体验
+ * 阶段轴不变，记忆为体验状态轴之外的持久对象）：
+ * 状态 {REMEMBERED, IN_USE, DECAYING, EXPIRED}；操作
+ * {CREATE（记住，→REMEMBERED，经 Runtime 单一写入者）,
+ * RECALL（暂时使用，REMEMBERED→IN_USE，只读、不发事件）,
+ * DECAY（逐渐失效，IN_USE→DECAYING，时间衰减驱动，内部
+ * 置信度更新、不逐点发事件）, EXPIRE（到期，→EXPIRED，
+ * 自动，发出 memory_expired + 删除审计）, CORRECT（被用户
+ * 纠正，内容更正 + 留痕，→REMEMBERED，发出 memory_corrected）,
+ * WITHDRAW（被用户撤回，→EXPIRED + 撤回留痕 + 删除审计，
+ * 发出 memory_withdrawn）}。记忆域事件词表（domain=memory，
+ * C6 §7 已预留）：memory_recorded / memory_corrected /
+ * memory_withdrawn / memory_expired。07 §10 映射冻结：
+ * OBSERVED/CANDIDATE → REMEMBERED（创建）；ACTIVE →
+ * IN_USE；DECAYING → DECAYING；EXPIRED → EXPIRED；显式
+ * EXPLICIT 路径 S2 不存在（长期记忆禁用）。记忆子状态机
+ * 实现承载于 memory.ts（轴外持久对象——D-01 选项 A）。
  */
 
 export type ExperienceStatus = 'ENTERING' | 'READY' | 'ACTIVE' | 'WAITING' | 'COMPLETED';

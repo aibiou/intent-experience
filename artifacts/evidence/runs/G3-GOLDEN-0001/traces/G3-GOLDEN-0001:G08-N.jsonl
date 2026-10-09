@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G08-N","event":"trace_started","at":"2026-10-09T09:54:24.765Z","form":"in-process","sourceClause":"P2 Exit Gate & Sign-off §8 G08 Memory Boundary；Evaluation System V1 §5 G08（当前意图信号不得升级为持久偏好）；PD-21（产品负责人 2026-10-09 批准）；PD-07","goldenCase":"G08","dimension":"NORMAL"}
-{"caseId":"G3-GOLDEN-0001:G08-N","event":"trace_completed","at":"2026-10-09T09:54:25.138Z","startedAt":"2026-10-09T09:54:24.765Z","durationMs":373,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G08-N","event":"trace_started","at":"2026-10-09T12:58:03.495Z","form":"in-process","sourceClause":"P2 Exit Gate & Sign-off §8 G08 Memory Boundary；Evaluation System V1 §5 G08（当前意图信号不得升级为持久偏好）；PD-21（产品负责人 2026-10-09 批准）；PD-07","goldenCase":"G08","dimension":"NORMAL"}
+{"caseId":"G3-GOLDEN-0001:G08-N","event":"trace_completed","at":"2026-10-09T12:58:03.872Z","startedAt":"2026-10-09T12:58:03.494Z","durationMs":378,"result":"PASS","pass":true}

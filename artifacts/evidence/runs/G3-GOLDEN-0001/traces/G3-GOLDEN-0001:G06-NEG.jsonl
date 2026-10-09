@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G06-NEG","event":"trace_started","at":"2026-10-09T09:54:18.746Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G06 Negative；CC02 H02（STOP 后无 continuation；P0 硬边界）","goldenCase":"G06","dimension":"NEGATIVE"}
-{"caseId":"G3-GOLDEN-0001:G06-NEG","event":"trace_completed","at":"2026-10-09T09:54:19.119Z","startedAt":"2026-10-09T09:54:18.746Z","durationMs":373,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G06-NEG","event":"trace_started","at":"2026-10-09T12:57:57.329Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G06 Negative；CC02 H02（STOP 后无 continuation；P0 硬边界）","goldenCase":"G06","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G06-NEG","event":"trace_completed","at":"2026-10-09T12:57:57.711Z","startedAt":"2026-10-09T12:57:57.329Z","durationMs":382,"result":"PASS","pass":true}

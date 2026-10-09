@@ -6,18 +6,18 @@
   "inputFault": "无（正向路径：显式 CORRECTION）",
   "expected": {
     "classification": "CORRECTION（\"不是\"模式；PD-21 关闭切片）",
-    "policy": "CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v1.4.0）",
+    "policy": "CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v1.5.0）",
     "stream": "submission → chunks → done → state_updated",
     "content": "收到纠正（合成数据）：已移除无效推断，保留有效上下文（本会话与先前事件不清空），并基于纠正后的候选重新解释当前问题。（流式结束）",
     "headerState": "ACTIVE/UNDERSTANDING（迁移提交时视图；阶段保持）",
     "finalState": "WAITING/UNDERSTANDING（阶段保持：重评估当前阶段）",
     "stateVersion": "6（v4 + CORRECTION 迁移 v5 + 完成提交 v6）",
-    "persistence": "零 memory 事件（纠正不持久化为跨会话偏好；PD-07）"
+    "persistence": "零 memory 事件（CORRECTION 流程不登记记忆——记忆仅经体验完成 STOP 路径与显式记忆操作登记，F-5）"
   },
   "actual": {
     "classification": "CORRECTION",
     "selectedAction": "EXPLAIN",
-    "policyVersion": "policy_v1.4.0",
+    "policyVersion": "policy_v1.5.0",
     "stateVersion": 5,
     "headerState": "ACTIVE/UNDERSTANDING",
     "streamTypes": [
@@ -44,7 +44,7 @@
     ],
     "stateTransitionedCorrection": true,
     "decisionTraceSemanticAction": "CORRECTION",
-    "decisionTracePolicyVersion": "policy_v1.4.0",
+    "decisionTracePolicyVersion": "policy_v1.5.0",
     "decisionTraceReason": "reassess",
     "finalState": "WAITING/UNDERSTANDING",
     "finalStateVersion": 6,
@@ -63,7 +63,7 @@
   ],
   "evidence": {
     "trace": "traces/G3-GOLDEN-0001:G07-N.jsonl",
-    "traceSha256": "9491c3d5625289ca5dd7870e43a264ed4aeef8074f0a213a35e44bae98e142a5",
+    "traceSha256": "c56a21196e56c75a4421655370d04e28491ac2c3ed2cdfa85459956fa8fb6fae",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },

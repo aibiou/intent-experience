@@ -90,6 +90,19 @@ export const CORRECTION_RESTORED_EVENT = 'correction_restored';
  */
 export const SIMULATION_RECORDED_EVENT = 'simulation_recorded';
 
+/**
+ * 记忆域事件词表（S2a F-5；D-02 选项 A；C6 §14 命名模式
+ * <domain>_<past_participle>——同 correction_applied /
+ * simulation_recorded 先例；event_version 1.0.0 不变——词表
+ * 扩展经 C6 §14 派生；事件层 domain=memory——C6 §7 枚举
+ * 已预留）。衰减为内部置信度更新，不逐点发事件（D-02 选项
+ * A）；检索为只读，不发事件（07 §22）。
+ */
+export const MEMORY_RECORDED_EVENT = 'memory_recorded';
+export const MEMORY_CORRECTED_EVENT = 'memory_corrected';
+export const MEMORY_WITHDRAWN_EVENT = 'memory_withdrawn';
+export const MEMORY_EXPIRED_EVENT = 'memory_expired';
+
 const EVENT_ID_PATTERN = /^evt_[a-z0-9]+$/i;
 const ISO8601_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 const ALLOWED_LAYERS: ReadonlySet<string> = new Set<EventLayer>([

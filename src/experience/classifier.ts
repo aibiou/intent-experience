@@ -19,10 +19,11 @@
 
 import type { SemanticAction } from './policy';
 import { MODIFY_PATTERNS, RESTORE_PATTERNS } from './correction';
+import { recognizeMemoryOperation } from './memory';
 
 export type ClassificationResult =
   | { semanticAction: SemanticAction; correctionIntent?: 'restore' }
-  | { semanticAction: 'UNKNOWN' };
+  | { semanticAction: 'UNKNOWN'; memoryIntent?: 'withdraw' | 'correct' };
 
 const STOP_PATTERNS: ReadonlyArray<RegExp> = [
   /好了/,
@@ -141,6 +142,14 @@ export function classifyInput(rawInput: string): ClassificationResult {
   }
   if (QUESTION_MARKERS.some((pattern) => pattern.test(rawInput))) {
     return { semanticAction: 'DIRECT_ANSWER' };
+  }
+  // S2a F-5（D-05 选项 A）：记忆操作识别——仅在全部既有优先级层
+  // 未命中后调用（仅认领会成为 UNKNOWN 的输入；不改变
+  // STOP > CHANGE_DIRECTION > CORRECTION > CREATE > WHY >
+  // WHAT_IF > DIRECT_ANSWER 优先级层——零黄金套件回归面）。
+  const memoryOperation = recognizeMemoryOperation(rawInput);
+  if (memoryOperation) {
+    return { semanticAction: 'UNKNOWN', memoryIntent: memoryOperation.memoryIntent };
   }
   return { semanticAction: 'UNKNOWN' };
 }

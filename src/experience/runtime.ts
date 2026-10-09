@@ -38,6 +38,10 @@ import { ExperienceStateStore, type ExperienceState } from './state-store';
 import {
   CORRECTION_APPLIED_EVENT,
   CORRECTION_RESTORED_EVENT,
+  MEMORY_CORRECTED_EVENT,
+  MEMORY_EXPIRED_EVENT,
+  MEMORY_RECORDED_EVENT,
+  MEMORY_WITHDRAWN_EVENT,
   SIMULATION_RECORDED_EVENT,
   type EventSink,
   type ExperienceEvent,
@@ -66,6 +70,14 @@ import {
   type BranchOperation,
   type SimulationSnapshot,
 } from './simulation';
+import {
+  MemoryStore,
+  extractCorrectedTopic,
+  type MemoryOperationResult,
+  type MemoryRecord,
+  type MemorySignal,
+  type MemorySnapshot,
+} from './memory';
 import { deriveCorrectionTarget, isRestoreIntent } from './correction';
 import type { AuditSink } from './audit';
 
@@ -206,6 +218,8 @@ export class ExperienceRuntime {
   /** 创作状态存储（G04 完整 Creation 语义；S2A-F2-SEMANTIC-FREEZE-01 §4/D-03 选项 A——会话内持久）。 */
   private readonly creations = new CreationStore();
   private readonly simulations = new SimulationStore();
+  /** 记忆记录存储（S2a F-5；轴外持久对象——D-01 选项 A；跨会话短期记忆）。 */
+  private readonly memories = new MemoryStore();
   /** 语义动作历史（创作上下文继承派生用；08 §6 五项。仅登记已提交动作）。 */
   private readonly actionHistory = new Map<string, SemanticAction[]>();
   private readonly recorder: EventRecorder;
@@ -264,8 +278,10 @@ export class ExperienceRuntime {
         intent: IntentRecord;
         semanticAction: SemanticAction | 'UNKNOWN';
         confidence: number;
-        action: 'start_experience' | 'escalate';
+        action: 'start_experience' | 'escalate' | 'memory_operation';
         events: ExperienceEvent[];
+        /** F-5：记忆域操作执行结果（action='memory_operation' 时存在）。 */
+        memoryOperation?: MemoryOperationResult;
       }
     | { ok: false; error: RuntimeError }
   > {
@@ -326,6 +342,30 @@ export class ExperienceRuntime {
     }
     session.intentId = intentId;
 
+    // S2a F-5（D-05 选项 A）：UNKNOWN + 记忆操作标记（确定性
+    // 规则词表识别——仅认领会成为 UNKNOWN 的输入）→ 记忆域
+    // 操作经 Runtime 单一写入者执行并留痕（memory_withdrawn /
+    // memory_corrected）；不新增语义动作（PD-23 §5——记忆操作
+    // 不是体验语义动作，分类优先级层不变）。
+    if (classification.semanticAction === 'UNKNOWN' && classification.memoryIntent) {
+      const memoryOperation = await this.executeMemoryOperation({
+        sessionId: input.sessionId,
+        memoryIntent: classification.memoryIntent,
+        rawInput: input.rawInput,
+        requestId: input.requestId,
+        intentId,
+      });
+      return {
+        ok: true,
+        intent,
+        semanticAction: classification.semanticAction,
+        confidence: 1,
+        action: 'memory_operation' as const,
+        events: [received, parsed, ...memoryOperation.events],
+        memoryOperation: memoryOperation.result,
+      };
+    }
+
     return {
       ok: true,
       intent,
@@ -333,6 +373,135 @@ export class ExperienceRuntime {
       confidence: 1,
       action: classification.semanticAction === 'UNKNOWN' ? 'escalate' : 'start_experience',
       events: [received, parsed],
+    };
+  }
+
+  // ---------------------------------------------------------------------
+  // S2a F-5 记忆域操作（D-05 选项 A——用户动作路由经 Runtime 单一写入者）
+  // ---------------------------------------------------------------------
+
+  /**
+   * 执行记忆域操作（用户显式撤回 / 纠正）。
+   * 目标派生：当前会话活跃体验的探索主题（07 §13"别再给我这个"
+   * 的"这个" = 当前探索主题），否则最近更新的活跃记录；
+   * 无目标 → 幂等空操作（操作已识别、无留痕对象）。
+   */
+  private async executeMemoryOperation(input: {
+    sessionId: string;
+    memoryIntent: 'withdraw' | 'correct';
+    rawInput: string;
+    requestId: string;
+    intentId: string;
+  }): Promise<{ result: MemoryOperationResult; events: ExperienceEvent[] }> {
+    const now = new Date().toISOString();
+    const session = this.sessions.get(input.sessionId);
+    let target: MemoryRecord | undefined;
+    if (session?.experienceId) {
+      const experience = this.experiences.get(session.experienceId);
+      const originIntent = experience ? this.intents.get(experience.intentId) : undefined;
+      if (originIntent) {
+        target = this.memories.findByTopic(originIntent.rawInput);
+      }
+    }
+    target ??= this.memories.mostRecentActive() ?? undefined;
+    if (!target) {
+      return {
+        result: { kind: input.memoryIntent, executed: false, reason: 'no_memory_target', recordId: null, lifecycle: null },
+        events: [],
+      };
+    }
+    const identity = { user_id: this.userId, session_id: input.sessionId };
+    const context = {
+      experience_id: session?.experienceId ?? null,
+      intent_id: input.intentId,
+      state_version: null,
+      request_id: input.requestId,
+      decision_id: null,
+    };
+    const source = { layer: 'memory' as const, component: 'memory-store' };
+    if (input.memoryIntent === 'withdraw') {
+      const outcome = this.memories.withdrawMemory(target.recordId, now);
+      if (!outcome.ok) {
+        return {
+          result: { kind: 'withdraw', executed: false, reason: outcome.code, recordId: target.recordId, lifecycle: target.lifecycle },
+          events: [],
+        };
+      }
+      const event = await this.recordEvent(MEMORY_WITHDRAWN_EVENT, {
+        identity,
+        context,
+        source,
+        properties: {
+          record_id: outcome.record.recordId,
+          topic: outcome.record.topic,
+          previous_lifecycle: outcome.previousLifecycle,
+          lifecycle: outcome.record.lifecycle,
+          deletion_audit: outcome.record.deletionAudit,
+        },
+      });
+      return {
+        result: { kind: 'withdraw', executed: true, reason: null, recordId: outcome.record.recordId, lifecycle: outcome.record.lifecycle },
+        events: [event],
+      };
+    }
+    const correctedTopic = extractCorrectedTopic(input.rawInput);
+    const outcome = this.memories.correctMemory(target.recordId, { correctedTopic, now });
+    if (!outcome.ok) {
+      return {
+        result: { kind: 'correct', executed: false, reason: outcome.code, recordId: target.recordId, lifecycle: target.lifecycle },
+        events: [],
+      };
+    }
+    const event = await this.recordEvent(MEMORY_CORRECTED_EVENT, {
+      identity,
+      context,
+      source,
+      properties: {
+        record_id: outcome.record.recordId,
+        topic: outcome.record.topic,
+        previous_lifecycle: outcome.previousLifecycle,
+        lifecycle: outcome.record.lifecycle,
+        corrections: outcome.record.corrections,
+        corrected_topic: correctedTopic,
+      },
+    });
+    return {
+      result: { kind: 'correct', executed: true, reason: null, recordId: outcome.record.recordId, lifecycle: outcome.record.lifecycle },
+      events: [event],
+    };
+  }
+
+  /**
+   * L5 记忆信号注入（D-03 选项 A——07 §21 优先级链；07 §20
+   * 检索纪律：以当前意图为检索键，只取相关记录）。
+   * 到期衰减在每次生成请求前应用（懒到期——memory_expired
+   * 事件经 Runtime 事件管道留痕）。
+   */
+  private async buildLlmContext(rawInput: string): Promise<{ raw_input: string; memory_signals: MemorySignal[] }> {
+    const now = new Date().toISOString();
+    const decay = this.memories.applyDecay(now);
+    for (const record of decay.expired) {
+      await this.recordEvent(MEMORY_EXPIRED_EVENT, {
+        identity: { user_id: this.userId, session_id: record.sessionId },
+        context: {
+          experience_id: record.experienceId,
+          intent_id: null,
+          state_version: null,
+          request_id: null,
+          decision_id: null,
+        },
+        source: { layer: 'memory', component: 'memory-store' },
+        properties: {
+          record_id: record.recordId,
+          topic: record.topic,
+          lifecycle: record.lifecycle,
+          deletion_audit: record.deletionAudit,
+        },
+      });
+    }
+    return {
+      raw_input: rawInput,
+      memory_signals: this.memories.retrieveRelevant(rawInput, now),
     };
   }
 
@@ -512,6 +681,16 @@ export class ExperienceRuntime {
       return { ok: false, error: runtimeError('INVALID_REQUEST', `no simulation context for experience: ${experienceId}`) };
     }
     return { ok: true, simulation: snapshot };
+  }
+
+  /**
+   * 记忆域快照查询（S2a F-5——E5 进程内形态取证入口；
+   * 轴外持久对象——D-01 选项 A：跨会话短期记忆记录 /
+   * 生命周期 / 来源与置信度分量 / 删除审计留痕）。
+   * 只读，不改变任何状态——同 getSimulation 纪律。
+   */
+  getMemory(): { ok: true; memory: MemorySnapshot } {
+    return { ok: true, memory: this.memories.getSnapshot() };
   }
 
   // ---------------------------------------------------------------------
@@ -945,6 +1124,56 @@ export class ExperienceRuntime {
     // 完成即失效；事件为不可变权威事实——C6 §5）。
     this.simulations.invalidate(input.experienceId);
 
+    // S2a F-5（07 §4；D-01/D-05 选项 A）：体验完成登记
+    // 短期记忆——跨会话主题 / 意图信号（"最近产生过较高
+    // 兴趣"信号 ≠ 偏好——07 §4 措辞纪律）；写入侧执行
+    // 07 §7 不默认长期记住清单过滤（临时情绪 / 一次性兴趣 /
+    // 一次性任务 / 当前环境 / 单次拒绝 / 推测人格不得写入——
+    // 命中即不记录）。记忆事件在 session_ended 之前登记
+    // （STOP 后无 continuation 硬边界——P0/CC02 H02——
+    // 不受影响）。
+    const events: ExperienceEvent[] = [];
+    const originExperience = this.experiences.get(input.experienceId);
+    const originIntent = originExperience ? this.intents.get(originExperience.intentId) : undefined;
+    if (originIntent) {
+      const sessionIntents = Array.from(this.intents.values()).filter(
+        (candidate) => candidate.sessionId === input.sessionId && candidate.state === 'INTERPRETED',
+      );
+      const actions = Array.from(new Set(sessionIntents.map((candidate) => candidate.semanticAction)));
+      const memoryWrite = this.memories.recordMemory({
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        topic: originIntent.rawInput,
+        intentSignal: `turns=${String(sessionIntents.length)};actions=${actions.join('+')}`,
+        source: 'session_observation',
+        now,
+      });
+      if (memoryWrite.recorded) {
+        events.push(
+          await this.recordEvent(MEMORY_RECORDED_EVENT, {
+            identity: { user_id: this.userId, session_id: input.sessionId },
+            context: {
+              experience_id: input.experienceId,
+              intent_id: originIntent.intentId,
+              state_version: commit.state.stateVersion,
+              request_id: input.requestId,
+              decision_id: null,
+            },
+            source: { layer: 'memory', component: 'memory-store' },
+            properties: {
+              record_id: memoryWrite.record.recordId,
+              topic: memoryWrite.record.topic,
+              intent_signal: memoryWrite.record.intentSignal,
+              lifecycle: memoryWrite.record.lifecycle,
+              source: memoryWrite.record.source,
+              confidence: memoryWrite.record.confidence,
+              reexploration: memoryWrite.reexploration,
+            },
+          }),
+        );
+      }
+    }
+
     // Session 收尾：ACTIVE → ENDING → ENDED（§4.3/§4.4；ENDING 非常短）。
     const sessionEnding = transitionSession(session.state, 'SESSION_ENDING');
     const sessionEnded = sessionEnding.ok ? transitionSession('SESSION_ENDING', 'SESSION_ENDED') : sessionEnding;
@@ -953,7 +1182,6 @@ export class ExperienceRuntime {
       session.endedAt = now;
     }
 
-    const events: ExperienceEvent[] = [];
     events.push(
       await this.recordEvent('state_transitioned', {
         identity: { user_id: this.userId, session_id: input.sessionId },
@@ -1168,7 +1396,7 @@ export class ExperienceRuntime {
         experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
         semantic_action: policy.semanticAction,
         allowed_action: policy.policyAction,
-        context: { raw_input: input.rawInput },
+        context: await this.buildLlmContext(input.rawInput),
       });
     } catch {
       return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'synthetic gateway failed', true) };
@@ -1465,7 +1693,7 @@ export class ExperienceRuntime {
         experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
         semantic_action: policy.semanticAction,
         allowed_action: policy.policyAction,
-        context: { raw_input: input.rawInput },
+        context: await this.buildLlmContext(input.rawInput),
       });
     } catch {
       // EB-02：propose 失败不提交、不消耗版本号（在途 generation 已被取代取消）。
@@ -2705,7 +2933,7 @@ export class ExperienceRuntime {
         experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
         semantic_action: policy.semanticAction,
         allowed_action: policy.policyAction,
-        context: { raw_input: input.rawInput },
+        context: await this.buildLlmContext(input.rawInput),
       });
     } catch {
       // EB-02：propose 失败不提交、不消耗版本号（在途 generation 已被取消）。
@@ -3013,7 +3241,7 @@ export class ExperienceRuntime {
         experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
         semantic_action: policy.semanticAction,
         allowed_action: policy.policyAction,
-        context: { raw_input: input.rawInput },
+        context: await this.buildLlmContext(input.rawInput),
       });
     } catch {
       return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'synthetic gateway failed', true) };
