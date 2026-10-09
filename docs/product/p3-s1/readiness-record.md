@@ -1,7 +1,7 @@
 # P3-S1 实现准入记录
 
 **编号：** P3-S1-READINESS-01
-**版本：** 1.18.0（2026-10-09：S2a 首个迭代 F-1（OBL-01）完成登记——动态证据 S2A-OBL-01-0001 通过（7/7 案例、12/12 断言、退出码 0，只表示本运行断言通过，不设置任何 Gate）；CR-18 选项 B 登记的 DEFERRED 项（HTTP 形态 LLM 故障 503 补测）已履行，P2-SIGNOFF-01 遗留债务 D-01 关闭（G5 = PASSED（有条件）的遗留条件之一解除）；其余内容与 v1.17.0 相同）
+**版本：** 1.19.0（2026-10-09：S2a F-2 语义冻结登记——S2A-F2-SEMANTIC-FREEZE-01 v1.0.0 产品负责人签署 + C1/C2/C3 Steward 确认完成（policy_v1.2.0 / state_machine_v1.1.0 变更文本冻结，D-01…D-05 全项裁决：逐切片升版 + 轴外子状态机 + 会话内持久 + 收敛补丁操作域 + STOP 路径登记完成语义）；P3-S2-IMPL-AUTH-01 升 v1.2.0（§4 逐切片升版修订）；F-2 实施授权生效；其余内容与 v1.18.0 相同）**版本：** 1.18.0（2026-10-09：S2a 首个迭代 F-1（OBL-01）完成登记——动态证据 S2A-OBL-01-0001 通过（7/7 案例、12/12 断言、退出码 0，只表示本运行断言通过，不设置任何 Gate）；CR-18 选项 B 登记的 DEFERRED 项（HTTP 形态 LLM 故障 503 补测）已履行，P2-SIGNOFF-01 遗留债务 D-01 关闭（G5 = PASSED（有条件）的遗留条件之一解除）；其余内容与 v1.17.0 相同）
 **状态：** READY / AUTHORIZED / THIRD ITERATION EVIDENCE PRODUCED / G5 EVALUATION PASSED WITH CONDITIONS / G3 PASSED / G8 SIGNED / **P2 CLOSED**（G1–G8 全部 PASSED——G5 为有条件通过，2026-10-09；G3 判定 PASS（角色 5 独立评测负责人 2026-10-09 裁决并签署，P2-G3-WORKSHEET-01 v1.0.0）；G8 六类责任人签署完成（P2-SIGNOFF-01 v1.0.0，Decision 一致 APPROVE WITH DOCUMENTED DEBT）；**P2 = CLOSED**（2026-10-09，P2 Exit Gate §15 关闭公式满足）；产品进入 S2 功能构建阶段（PD-20"先关再建"）；S2 范围经 PD-23 裁决（2026-10-09：选项 B 分批——S2a 核心能力收束 / S2b 体验动作扩展），S2 实施授权已签发（P3-S2-IMPL-AUTH-01 v1.1.0，2026-10-09；S2a 首个迭代 F-1 开工））
 **记录日期：** 2026-10-08
 **范围：** 仅检查 P3-S1 产品运行时代码是否已获准启动；本记录不代表 P2 关闭或产品验收通过。

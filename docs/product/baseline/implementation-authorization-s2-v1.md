@@ -1,7 +1,7 @@
 # P3-S2 实施授权（S2a）
 
 **编号：** P3-S2-IMPL-AUTH-01
-**版本：** 1.1.0（2026-10-09：产品负责人签署——授权生效（AUTHORIZED）；S2a 首个迭代 F-1（OBL-01：环境门控 LlmGateway 注入缝 + HTTP 形态 503 补测）开工）
+**版本：** 1.2.0（2026-10-09：§4 版本化变更清单修订——D-01 裁决（PD-15 签署，S2A-F2-SEMANTIC-FREEZE-01 v1.0.0）批准逐切片升版路径：policy_v1.2.0=F-2 G04 / policy_v1.3.0=F-3 G07+MODIFY 别名 / policy_v1.4.0=F-4 WHAT_IF 完整，state_machine 同步 v1.1.0/v1.2.0/v1.3.0；S2a F-2（完整 G04 Creation 语义）语义文本已冻结（S2A-F2-SEMANTIC-FREEZE-01 v1.0.0，C1/C2/C3 Steward 确认完成），F-2 开工；其余内容与 v1.1.0 相同）
 **状态：** AUTHORIZED（2026-10-09 签发）
 **授权依据：** PD-23（S2 功能构建范围裁决，2026-10-09 四项建议全案批准）；PD-20（先关再建）；PD-22（P2 = CLOSED）
 **签发：** 产品负责人（用户本人，PD-15）已签署（2026-10-09）
@@ -44,9 +44,13 @@ S2a（核心能力收束）产品运行时代码的开发与动态证据执行�
 
 | 变更 | 版本 | 说明 |
 |---|---|---|
-| 策略 | policy_v1.1.0 → policy_v1.2.0 | CREATE / CORRECTION / WHAT_IF 完整语义；MODIFY 登记为 CORRECTION 用户面别名 |
-| 状态机 | state_machine_v1.0.0 → state_machine_v1.1.0 | CREATION 完整阶段链（CONTEXT_INHERIT / MINIMAL_BUILD / PREVIEW / USER_FEEDBACK）+ CORRECTION 阶段语义；关闭切片 CREATION 阶段契约化 |
-| 契约冻结 | C1 / C2 / C3 Steward 确认 | 版本化变更文本于首个动态证据运行前完成冻结 + Steward 确认（G1 式纪律） |
+| 策略（F-2） | policy_v1.1.0 → policy_v1.2.0 | CREATE 完整 G04 语义（E2 Stage 5 完整编排；上下文继承；创作对象模型；创作域子策略；ASK 纪律；用户主权；安全禁区；创作会话内输入路由）。**修订依据：** D-01 裁决（2026-10-09，PD-15 签署——逐切片升版；原 v1.1.0 §4 单版映射废止） |
+| 状态机（F-2） | state_machine_v1.0.0 → state_machine_v1.1.0 | CREATION 完整阶段链契约化（创作子状态机 CREATE_INTENT → CONTEXT_INHERIT → MINIMAL_BUILD → PREVIEW → USER_FEEDBACK → COMPLETE，轴外承载）+ CORRECTION 创作域阶段语义 + CREATION_COMPLETE 语义（经 STOP 执行路径登记，轴触发器不变） |
+| 策略（F-3） | policy_v1.2.0 → policy_v1.3.0 | CORRECTION 完整 G07 语义；MODIFY 登记为 CORRECTION 用户面别名（F-3 实施前冻结） |
+| 状态机（F-3） | state_machine_v1.1.0 → state_machine_v1.2.0 | CORRECTION 完整操作语义（定位目标 / 局部修改 / 重生成 / 历史版本化）（F-3 实施前冻结） |
+| 策略（F-4） | policy_v1.3.0 → policy_v1.4.0 | WHAT_IF 完整分支语义（F-4 实施前冻结） |
+| 状态机（F-4） | state_machine_v1.2.0 → state_machine_v1.3.0 | WHAT_IF 持久分支状态（F-4 实施前冻结） |
+| 契约冻结 | C1 / C2 / C3 Steward 确认 | 各切片版本化变更文本于其首个动态证据运行前完成冻结 + Steward 确认（G1 式纪律）；F-2 文本确认完成（2026-10-09，S2A-F2-SEMANTIC-FREEZE-01 v1.0.0） |
 
 ## 5. 持续约束（授权不解除）
 
@@ -64,5 +68,6 @@ S2a（核心能力收束）产品运行时代码的开发与动态证据执行�
 | 角色 | 签署 | 结论 | 日期 |
 |---|---|---|---|
 | 产品负责人（用户本人，PD-15） | 已签署（2026-10-09） | AUTHORIZED——S2a 实施授权生效 | 2026-10-09 |
+| 产品负责人（用户本人，PD-15） | 已签署（2026-10-09，"签署"） | §4 修订批准（v1.1.0 → v1.2.0）：逐切片升版路径（D-01 选项 2）；F-2 语义文本冻结确认（S2A-F2-SEMANTIC-FREEZE-01 v1.0.0）；F-2 开工 | 2026-10-09 |
 
-本授权已生效（2026-10-09 签署）。S2a 首个迭代（F-1 / OBL-01：环境门控 `LlmGateway` 注入缝 + HTTP 形态 503 补测）开工。
+本授权已生效（2026-10-09 签署；v1.2.0 修订 2026-10-09 签署）。S2a 首个迭代（F-1 / OBL-01）已关闭（S2A-OBL-01-0001 PASSED）；S2a 第二迭代（F-2 / 完整 G04 Creation 语义）开工——语义文本冻结于 S2A-F2-SEMANTIC-FREEZE-01 v1.0.0（policy_v1.2.0 / state_machine_v1.1.0 变更文本，C1/C2/C3 Steward 确认完成）。

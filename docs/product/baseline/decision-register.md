@@ -271,6 +271,16 @@
 - **所需变更：** 无（义务履行登记）；D-01 关闭已回写 P2-SIGNOFF-01 v1.1.0 / readiness-record v1.18.0。
 - **状态：** RECORDED（2026-10-09：OBL-01 已履行；退出码 0 不设置任何 Gate 为 PASS；S2a 后续义务 NOT STARTED）。
 
+## S2a F-2 语义冻结登记（CR-19）
+
+- **证据：** S2A-F2-SEMANTIC-FREEZE-01 v1.0.0（`../p3-s1/s2a-f2-semantic-freeze-staged.md`——§1 语义完备性评估：G04 全部 16 项语义元素在 frozen 源（08 号 §3–§28 / 13 号 §15.4–§23 / E2 Stage 5 / S1 §37）中可机械派生、无产品语义空缺；§2 裁决区 D-01…D-05 全项裁决；§3 policy_v1.2.0 变更文本；§4 state_machine_v1.1.0 变更文本；§5 实施与证据计划大纲；§6 签署区产品负责人 + C1/C2/C3 Steward 确认完成）；P3-S2-IMPL-AUTH-01 v1.2.0（§4 逐切片升版修订）。
+- **影响：** S2a F-2（完整 G04 Creation 语义）语义文本冻结（2026-10-09 产品负责人签署"签署"）——D-01 选项 2（逐切片升版：policy_v1.2.0=F-2 G04；policy_v1.3.0=F-3 G07+MODIFY 别名；policy_v1.4.0=F-4 WHAT_IF 完整；state_machine 同步 v1.1.0/v1.2.0/v1.3.0，授权 §4 映射经 v1.2.0 修订）；D-02 选项 A（创作子状态机轴外承载于持久创作对象，体验阶段轴不变）；D-03 选项 A（F-2 会话内持久，跨会话持久列入 F-5）；D-04 选项 A（补丁 operation 值域 {add, remove, modify}，REPLACE/TUNE/REBALANCE/RENAME/RESTYLE 作 modify 的 change 子型，SIMPLIFY/DEEPEN/REFRAME DEFERRED 至 S2b）；D-05 选项 A（CREATION_COMPLETE 经 STOP 执行路径在创作域登记，轴触发器不变，creation_completed 事件 + 决策追踪 reason 区分）。授权 §4 原单版映射废止。
+- **建议：** F-2 实施按冻结文本 §5 大纲执行（新增 `src/experience/creation.ts`；policy_v1.2.0 升版；runtime CREATE 完整编排扩展；创作域事件词表；golden 套件 policy_version 断言同步）；证据执行器 `tools/evidence/src/s2a-f2.mjs`（8 案例草案见冻结文本 §5）；独立评测人（角色 5）保留审阅与否决权。
+- **严重度：** N/A（语义冻结登记，非冲突）。
+- **决策负责人：** 产品负责人（用户本人，PD-15）。
+- **所需变更：** 实施 F-2（feat(s2a-f2)）→ 动态证据 S2A-F2-0001 → 迭代记录写回。
+- **状态：** FROZEN（2026-10-09：变更文本冻结 + Steward 确认完成；F-2 实施授权生效）。
+
 ## S2 范围裁决登记（PD-23）
 
 - **证据：** S2-SCOPE-PROPOSAL-01 v1.1.0（`s2-scope-proposal-v1.md`，§5 裁决区已填写、§6 裁决记录）；S1 规范 §37（P3-S2 九项）/ §11（保留动作 DEEPEN / SIMPLIFY / REFRAME / CREATE / MODIFY / SEARCH）；acceptance-mapping §B / §C；07 号契约（Memory & User State Engine：六类数据状态、优先级链、生命周期）；E2 Stage 5（Creation 编排）；PODR-001 PD-05 / PD-06 / PD-07 / PD-20 / PD-22；P2-SIGNOFF-01 遗留债务 D-01 / D-02 / D-03。
