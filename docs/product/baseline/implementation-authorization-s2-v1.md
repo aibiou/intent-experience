@@ -1,7 +1,7 @@
 # P3-S2 实施授权（S2a）
 
 **编号：** P3-S2-IMPL-AUTH-01
-**版本：** 1.2.0（2026-10-09：§4 版本化变更清单修订——D-01 裁决（PD-15 签署，S2A-F2-SEMANTIC-FREEZE-01 v1.0.0）批准逐切片升版路径：policy_v1.2.0=F-2 G04 / policy_v1.3.0=F-3 G07+MODIFY 别名 / policy_v1.4.0=F-4 WHAT_IF 完整，state_machine 同步 v1.1.0/v1.2.0/v1.3.0；S2a F-2（完整 G04 Creation 语义）语义文本已冻结（S2A-F2-SEMANTIC-FREEZE-01 v1.0.0，C1/C2/C3 Steward 确认完成），F-2 开工；其余内容与 v1.1.0 相同）
+**版本：** 1.3.0（2026-10-09：§4 版本化变更清单增补 F-5 行——S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 产品负责人裁决 + 签署（D-01…D-05 全项选项 A，CR-23）：策略 policy_v1.4.0 → policy_v1.5.0、状态机 state_machine_v1.3.0 → state_machine_v1.4.0；§3(5) F-5 实施授权生效；其余内容与 v1.2.0 相同）**版本：** 1.2.0（2026-10-09：§4 版本化变更清单修订——D-01 裁决（PD-15 签署，S2A-F2-SEMANTIC-FREEZE-01 v1.0.0）批准逐切片升版路径：policy_v1.2.0=F-2 G04 / policy_v1.3.0=F-3 G07+MODIFY 别名 / policy_v1.4.0=F-4 WHAT_IF 完整，state_machine 同步 v1.1.0/v1.2.0/v1.3.0；S2a F-2（完整 G04 Creation 语义）语义文本已冻结（S2A-F2-SEMANTIC-FREEZE-01 v1.0.0，C1/C2/C3 Steward 确认完成），F-2 开工；其余内容与 v1.1.0 相同）
 **状态：** AUTHORIZED（2026-10-09 签发）
 **授权依据：** PD-23（S2 功能构建范围裁决，2026-10-09 四项建议全案批准）；PD-20（先关再建）；PD-22（P2 = CLOSED）
 **签发：** 产品负责人（用户本人，PD-15）已签署（2026-10-09）
@@ -37,7 +37,7 @@ S2a（核心能力收束）产品运行时代码的开发与动态证据执行�
 2. **F-2：** 完整 G04 Creation 语义实施（CREATION 完整阶段链；多轮分支；持久创作状态；版本化提交与 stale 拒绝不变式保持）。
 3. **F-3：** 完整 G07 Correction 语义实施（MODIFY 别名登记；定位目标、局部修改、重生成、历史版本化）。
 4. **F-4：** WHAT_IF 完整分支实施（持久分支状态；假设 / 事实 / 模拟结果分离不变）。
-5. **F-5：** Minimal Memory 实施（短期记忆持久化；生命周期；用户纠正 / 撤回；Current State / Session State 会话结束失效；长期记忆不启用；写入经 Runtime 单一写入者）。
+5. **F-5：** Minimal Memory 实施（短期记忆持久化；生命周期；用户纠正 / 撤回；Current State / Session State 会话结束失效；长期记忆不启用；写入经 Runtime 单一写入者）。**（实施授权生效 2026-10-09：S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结——D-01…D-05 全项选项 A，CR-23；C1/C2/C3 Steward 确认完成；可进入实施（feat(s2a-f5)）与首个动态证据运行（S2A-F5-0001）。）**
 6. **F-6：** S2a 动态证据运行 + G3 黄金套件扩展 + 独立评测（G5 式评测包；角色 5 签署）。
 
 ## 4. 版本化变更清单（实施前冻结）
@@ -50,7 +50,9 @@ S2a（核心能力收束）产品运行时代码的开发与动态证据执行�
 | 状态机（F-3） | state_machine_v1.1.0 → state_machine_v1.2.0 | CORRECTION 完整操作语义（定位目标 / 局部修改 / 重生成 / 历史版本化）（F-3 实施前冻结） |
 | 策略（F-4） | policy_v1.3.0 → policy_v1.4.0 | WHAT_IF 完整分支语义（F-4 实施前冻结） |
 | 状态机（F-4） | state_machine_v1.2.0 → state_machine_v1.3.0 | WHAT_IF 持久分支状态（F-4 实施前冻结） |
-| 契约冻结 | C1 / C2 / C3 Steward 确认 | 各切片版本化变更文本于其首个动态证据运行前完成冻结 + Steward 确认（G1 式纪律）；F-2 文本确认完成（2026-10-09，S2A-F2-SEMANTIC-FREEZE-01 v1.0.0） |
+| 策略（F-5） | policy_v1.4.0 → policy_v1.5.0 | Minimal Memory 语义（仅短期记忆持久化——跨会话主题 / 意图信号 + 用户显式纠正 / 撤回记录；六类数据状态区分；五阶段生命周期记住 → 暂时使用 → 逐渐失效 → 被用户纠正 → 被用户撤回；Current State / Session State 会话结束失效；长期记忆禁用；写入经 Runtime 单一写入者；L5 信号注入 + Current Intent 覆盖 + 检索只读；保留默认 6 个月 + 到期自动删除 + 删除审计）（F-5 实施前冻结，S2A-F5-SEMANTIC-FREEZE-01 v1.0.0，CR-23） |
+| 状态机（F-5） | state_machine_v1.3.0 → state_machine_v1.4.0 | 轴外记忆子状态机（状态 {REMEMBERED, IN_USE, DECAYING, EXPIRED} + 操作 {CREATE, RECALL, DECAY, EXPIRE, CORRECT, WITHDRAW}；记忆域事件词表 memory_recorded / memory_corrected / memory_withdrawn / memory_expired）（F-5 实施前冻结，S2A-F5-SEMANTIC-FREEZE-01 v1.0.0，CR-23） |
+| 契约冻结 | C1 / C2 / C3 Steward 确认 | 各切片版本化变更文本于其首个动态证据运行前完成冻结 + Steward 确认（G1 式纪律）；F-2 文本确认完成（2026-10-09，S2A-F2-SEMANTIC-FREEZE-01 v1.0.0）；F-5 文本确认完成（2026-10-09，S2A-F5-SEMANTIC-FREEZE-01 v1.0.0） |
 
 ## 5. 持续约束（授权不解除）
 

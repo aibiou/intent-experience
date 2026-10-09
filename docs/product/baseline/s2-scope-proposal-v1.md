@@ -1,7 +1,7 @@
 # S2 范围裁决提案（S2 Scope Proposal）
 
 **编号：** S2-SCOPE-PROPOSAL-01
-**版本：** 1.2.0（2026-10-09：授权签发跟进——S2 实施授权 P3-S2-IMPL-AUTH-01 v1.1.0 已签发（产品负责人 2026-10-09 签署，AUTHORIZED）；S2a 首个迭代 F-1（OBL-01）开工；其余内容与 v1.1.0 相同）
+**版本：** 1.3.0（2026-10-09：S2b 语义定义版本化冻结完成——S2B-SEMANTIC-FREEZE-01 v1.0.0 产品负责人裁决 + 签署（D-01…D-05 + 附列项 VERIFY 全项选项 A，CR-24；C1/C2/C3 Steward 确认完成）；§6“S2b 新动作语义定义须在 S2b 授权前由产品负责人版本化冻结”义务履行；S2b 实施授权待另行签发（P3-S2B-IMPL-AUTH-01，staged 待签发，前置依赖：F-5 关闭）；同时 S2a F-5 语义冻结完成（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0，CR-23——D-01…D-05 全项选项 A，F-5 实施授权生效）；其余内容与 v1.2.0 相同）**版本：** 1.2.0（2026-10-09：授权签发跟进——S2 实施授权 P3-S2-IMPL-AUTH-01 v1.1.0 已签发（产品负责人 2026-10-09 签署，AUTHORIZED）；S2a 首个迭代 F-1（OBL-01）开工；其余内容与 v1.1.0 相同）
 **状态：** DECIDED——产品负责人已裁决（PD-23，2026-10-09：四项建议全案批准）；S2 实施授权 P3-S2-IMPL-AUTH-01 v1.0.0 staged 待签发
 **背景：** P2 = CLOSED（2026-10-09，PD-22）；PD-20"先关再建"——关闭已完成，进入"建"。S2 范围项冻结于 S1 规范 §37（P3-S2｜Experience Vertical Slice 九项）与 §11（保留动作 DEEPEN / SIMPLIFY / REFRAME / CREATE / MODIFY / SEARCH 不得自动启用）；完整 G04 / G07 / G08 语义 DEFERRED TO S2（acceptance-mapping §B，PD-05 / PD-06 / PD-07）；Minimal Memory 进入 S2 须另作版本化决策（PB-04）；义务延续：OBL-01（HTTP 形态 503 首个 S2 迭代补测）、OBL-02（延迟指标纪律）、G3 黄金套件跨迭代回归。
 **依据：** S1 规范 §11 / §37 / §38；acceptance-mapping §B / §C；PODR-001 PD-05 / PD-06 / PD-07 / PD-20 / PD-22；P2-SIGNOFF-01 遗留债务 D-01 / D-02 / D-03；E2 Stage 5（Creation 编排）
@@ -78,3 +78,5 @@ S2 功能构建的范围与批次，以及配套版本化变更：
 | 决策者 | 选择 | 日期 | 备注 |
 |---|---|---|---|
 | 产品负责人 | 四项建议全案批准（选项 B 分批；S2a / S2b 语义动作与版本化路径；Minimal Memory 短期记忆形态；OBL-01 首个迭代编排） | 2026-10-09 | PD-23；S2 实施授权 P3-S2-IMPL-AUTH-01 v1.1.0 已签发（2026-10-09 签署，AUTHORIZED）；S2b 新动作语义定义须在 S2b 授权前由产品负责人版本化冻结 |
+
+**S2b 冻结跟进（2026-10-09）：** S2b 新动作语义定义已经产品负责人版本化冻结（S2B-SEMANTIC-FREEZE-01 v1.0.0，CR-24——D-01…D-05 + 附列项 VERIFY 全项选项 A，C1/C2/C3 Steward 确认完成）——上表末行“S2b 新动作语义定义须在 S2b 授权前由产品负责人版本化冻结”义务履行；S2b 实施授权待另行签发（P3-S2B-IMPL-AUTH-01 v0.1.0，staged 待签发，生效条件：产品负责人签署 + S2a F-5 关闭）。 |

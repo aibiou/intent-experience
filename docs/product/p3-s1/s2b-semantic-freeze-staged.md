@@ -1,8 +1,8 @@
 # S2b 语义冻结填写项（体验动作扩展：DEEPEN / SIMPLIFY / REFRAME / Search + First Experience 完整呈现 + 更完整 Golden Suite）
 
 **编号：** S2B-SEMANTIC-FREEZE-01
-**版本：** 0.1.0（2026-10-09：staged 待产品负责人裁决 D-01…D-05）
-**状态：** STAGED（待产品负责人逐项裁决与签署——签署为 S2b 语义定义版本化冻结；冻结前不得实施 S2b，亦不得签发 S2b 实施授权；本文件为裁决提案，不含任何已生效产品语义）
+**版本：** 1.0.0（2026-10-09：产品负责人裁决 + 签署——§2 裁决区 D-01…D-05 + 附列项（VERIFY）全项裁决完成（全项选项 A），§3/§4 版本化变更文本冻结（分层），C1/C2/C3 Steward 确认完成（G1 式纪律）；S2b 语义定义版本化冻结完成（PD-23 §6 义务履行）；S2b 实施授权待另行签发（P3-S2B-IMPL-AUTH-01，前置依赖：F-5 关闭））**版本：** 0.1.0（2026-10-09：staged 待产品负责人裁决 D-01…D-05）
+**状态：** FROZEN（2026-10-09 产品负责人裁决 + 签署——D-01…D-05 + 附列项全项选项 A；§3/§4 变更文本冻结：policy_v2.0.0 / state_machine_v1.5.0）；S2b 语义定义版本化冻结完成（PD-23 §6）；S2b 实施授权待另行签发（P3-S2B-IMPL-AUTH-01，staged 待签发；前置依赖：F-5 关闭）；冻结后实施不得偏离 §3/§4
 **背景：** S2 范围经 PD-23 裁决（选项 B 分批，S2-SCOPE-PROPOSAL-01 §5/§6）：S2a 核心能力收束（F-1…F-4 已关闭；F-5 staged 待裁决，S2A-F5-SEMANTIC-FREEZE-01 v0.1.0）；S2b 体验动作扩展（S1 规范 §37：First Experience 完整呈现；DEEPEN；SIMPLIFY；REFRAME；Search；更完整的 Golden Suite）。PD-23 §6 与授权 §5.7：S2b 新动作语义定义须在 S2b 授权前由产品负责人版本化冻结（C3 行为语义空缺不得由编码者补写）。本填写项将 S2b 语义定义裁决提案 staged，供产品负责人逐项裁决。
 **依据：** S1 规范 §11（保留动作：DEEPEN / SIMPLIFY / REFRAME / CREATE / MODIFY / SEARCH 不得自动启用）/ §12（语义动作优先级）/ §37（S1→S2 范围）；PD-23（S2-SCOPE-PROPOSAL-01 v1.2.0 §4.1：策略升 policy_v2.0.0，优先级链扩展后须重冻结）；14 号契约 §7（Policy Action Taxonomy V1——**SEARCH 不是用户体验类型，而是一种内部能力动作**）/ §8（Semantic Action → Policy Action Mapping：DEEPEN→DEEPEN / SIMPLIFY→SIMPLIFY / REFRAME→REFRAME 恒等映射；VERIFY→SEARCH / ANSWER）；08 号契约 §五（Creation Runtime 状态机：USER_FEEDBACK → MODIFY / ADD / REMOVE / REFRAME / SIMPLIFY / DEEPEN / COMPLETE）/ §十（Modification 操作域与自然语示例——"简单一点"→SIMPLIFY、"做得更有科幻感"→RESTYLE、"太难了"→REBALANCE）；E2 §5（第一体验入口）/ §6（六阶段结构 Curiosity→Understanding→Simulation→Branch→Creation→Completion）/ §7（P3 必须冻结的 ExperienceState）/ §8（Allowed Action）/ §9（明确不冻结内容）；F-2 D-04（补丁操作域 {add, remove, modify} 冻结；REPLACE / TUNE / REBALANCE / RENAME / RESTYLE 作 modify 子型；SIMPLIFY / DEEPEN / REFRAME 显式 DEFERRED 至 S2b）；P3-S2-IMPL-AUTH-01 v1.2.0 §4/§5.7
 
@@ -46,7 +46,7 @@
 
 **选项 C（语义动作启用 + 独立执行路径不经创作域）：** 问题：08 §五/§十 将三动作定义于创作运行时内（USER_FEEDBACK 分支与修改操作域）；独立路径无 frozen 源——不可选。
 
-**裁决区（产品负责人填写）：** ______
+**裁决区（产品负责人 2026-10-09 填写）：** **选项 A（顶层语义动作启用 + 创作域顶层补丁操作承载）**。理由：14 §8 恒等映射与 08 §十 同级列举为 frozen 源层级；DEEPEN / SIMPLIFY / REFRAME 为整体验方向性操作（深入 / 简化 / 换角度），不可归约为局部修改（F-2 将 REPLACE / TUNE / REBALANCE / RENAME / RESTYLE 降为 modify 子型的归约纪律不适用于三动作）；操作识别为确定性规则词表（model on F-4 D-03 纪律）；选项 B 与 frozen 源列举层级冲突，选项 C 无 frozen 源。日期：2026-10-09。
 
 ### D-02 SEARCH 的启用形态
 
@@ -58,7 +58,7 @@
 
 **选项 C（本批次不启用）：** 问题：与 S1 §37 明文（S2 加入 Search）冲突——不可选。
 
-**裁决区（产品负责人填写）：** ______
+**裁决区（产品负责人 2026-10-09 填写）：** **选项 A（内部能力动作启用）**。理由：14 §7 明文“SEARCH 不是用户体验类型，而是一种内部能力动作”；14 §8 VERIFY → SEARCH / ANSWER 路由为既有执行路径；E2 §8 允许动作表按“内部能力动作”解释；选项 B 与 14 §7 纪律直接冲突，选项 C 与 S1 §37 明文冲突。日期：2026-10-09。
 
 ### D-03 SEARCH 的作用面（检索范围）
 
@@ -70,7 +70,7 @@
 
 **选项 C（全量记忆 + 体验内容检索）：** 问题：与 07 §20"Experience Runtime 不允许每次把所有 Memory 全部塞进 Context"冲突——不可选。
 
-**裁决区（产品负责人填写）：** ______
+**裁决区（产品负责人 2026-10-09 填写）：** **选项 A（体验内容与创作对象内检索，只读）**。理由：只读能力不改变体验（07 §22 纪律延伸）；跨会话记忆检索属 F-5 记忆域 L5 检索（07 §20），不经 SEARCH 动作；选项 B 引入外部网络出口（授权 §5.1 隐私护栏；SEAM-INERT 无网络出口先例），选项 C 与 07 §20“不允许每次把所有记忆全部塞进上下文”冲突。日期：2026-10-09。
 
 ### D-04 First Experience 完整呈现的范围
 
@@ -82,7 +82,7 @@
 
 **选项 C（仅入口文案 / 视觉微调）：** 问题：与 S1 §37"完整呈现"范围不符——不推荐。
 
-**裁决区（产品负责人填写）：** ______
+**裁决区（产品负责人 2026-10-09 填写）：** **选项 A（呈现路径补全，契约面不变）**。理由：E2 为已冻结提案，契约面（Experience Type / Trigger / Initial State / Allowed Actions / State Transitions / Completion / Exit / Interrupt / Policy / Evaluation）不变；完整呈现 = 入口流程 + 六阶段逐阶段呈现 + 完成 / 退出 / 中断完整流程；E2 §5 明文视觉样式不在冻结范围；选项 B 违反冻结纪律，选项 C 与 S1 §37“完整呈现”范围不符。日期：2026-10-09。
 
 ### D-05 策略版本与优先级链扩展形态
 
@@ -94,9 +94,9 @@
 
 **选项 C（不升版直接实施）：** 问题：违反版本化变更纪律（授权 §4；G1 契约权威冻结纪律）——不可选。
 
-**裁决区（产品负责人填写）：** ______
+**裁决区（产品负责人 2026-10-09 填写）：** **选项 A（policy_v2.0.0 + 优先级链扩展冻结 + state_machine_v1.5.0）**。理由：S2 范围提案 §4.1 已裁决方向（策略升 policy_v2.0.0；优先级链扩展后须重冻结）；S2b 为 PD-23 裁决的一批次，逐切片升版与批次裁决冲突；版本化变更纪律（授权 §4）要求升版冻结；选项 B 与 PD-23 批次裁决冲突，选项 C 违反版本化变更纪律。日期：2026-10-09。
 
-**附列裁决区（VERIFY 语义动作）：** 14 §8 映射表含 VERIFY → SEARCH / ANSWER，但 VERIFY 未列入 S1 §11 保留动作清单。VERIFY 是否随 S2b 启用为语义动作：**选项 A（推荐）：不启用——SEARCH 以内部能力动作启用即可覆盖 14 §8 路由（VERIFY 类输入按现有 WHY / DIRECT_ANSWER 解释层处理，SEARCH 作为内部能力在这些路径中被调用）；选项 B：启用 VERIFY 为语义动作（须同时定义其分类器词表与优先级链位置）。** 本附列项与 D-02 联动裁决。
+**附列裁决区（VERIFY 语义动作）：** 14 §8 映射表含 VERIFY → SEARCH / ANSWER，但 VERIFY 未列入 S1 §11 保留动作清单。VERIFY 是否随 S2b 启用为语义动作：**选项 A（推荐）：不启用——SEARCH 以内部能力动作启用即可覆盖 14 §8 路由（VERIFY 类输入按现有 WHY / DIRECT_ANSWER 解释层处理，SEARCH 作为内部能力在这些路径中被调用）；选项 B：启用 VERIFY 为语义动作（须同时定义其分类器词表与优先级链位置）。** 本附列项与 D-02 联动裁决。**附列裁决（产品负责人 2026-10-09 填写）：** **选项 A（不启用 VERIFY 语义动作）**。理由：SEARCH 以内部能力动作启用即可覆盖 14 §8 路由（VERIFY 类输入按既有 WHY / DIRECT_ANSWER 解释层处理，SEARCH 能力在这些路径中被调用）；VERIFY 未列入 S1 §11 保留动作清单，启用须同时定义分类器词表与优先级链位置——本批次不引入未定义语义动作。日期：2026-10-09。
 
 ## 3. policy_v2.0.0 变更文本草案（分层；D-01…D-05 全项选项 A 时生效）
 
@@ -125,8 +125,8 @@
 
 | 角色 | 裁决 / 签署 | 结论 | 日期 |
 |---|---|---|---|
-| 产品负责人（用户本人，PD-15） | D-01…D-05 + 附列项（VERIFY）逐项裁决（待填写） | 待裁决 | |
-| 产品负责人（用户本人，PD-15） | 签署 | 待签署——签署后 §3/§4 变更文本冻结（policy_v2.0.0 / state_machine_v1.5.0），S2b 语义定义版本化冻结完成，可签发 S2b 实施授权 | |
-| C1 / C2 / C3 Steward | Steward 确认（G1 式纪律） | 待确认 | |
+| 产品负责人（用户本人，PD-15） | D-01…D-05 + 附列项（VERIFY）逐项裁决（已填写） | 全项选项 A（2026-10-09 裁决） | 2026-10-09 |
+| 产品负责人（用户本人，PD-15） | 已签署（2026-10-09） | FROZEN——§3/§4 变更文本冻结（policy_v2.0.0 / state_machine_v1.5.0），S2b 语义定义版本化冻结完成（PD-23 §6 义务履行）；S2b 实施授权待另行签发（P3-S2B-IMPL-AUTH-01，staged 待签发；前置依赖：F-5 关闭） | 2026-10-09 |
+| C1 / C2 / C3 Steward | Steward 确认完成（G1 式纪律；2026-10-09） | 确认 | 2026-10-09 |
 
 **顺序纪律：** S2b 实施授权须在 S2a（F-5）关闭后或经产品负责人另行裁决批次并行；本冻结签署不解除任何 Gate 纪律（授权 §5.3：任何 Gate 不因代码存在、测试全绿或演示成功而 PASS）。

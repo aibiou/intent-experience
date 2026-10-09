@@ -311,6 +311,26 @@
 - **所需变更：** 回写 readiness-record（v1.25.0 → v1.26.0）；G5 工作表第 9 项由 DEFERRED 关闭属角色 5 独立评测负责人逐项裁决，经 P3-S1-G5-WORKSHEET-01 签署后生效（staged 审阅包 `artifacts/evidence/runs/OBL02-LATENCY-0001/review/README.md`，含第 9 项裁决表）——**已履行（2026-10-09：评测人裁决签署，裁决表 5/5 PASS；工作表升 v1.8.0；第 9 项 DEFERRED→PASS）**
 - **状态：** EXECUTED（2026-10-09：测量执行完成——OBL02-LATENCY-0001 退出码 0；G5 = PASSED（有条件）遗留条件（OBL-02 延迟测量执行）已履行；本登记不改变任何 Gate 状态；**G5 第 9 项经角色 5 独立评测人裁决签署关闭（2026-10-09：DEFERRED→PASS，P3-S1-G5-WORKSHEET-01 v1.8.0；staged 审阅包裁决表 5/5 PASS）——G5 = PASSED（无条件）**）
 
+## S2a F-5 语义冻结登记（CR-23）
+
+- **证据：** S2A-F5-SEMANTIC-FREEZE-01 v1.0.0（`../p3-s1/s2a-f5-semantic-freeze-staged.md`——§1 语义完备性评估：第一层 11 项元素在 frozen 源（07 号契约 §2–§22 / 隐私六要素 P3-S1-PRIVACY-SIX-01 v0.4.2 / 授权 §2(4)/§5.8 / PD-23）中可机械派生；第二层 5 项为 frozen 源语义空缺（切片内持久化载体 / 记忆记录 schema / 记忆域事件词表 / 时间衰减参数 / 记忆检索接口面），按授权 §5.7 纪律由产品负责人版本化裁决；§2 裁决区 D-01…D-05 全项裁决；§3 policy_v1.5.0 变更文本（分层）；§4 state_machine_v1.4.0 变更文本（分层）；§5 实施与证据计划大纲；§6 签署区产品负责人 + C1/C2/C3 Steward 确认完成）；P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§3(5)；PD-23（S2-SCOPE-PROPOSAL-01 §5 裁决区——Minimal Memory 产品级形态已经产品负责人裁决）
+- **影响：** S2a F-5（Minimal Memory）语义文本冻结（2026-10-09 产品负责人裁决"裁决A"——D-01…D-05 全项选项 A）——D-01 选项 A（切片内本地持久化记忆记录存储——轴外持久对象，model on F-2 创作对象 / F-4 分支记录纪律；隐私六要素 cn / 阿里云 / 云存储为生产治理方向、不属切片实施范围）；D-02 选项 A（五阶段生命周期契约化——轴外记忆子状态机 {REMEMBERED, IN_USE, DECAYING, EXPIRED} + 操作 {CREATE, RECALL, DECAY, EXPIRE, CORRECT, WITHDRAW} + 记忆域事件词表 {memory_recorded, memory_corrected, memory_withdrawn, memory_expired}，承载于 C6 §7 已预留 memory 层）；D-03 选项 A（L5 信号注入 + Current Intent 覆盖不变 + 检索只读不改变体验）；D-04 选项 A（保留期最后更新起算默认 6 个月 + 到期自动删除 + 删除审计记录 + 07 §11 示例形态采纳为规范衰减参数）；D-05 选项 A（运行时内部写入 API + 用户纠正 / 撤回经确定性规则词表路由；模型 state_update 拒绝不变，GS-06）
+- **建议：** F-5 实施按冻结文本 §5 大纲执行（新增 `src/experience/memory.ts`；`runtime.ts` Context Builder L5 集成；`policy.ts` policy_v1.5.0 文本；`state-machine.ts` state_machine_v1.4.0 生命周期契约；`events.ts` memory 域事件类型；`validator.ts` state_update 拒绝核验——既有覆盖确认）；证据执行器 `tools/evidence/src/s2a-f5.mjs`（案例面见冻结文本 §5）；G3 黄金套件扩展（F-5 案例，policy_v1.5.0 断言同步）；独立评测人（角色 5）保留审阅与否决权
+- **严重度：** N/A（语义冻结登记，非冲突）
+- **决策负责人：** 产品负责人（用户本人，PD-15）
+- **所需变更：** 实施 F-5（feat(s2a-f5)）→ 动态证据 S2A-F5-0001 → 迭代记录写回
+- **状态：** FROZEN（2026-10-09：语义文本冻结完成——产品负责人裁决 D-01…D-05 全项选项 A + 签署 + C1/C2/C3 Steward 确认完成（G1 式纪律）；F-5 实施授权生效（P3-S2-IMPL-AUTH-01 v1.2.0 §3(5)）；待实施与动态证据 S2A-F5-0001）
+
+## S2b 语义冻结登记（CR-24）
+
+- **证据：** S2B-SEMANTIC-FREEZE-01 v1.0.0（`../p3-s1/s2b-semantic-freeze-staged.md`——§1 语义完备性评估：第一层 7 项元素在 frozen 源（14 号契约 §7/§8 / 08 号契约 §五/§十 / E2 §5–§9 / S1 §11/§12/§37 / S2 范围提案 §4.1）中可机械派生；第二层 5 项为 frozen 源语义空缺（DEEPEN/SIMPLIFY/REFRAME 承载层 / SEARCH 启用形态与作用面 / First Experience 完整呈现范围 / policy_v2.0.0 精确文本），按授权 §5.7 纪律由产品负责人版本化裁决；§2 裁决区 D-01…D-05 + 附列项（VERIFY）全项裁决；§3 policy_v2.0.0 变更文本（分层）；§4 state_machine_v1.5.0 变更文本（分层）；§5 实施与证据计划大纲；§6 签署区产品负责人 + C1/C2/C3 Steward 确认完成）；PD-23 §6（S2b 新动作语义定义须在 S2b 授权前由产品负责人版本化冻结——本登记即该义务履行）
+- **影响：** S2b 语义定义版本化冻结（2026-10-09 产品负责人裁决"裁决A"——D-01…D-05 + 附列项全项选项 A）——D-01 选项 A（DEEPEN / SIMPLIFY / REFRAME 启用为顶层语义动作（14 §8 恒等映射）+ 创作域顶层补丁操作承载（与 add / remove / modify 同级，08 §十 同级列举纪律）；操作识别为确定性规则词表）；D-02 选项 A（SEARCH 内部能力动作启用——14 §7"SEARCH 不是用户体验类型，而是一种内部能力动作"；14 §8 VERIFY → SEARCH / ANSWER 路由为既有执行路径；分类器不将普通输入分类为 SEARCH 语义动作）；D-03 选项 A（SEARCH 作用面：当前体验内容 / 创作对象 / 会话内上下文，只读；跨会话记忆检索属 F-5 记忆域 L5 检索，不经 SEARCH 动作）；D-04 选项 A（First Experience 完整呈现 = 呈现路径补全——入口流程 + 六阶段逐阶段呈现 + 完成 / 退出 / 中断完整流程；E2 契约面不变）；D-05 选项 A（policy_v2.0.0 + 优先级链扩展冻结 + state_machine_v1.5.0）；附列项 选项 A（VERIFY 语义动作不启用——SEARCH 内部能力已覆盖 14 §8 路由）
+- **建议：** S2b 实施授权待另行签发（P3-S2B-IMPL-AUTH-01，staged 待签发——`implementation-authorization-s2b-v1.md`；生效条件：产品负责人签署 + S2a F-5 关闭）；S2b 实施按 S2B-SEMANTIC-FREEZE-01 §3/§4 冻结文本执行；动态证据 S2B-0001；更完整 Golden Suite 随 S2b 证据运行扩展；独立评测人（角色 5）保留审阅与否决权
+- **严重度：** N/A（语义冻结登记，非冲突）
+- **决策负责人：** 产品负责人（用户本人，PD-15）
+- **所需变更：** F-5 关闭后签发 P3-S2B-IMPL-AUTH-01 → S2b 实施 → 动态证据 S2B-0001 → 迭代记录写回
+- **状态：** FROZEN（2026-10-09：语义定义版本化冻结完成——PD-23 §6 义务履行；S2b 实施授权待另行签发（前置依赖：F-5 关闭））
+
 ## S2 范围裁决登记（PD-23）
 
 - **证据：** S2-SCOPE-PROPOSAL-01 v1.1.0（`s2-scope-proposal-v1.md`，§5 裁决区已填写、§6 裁决记录）；S1 规范 §37（P3-S2 九项）/ §11（保留动作 DEEPEN / SIMPLIFY / REFRAME / CREATE / MODIFY / SEARCH）；acceptance-mapping §B / §C；07 号契约（Memory & User State Engine：六类数据状态、优先级链、生命周期）；E2 Stage 5（Creation 编排）；PODR-001 PD-05 / PD-06 / PD-07 / PD-20 / PD-22；P2-SIGNOFF-01 遗留债务 D-01 / D-02 / D-03。
