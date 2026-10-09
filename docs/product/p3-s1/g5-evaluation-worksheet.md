@@ -1,7 +1,7 @@
 # G5 独立评测工作表（供独立评测人逐项执行填写）
 
 **编号：** P3-S1-G5-WORKSHEET-01
-**版本：** 1.0.0（2026-10-09：工作表已建立——16 项评测结论全部 NOT RUN，供独立评测人（角色 5）逐项执行填写）
+**版本：** 1.1.0（2026-10-09：配套 G5 证据要点简报（P3-S1-G5-BRIEFING-01）引用登记；16 项评测结论全部 NOT RUN，供独立评测人（角色 5）逐项执行填写）
 **状态：** STAGED FOR EVALUATOR（staged 输入材料已备；本工作表为评测工具，不是 Gate 证据——不得由工作表存在推断 G5 PASS）
 **评测人：** 用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效——兼任实现相关角色，书面隔离措施已记录于 G5 隔离声明）
 **前置义务：** 评测人须先审阅三份 staged 审阅包后方可执行评测：`artifacts/evidence/runs/F1-E2E-0001/review/README.md`、`artifacts/evidence/runs/F2-GS-0001/review/README.md`、`artifacts/evidence/runs/F3-EB-0001/review/README.md`。
@@ -12,7 +12,7 @@
 2. 任何 P0 失败、缺项或 `NOT RUN` 均不得被平均分或建议性报告抵消（evidence-execution-plan §6.1 判定规则）。
 3. 第 16 项（评测负责人签署）须在 1–15 项均有适用结论后填写。
 4. 第 3 / 6 / 9 项有前置条件（见下"前置裁决"），未满足前保持 `NOT RUN`。
-5. 本工作表与三份 staged 审阅包、evidence-execution-plan §6.1/§6.2 交叉表配套使用；Gate 判定以产品负责人正式签署的 G5 结论为准。
+5. 本工作表与三份 staged 审阅包、evidence-execution-plan §6.1/§6.2 交叉表、G5 证据要点简报（P3-S1-G5-BRIEFING-01——代理整理的定位辅助，非证据、非结论）配套使用；Gate 判定以产品负责人正式签署的 G5 结论为准。
 
 ## 前置裁决（评测人 / 产品负责人，G5 执行前）
 
