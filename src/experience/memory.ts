@@ -445,7 +445,11 @@ export class MemoryStore {
         continue;
       }
       if (record.lifecycle === 'IN_USE' && interest < MEMORY_DECAY_THRESHOLD) {
-        const updated: MemoryRecord = { ...record, lifecycle: 'DECAYING', updatedAt: now };
+        // 时间驱动的内部迁移不刷新 updatedAt——衰减时钟连续
+        // （07 §11"短期兴趣必须衰减"单调纪律：兴趣不得在迁移时刻
+        // 回跳；updatedAt 仅由用户驱动事件刷新——RECALL / 再探索 /
+        // 纠正。保留期同样自最后用户驱动更新起算——D-04 选项 A）。
+        const updated: MemoryRecord = { ...record, lifecycle: 'DECAYING' };
         this.records.set(record.recordId, updated);
         decayed.push(updated);
       }
