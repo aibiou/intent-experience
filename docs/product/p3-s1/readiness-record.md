@@ -1,8 +1,8 @@
 # P3-S1 实现准入记录
 
 **编号：** P3-S1-READINESS-01
-**版本：** 1.12.0（2026-10-09：G3 黄金套件执行登记——G3-GOLDEN-0001 创建并执行通过（20/20 案例 PASS + 3 DEFERRED 登记，断言 A1–A10 全通过，退出码 0；首次尝试失败按 ADR-0002 §5 归档，执行器侧缺陷 G3-E-1/G3-E-2 已修复）；G3 Gate 判定仍属独立评测范畴（角色 5），G3 仍 NOT PASSED；P2 关闭切片剩余：PD-21 范围裁决、OBL-01 处置、OBL-02 方法批准；其余内容与 v1.11.0 相同）
-**状态：** READY / AUTHORIZED / THIRD ITERATION EVIDENCE PRODUCED / G5 EVALUATION PASSED WITH CONDITIONS（G1/G2/G4/G5/G6/G7 PASSED——G5 为有条件通过，2026-10-09；G3 仍 NOT PASSED——处置已裁决：DEFERRED TO S2/P2 关闭切片（OBL-03，产品负责人 2026-10-09 裁决 / PD-19）；G8 仍 NOT PASSED；P2 仍 CLOSURE CANDIDATE / BLOCKED）
+**版本：** 1.13.0（2026-10-09：PD-21 范围裁决登记——产品负责人批准 P2 关闭切片最小 G04 Creation / G07 Correction / G08 Memory Boundary 能力（策略版本升 policy_v1.1.0 为版本化变更；S2 范围不变，PD-05/06/07），关闭切片进入实施；OBL-01 处置 RESOLVED（HTTP 形态 LLM 故障 503 维持 DEFERRED 贯穿 P2 关闭切片、已知限制披露、首个 S2 迭代补测）；OBL-02 方法批准（v0.1.0 DRAFT → v1.0.0 APPROVED，按 E3）；其余内容与 v1.12.0 相同）
+**状态：** READY / AUTHORIZED / THIRD ITERATION EVIDENCE PRODUCED / G5 EVALUATION PASSED WITH CONDITIONS（G1/G2/G4/G5/G6/G7 PASSED——G5 为有条件通过，2026-10-09；G3 仍 NOT PASSED——处置已裁决：DEFERRED TO S2/P2 关闭切片（OBL-03，产品负责人 2026-10-09 裁决 / PD-19）；G8 仍 NOT PASSED；P2 关闭切片已获产品能力范围授权（PD-21，2026-10-09），进入实施；P2 仍 CLOSURE CANDIDATE / BLOCKED）
 **记录日期：** 2026-10-08
 **范围：** 仅检查 P3-S1 产品运行时代码是否已获准启动；本记录不代表 P2 关闭或产品验收通过。
 
