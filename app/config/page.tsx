@@ -102,6 +102,23 @@ function categorizeModels(
   return groups.filter((group) => group.items.length > 0);
 }
 
+/** 识别后自动选中（产品负责人指令 2026-10-11：
+ * key 保存好后对应模型要选中——每组首个模型
+ * 默认选中；exclude 用于已存配置——其自身模态
+ * 的模型即当前配置，不重复选）。 */
+function autoSelectByModality(
+  models: string[],
+  exclude?: Modality,
+): Partial<Record<Modality, string>> {
+  const next: Partial<Record<Modality, string>> = {};
+  for (const group of categorizeModels(models)) {
+    if (group.modality !== exclude) {
+      next[group.modality] = group.items[0];
+    }
+  }
+  return next;
+}
+
 /** 模型分组选择（按模态分组——组内单选，
  * 再点已选项取消；选中态经 selectedByModality 传入）。 */
 function ModelGroups({
@@ -151,7 +168,7 @@ function ModelGroups({
         </div>
       ))}
       <p className="config-field-hint">
-        类别按模型名识别（image / video 关键词，其余归为文本）。
+        类别按模型名识别（image / video 关键词，其余归为文本）；识别后各组首个模型已自动选中，可点击更换。
       </p>
     </div>
   );
@@ -163,6 +180,7 @@ export default function ConfigPage() {
   const [status, setStatus] = useState<ConfigStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [encryptionKeyMissing, setEncryptionKeyMissing] = useState(false);
 
   const [provider, setProvider] = useState('');
@@ -189,6 +207,12 @@ export default function ConfigPage() {
 
   const [probingConfigId, setProbingConfigId] = useState<string | null>(null);
   const [configModels, setConfigModels] = useState<Record<string, string[]>>({});
+  /** 已存配置识别后按模态选中的模型
+  * （点击「识别模型」自动选中——一键批量
+  * 克隆到对应模态，共享端点与 key）。 */
+  const [configSelection, setConfigSelection] = useState<
+    Record<string, Partial<Record<Modality, string>>>
+  >({});
 
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmChecked, setConfirmChecked] = useState(false);
@@ -337,6 +361,7 @@ export default function ConfigPage() {
       setSelectedModels({});
       setProbedModels([]);
       setApiKey('');
+      setNotice(`已保存 ${entries.length} 个模态的模型配置——到对应标签页启用`);
       await refresh();
     } finally {
       setCreatingSelected(false);
@@ -483,7 +508,8 @@ export default function ConfigPage() {
       }
       const data = (await response.json()) as { models: string[] };
       setProbedModels(data.models);
-      setSelectedModels({});
+      // 识别成功后按模态自动选中各组首个模型。
+      setSelectedModels(autoSelectByModality(data.models));
     } finally {
       setProbing(false);
     }
@@ -505,7 +531,7 @@ export default function ConfigPage() {
       }
       const data = (await response.json()) as { models: string[] };
       setProbedModels(data.models);
-      setSelectedModels({});
+      setSelectedModels(autoSelectByModality(data.models));
     } finally {
       setProbing(false);
     }
@@ -528,36 +554,71 @@ export default function ConfigPage() {
         }
         const data = (await response.json()) as { models: string[] };
         setConfigModels((previous) => ({ ...previous, [id]: data.models }));
+        // 识别成功后自动选中各模态首个模型
+        // （当前配置自身模态除外——其模型
+        // 已是本配置，换模走「编辑」）。
+        const source = configs.find((item) => item.id === id);
+        setConfigSelection((previous) => ({
+          ...previous,
+          [id]: autoSelectByModality(
+            data.models,
+            source?.modality ?? 'text',
+          ),
+        }));
       } finally {
         setProbingConfigId(null);
       }
     },
-    [probingConfigId, handleApiError],
+    [probingConfigId, handleApiError, configs],
   );
 
-  /** 按模态克隆（已存配置的模型列表选用其他
-  * 模态模型——共享该配置的端点与 key，
-  * 服务端密文原样复制——无需重复填写）。 */
-  const cloneForModality = useCallback(
-    async (sourceId: string, item: Modality, modelName: string) => {
-      setBusyId(sourceId);
+  /** 选用所选（已存配置识别后——把各模态
+  * 选中的模型批量克隆为新配置：共享该配置
+  * 的端点与 key 密文，服务端原样复制——
+  * 无需重复填写；同模态+模型已存在时
+  * 服务端幂等返回既有记录）。 */
+  const applyConfigSelection = useCallback(
+    async (source: ProviderConfig) => {
+      const selection = configSelection[source.id];
+      if (!selection) return;
+      const entries = (Object.keys(selection) as Modality[]).filter(
+        (item) => selection[item] && selection[item]!.length > 0,
+      );
+      if (entries.length === 0) return;
+      setBusyId(source.id);
       setError(null);
       try {
-        const response = await fetch(`/api/config/${sourceId}/modality`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ modality: item, model: modelName }),
-        });
-        if (!response.ok) {
-          await handleApiError(response, `保存${MODALITY_LABEL[item]}模型失败`);
-          return;
+        for (const item of entries) {
+          const response = await fetch(
+            `/api/config/${source.id}/modality`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                modality: item,
+                model: selection[item],
+              }),
+            },
+          );
+          if (!response.ok) {
+            await handleApiError(response, `保存${MODALITY_LABEL[item]}模型失败`);
+            return;
+          }
         }
+        setConfigSelection((previous) => {
+          const next = { ...previous };
+          delete next[source.id];
+          return next;
+        });
+        setNotice(
+          `已选中 ${entries.length} 个模态的模型（${source.provider}）——到对应标签页启用`,
+        );
         await refresh();
       } finally {
         setBusyId(null);
       }
     },
-    [handleApiError, refresh],
+    [configSelection, handleApiError, refresh],
   );
 
 
@@ -597,6 +658,13 @@ export default function ConfigPage() {
         <div className="config-banner config-banner-error" role="alert">
           <XIcon size={16} />
           <span>{error}</span>
+        </div>
+      )}
+
+      {notice && (
+        <div className="config-banner config-banner-notice" role="status">
+          <CheckIcon size={16} />
+          <span>{notice}</span>
         </div>
       )}
 
@@ -920,21 +988,61 @@ export default function ConfigPage() {
                       <p className="config-item-note">当前回应由该配置的模型生成。</p>
                     )}
                     {configModels[config.id] && (
-                      <ModelGroups
-                        models={configModels[config.id]}
-                        selectedByModality={{
-                          [config.modality ?? 'text']: config.model,
-                        }}
-                        onSelect={(item, entry) => {
-                          if (entry.length === 0) return;
-                          if (item === (config.modality ?? 'text')) {
-                            startEdit(config);
-                            setEditModel(entry);
-                            return;
-                          }
-                          void cloneForModality(config.id, item, entry);
-                        }}
-                      />
+                      <div className="config-probe-panel">
+                        <ModelGroups
+                          models={configModels[config.id]}
+                          selectedByModality={{
+                            ...(configSelection[config.id] ?? {}),
+                            [config.modality ?? 'text']: config.model,
+                          }}
+                          onSelect={(item, entry) => {
+                            if (item === (config.modality ?? 'text')) {
+                              if (entry.length > 0) {
+                                startEdit(config);
+                                setEditModel(entry);
+                              }
+                              return;
+                            }
+                            setConfigSelection((previous) => {
+                              const current = {
+                                ...(previous[config.id] ?? {}),
+                              };
+                              if (entry.length === 0) {
+                                delete current[item];
+                              } else {
+                                current[item] = entry;
+                              }
+                              return { ...previous, [config.id]: current };
+                            });
+                          }}
+                        />
+                        <div className="config-selected-actions">
+                          <button
+                            type="button"
+                            className="config-button config-button-primary"
+                            onClick={() => void applyConfigSelection(config)}
+                            disabled={
+                              busyId === config.id ||
+                              Object.values(
+                                configSelection[config.id] ?? {},
+                              ).every(
+                                (entry) => !entry || entry.length === 0,
+                              )
+                            }
+                          >
+                            {busyId === config.id
+                              ? '保存中…'
+                              : `选用所选（${Object.values(
+                                  configSelection[config.id] ?? {},
+                                ).filter(
+                                  (entry) => entry && entry.length > 0,
+                                ).length} 个模态）`}
+                          </button>
+                          <span className="config-field-hint">
+                            所选模型共享该配置的端点与 key——一键按模态保存，无需重复配置。
+                          </span>
+                        </div>
+                      </div>
                     )}
                     {confirmingId === config.id ? (
                       <div className="confirm-panel">

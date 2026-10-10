@@ -101,6 +101,27 @@ function extractUrl(entry: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
+/** 异步任务轮询间隔与总超时（Agnes 视频官方
+ * 建议每 1–2 秒查询一次；生成通常需数十秒）。 */
+const VIDEO_POLL_INTERVAL_MS = 1_500;
+const VIDEO_POLL_TIMEOUT_MS = 180_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** 任务 ID（Agnes 异步任务——video_id 优先，
+ * 兼容 id / task_id 两种响应字段）。 */
+function extractVideoId(parsed: unknown): string | undefined {
+  if (parsed === null || typeof parsed !== 'object') return undefined;
+  const record = parsed as Record<string, unknown>;
+  for (const key of ['video_id', 'id', 'task_id']) {
+    const value = record[key];
+    if (typeof value === 'string' && value.length > 0) return value;
+  }
+  return undefined;
+}
+
 export async function generateImage(
   config: EnabledProviderConfig,
   prompt: string,
@@ -175,9 +196,19 @@ export async function generateVideo(
   config: EnabledProviderConfig,
   prompt: string,
 ): Promise<GenerationArtifact> {
+  // 官方文档最佳实践（Agnes Video 2.5 Flash——
+  // 异步任务接口）：POST /videos 创建任务
+  // （mode 为生成模式 text/keyframe/reference——
+  // 非质量档位；size 固定 720P），保存返回的
+  // video_id 后轮询 GET /agnesapi 直至
+  // status=completed，从响应顶层 url 取产物。
   const response = await callProvider(config, '/videos', {
     model: config.model,
     prompt,
+    mode: 'text',
+    seconds: '5',
+    size: '720P',
+    aspect_ratio: '16:9',
   });
   let parsed: unknown;
   try {
@@ -188,18 +219,85 @@ export async function generateVideo(
       'video',
     );
   }
-  // 响应形态依提供方：data[0].url / output.url / 顶层 url。
+  // 同步形态兜底（部分提供方直接返回产物 URL，
+  // 如本地 mock——无需轮询）。
   const entry = firstDataEntry(parsed);
-  const url =
+  const syncUrl =
     (entry !== null ? extractUrl(entry) : undefined) ??
     extractUrl(parsed as Record<string, unknown>);
-  if (url !== undefined) {
-    return { url, mime: 'video/mp4' };
+  if (syncUrl !== undefined) {
+    return { url: syncUrl, mime: 'video/mp4' };
   }
-  throw new GenerationError(
-    `generation provider response malformed (provider=${config.provider}, modality=video: no artifact url)`,
-    'video',
-  );
+  const videoId = extractVideoId(parsed);
+  if (videoId === undefined) {
+    throw new GenerationError(
+      `generation provider response malformed (provider=${config.provider}, modality=video: no artifact url or task id)`,
+      'video',
+    );
+  }
+  // 异步任务轮询（官方建议每 1–2 秒查询一次，
+  // 以 status 与 progress 为准——internal_status
+  // 为内部字段，不作为完成判据）。
+  const origin = new URL(config.endpoint).origin;
+  const pollUrl = `${origin}/agnesapi?video_id=${encodeURIComponent(videoId)}&model_name=${encodeURIComponent(config.model)}`;
+  const deadline = Date.now() + VIDEO_POLL_TIMEOUT_MS;
+  for (;;) {
+    await sleep(VIDEO_POLL_INTERVAL_MS);
+    let status: Response;
+    try {
+      status = await fetch(pollUrl, {
+        headers: headers(config.apiKey),
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch {
+      throw new GenerationError(
+        `generation provider network failure (provider=${config.provider}, modality=video: task poll)`,
+        'video',
+      );
+    }
+    if (!status.ok) {
+      throw new GenerationError(
+        `generation provider failed (provider=${config.provider}, modality=video: task poll status=${status.status})`,
+        'video',
+      );
+    }
+    let state: unknown;
+    try {
+      state = await status.json();
+    } catch {
+      throw new GenerationError(
+        `generation provider response malformed (provider=${config.provider}, modality=video: task poll non-JSON body)`,
+        'video',
+      );
+    }
+    const record = state as { status?: unknown; error?: unknown };
+    if (record.status === 'completed') {
+      const stateEntry = firstDataEntry(state);
+      const url =
+        extractUrl(state as Record<string, unknown>) ??
+        (stateEntry !== null ? extractUrl(stateEntry) : undefined);
+      if (url !== undefined) {
+        return { url, mime: 'video/mp4' };
+      }
+      throw new GenerationError(
+        `generation provider response malformed (provider=${config.provider}, modality=video: task completed without url)`,
+        'video',
+      );
+    }
+    if (record.status === 'failed') {
+      const reason = typeof record.error === 'string' ? record.error : 'unknown';
+      throw new GenerationError(
+        `generation provider task failed (provider=${config.provider}, modality=video: ${reason})`,
+        'video',
+      );
+    }
+    if (Date.now() >= deadline) {
+      throw new GenerationError(
+        `generation provider timeout (provider=${config.provider}, modality=video: task not completed within ${VIDEO_POLL_TIMEOUT_MS / 1000}s)`,
+        'video',
+      );
+    }
+  }
 }
 
 export const GENERATION_CALLS: Record<
