@@ -234,10 +234,10 @@
       "src/experience/correction.ts": "72897fcf8b3d8a64ceb9d6600a228cd2c447f772cc79c2aa8e46ab63a9d4674c",
       "src/experience/events.ts": "7c7d399f0dfcf9db3bf89fd6bf3ba7695c52f31181448f21ec3425e08c76f044",
       "src/experience/decision-trace.ts": "6606aa6e01c100b0217bafd7b49810a174e3dd7cda36a15668ebf0b42506f0c8",
-      "src/experience/llm-gateway.ts": "858dea8a666c6bed47142f39b32695418e88d564d54096b8373ed80f955a1601",
+      "src/experience/llm-gateway.ts": "dd7e83cce161dae0980f8b0282cc716c6540d6e865ea60b6adf9e51f6296fef9",
       "src/experience/creation.ts": "a7fe504b7ffa711ed10820f2d568792819fdefc3e65f0a4af280a2da4da181d4",
       "src/experience/runtime.ts": "5273ac59fa3c9c3f4f8e1de85718e7b674a5e56e3ab9fe3001edb22beb40e26e",
-      "src/experience/server-runtime.ts": "b6b3f83166d085e72013661915f2f79398f961081310bd35c5ad4d10412f5700",
+      "src/experience/server-runtime.ts": "c4abf09bdb6720afd8a0f0a1a70b8a3a75fbf92f0c33693b445a837a1ce00211",
       "src/experience/simulation.ts": "bb2ce53c17e30199969331abe23ffc49659d2881344201c5f8d360b52191d1ed",
       "src/experience/memory.ts": "ad15f2a443f195a2aff733eecdf36aefb623f551e60122700aeced36dff39c36",
       "src/experience/search.ts": "30956c8b1ad0e109b18884aea4d4ab9e1d610a695f08d33a291e52d5834bfd3b",
@@ -291,7 +291,7 @@
     "c4RegisteredNote": "§1–§17 全节 SHA-256 范围指纹已登记于 C4-LLM-Contract-v1.0.0.md §18（K-4/K-5，CR-10/CR-11 关闭）"
   },
   "run": {
-    "startedAt": "2026-10-10T07:52:32.725Z",
+    "startedAt": "2026-10-10T09:21:39.327Z",
     "finishedAt": null,
     "command": "npm run s2b (node tools/evidence/src/s2b.mjs, from tools/evidence)",
     "exitCode": null,
