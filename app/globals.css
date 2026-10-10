@@ -715,6 +715,14 @@ a:hover {
   color: var(--ink-faint);
 }
 
+.config-model-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
 .config-endpoint {
   color: var(--ink-soft);
   font-size: 12px;

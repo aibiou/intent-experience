@@ -70,6 +70,9 @@ export default function ConfigPage() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [showEditApiKey, setShowEditApiKey] = useState(false);
 
+  const [probingConfigId, setProbingConfigId] = useState<string | null>(null);
+  const [configModels, setConfigModels] = useState<Record<string, string[]>>({});
+
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -321,6 +324,30 @@ export default function ConfigPage() {
       setProbing(false);
     }
   }, [probing, editEndpoint, editApiKey, handleApiError]);
+
+  const probeConfigModels = useCallback(
+    async (id: string) => {
+      if (probingConfigId !== null) return;
+      setProbingConfigId(id);
+      setError(null);
+      try {
+        const response = await fetch('/api/config/models', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config_id: id }),
+        });
+        if (!response.ok) {
+          await handleApiError(response, '识别模型失败');
+          return;
+        }
+        const data = (await response.json()) as { models: string[] };
+        setConfigModels((previous) => ({ ...previous, [id]: data.models }));
+      } finally {
+        setProbingConfigId(null);
+      }
+    },
+    [probingConfigId, handleApiError],
+  );
 
   return (
     <main className="config-page">
@@ -608,6 +635,26 @@ export default function ConfigPage() {
                     {config.enabled && (
                       <p className="config-item-note">当前回应由该配置的模型生成。</p>
                     )}
+                    {configModels[config.id] && (
+                      <div className="config-model-list">
+                        <span className="config-preset-label">
+                          该提供方模型（点击选用）：
+                        </span>
+                        {configModels[config.id].map((entry) => (
+                          <button
+                            key={entry}
+                            type="button"
+                            className="config-button config-button-quiet"
+                            onClick={() => {
+                              startEdit(config);
+                              setEditModel(entry);
+                            }}
+                          >
+                            {entry}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {confirmingId === config.id ? (
                       <div className="confirm-panel">
                         <p className="confirm-statement">
@@ -674,6 +721,15 @@ export default function ConfigPage() {
                             <ShieldIcon size={14} /> 确认并启用
                           </button>
                         )}
+                        <button
+                          type="button"
+                          className="config-button config-button-quiet"
+                          onClick={() => void probeConfigModels(config.id)}
+                          disabled={busyId === config.id || probingConfigId !== null}
+                          title="用已保存的端点与 key 识别该提供方的全部模型（key 服务端解密使用，不返回页面）"
+                        >
+                          <RefreshIcon size={14} /> 识别模型
+                        </button>
                         <button
                           type="button"
                           className="config-button config-button-quiet"
