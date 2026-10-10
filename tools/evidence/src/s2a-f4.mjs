@@ -1720,7 +1720,7 @@ async function main() {
         adoptExtension: 'S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 实施（policy_v2.2.0 变更 1–5）：src/experience/simulation.ts（BranchRecord adopted 附加属性 + ADOPT_BRANCH 词表与执行——词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH）/ src/experience/events.ts（simulation_adopted 事件词表常量）/ src/experience/runtime.ts（ADOPT_BRANCH 路由与执行——确定性系统回合；simulation_adopted 事件登记；采用结果呈现为新一轮模拟上下文）/ src/experience/policy.ts（POLICY_VERSION=policy_v2.2.0 + 变更 1–5 文档注释）/ tools/evidence/src/golden.mjs（G10 分支回流黄金案例组 + policy_version 断言同步 policy_v2.2.0）/ tools/evidence/src/s2a-f4.mjs（BRANCH-ADOPT 案例组 + policy_version 断言同步 policy_v2.2.0）',
         evidenceCases: caseResults.map((entry) => `${RUN_ID}:${entry.caseId}=${entry.result}`),
         assertions: assertions.map((entry) => `${entry.id}=${entry.passed ? 'PASSED' : 'FAILED'}`),
-        goldenRegression: 'G3-GOLDEN-0001 PASSED（F-4 实施时 32/32 案例，断言已同步 policy_v1.4.0——历史绑定在录；前置基线 2026-10-09：36/36 案例、policy_v2.0.0 / state_machine_v1.5.0、退出码 0——历史绑定在录；本运行再生成基线：40/40 案例（G10 分支回流黄金案例组新增）、policy_v2.2.0 / state_machine_v1.5.0、退出码 0）',
+        goldenRegression: 'G3-GOLDEN-0001 PASSED（F-4 实施时 32/32 案例，断言已同步 policy_v1.4.0——历史绑定在录；前置基线 2026-10-09：36/36 案例、policy_v2.0.0 / state_machine_v1.5.0、退出码 0——历史绑定在录；ADOPT 迭代再生成基线：40/40 案例（G10 分支回流黄金案例组新增）、policy_v2.2.0 / state_machine_v1.5.0、退出码 0——历史绑定在录；本运行再生成基线：48/48 案例（G11 长期记忆黄金案例组并入）、policy_v2.2.0 / state_machine_v1.5.0、退出码 0）',
       },
     },
     environmentLicense: { id: 'E5-SCOPED-LICENSE-01', version: '1.0.0', decision: 'PD-17', status: 'superseded-by-implementation-authorization' },
@@ -1873,7 +1873,7 @@ async function main() {
       f1: { runId: 'F1-E2E-0001', result: 'PASSED（9/9 案例、12/12 断言、退出码 0）' },
       f2: { runId: 'F2-GS-0001', result: 'PASSED（40/40 案例、24/24 断言、退出码 0）' },
       f3: { runId: 'F3-EB-0001', result: 'PASSED（26/26 案例、28/28 断言、退出码 0）' },
-      g3: { runId: 'G3-GOLDEN-0001', result: 'PASSED（golden 再生验证——F-4 实施时 32/32、断言已同步 policy_v1.4.0；前置基线 2026-10-09：36/36 案例、policy_v2.0.0 / state_machine_v1.5.0、退出码 0——历史绑定在录；本运行再生成基线：40/40 案例（G10 分支回流黄金案例组新增）、policy_v2.2.0 / state_machine_v1.5.0、退出码 0）' },
+      g3: { runId: 'G3-GOLDEN-0001', result: 'PASSED（golden 再生验证——F-4 实施时 32/32、断言已同步 policy_v1.4.0；前置基线 2026-10-09：36/36 案例、policy_v2.0.0 / state_machine_v1.5.0、退出码 0——历史绑定在录；ADOPT 迭代再生成基线：40/40 案例（G10 分支回流黄金案例组新增）、policy_v2.2.0 / state_machine_v1.5.0、退出码 0——历史绑定在录；本运行再生成基线：48/48 案例（G11 长期记忆黄金案例组并入）、policy_v2.2.0 / state_machine_v1.5.0、退出码 0）' },
       s2a: {
         f1: { runId: 'S2A-OBL-01-0001', result: 'PASSED（7/7 案例、12/12 断言、退出码 0）' },
         f2: { runId: 'S2A-F2-0001', result: 'PASSED（10/10 案例、16/16 断言、退出码 0）' },

@@ -2139,7 +2139,7 @@ async function main() {
         ],
         evidenceCases: caseResults.map((entry) => `${RUN_ID}:${entry.caseId}=${entry.result}`),
         assertions: assertions.map((entry) => `${entry.id}=${entry.passed ? 'PASSED' : 'FAILED'}`),
-        goldenRegression: 'G3-GOLDEN-0001 PASSED（40/40 案例；断言已同步 policy_v2.2.0——S3a 实施后黄金回归零碰撞：G08-NEG"记住这个"对抗语料保持升级）',
+        goldenRegression: 'G3-GOLDEN-0001 PASSED（48/48 案例；policy_v2.2.0 / state_machine_v1.5.0——S3a 迭代后回归基线（G11 长期记忆案例组并入）；断言已同步 policy_v2.2.0——S3a 实施后黄金回归零碰撞：G08-NEG"记住这个"对抗语料保持升级）',
       },
     },
     environmentLicense: { id: 'E5-SCOPED-LICENSE-01', version: '1.0.0', decision: 'PD-17', status: 'superseded-by-implementation-authorization' },
@@ -2159,7 +2159,7 @@ async function main() {
     s1Specifications: referenceEntries.filter((name) => name.startsWith('P3-S1')),
     stateMachine: {
       contract: 'C2',
-      version: 'state_machine_v1.4.0',
+      version: 'state_machine_v1.5.0',
       implemented: [
         'L0 Session（§4）',
         'L2 Experience 状态机（§7）',
@@ -2170,7 +2170,8 @@ async function main() {
         'RESTORE 语义（S2A-F3-SEMANTIC-FREEZE-01 §4 变更 2）',
         'WHAT_IF_SIMULATE 多轮模拟契约化（S2A-F4-SEMANTIC-FREEZE-01 §4 变更 1）',
         'WHAT_IF 分支状态（S2A-F4-SEMANTIC-FREEZE-01 §4 变更 2——轴外分支子状态机）',
-        '轴外记忆子状态机（S2A-F5-SEMANTIC-FREEZE-01 §4 变更 1：状态 {REMEMBERED, IN_USE, DECAYING, EXPIRED}；操作 {CREATE（记住）, RECALL（暂时使用）, DECAY（逐渐失效——时间衰减驱动）, EXPIRE（到期——自动）, CORRECT（被用户纠正——内容更正 + 留痕）, WITHDRAW（被用户撤回——撤回留痕 + 删除审计）}；记忆域事件词表 memory_recorded / memory_corrected / memory_withdrawn / memory_expired；07 §10 映射冻结；体验阶段轴不变——记忆操作不新增体验轴触发器）',
+        '轴外记忆子状态机（S2A-F5-SEMANTIC-FREEZE-01 §4 变更 1：状态 {REMEMBERED, IN_USE, DECAYING, EXPIRED}；操作 {CREATE（记住）, RECALL（暂时使用）, DECAY（逐渐失效——时间衰减驱动）, EXPIRE（到期——自动）, CORRECT（被用户纠正——内容更正 + 留痕）, WITHDRAW（被用户撤回——撤回留痕 + 删除审计）}；记忆域事件词表 memory_recorded / memory_corrected / memory_withdrawn / memory_expired；07 §10 映射冻结；体验阶段轴不变——记忆操作不新增体验轴触发器——契约化冻结于 state_machine_v1.4.0 §4 变更 1，延续不变）',
+        'S2b 时代扩展（state_machine_v1.5.0 变更 1–3：创作域补丁操作域扩展 {add, remove, modify, deepen, simplify, reframe} / SEARCH 能力状态纪律 / First Experience 呈现路径——S2B-SEMANTIC-FREEZE-01 §4；本清单为 F-5 义务绑定范围，S2b 扩展由 S2B-0001 证据登记）',
       ],
     },
     policy: {
@@ -2254,10 +2255,10 @@ async function main() {
   }
   assert(
     'A18',
-    'run-metadata 完整（E5 §3 版本矩阵全部字段 + F-5 记忆语义专项 memorySemantics + obligationTraceability：F-5 → 案例 / 断言映射；policy 版本 policy_v2.2.0——S3a 语义启用）',
+    'run-metadata 完整（E5 §3 版本矩阵全部字段 + F-5 记忆语义专项 memorySemantics + obligationTraceability：F-5 → 案例 / 断言映射；policy 版本 policy_v2.2.0——S3a 语义启用；state_machine 版本 state_machine_v1.5.0（现行——S2B-SEMANTIC-FREEZE-01 §4 变更 1–3；轴外记忆子状态机契约化冻结于 state_machine_v1.4.0 §4 变更 1，延续不变）；黄金回归基线 G3-GOLDEN-0001 48/48 案例）',
     missingSections.length === 0 &&
     versionMatrix.policy.version === 'policy_v2.2.0' &&
-    versionMatrix.stateMachine.version === 'state_machine_v1.4.0' &&
+    versionMatrix.stateMachine.version === 'state_machine_v1.5.0' &&
     Object.keys(versionMatrix.obligationTraceability['F-5 (Minimal Memory)'].frozenDecisions).length === 5 &&
     versionMatrix.obligationTraceability['F-5 (Minimal Memory)'].goldenRegression.includes('policy_v2.2.0') &&
     versionMatrix.obligationTraceability['F-5 (Minimal Memory)'].implementationFiles.length === 10 &&
