@@ -124,6 +124,8 @@ const INTERACTION_EVENT_BY_SEMANTIC_ACTION: Readonly<Record<SemanticAction, stri
   DEEPEN: 'deepen_requested', // S2b（D-01 选项 A；C6 §14 交互事件命名模式）
   SIMPLIFY: 'simplify_requested', // S2b（同上）
   REFRAME: 'reframe_requested', // S2b（同上）
+  CONTINUE: 'continue_requested', // S4（D-1 选项 A；C6 §14 交互事件命名模式）
+  REPEAT: 'repeat_requested', // S4（同上）
 };
 
 function errorCodeStatus(code: RuntimeErrorCode): number {
@@ -235,6 +237,14 @@ export class ExperienceRuntime {
   private readonly memories = new MemoryStore();
   /** 语义动作历史（创作上下文继承派生用；08 §6 五项。仅登记已提交动作）。 */
   private readonly actionHistory = new Map<string, SemanticAction[]>();
+  /** 上一完成轮响应内容（S4 D-1 选项 A——REPEAT 呈现层重放数据源；
+   * 内存映射——运行时为进程内单例（server-runtime），与 sessions /
+   * experiences / store 同生命周期；仅内容轮次（chunk 数 > 0）登记，
+   * 空轮次（STOP / CONTINUE 等）不覆盖上一内容轮记录）。 */
+  private readonly lastResponseByExperience = new Map<
+    string,
+    { chunks: string[]; fixtureId: string; at: string }
+  >();
   private readonly recorder: EventRecorder;
   private readonly traceSink: DecisionTraceSink;
   private readonly auditSink: AuditSink;
@@ -1217,6 +1227,15 @@ export class ExperienceRuntime {
       // CORRECTION 的 Policy Action 为 EXPLAIN（重评估落到合法动作），
       // 须在 executeContentGeneration 兜底前按语义动作分派（PD-21 关闭切片）。
       branchResult = await this.executeCorrect(input, session, experience, current, stateBefore, policy, decisionId);
+    } else if (policy.policyAction === 'CONTINUE' || policy.policyAction === 'REPEAT') {
+      // S4（D-1 选项 A；S4A-SEMANTIC-FREEZE-01 v1.0.0 §1 D-1）：
+      // CONTINUE 幂等确认轮次 / REPEAT 呈现层重放轮次——确定性
+      // 系统回合（llm_used=false）；state_version 不变（不登记
+      // 状态变更事件——纯呈现 / 确认语义）。
+      branchResult =
+        policy.policyAction === 'CONTINUE'
+          ? await this.executeContinue(input, session, experience, current, stateBefore, policy, decisionId)
+          : await this.executeRepeat(input, session, experience, current, stateBefore, policy, decisionId);
     } else {
       branchResult = await this.executeContentGeneration(
         input,
@@ -1235,6 +1254,15 @@ export class ExperienceRuntime {
       const history = this.actionHistory.get(input.experienceId) ?? [];
       history.push(policy.semanticAction);
       this.actionHistory.set(input.experienceId, history);
+      // S4（D-1 选项 A；S4A-SEMANTIC-FREEZE-01 v1.0.0 §1 D-1）——
+      // 上一完成轮响应内容登记（REPEAT 呈现层重放数据源）：
+      // 包装异步生成器——客户端事件原样转发，chunk 事件内容经
+      // 内部登记（不改变客户端流；仅内容轮次登记——空轮次
+      // 不覆盖上一内容轮记录）。
+      branchResult = {
+        ...branchResult,
+        stream: this.captureLastResponse(input.experienceId, branchResult.stream),
+      };
     }
 
     // policy_decided 事件（C6 §18；S1 §23 最低事件集）：记录决策与其
@@ -3491,6 +3519,272 @@ export class ExperienceRuntime {
   // ---------------------------------------------------------------------
   // ANSWER / EXPLAIN / SIMULATE 执行（内容生成流）
   // ---------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------
+  // CONTINUE / REPEAT 执行（S4 D-1 选项 A；S4A-SEMANTIC-FREEZE-01
+  // v1.0.0 §1 D-1——确定性系统回合：llm_used=false，state_version
+  // 不变——不登记状态变更事件（纯呈现 / 确认语义））
+  // ---------------------------------------------------------------------
+
+  private async executeContinue(
+    input: {
+      experienceId: string;
+      sessionId: string;
+      requestId: string;
+      expectedStateVersion: number;
+      signal?: AbortSignal;
+      rawInput: string;
+    },
+    session: SessionRecord,
+    experience: ExperienceRecord,
+    current: ExperienceState,
+    stateBefore: ExperienceView,
+    policy: { semanticAction: SemanticAction; policyAction: PolicyAction },
+    decisionId: string,
+  ): Promise<SubmissionResult> {
+    const now = new Date().toISOString();
+    // 乐观并发校验（无状态变更——客户端预期版本须与当前版本一致）。
+    if (input.expectedStateVersion !== current.stateVersion) {
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'state_version_conflict',
+        reasonSecondary: `expected ${input.expectedStateVersion} but current is ${current.stateVersion}`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      await this.recordEvent('state_version_conflict', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId },
+        source: { layer: 'runtime', component: 'state-store' },
+        properties: {
+          expected_state_version: input.expectedStateVersion,
+          current_state_version: current.stateVersion,
+          trigger: 'CONTINUE',
+        },
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'STATE_VERSION_CONFLICT',
+          `expected_state_version ${input.expectedStateVersion} but current is ${current.stateVersion} (CONTINUE is idempotent - no state change; retry with the current version)`,
+        ),
+      };
+    }
+    await this.writeDecisionTrace({
+      decisionId,
+      sessionId: input.sessionId,
+      experienceId: input.experienceId,
+      semanticAction: policy.semanticAction,
+      stateBefore,
+      stateBeforeVersion: current.stateVersion,
+      stateAfter: { status: stateBefore.status, stage: stateBefore.stage, state_version: current.stateVersion },
+      selectedAction: policy.policyAction,
+      reasonPrimary: 'explicit_user_direction',
+      reasonSecondary: 'CONTINUE confirms the current experience continues (idempotent confirmation round - no state change; S4A-SEMANTIC-FREEZE-01 D-1)',
+      llmUsed: false,
+      userOverride: true,
+      inputEvent: null,
+      intentBefore: null,
+    });
+    const header: SubmissionHeader = {
+      type: 'submission',
+      accepted: true,
+      experience_id: input.experienceId,
+      session_id: input.sessionId,
+      request_id: input.requestId,
+      policy_decision: {
+        decision_id: decisionId,
+        policy_version: POLICY_VERSION,
+        semantic_action: policy.semanticAction,
+        selected_action: policy.policyAction,
+        reason: 'semantic_action',
+      },
+      state_version: current.stateVersion,
+      state: { status: current.status, stage: current.stage, waiting_for_user: current.waitingForUser },
+      at: now,
+    };
+    // CONTINUE 无内容分块（幂等确认——空语料）；流产出 done 终止事件。
+    const stream = this.wrapGenerationStream({
+      header,
+      experienceId: input.experienceId,
+      generationId: 'gen-continue',
+      streamOptions: {
+        semanticAction: policy.semanticAction,
+        policyAction: 'CONTINUE',
+        fixtureId: 'synthetic/continue/v1',
+        chunks: [],
+        signal: input.signal,
+        chunkDelayMs: 0,
+        audit: this.auditSink,
+      },
+      completionCommit: false,
+    });
+    return { ok: true, header, stream, generationId: 'gen-continue' };
+  }
+
+  private async executeRepeat(
+    input: {
+      experienceId: string;
+      sessionId: string;
+      requestId: string;
+      expectedStateVersion: number;
+      signal?: AbortSignal;
+      rawInput: string;
+    },
+    session: SessionRecord,
+    experience: ExperienceRecord,
+    current: ExperienceState,
+    stateBefore: ExperienceView,
+    policy: { semanticAction: SemanticAction; policyAction: PolicyAction },
+    decisionId: string,
+  ): Promise<SubmissionResult> {
+    const now = new Date().toISOString();
+    // 乐观并发校验（无状态变更——客户端预期版本须与当前版本一致）。
+    if (input.expectedStateVersion !== current.stateVersion) {
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'state_version_conflict',
+        reasonSecondary: `expected ${input.expectedStateVersion} but current is ${current.stateVersion}`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      await this.recordEvent('state_version_conflict', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId },
+        source: { layer: 'runtime', component: 'state-store' },
+        properties: {
+          expected_state_version: input.expectedStateVersion,
+          current_state_version: current.stateVersion,
+          trigger: 'REPEAT',
+        },
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'STATE_VERSION_CONFLICT',
+          `expected_state_version ${input.expectedStateVersion} but current is ${current.stateVersion} (REPEAT is a presentation-layer replay - no state change; retry with the current version)`,
+        ),
+      };
+    }
+    // 前置条件：上一完成轮响应存在（呈现层重放数据源）。
+    const lastResponse = this.lastResponseByExperience.get(input.experienceId);
+    if (!lastResponse) {
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: null,
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'invalid_state_transition',
+        reasonSecondary: 'REPEAT requires a previous completed response round (no prior content round in this experience)',
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+      return {
+        ok: false,
+        error: runtimeError(
+          'INVALID_STATE_TRANSITION',
+          'REPEAT requires a previous completed response round (no prior content round in this experience - S4A-SEMANTIC-FREEZE-01 D-1)',
+        ),
+      };
+    }
+    await this.writeDecisionTrace({
+      decisionId,
+      sessionId: input.sessionId,
+      experienceId: input.experienceId,
+      semanticAction: policy.semanticAction,
+      stateBefore,
+      stateBeforeVersion: current.stateVersion,
+      stateAfter: { status: stateBefore.status, stage: stateBefore.stage, state_version: current.stateVersion },
+      selectedAction: policy.policyAction,
+      reasonPrimary: 'explicit_user_direction',
+      reasonSecondary: 'REPEAT replays the previous completed round response (presentation-layer replay - no state change; S4A-SEMANTIC-FREEZE-01 D-1)',
+      llmUsed: false,
+      userOverride: true,
+      inputEvent: null,
+      intentBefore: null,
+    });
+    const header: SubmissionHeader = {
+      type: 'submission',
+      accepted: true,
+      experience_id: input.experienceId,
+      session_id: input.sessionId,
+      request_id: input.requestId,
+      policy_decision: {
+        decision_id: decisionId,
+        policy_version: POLICY_VERSION,
+        semantic_action: policy.semanticAction,
+        selected_action: policy.policyAction,
+        reason: 'semantic_action',
+      },
+      state_version: current.stateVersion,
+      state: { status: current.status, stage: current.stage, waiting_for_user: current.waitingForUser },
+      at: now,
+    };
+    // REPEAT 呈现层重放：上一完成轮响应内容经既有流式 chunk 路径
+    // 重放（内容与 fixtureId 为上一轮原文——呈现层重放，不重新生成）。
+    const stream = this.wrapGenerationStream({
+      header,
+      experienceId: input.experienceId,
+      generationId: 'gen-repeat',
+      streamOptions: {
+        semanticAction: policy.semanticAction,
+        policyAction: 'REPEAT',
+        fixtureId: lastResponse.fixtureId,
+        chunks: lastResponse.chunks,
+        signal: input.signal,
+        chunkDelayMs: 0,
+        audit: this.auditSink,
+      },
+      completionCommit: false,
+    });
+    return { ok: true, header, stream, generationId: 'gen-repeat' };
+  }
+
+  /** S4（D-1 选项 A；S4A-SEMANTIC-FREEZE-01 v1.0.0 §1 D-1）——
+   * 上一完成轮响应内容登记：包装异步生成器，客户端事件原样转发；
+   * chunk 事件内容经内部登记（REPEAT 呈现层重放数据源——
+   * 不改变客户端流；仅内容轮次登记——空轮次不覆盖上一内容轮记录）。 */
+  private async *captureLastResponse(
+    experienceId: string,
+    source: AsyncGenerator<RuntimeStreamEvent>,
+  ): AsyncGenerator<RuntimeStreamEvent> {
+    const chunks: string[] = [];
+    let fixtureId = '';
+    for await (const event of source) {
+      if (event.type === 'chunk' && event.content !== null) {
+        chunks.push(event.content);
+        fixtureId = event.fixtureId;
+      }
+      yield event;
+    }
+    if (chunks.length > 0) {
+      this.lastResponseByExperience.set(experienceId, { chunks, fixtureId, at: new Date().toISOString() });
+    }
+  }
 
   private async executeContentGeneration(
     input: {
