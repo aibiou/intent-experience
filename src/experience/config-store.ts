@@ -302,6 +302,23 @@ export async function getEnabledProviderConfig(): Promise<EnabledProviderConfig 
   };
 }
 
+/** 运行期内部：按 id 加载配置（含解密 key——仅供模型识别等运行期用途，
+ * key 任何形态不返回客户端；S5B-SEMANTIC-FREEZE-01 v1.3.0）。 */
+export async function getProviderConfigById(id: string): Promise<EnabledProviderConfig | null> {
+  const store = await loadStore();
+  const record = store.records.find((candidate) => candidate.id === id);
+  if (!record) return null;
+  const profile = PROVIDER_PROFILES[record.provider];
+  return {
+    provider: record.provider,
+    model: record.model,
+    endpoint: resolveEndpoint(record),
+    temperature: profile?.temperature ?? DEFAULT_PROVIDER_TEMPERATURE,
+    systemPrompt: profile?.systemPrompt ?? DEFAULT_PROVIDER_SYSTEM_PROMPT,
+    apiKey: decryptApiKey(record.keyCiphertext),
+  };
+}
+
 /**
  * 启动期同步判定（server-runtime 配置解析优先级用——进程启动时
  * 调用一次）：是否存在已启用的页面持久化配置。存储损坏时拒绝

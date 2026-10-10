@@ -1,8 +1,12 @@
+import { getProviderConfigById } from '../../../../src/experience/config-store';
+
 /**
  * POST /api/config/models —— 模型列表识别（OpenAI 兼容 GET /models）。
- * 用户触发：仅发送用户填写的端点与 key 至其配置的提供方；
- * 响应仅含模型 id 列表——key 任何形态不返回、不记录（S5B D-4 纪律）；
- * 错误信息仅含状态码——不含 key、不含请求体。
+ * 两种形态：
+ * - 显式（保存前表单）：{ endpoint, api_key }——仅发送用户填写的端点与 key。
+ * - 已存（保存后自动识别）：{ config_id }——服务端解密该配置的持久化 key
+ *   使用（key 任何形态不返回客户端——S5B D-4 读操作纪律）。
+ * 响应仅含模型 id 列表；错误信息仅含状态码——不含 key、不含请求体。
  */
 export async function POST(req: Request): Promise<Response> {
   let parsed: unknown;
@@ -11,23 +15,39 @@ export async function POST(req: Request): Promise<Response> {
   } catch {
     return Response.json({ code: 'INVALID_REQUEST', message: 'body must be valid JSON' }, { status: 400 });
   }
-  const body = parsed as { endpoint?: unknown; api_key?: unknown };
+  const body = parsed as { endpoint?: unknown; api_key?: unknown; config_id?: unknown };
+  // 形态 B：已保存配置（url + 密钥均已持久化——服务端解密使用）。
+  if (typeof body.config_id === 'string' && body.config_id.length > 0) {
+    const stored = await getProviderConfigById(body.config_id);
+    if (!stored) {
+      return Response.json(
+        { code: 'CONFIG_NOT_FOUND', message: `provider config '${body.config_id}' not found` },
+        { status: 404 },
+      );
+    }
+    return probeModels(stored.endpoint, stored.apiKey);
+  }
+  // 形态 A：显式端点 + key（保存前表单识别）。
   if (typeof body.endpoint !== 'string' || body.endpoint.trim().length === 0) {
     return Response.json({ code: 'INVALID_REQUEST', message: 'endpoint is required' }, { status: 400 });
   }
   if (typeof body.api_key !== 'string' || body.api_key.length === 0) {
     return Response.json({ code: 'INVALID_REQUEST', message: 'api_key is required' }, { status: 400 });
   }
+  return probeModels(body.endpoint.trim(), body.api_key);
+}
+
+async function probeModels(endpoint: string, apiKey: string): Promise<Response> {
   let modelsUrl: URL;
   try {
-    modelsUrl = deriveModelsUrl(body.endpoint.trim());
+    modelsUrl = deriveModelsUrl(endpoint);
   } catch {
     return Response.json({ code: 'INVALID_REQUEST', message: 'endpoint must be a valid http(s) URL' }, { status: 400 });
   }
   try {
     const probeResponse = await fetch(modelsUrl, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${body.api_key}` },
+      headers: { Authorization: `Bearer ${apiKey}` },
       signal: AbortSignal.timeout(10_000),
     });
     if (!probeResponse.ok) {

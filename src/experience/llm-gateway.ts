@@ -136,6 +136,17 @@ export class ProviderLlmGateway implements LlmGateway {
     this.config = config;
   }
 
+  /** 请求 URL 构造（端点容错——S5B-SEMANTIC-FREEZE-01 v1.3.0）：
+   * 用户经常填写提供方文档中的 API Base（如 https://api.example.com/v1）；
+   * 缺 /chat/completions 后缀时自动补全——已含后缀的端点原样使用
+   * （预设端点形态不变，零行为变化）。 */
+  private get requestUrl(): string {
+    const endpoint = this.config.endpoint.replace(/\/+$/, '');
+    return endpoint.endsWith('/chat/completions')
+      ? endpoint
+      : `${endpoint}/chat/completions`;
+  }
+
   async propose(request: LlmRequest): Promise<LlmProposal> {
     this.calls += 1;
     const body = {
@@ -148,7 +159,7 @@ export class ProviderLlmGateway implements LlmGateway {
     };
     let response: Response;
     try {
-      response = await fetch(this.config.endpoint, {
+      response = await fetch(this.requestUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
