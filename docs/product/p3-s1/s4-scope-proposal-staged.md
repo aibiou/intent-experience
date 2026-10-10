@@ -1,8 +1,8 @@
 # S4 范围提案（S4-SCOPE-PROPOSAL-01 v0.1.0）
 
-**状态：** STAGED FOR PRODUCT-OWNER RULING——待产品负责人逐项裁决 D-1…D-6
+**状态：** RULED——产品负责人（用户本人，PD-15）2026-10-10 裁决 D-1…D-6 全项 A
 **编号：** S4-SCOPE-PROPOSAL-01
-**版本：** 0.1.0（2026-10-10：staged——实现方起草，待产品负责人裁决）
+**版本：** 1.0.0（2026-10-10：产品负责人裁决 D-1…D-6 全项 A 升版 RULED——§3 选项文本经裁决版本化冻结；语义冻结文本签发：S4A-SEMANTIC-FREEZE-01 v1.0.0（`s4a-semantic-freeze.md`——D-1…D-5 语义定义版本化冻结））
 **起草：** 工程负责人角色（代理，Codex 履行，PD-15 委托）
 **关联：** C3-SEMANTIC-GAP-REGISTER-01 v1.0.0（G-1…G-7 空缺登记）/ SRC-06（`docs/product/reference/14｜Action & Policy Contract V1（动作与策略契约 V1）.md`——C3 frozen 源）/ contract-authority-baseline §3 C3 条 / S3-SCOPE-PROPOSAL-01 v1.0.0（S3 先例）/ policy_v2.2.0 / state_machine_v1.5.0 / ADR-0002 §3（硬边界）
 **记录日期：** 2026-10-10
@@ -32,37 +32,37 @@
 
 ### D-1：G-1 REPEAT / CONTINUE 策略动作分类扩展
 
-- **选项 A（实现方建议）**：版本化定义并纳入 §7 分类表——REPEAT = 重复上一响应（呈现层重放上一完成轮响应——不登记状态变更事件，决策追踪留痕形态由冻结文本定义）；CONTINUE = 继续当前体验（确定性系统回合——维持当前运行时状态并继续当前未完成轮次；无未完成轮次时为幂等空操作；llm_used=false、reasonPrimary=explicit_user_direction）；**优先级层插入位置：全部既有层之后**（仅认领全部优先级层未命中的 REPEAT/CONTINUE 类输入——零既有输入行为变化；源 §8 优先级关系 STOP > CONTINUE / CHANGE_DIRECTION > CONTINUE 经此实例化）；resolvePolicy 冻结表扩展。
+- **选项 A（实现方建议）**：版本化定义并纳入 §7 分类表——REPEAT = 重复上一响应（呈现层重放上一完成轮响应——不登记状态变更事件，决策追踪留痕形态由冻结文本定义）；CONTINUE = 继续当前体验（确定性系统回合——维持当前运行时状态并继续当前未完成轮次；无未完成轮次时为幂等空操作；llm_used=false、reasonPrimary=explicit_user_direction）；**优先级层插入位置：全部既有层之后**（仅认领全部优先级层未命中的 REPEAT/CONTINUE 类输入——零既有输入行为变化；源 §8 优先级关系 STOP > CONTINUE / CHANGE_DIRECTION > CONTINUE 经此实例化）；resolvePolicy 冻结表扩展。（2026-10-10 经产品负责人裁决采纳——见 §6）
 - **选项 B**：维持空缺——REPEAT/CONTINUE 保持拒绝（ACTION_OUT_OF_S1_SCOPE），§8 映射经版本化注记改述为显式升级。
 - **选项 C**：仅定义其一（如仅 CONTINUE）。
 
 ### D-2：G-2 多选映射一般选择判据
 
-- **选项 A（实现方建议）**：版本化定义确定性选择规则——多选语义动作按固定优先级序选择（WHY → EXPLAIN 优先于 ANSWER——与 S1 黄金案例 GS-02 冻结预期一致；COMPARE → ANSWER 优先于 EXPLAIN；VERIFY → SEARCH 优先于 ANSWER；KNOWN → WAIT 优先于 DEEPEN / BRANCH），判据为确定性优先级序而非上下文推断。
+- **选项 A（实现方建议）**：版本化定义确定性选择规则——多选语义动作按固定优先级序选择（WHY → EXPLAIN 优先于 ANSWER——与 S1 黄金案例 GS-02 冻结预期一致；COMPARE → ANSWER 优先于 EXPLAIN；VERIFY → SEARCH 优先于 ANSWER；KNOWN → WAIT 优先于 DEEPEN / BRANCH），判据为确定性优先级序而非上下文推断。（2026-10-10 经产品负责人裁决采纳——见 §6）
 - **选项 B**：维持空缺——多选映射逐案例经冻结预期指定（S1 先例），不定义一般规则。
 - **选项 C**：部分映射定义（如仅 WHY / COMPARE）。
 
 ### D-3：G-3 ENTERING 资格表引用一致性
 
-- **选项 A（实现方建议）**：版本化登记更正——资格表 START/CHANGE 经策略版本注记登记合法动作名为 CHANGE_DIRECTION（与实现一致）；纯引用一致性更正，无产品行为变化；不改写归档源字节（登记册约束 §3）。
+- **选项 A（实现方建议）**：版本化登记更正——资格表 START/CHANGE 经策略版本注记登记合法动作名为 CHANGE_DIRECTION（与实现一致）；纯引用一致性更正，无产品行为变化；不改写归档源字节（登记册约束 §3）。（2026-10-10 经产品负责人裁决采纳——见 §6）
 - **选项 B**：维持空缺（登记注记）。
 - **选项 C**：分类表扩展 START/CHANGE 为新策略动作（产品行为变化——实现方不推荐：无实现需求，CHANGE_DIRECTION 已承载）。
 
 ### D-4：G-4 / G-5 / G-6 策略内部参数组（取值域 / 阈值 / 评分公式）
 
-- **选项 A（实现方建议）**：版本化定义——constraints depth / interaction 枚举（取值域由策略版本冻结——如 depth: shallow / medium / deep；interaction: single / multi）；confidence 阈值（确定性分类器不产生低置信匹配——版本化确认「未命中即升级」为阈值语义的实例化，threshold 定义不改变行为）；Simple Scoring 公式与权重（版本化登记为规范定义——实现分类不依赖该评分，公式定义不改变行为）。
+- **选项 A（实现方建议）**：版本化定义——constraints depth / interaction 枚举（取值域由策略版本冻结——如 depth: shallow / medium / deep；interaction: single / multi）；confidence 阈值（确定性分类器不产生低置信匹配——版本化确认「未命中即升级」为阈值语义的实例化，threshold 定义不改变行为）；Simple Scoring 公式与权重（版本化登记为规范定义——实现分类不依赖该评分，公式定义不改变行为）。（2026-10-10 经产品负责人裁决采纳——见 §6）
 - **选项 B**：维持空缺（参数组保持未定义）。
 - **选项 C**：仅定义部分（如仅取值域）。
 
 ### D-5：G-7 内部过程定义与出口条件
 
-- **选项 A（实现方建议）**：版本化定义 REASSESS / SAFE_WAIT / MINIMAL_CLARIFICATION 内部过程与返回合法策略动作的完整出口条件——REASSESS = 内部重新评估过程（出口：重新分类后返回合法策略动作——实现已用 reason=reassess）；SAFE_WAIT = 安全等待过程（出口：等待用户输入或升级）；MINIMAL_CLARIFICATION = 最小澄清过程（出口：澄清请求或升级）。
+- **选项 A（实现方建议）**：版本化定义 REASSESS / SAFE_WAIT / MINIMAL_CLARIFICATION 内部过程与返回合法策略动作的完整出口条件——REASSESS = 内部重新评估过程（出口：重新分类后返回合法策略动作——实现已用 reason=reassess）；SAFE_WAIT = 安全等待过程（出口：等待用户输入或升级）；MINIMAL_CLARIFICATION = 最小澄清过程（出口：澄清请求或升级）。（2026-10-10 经产品负责人裁决采纳——见 §6）
 - **选项 B**：维持空缺。
 - **选项 C**：部分定义（如仅 REASSESS——实现已使用）。
 
 ### D-6：实施路径
 
-- **选项 A（实现方建议）**：一次性实施（D-1…D-5 全项 A → policy_v2.3.0 变更 1–5 → 动态证据 S4A-F1-0001 + G3-GOLDEN-0001 回归 + S2B-0001 重跑 → S4 G5 独立评测）。
+- **选项 A（实现方建议）**：一次性实施（D-1…D-5 全项 A → policy_v2.3.0 变更 1–5 → 动态证据 S4A-F1-0001 + G3-GOLDEN-0001 回归 + S2B-0001 重跑 → S4 G5 独立评测）。（2026-10-10 经产品负责人裁决采纳——见 §6）
 - **选项 B**：分批（先 D-1 / D-5 行为变更组 → 证据 → 再 D-2 / D-4 参数组）。
 - **选项 C**：仅版本化决策不实施（语义冻结文本签发，实施授权另行签发）。
 
@@ -85,5 +85,5 @@
 ## 6. 签署区
 
 - 起草：工程负责人角色（代理，Codex），2026-10-10。
-- 产品负责人裁决：（待裁决——D-1…D-6 逐项）
-- 独立评测人（角色 5，用户本人，PD-15）：（待评测执行）
+- 产品负责人裁决：**D-1…D-6 全项 A，2026-10-10**——D-1 REPEAT/CONTINUE 版本化定义并纳入 §7 分类表（优先级层插入全部既有层之后——零既有输入行为变化）/ D-2 多选映射按固定优先级序选择 / D-3 资格表经版本化注记登记合法动作名 CHANGE_DIRECTION / D-4 参数组版本化定义（取值域枚举 + 「未命中即升级」阈值语义实例化 + 评分公式规范登记）/ D-5 内部过程与出口条件版本化定义 / D-6 一次性实施（policy_v2.3.0 变更 1–5 → 动态证据 S4A-F1-0001 + G3-GOLDEN-0001 回归 + S2B-0001 重跑 → S4 G5 独立评测）。
+- 独立评测人（角色 5，用户本人，PD-15）：（待评测执行——S4 G5 评测链另行 staged）
