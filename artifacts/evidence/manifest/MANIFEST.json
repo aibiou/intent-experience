@@ -1,7 +1,7 @@
 {
   "manifestId": "EVIDENCE-MANIFEST-01",
-  "version": "1.5.0",
-  "generatedAt": "2026-10-10T05:38:24.823Z",
+  "version": "1.6.0",
+  "generatedAt": "2026-10-10T08:07:37.980Z",
   "generatedBy": "工程负责人角色（代理，Codex 履行，PD-15 委托）",
   "authority": "E5 证据执行环境与独立评测计划（P2-EVIDENCE-E5.1）§7 只追加布局；G5 第 15 项（Evidence Index）输入",
   "method": "独立重算生成（不信任执行器自报断言）：每运行 summary.json 计数、SHA256SUMS 逐项重算、run-metadata 代码绑定（code.gitHead）均独立核验",
@@ -1383,7 +1383,7 @@
     {
       "runId": "S2B-0001",
       "kind": "iteration-evidence",
-      "iteration": "S2b 首批义务（G-1…G-4）+ S3 回归（黄金回归绑定新基线 policy_v2.2.0 / 48 案例）",
+      "iteration": "S2b 首批义务（G-1…G-4）+ S3 回归（黄金回归绑定新基线 policy_v2.3.0 / 48 案例——S4 迭代后基线）",
       "obligation": "P3-S2B-IMPL-AUTH-01 v1.0.0 §1/§2：S2b 体验动作扩展首批义务 G-1…G-4（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 + SEARCH 内部能力 + First Experience 完整呈现）",
       "path": "artifacts/evidence/runs/S2B-0001",
       "result": {
@@ -1397,9 +1397,9 @@
         },
         "exitCode": 0,
         "allPassed": true,
-        "startedAt": "2026-10-10T04:56:24.766Z",
-        "finishedAt": "2026-10-10T04:56:35.501Z",
-        "durationMs": 10733,
+        "startedAt": "2026-10-10T07:52:32.725Z",
+        "finishedAt": "2026-10-10T07:52:44.680Z",
+        "durationMs": 11954,
         "obligation": "P3-S2B-IMPL-AUTH-01 v1.0.0 §1/§2：S2b 体验动作扩展首批义务 G-1…G-4（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 + SEARCH 内部能力 + First Experience 完整呈现）"
       },
       "sha256sums": {
@@ -1417,7 +1417,7 @@
       "codeBinding": {
         "form": "in-process（真实 .ts 源字节；HTTP 形态回归证据见 F2-GS-0001 / F3-EB-0001）",
         "filesHashed": 44,
-        "note": "run-metadata 以文件级哈希登记代码绑定（无 code.gitHead 字段——S2b 时代执行器形态）；本再生产物重跑于 S2 分支回流实施后工作树（产品提交 728b3de / 执行器提交 a7077ce 内容当时未提交，如实记录；其后经 728b3de / a7077ce / 0a4be6d 提交入库）"
+        "note": "run-metadata 以文件级哈希登记代码绑定（无 code.gitHead 字段——S2b 时代执行器形态）；policy_v2.3.0 基线重跑于 S4 实施后工作树（产品提交 717fa61 / 执行器提交经证据提交入库——运行时刻执行器版本串已同步 policy_v2.3.0）"
       },
       "artifactsIntroducedAtCommit": "2b2bbf5",
       "reviewPackage": "artifacts/evidence/runs/S2B-0001/review/README.md",
@@ -1529,6 +1529,76 @@
             "includesReviewReadme": false,
             "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
           }
+        },
+        {
+          "archive": "S2B-0001-attempt-2026-10-10T07-44-14-191Z",
+          "path": "artifacts/evidence/runs/S2B-0001-attempt-2026-10-10T07-44-14-191Z",
+          "artifactsIntroducedAtCommit": "6571a6d",
+          "nature": "先前通过运行（policy_v2.2.0 时代基线 7/7——2026-10-10T04:56 运行；归档目录由本证据提交引入，内容为先前通过运行的原始产物）按 ADR-0002 §5 只追加纪律前置归档（policy_v2.3.0 基线重跑前）",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 7,
+              "pass": 7
+            },
+            "assertions": {
+              "total": 14,
+              "pass": 14
+            },
+            "exitCode": 0,
+            "allPassed": true,
+            "startedAt": "2026-10-10T04:56:24.766Z",
+            "finishedAt": "2026-10-10T04:56:35.501Z",
+            "durationMs": 10733,
+            "obligation": "P3-S2B-IMPL-AUTH-01 v1.0.0 §1/§2：S2b 体验动作扩展首批义务 G-1…G-4（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 + SEARCH 内部能力 + First Experience 完整呈现）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/S2B-0001-attempt-2026-10-10T07-44-14-191Z/SHA256SUMS",
+            "entries": 16,
+            "independentRecompute": {
+              "verified": 16,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
+        },
+        {
+          "archive": "S2B-0001-attempt-2026-10-10T07-52-37-124Z",
+          "path": "artifacts/evidence/runs/S2B-0001-attempt-2026-10-10T07-52-37-124Z",
+          "artifactsIntroducedAtCommit": "6571a6d",
+          "nature": "先前通过运行（policy_v2.3.0 基线首次重跑 7/7——2026-10-10T07:44 运行；执行器描述串同步 policy_v2.3.0 后按 ADR-0002 §5 前置归档重跑——再生产物，非失败尝试）",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 7,
+              "pass": 7
+            },
+            "assertions": {
+              "total": 14,
+              "pass": 14
+            },
+            "exitCode": 0,
+            "allPassed": true,
+            "startedAt": "2026-10-10T07:44:04.929Z",
+            "finishedAt": "2026-10-10T07:44:21.541Z",
+            "durationMs": 16611,
+            "obligation": "P3-S2B-IMPL-AUTH-01 v1.0.0 §1/§2：S2b 体验动作扩展首批义务 G-1…G-4（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 + SEARCH 内部能力 + First Experience 完整呈现）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/S2B-0001-attempt-2026-10-10T07-52-37-124Z/SHA256SUMS",
+            "entries": 16,
+            "independentRecompute": {
+              "verified": 16,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
         }
       ],
       "artifactsIntroducedNote": "当前再生产物状态（S2 分支回流实施后重跑——黄金回归绑定 G3-GOLDEN-0001 40/40 通过后执行；policy_v2.1.0 恒等映射经 policy_v2.1.0 延续，7/7 案例、14/14 断言）提交 0a4be6d；首次证据提交 434142f（policy_v2.0.0 时代，7/7 案例、14/14 断言）"
@@ -1550,9 +1620,9 @@
         },
         "exitCode": 0,
         "allPassed": true,
-        "startedAt": "2026-10-10T04:48:32.665Z",
-        "finishedAt": "2026-10-10T04:49:01.961Z",
-        "durationMs": 29295,
+        "startedAt": "2026-10-10T07:42:11.282Z",
+        "finishedAt": "2026-10-10T07:42:44.269Z",
+        "durationMs": 32986,
         "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）"
       },
       "sha256sums": {
@@ -1568,7 +1638,7 @@
         "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
       },
       "codeBinding": {
-        "gitHead": "76c1605ce27d82345e596a968ba07fc29548777e",
+        "gitHead": "717fa61ffbc0d82d69ccd627a87ebef95724758b",
         "workTreeClean": false,
         "uncommittedEntries": [
           "M artifacts/evidence/runs/G3-GOLDEN-0001/SHA256SUMS",
@@ -1608,6 +1678,18 @@
           " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G09-FR.json",
           " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G09-N.json",
           " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G09-NEG.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G10-B.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G10-FR.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G10-N.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G10-NEG.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G11-B.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G11-FR.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G11-N.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G11-NEG.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G12-B.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G12-FR.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G12-N.json",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G12-NEG.json",
           " M artifacts/evidence/runs/G3-GOLDEN-0001/review/README.md",
           " M artifacts/evidence/runs/G3-GOLDEN-0001/run-metadata.json",
           " M artifacts/evidence/runs/G3-GOLDEN-0001/summary.json",
@@ -1647,86 +1729,22 @@
           " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G09-FR.jsonl",
           " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G09-N.jsonl",
           " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G09-NEG.jsonl",
-          " M artifacts/evidence/runs/S2A-F4-0001/SHA256SUMS",
-          " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_BRANCH-LIFECYCLE.json",
-          " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_INPROC-REGRESSION.json",
-          " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_MULTI-ROUND.json",
-          " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_NO-NEW-EXPERIENCE.json",
-          " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_NONCREATION-INERT.json",
-          " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_SEPARATION.json",
-          " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_STAGE-PRESERVED.json",
-          " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_STALE-REJECT.json",
-          " M artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_STOP-PRIORITY.json",
-          " M artifacts/evidence/runs/S2A-F4-0001/review/README.md",
-          " M artifacts/evidence/runs/S2A-F4-0001/run-metadata.json",
-          " M artifacts/evidence/runs/S2A-F4-0001/summary.json",
-          " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:BRANCH-LIFECYCLE.jsonl",
-          " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:INPROC-REGRESSION.jsonl",
-          " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:MULTI-ROUND.jsonl",
-          " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:NO-NEW-EXPERIENCE.jsonl",
-          " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:NONCREATION-INERT.jsonl",
-          " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:SEPARATION.jsonl",
-          " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:STAGE-PRESERVED.jsonl",
-          " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:STALE-REJECT.jsonl",
-          " M artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:STOP-PRIORITY.jsonl",
-          " M src/experience/events.ts",
-          " M src/experience/policy.ts",
-          " M src/experience/runtime.ts",
-          " M src/experience/simulation.ts",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G10-B.jsonl",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G10-FR.jsonl",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G10-N.jsonl",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G10-NEG.jsonl",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G11-B.jsonl",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G11-FR.jsonl",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G11-N.jsonl",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G11-NEG.jsonl",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G12-B.jsonl",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G12-FR.jsonl",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G12-N.jsonl",
+          " M artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G12-NEG.jsonl",
           " M tools/evidence/src/golden.mjs",
-          " M tools/evidence/src/s2a-f4.mjs",
-          " M tools/evidence/src/s2b.mjs",
-          "?? artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T00-37-18-438Z/",
-          "?? artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G10-B.json",
-          "?? artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G10-FR.json",
-          "?? artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G10-N.json",
-          "?? artifacts/evidence/runs/G3-GOLDEN-0001/cases/G3-GOLDEN-0001_G10-NEG.json",
-          "?? artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G10-B.jsonl",
-          "?? artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G10-FR.jsonl",
-          "?? artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G10-N.jsonl",
-          "?? artifacts/evidence/runs/G3-GOLDEN-0001/traces/G3-GOLDEN-0001:G10-NEG.jsonl",
-          "?? artifacts/evidence/runs/S2A-F4-0001-attempt-2026-10-10T00-33-01-157Z/",
-          "?? artifacts/evidence/runs/S2A-F4-0001-attempt-2026-10-10T00-36-33-645Z/",
-          "?? artifacts/evidence/runs/S2A-F4-0001/cases/S2A-F4-0001_BRANCH-ADOPT.json",
-          "?? artifacts/evidence/runs/S2A-F4-0001/traces/S2A-F4-0001:BRANCH-ADOPT.jsonl"
+          "?? artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T07-39-27-929Z/"
         ],
-        "runtimeFiles": {
-          "audit.ts": "1da20af50e24cde6e4638a78f22e05ec847fa153c0a4655b86134474291ddf0b",
-          "chunks.ts": "a26f6619842a23e853aae7f7800b94b161756121785e6fe4943a1f7bf01a1755",
-          "classifier.ts": "9745fd31eac696d7d374f8df78d1de149feb0230c0d0a99b395cc052c0749110",
-          "correction.ts": "72897fcf8b3d8a64ceb9d6600a228cd2c447f772cc79c2aa8e46ab63a9d4674c",
-          "creation.ts": "a7fe504b7ffa711ed10820f2d568792819fdefc3e65f0a4af280a2da4da181d4",
-          "decision-trace.ts": "6606aa6e01c100b0217bafd7b49810a174e3dd7cda36a15668ebf0b42506f0c8",
-          "events.ts": "7c7d399f0dfcf9db3bf89fd6bf3ba7695c52f31181448f21ec3425e08c76f044",
-          "fixtures/change-direction.ts": "8db3861f3a0693492054d4aeb9d73ed42a3fb561bcc7f45ed8de0fc47ed6468a",
-          "fixtures/correction.ts": "27393524ebcb51cf2f26e32fa163e3c2a787f0cfe2cf9b11fc242dbe7db03f68",
-          "fixtures/create.ts": "e84eba657c582b8947d10988ed9389ab5eb56563f8d07de97ef7f81f486b7b99",
-          "fixtures/deepen.ts": "951909264e3e1fb5fa6918dd7e19aa009d85b572078aa8a412fef556b2d040eb",
-          "fixtures/direct-answer.ts": "d2183d5f8fe5075540980462cf3774fba8fcc4c1f0740032654ba27331ed264c",
-          "fixtures/reframe.ts": "9b23a56c9030e18c331c9ff53fef71dd0f3a42f6e00feff2dec5d4fe8a757640",
-          "fixtures/simplify.ts": "a4b399d00e61e18949d47774fa48f63e4008c37faf7bb3fcec0557213119694d",
-          "fixtures/simulate.ts": "dfa4045bb0457267f53b7f320472d55afd5b00635cf8366e8449b8aa793bc58a",
-          "fixtures/why.ts": "8e597e2d9c4082ee4a80e19557c82d3be54ed917f3dbfd68bb8a4752787757e0",
-          "http.ts": "d26961966a134880732b9ae22a9368c821ce6680fff2c1df4349d0a7f731b13d",
-          "llm-gateway.ts": "858dea8a666c6bed47142f39b32695418e88d564d54096b8373ed80f955a1601",
-          "memory.ts": "daa35e0e02c522468d78b138787452e1e3c3ae82c7a1bdac94f8b62a38a60ef8",
-          "policy.ts": "0082f96b5e2f1717ed443b66b84e882ec7f0d550be4a7bb2ff3566b49c071874",
-          "presentation.ts": "683850285b94a814e296143ab1f3d9e0adc2fe81990818f53a7df989bc73344c",
-          "runtime.ts": "739eba5fc4cee1eb32f38ba7de1acf06eb8ddee21d8b4793180a91b8ed003e31",
-          "search.ts": "30956c8b1ad0e109b18884aea4d4ab9e1d610a695f08d33a291e52d5834bfd3b",
-          "server-runtime.ts": "b6b3f83166d085e72013661915f2f79398f961081310bd35c5ad4d10412f5700",
-          "session.ts": "d7a21131bfb848730643ca7808e71a714e4a757e917cf1103f23c549d68589ae",
-          "simulation.ts": "a20b93409294015189509e7938ffeb8b1a4b176a200fb5a3e6def7e397b28173",
-          "state-machine.ts": "e78a54e5cc5ee6d9d9ddfb4520bdc7aaa8c0f37d48530b29e9a5bb2d7f9d9044",
-          "state-store.ts": "625f747f39f589c8d3d99bf00a61dd58a89c5876e9b21cd2c1f59a346189e863",
-          "stream.ts": "a2931765e29382e81f755be747a8dbb9097b94d3a42103a9d8ba87c988281010",
-          "validator.ts": "46850fea758853531f6687551b8f96280772c7fe4c019ac76559ec93fdc4646a"
-        },
-        "typecheckCommand": "npm run typecheck:core",
-        "buildCommand": "npm run build (next build, Turbopack)",
-        "typecheckExitCode": 0,
-        "buildExitCode": 0,
-        "note": "运行于未提交工作树（S2 分支回流实施期——产品提交 728b3de / 执行器提交 a7077ce 内容当时未提交，uncommittedEntries 如实记录；其后经 728b3de / a7077ce / 0a4be6d 提交入库，经独立评测人核对满足 E5 §3 记录要求）"
+        "note": "run-metadata.json code 节原文登记（git 状态为运行时刻快照——证据执行器与治理文档当时未提交，其后经证据提交入库）"
       },
       "artifactsIntroducedAtCommit": "2b2bbf5",
       "artifactsIntroducedNote": "当前再生产物状态（S2 分支回流实施后再生成——新增 G10 分支回流案例组 N/NEG/B/FR，40/40 案例、10/10 断言）提交 0a4be6d；36 案例扩展形态首次提交 849c0fc（G09 案例组纳入）；语料 v2 尾句对齐再生产物提交 f6763e5（36/36 案例、10/10 断言——归档留存 G3-GOLDEN-0001-attempt-2026-10-10T00-37-18-438Z）；本运行为黄金套件回归基线，非 Gate 判定证据（E5 §2：退出码 0 不设置任何 Gate 为 PASS）",
@@ -2468,8 +2486,79 @@
             "includesReviewReadme": false,
             "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
           }
+        },
+        {
+          "archive": "G3-GOLDEN-0001-attempt-2026-10-10T07-39-27-929Z",
+          "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T07-39-27-929Z",
+          "artifactsIntroducedAtCommit": "6571a6d",
+          "nature": "先前通过运行（policy_v2.2.0 时代基线 48/48——2026-10-10T04:48 运行；归档目录由本证据提交引入，内容为先前通过运行的原始产物）按 ADR-0002 §5 只追加纪律前置归档（policy_v2.3.0 基线重跑前）",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 48,
+              "pass": 48
+            },
+            "assertions": {
+              "total": 10,
+              "pass": 10
+            },
+            "exitCode": 0,
+            "allPassed": true,
+            "startedAt": "2026-10-10T04:48:32.665Z",
+            "finishedAt": "2026-10-10T04:49:01.961Z",
+            "durationMs": 29295,
+            "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T07-39-27-929Z/SHA256SUMS",
+            "entries": 98,
+            "independentRecompute": {
+              "verified": 98,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
+        },
+        {
+          "archive": "G3-GOLDEN-0001-attempt-2026-10-10T07-42-16-743Z",
+          "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T07-42-16-743Z",
+          "artifactsIntroducedAtCommit": "6571a6d",
+          "nature": "失败尝试（如实登记）——首次 policy_v2.3.0 运行：8 案例失败（G04-N / G07-N / G09-N / G10-N / G10-B / G10-FR / G12-N / G12-FR——全部为 policy 版本字符串期望未随版本化迁移；行为断言全部通过——零行为回归）；退出码 1；按 ADR-0002 §5 归档（不重跑至通过而不留失败记录）；期望版本化同步后重跑 48/48 通过",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 48,
+              "pass": 40
+            },
+            "assertions": {
+              "total": 10,
+              "pass": 8
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-10T07:39:18.452Z",
+            "finishedAt": "2026-10-10T07:39:55.453Z",
+            "durationMs": 36993,
+            "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T07-42-16-743Z/SHA256SUMS",
+            "entries": 98,
+            "independentRecompute": {
+              "verified": 98,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
         }
-      ]
+      ],
+      "assertionNote": "首次 policy_v2.3.0 运行 8 案例失败（G04-N / G07-N / G09-N / G10-N / G10-B / G10-FR / G12-N / G12-FR）——全部为 policy 版本字符串期望（=== \"policy_v2.2.0\"）未随策略版本化迁移；行为断言全部通过（零行为回归）。按 ADR-0002 §5 如实归档（G3-GOLDEN-0001-attempt-2026-10-10T07-42-16-743Z，退出码 1）。期望经版本化迁移（执行器 12 处断言字符串 + 4 处期望文档串同步 policy_v2.3.0——与 S3a 迭代\"断言同步 policy_v2.2.0\"同理：冻结期望的版本标识成分随策略版本迁移，行为期望冻结面不变）后重跑 48/48 通过（10/10 断言）。"
     },
     {
       "runId": "S3-API-0001",
@@ -2547,6 +2636,71 @@
           }
         }
       ]
+    },
+    {
+      "runId": "S4A-F1-0001",
+      "kind": "iteration-evidence",
+      "iteration": "S4 动态证据（S4A-SEMANTIC-FREEZE-01 v1.0.0 D-6 选项 A 一次性实施义务——REPEAT / CONTINUE 策略动作版本化实施，policy_v2.3.0）",
+      "obligation": "S4A-SEMANTIC-FREEZE-01 v1.0.0 §5 动态证据计划（D-6 选项 A 一次性实施义务）：REPEAT / CONTINUE 策略动作版本化实施——policy_v2.3.0 变更 1–5（C3 G-1 空缺版本化关闭）",
+      "path": "artifacts/evidence/runs/S4A-F1-0001",
+      "result": {
+        "cases": {
+          "total": 6,
+          "pass": 6
+        },
+        "assertions": {
+          "total": 15,
+          "pass": 15
+        },
+        "exitCode": 0,
+        "allPassed": true,
+        "startedAt": "2026-10-10T07:53:30.447Z",
+        "finishedAt": "2026-10-10T07:53:35.229Z",
+        "durationMs": 4781,
+        "obligation": "S4A-SEMANTIC-FREEZE-01 v1.0.0 §5 动态证据计划（D-6 选项 A 一次性实施义务）：REPEAT / CONTINUE 策略动作版本化实施——policy_v2.3.0 变更 1–5（C3 G-1 空缺版本化关闭）"
+      },
+      "sha256sums": {
+        "path": "artifacts/evidence/runs/S4A-F1-0001/SHA256SUMS",
+        "entries": 14,
+        "independentRecompute": {
+          "verified": 14,
+          "mismatch": 0,
+          "missing": 0
+        },
+        "includesSummaryJson": true,
+        "includesReviewReadme": false,
+        "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+      },
+      "codeBinding": {
+        "form": "in-process（真实 .ts 源字节；HTTP 形态证据见 S3-API-0001）",
+        "filesHashed": 43,
+        "note": "run-metadata 以文件级哈希登记代码绑定（无 code.gitHead 字段——S4a 时代执行器形态）；运行于产品提交 717fa61（policy_v2.3.0 实施）后工作树"
+      },
+      "artifactsIntroducedAtCommit": "6571a6d",
+      "reviewPackage": "artifacts/evidence/runs/S4A-F1-0001/review/README.md",
+      "failedAttemptArchives": [
+        {
+          "archive": "S4A-F1-0001-attempt-2026-10-10T07-53-34-370Z",
+          "path": "artifacts/evidence/runs/S4A-F1-0001-attempt-2026-10-10T07-53-34-370Z",
+          "artifactsIntroducedAtCommit": "6571a6d",
+          "nature": "失败尝试（如实登记）——执行器缺陷（双重）：(1) c4Entry 未从预检阶段传递至断言阶段（ReferenceError——run-metadata 版本矩阵引用未定义变量，崩溃于汇总写入前）；(2) CONTINUE-RUNTIME 案例流事件序列断言缺陷（流含提交头事件 + done 事件，断言期望序列写死 \"done\"——案例 FAIL）。案例经独立重算重建：6 案例 5 PASS / 1 FAIL；无 summary.json（崩溃于写入前——SHA256SUMS 未产出）。按 ADR-0002 §5 归档；双重缺陷修复后重跑 6/6 通过（15/15 断言）",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 6,
+              "pass": 5
+            },
+            "assertions": {
+              "total": null,
+              "pass": null
+            }
+          },
+          "sha256sums": {
+            "note": "FATAL 崩溃于 SHA256SUMS 产出前——无哈希清单（案例记录留存于 cases/ 目录，计数经独立重算重建）"
+          }
+        }
+      ],
+      "assertionNote": "首次执行 6 案例 5 PASS / 1 FAIL（CONTINUE-RUNTIME——流事件序列断言缺陷：流含提交头事件 + done 事件，期望序列写死 \"done\"）；执行器崩溃（c4Entry ReferenceError——run-metadata 版本矩阵引用未定义变量）于汇总写入前。按 ADR-0002 §5 如实归档（S4A-F1-0001-attempt-2026-10-10T07-53-34-370Z）；双重缺陷修复后重跑 6/6 通过（15/15 断言——流事件序列断言修正为 提交头事件 + done；c4Entry 经预检阶段返回传递）。产品运行时零缺陷——失败均为执行器侧缺陷。"
     }
   ],
   "notes": [
