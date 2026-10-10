@@ -2,8 +2,18 @@
 // （P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6 授权范围：F-4——WHAT_IF 完整分支语义，
 //   依据 S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施；
 //   ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A
-//   裁决补写生效——policy_v2.1.0 变更 1–5，本运行扩展 BRANCH-ADOPT
-//   案例组回归；S2B-SEMANTIC-FREEZE-01 D-05 经 policy_v2.1.0 延续）
+//   裁决补写生效——policy_v2.2.0 变更 1–5，本运行扩展 BRANCH-ADOPT
+//   案例组回归；S2B-SEMANTIC-FREEZE-01 D-05 经 policy_v2.2.0 延续）
+//
+// S3 回归扩展（S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划——
+//   CR-28 全项 A 裁决 2026-10-10）：① 策略版本随 S3a 实施升至
+//   policy_v2.2.0（S3A/S3B-SEMANTIC-FREEZE-01 §3 变更文本——F-4 语义
+//   经 policy_v2.2.0 延续不变，全部 policy_version 断言同步）；② S2 时代
+//   "模拟域随会话结束失效"负向不变式（D-04 选项 A）经 S3B-SEMANTIC-
+//   FREEZE-01 v1.0.0 D-2 选项 A 取代——分支记录全量跨会话持久化
+//   （STOP 后 getSimulation 成功：currentBranchId 会话级清空为 null，
+//   分支记录与模拟历史保留）；S2 时代已提交运行产物按 ADR-0002 §5
+//   保持冻结不改写；本执行器断言当前冻结语义。
 //
 // 治理约束（授权 §5 持续约束，ADR-0002 §3/§5）：
 // - 仅合成数据；无真实 LLM 提供方调用；无真实用户数据；
@@ -260,7 +270,7 @@ async function caseMultiRound(trace) {
     stage: 'UNDERSTANDING → SIMULATION → SIMULATION（13 §15.3 多轮模拟阶段保持）',
     events: 'simulation_recorded ×2（round 1 / 2，同一 branch——WHAT_IF 首轮自动 CREATE，D-03 选项 A；branch_created [true, false]）',
     content: '两轮内容逐字节等于 simulate 语料（合成数据；不省略、不累积）',
-    decisionTrace: 'WHAT_IF 轮次决策追踪 reasonPrimary=semantic_action，llm_used=true，policy_version=policy_v2.1.0（F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经现行 policy_v2.1.0 延续不变）',
+    decisionTrace: 'WHAT_IF 轮次决策追踪 reasonPrimary=semantic_action，llm_used=true，policy_version=policy_v2.2.0（F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经现行 policy_v2.2.0 延续不变）',
   };
   const actual = {
     round1: {
@@ -340,7 +350,7 @@ async function caseMultiRound(trace) {
     snapshot.branches[0].version === 2 &&
     snapshot.branches[0].sourceRound === 1 &&
     snapshot.currentBranchId === snapshot.branches[0].branchId &&
-    jsonEquals(actual.policyVersions, ['policy_v2.1.0']) &&
+    jsonEquals(actual.policyVersions, ['policy_v2.2.0']) &&
     jsonEquals(actual.llmUsed, [true, true]) &&
     jsonEquals(actual.reasonPrimary, ['semantic_action', 'semantic_action']);
   return { expected, actual, pass };
@@ -789,7 +799,7 @@ async function caseNoncreationInert(trace) {
 
   const expected = {
     inertness: '非模拟场景（WHY → EXPLAIN）行为与前置版本（policy_v1.3.0）一致：why_requested ×1 → generation/llm 链路 → state_transitioned（steps [USER_ACTION]）→ 终态 WAITING/UNDERSTANDING v4；内容逐字节等于 why 语料',
-    difference: '与前置版本（policy_v1.3.0）仅有的差异：policy_version 字段 = policy_v2.1.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续）；模拟域事件零登记（非模拟路径不受 F-4 影响）',
+    difference: '与前置版本（policy_v1.3.0）仅有的差异：policy_version 字段 = policy_v2.2.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续）；模拟域事件零登记（非模拟路径不受 F-4 影响）',
     simulationDomain: '零 simulation_recorded 事件；无模拟域上下文（getSimulation 拒绝——未建立模拟上下文）',
   };
   const actual = {
@@ -810,7 +820,7 @@ async function caseNoncreationInert(trace) {
     whySub.ok &&
     whySub.header.policy_decision.selected_action === 'EXPLAIN' &&
     whySub.header.policy_decision.reason === 'semantic_action' &&
-    whySub.header.policy_decision.policy_version === 'policy_v2.1.0' &&
+    whySub.header.policy_decision.policy_version === 'policy_v2.2.0' &&
     whyContent === why.chunks.join('') &&
     whyRequested.length === 1 &&
     jsonEquals(actual.transitionedSteps, [['USER_ACTION']]) &&
@@ -819,7 +829,7 @@ async function caseNoncreationInert(trace) {
     state.stateVersion === 4 &&
     simEvents.length === 0 &&
     snapshotOf(runtime, exp.experienceId) === undefined &&
-    jsonEquals(actual.policyVersions, ['policy_v2.1.0']) &&
+    jsonEquals(actual.policyVersions, ['policy_v2.2.0']) &&
     jsonEquals(actual.llmUsed, [true]);
   return { expected, actual, pass };
 }
@@ -907,9 +917,9 @@ async function caseInprocRegression(trace) {
 
   const expected = {
     chain: 'WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（新分支自动 CREATE）→ CREATE 衔接（13 §15.5）→ 完成信号（STOP）全链路',
-    contracts: '全部事件信封符合 C6 §7；sequence_number 严格单调（C6 §25）；全部决策追踪 policy_version=policy_v2.1.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续不变）；WHY / 模拟轮 / CREATE 内容逐字节等于 why / simulate / create 语料',
+    contracts: '全部事件信封符合 C6 §7；sequence_number 严格单调（C6 §25）；全部决策追踪 policy_version=policy_v2.2.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续不变）；WHY / 模拟轮 / CREATE 内容逐字节等于 why / simulate / create 语料',
     simulationDomain: 'simulation_recorded ×3（round 1/2 同一分支，round 3 新分支——RETURN 后首轮自动 CREATE）；分支操作轮零 simulation_recorded（确定性系统回合）',
-    finalState: 'COMPLETED/COMPLETION；创作 COMPLETE（active=false，v1）；会话 SESSION_ENDED；模拟域随会话结束失效（D-04 选项 A——getSimulation 拒绝）',
+    finalState: 'COMPLETED/COMPLETION；创作 COMPLETE（active=false，v1）；会话 SESSION_ENDED；模拟域跨会话持久（S3B §1.1/§1.5——取代 S2 时代 D-04 失效不变式：getSimulation 成功，currentBranchId===null——会话级指针清空不跨会话自动恢复，分支记录 ×2 与模拟历史全量保留）',
   };
   const actual = {
     whyOk: whySub.ok,
@@ -930,7 +940,9 @@ async function caseInprocRegression(trace) {
     creationVersion: creation.ok ? creation.creation.version : null,
     sessionState: sessionAfter?.state ?? null,
     simulationRecorded: simEvents.map((event) => ({ round: event.properties.round, branch_id: event.properties.branch_id })),
-    simulationContextAfterStop: simulationAfterStop === undefined ? 'invalidated (D-04)' : 'present (defect)',
+    simulationContextAfterStop: simulationAfterStop === undefined
+      ? 'invalidated (unexpected——S3B 持久化语义下应存在)'
+      : { currentBranchId: simulationAfterStop.currentBranchId, branches: simulationAfterStop.branches.length },
     envelopeViolations: envelopeViolations.length,
     sequenceMonotonic: sequenceOk,
     policyVersions: [...new Set(decisionTraces.map((traceEntry) => traceEntry.policy?.policy_version))],
@@ -963,10 +975,12 @@ async function caseInprocRegression(trace) {
     simEvents[2].properties.round === 3 &&
     simEvents[0].properties.branch_id === simEvents[1].properties.branch_id &&
     simEvents[2].properties.branch_id !== simEvents[0].properties.branch_id &&
-    simulationAfterStop === undefined &&
+    simulationAfterStop !== undefined &&
+    simulationAfterStop.currentBranchId === null &&
+    simulationAfterStop.branches.length === 2 &&
     envelopeViolations.length === 0 &&
     sequenceOk &&
-    jsonEquals(actual.policyVersions, ['policy_v2.1.0']) &&
+    jsonEquals(actual.policyVersions, ['policy_v2.2.0']) &&
     jsonEquals(actual.branchOpLlmUsed, [false]);
   return { expected, actual, pass };
 }
@@ -1104,7 +1118,7 @@ async function caseBranchLifecycle(trace) {
 }
 
 // --- BRANCH-ADOPT：显式回流操作 ADOPT_BRANCH（S2-BRANCH-REFLOW-DEF-01
-// v1.0.0 选项 A——第五分支操作；policy_v2.1.0 变更 1–5） ----------
+// v1.0.0 选项 A——第五分支操作；policy_v2.2.0 变更 1–5） ----------
 async function caseBranchAdopt(trace) {
   const { runtime, events, traces } = createCaseRuntime();
   const chain = await setupChain(runtime, 'branchadopt', '如果摩擦力为零会怎样');
@@ -1171,10 +1185,10 @@ async function caseBranchAdopt(trace) {
 
   const expected = {
     chain: 'WHAT_IF 轮 1（自动 CREATE 分支 1）→ 轮 2（累积）→ ADOPT_BRANCH 分支 1（adopted 附加，主线当前上下文不变）→ 负向：采用分支九 INVALID_STATE_TRANSITION（不消耗版本号）→ RETURN（分支 1 RETURNED，当前清空）→ ADOPT_BRANCH 分支 1（RETURNED 生命周期不变，adopted 幂等，currentBranchId 保持 null）',
-    contracts: '全部事件信封符合 C6 §7；sequence_number 严格单调（C6 §25）；全部决策追踪 policy_version=policy_v2.1.0（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 经 policy_v2.1.0 变更 1–5 生效）；模拟轮内容逐字节等于 simulate 语料；采用轮结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文',
+    contracts: '全部事件信封符合 C6 §7；sequence_number 严格单调（C6 §25）；全部决策追踪 policy_version=policy_v2.2.0（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 经 policy_v2.2.0 变更 1–5 生效）；模拟轮内容逐字节等于 simulate 语料；采用轮结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文',
     simulationDomain: 'simulation_recorded ×2（round 1/2 同一分支——仅模拟轮登记）；simulation_adopted ×2（branch_id=分支 1，source_round=1，adopted_content=分支 1 最新模拟轮模拟内容，separation_invariant=simulation_result_is_not_fact——采用结果仍标记为模拟来源）',
     branchModel: '分支 1：lifecycle ACTIVE→ACTIVE（采用不变）→RETURNED（RETURN）→RETURNED（采用不变）；adopted false→true（附加标记，幂等）；version=2（采用不累积模拟轮次）；currentBranchId 分支 1→分支 1（采用不变）→null（RETURN）→null（采用不变——主线当前上下文不变）',
-    decisionTraces: '分支操作决策追踪 4 轮（采用 1 / 采用九拒绝 / RETURN / 采用 2）llm_used=false（确定性系统回合）；ADOPT_BRANCH 轨迹 3 轮——采用轮（成功 ×2）reasonPrimary=explicit_user_direction、拒绝轮 reasonPrimary=invalid_state_transition；全部 policy_version=policy_v2.1.0',
+    decisionTraces: '分支操作决策追踪 4 轮（采用 1 / 采用九拒绝 / RETURN / 采用 2）llm_used=false（确定性系统回合）；ADOPT_BRANCH 轨迹 3 轮——采用轮（成功 ×2）reasonPrimary=explicit_user_direction、拒绝轮 reasonPrimary=invalid_state_transition；全部 policy_version=policy_v2.2.0',
     finalState: 'WAITING/SIMULATION v12（启动 v2 + 轮 1/2 各 +2 + 采用 1 +2 + RETURN +2 + 采用 2 +2；负向拒绝轮零消耗——OBL-01）',
   };
   const actual = {
@@ -1239,7 +1253,7 @@ async function caseBranchAdopt(trace) {
     adopt1.submission.ok &&
     adopt1.submission.header.policy_decision.selected_action === 'SIMULATE' &&
     adopt1.submission.header.policy_decision.reason === 'simulation_branch_operation' &&
-    adopt1.submission.header.policy_decision.policy_version === 'policy_v2.1.0' &&
+    adopt1.submission.header.policy_decision.policy_version === 'policy_v2.2.0' &&
     adopt1Content.includes(adoptedContent) &&
     snapAfterAdopt1?.branches[0]?.adopted === true &&
     snapAfterAdopt1?.branches[0]?.lifecycle === 'ACTIVE' &&
@@ -1279,7 +1293,7 @@ async function caseBranchAdopt(trace) {
     actual.adoptTraceReasons.filter((reason) => reason === 'explicit_user_direction').length === 2 &&
     envelopeViolations.length === 0 &&
     sequenceOk &&
-    jsonEquals(actual.policyVersions, ['policy_v2.1.0']) &&
+    jsonEquals(actual.policyVersions, ['policy_v2.2.0']) &&
     versionAfterAdopt2 === 12;
   return { expected, actual, pass };
 }
@@ -1353,7 +1367,7 @@ const CASE_REGISTRY = [
     form: 'inprocess',
     servers: [],
     sourceClause: 'S2A-F4-SEMANTIC-FREEZE-01 §5（S2A-F4-NONCREATION-INERT 案例大纲）；G3 黄金套件 G02 语义（非模拟路径不回归）；PD-07',
-    scope: '非模拟场景（WHY → EXPLAIN）行为与前置版本一致：why_requested ×1 → generation/llm 链路 → state_transitioned（steps [USER_ACTION]）→ 终态 WAITING/UNDERSTANDING v4；内容逐字节等于 why 语料；与前置版本（policy_v1.3.0）仅有的差异为 policy_version=policy_v2.1.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续）；模拟域零事件、无模拟上下文',
+    scope: '非模拟场景（WHY → EXPLAIN）行为与前置版本一致：why_requested ×1 → generation/llm 链路 → state_transitioned（steps [USER_ACTION]）→ 终态 WAITING/UNDERSTANDING v4；内容逐字节等于 why 语料；与前置版本（policy_v1.3.0）仅有的差异为 policy_version=policy_v2.2.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续）；模拟域零事件、无模拟上下文',
     precondition: 'WHY 意图链已建立（启动 v2）',
     inputFault: '"为什么"（声明 WHY）',
     run: caseNoncreationInert,
@@ -1363,7 +1377,7 @@ const CASE_REGISTRY = [
     form: 'inprocess',
     servers: [],
     sourceClause: 'S2A-F4-SEMANTIC-FREEZE-01 §5（S2A-F4-INPROC-REGRESSION 案例大纲）；G2 跨契约一致性；C6 §7（信封）/§25（sequence 单调）；13 §15.5（SIMULATION → CREATION 衔接）；D-04 选项 A（会话结束失效）',
-    scope: '全链路进程内回归：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（新分支自动 CREATE）→ CREATE 衔接 → 完成信号；信封全量有效、sequence 严格单调、全部决策追踪 policy_version=policy_v2.1.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续不变）、内容逐字节等于语料；simulation_recorded ×3；模拟域随会话结束失效',
+    scope: '全链路进程内回归：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（新分支自动 CREATE）→ CREATE 衔接 → 完成信号；信封全量有效、sequence 严格单调、全部决策追踪 policy_version=policy_v2.2.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续不变）、内容逐字节等于语料；simulation_recorded ×3；模拟域跨会话持久（STOP 后 getSimulation 成功——currentBranchId===null，分支记录 ×2 保留——S3B 取代 S2 时代失效不变式）',
     precondition: 'WHY 意图链已建立（启动 v2）',
     inputFault: '"为什么" / "如果摩擦力为零会怎样" / "假如速度再高一点会怎样" / "如果返回主线呢" / "如果摩擦力再小一点会怎样" / "做成一个小游戏" / "就这样"',
     run: caseInprocRegression,
@@ -1382,7 +1396,7 @@ const CASE_REGISTRY = [
     caseId: 'BRANCH-ADOPT',
     form: 'inprocess',
     servers: [],
-    sourceClause: 'S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A（第五分支操作 ADOPT_BRANCH——产品负责人 2026-10-09 裁决）；policy_v2.1.0 变更 1–5；C6 §14（simulation_adopted 命名模式 <domain>_<past_participle>）；E8-G2-CC07（采用结果仍标记为模拟来源）；D-02 选项 A（主线当前上下文不变——显式回流为经用户指令的例外通道）；S1-12；OBL-01（拒绝不消耗版本号）',
+    sourceClause: 'S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A（第五分支操作 ADOPT_BRANCH——产品负责人 2026-10-09 裁决）；policy_v2.2.0 变更 1–5；C6 §14（simulation_adopted 命名模式 <domain>_<past_participle>）；E8-G2-CC07（采用结果仍标记为模拟来源）；D-02 选项 A（主线当前上下文不变——显式回流为经用户指令的例外通道）；S1-12；OBL-01（拒绝不消耗版本号）',
     scope: '显式回流操作 ADOPT_BRANCH：分支 1 累积两轮后采用（adopted 标记附加，生命周期 ACTIVE 不变，主线当前上下文不变——currentBranchId 保持分支 1；simulation_adopted ×1，properties 含 branch_id / source_round=1 / adopted_content 摘要=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact；结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文）→ 负向：采用不存在分支序号（分支九）INVALID_STATE_TRANSITION（拒绝先于任何写入，不消耗版本号）→ RETURN（分支 1 RETURNED，currentBranchId=null）→ 无激活分支上下文采用分支 1（RETURNED 生命周期不变，adopted 幂等，currentBranchId 保持 null——主线当前上下文不变）；分支操作轮为确定性系统回合（llm_used=false）',
     precondition: 'WHAT_IF 意图链已建立（启动 v2）；两轮模拟完成（分支 1，version=2，ACTIVE）',
     inputFault: 'WHAT_IF 洁净输入两轮 + 分支操作输入（"如果采用分支一的结论呢" ×2 / "如果采用分支九的结论呢"〔负向〕/ "如果返回主线呢"）',
@@ -1511,7 +1525,7 @@ async function main() {
   const cMultiRound = caseResults.find((entry) => entry.caseId === 'MULTI-ROUND');
   assert(
     'A1',
-    'MULTI-ROUND：多轮模拟持久化——两轮 WHAT_IF（"如果摩擦力为零会怎样" → "假如速度再高一点会怎样"）各一次合法提交两次版本化提交（版本链 2→3→4→5→6，每次合法提交恰好 +1，S1-12）；selected_action=SIMULATE；阶段 UNDERSTANDING → SIMULATION → SIMULATION（13 §15.3）；simulation_recorded ×2（round 1/2 同一分支，branch_created [true, false]，separation_invariant=simulation_result_is_not_fact）；内容逐字节等于 simulate 语料；决策追踪 reasonPrimary=semantic_action，llm_used=true，policy_version=policy_v2.1.0（F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.1.0 延续不变）；模拟域快照 1 分支（ACTIVE，version=2，sourceRound=1）',
+    'MULTI-ROUND：多轮模拟持久化——两轮 WHAT_IF（"如果摩擦力为零会怎样" → "假如速度再高一点会怎样"）各一次合法提交两次版本化提交（版本链 2→3→4→5→6，每次合法提交恰好 +1，S1-12）；selected_action=SIMULATE；阶段 UNDERSTANDING → SIMULATION → SIMULATION（13 §15.3）；simulation_recorded ×2（round 1/2 同一分支，branch_created [true, false]，separation_invariant=simulation_result_is_not_fact）；内容逐字节等于 simulate 语料；决策追踪 reasonPrimary=semantic_action，llm_used=true，policy_version=policy_v2.2.0（F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.2.0 延续不变）；模拟域快照 1 分支（ACTIVE，version=2，sourceRound=1）',
     cMultiRound?.pass === true,
     { multiRound: cMultiRound?.pass },
   );
@@ -1565,7 +1579,7 @@ async function main() {
   const cInert = caseResults.find((entry) => entry.caseId === 'NONCREATION-INERT');
   assert(
     'A7',
-    'NONCREATION-INERT：非模拟场景（WHY → EXPLAIN）行为与前置版本一致——why_requested ×1，state_transitioned steps [USER_ACTION]，终态 WAITING/UNDERSTANDING v4，内容逐字节等于 why 语料，决策追踪 llm_used=true；与前置版本（policy_v1.3.0）仅有的差异为 policy_version=policy_v2.1.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续）；模拟域零事件（simulation_recorded=0）且无模拟上下文（getSimulation 拒绝——非模拟路径不受 F-4 影响）',
+    'NONCREATION-INERT：非模拟场景（WHY → EXPLAIN）行为与前置版本一致——why_requested ×1，state_transitioned steps [USER_ACTION]，终态 WAITING/UNDERSTANDING v4，内容逐字节等于 why 语料，决策追踪 llm_used=true；与前置版本（policy_v1.3.0）仅有的差异为 policy_version=policy_v2.2.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续）；模拟域零事件（simulation_recorded=0）且无模拟上下文（getSimulation 拒绝——非模拟路径不受 F-4 影响）',
     cInert?.pass === true,
     { noncreationInert: cInert?.pass },
   );
@@ -1574,7 +1588,7 @@ async function main() {
   const cInproc = caseResults.find((entry) => entry.caseId === 'INPROC-REGRESSION');
   assert(
     'A8',
-    'INPROC-REGRESSION：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（RETURN 后首轮自动 CREATE 新分支）→ CREATE 衔接（13 §15.5）→ 完成信号（STOP）全链路——信封全量有效（C6 §7）、sequence_number 严格单调（C6 §25）、全部决策追踪 policy_version=policy_v2.1.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续不变）；WHY / 模拟轮 / CREATE 内容逐字节等于 why / simulate / create 语料；RETURN 轮 selected_action=SIMULATE 且 reason=simulation_branch_operation（确定性系统回合）；simulation_recorded ×3（round 1/2 同一分支，round 3 新分支）；终态 COMPLETED/COMPLETION；创作 COMPLETE（active=false，v1）；会话 SESSION_ENDED；模拟域随会话结束失效（D-04 选项 A——getSimulation 拒绝）',
+    'INPROC-REGRESSION：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（RETURN 后首轮自动 CREATE 新分支）→ CREATE 衔接（13 §15.5）→ 完成信号（STOP）全链路——信封全量有效（C6 §7）、sequence_number 严格单调（C6 §25）、全部决策追踪 policy_version=policy_v2.2.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续不变）；WHY / 模拟轮 / CREATE 内容逐字节等于 why / simulate / create 语料；RETURN 轮 selected_action=SIMULATE 且 reason=simulation_branch_operation（确定性系统回合）；simulation_recorded ×3（round 1/2 同一分支，round 3 新分支）；终态 COMPLETED/COMPLETION；创作 COMPLETE（active=false，v1）；会话 SESSION_ENDED；模拟域跨会话持久（STOP 后 getSimulation 成功——currentBranchId===null 会话级指针清空，分支记录 ×2 与模拟历史全量保留——S3B §1.1/§1.5 取代 S2 时代 D-04 失效不变式）',
     cInproc?.pass === true,
     { inprocRegression: cInproc?.pass },
   );
@@ -1592,7 +1606,7 @@ async function main() {
   const cAdopt = caseResults.find((entry) => entry.caseId === 'BRANCH-ADOPT');
   assert(
     'A10',
-    'BRANCH-ADOPT：显式回流操作 ADOPT_BRANCH（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A——第五分支操作，policy_v2.1.0 变更 1–5）——轮 1/2 自动 CREATE 分支 1 并累积（adopted=false，ACTIVE，version=2）→ 采用分支 1（adopted=true 附加，生命周期 ACTIVE 不变，主线当前上下文不变——currentBranchId 保持分支 1；simulation_adopted ×1，properties 含 branch_id / source_round=1 / adopted_content 摘要=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact；结果流呈现采纳内容为新一轮模拟上下文；selected_action=SIMULATE，reason=simulation_branch_operation，policy_version=policy_v2.1.0）→ 负向：采用不存在分支序号（分支九）INVALID_STATE_TRANSITION（拒绝先于任何写入，不消耗版本号——OBL-01）→ RETURN（分支 1 RETURNED，currentBranchId=null）→ 无激活分支上下文采用分支 1（RETURNED 生命周期不变，adopted 幂等保持 true，currentBranchId 保持 null——主线当前上下文不变）；simulation_recorded ×2（仅模拟轮登记）；simulation_adopted ×2；分支操作决策追踪 4 轮 llm_used=false（确定性系统回合），ADOPT_BRANCH 轨迹 3 轮——采用轮（成功 ×2）reasonPrimary=explicit_user_direction、拒绝轮 reasonPrimary=invalid_state_transition；全部决策追踪 policy_version=policy_v2.1.0；信封全量有效、sequence 严格单调；终态 WAITING/SIMULATION v12（负向拒绝轮零版本消耗）',
+    'BRANCH-ADOPT：显式回流操作 ADOPT_BRANCH（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A——第五分支操作，policy_v2.2.0 变更 1–5）——轮 1/2 自动 CREATE 分支 1 并累积（adopted=false，ACTIVE，version=2）→ 采用分支 1（adopted=true 附加，生命周期 ACTIVE 不变，主线当前上下文不变——currentBranchId 保持分支 1；simulation_adopted ×1，properties 含 branch_id / source_round=1 / adopted_content 摘要=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact；结果流呈现采纳内容为新一轮模拟上下文；selected_action=SIMULATE，reason=simulation_branch_operation，policy_version=policy_v2.2.0）→ 负向：采用不存在分支序号（分支九）INVALID_STATE_TRANSITION（拒绝先于任何写入，不消耗版本号——OBL-01）→ RETURN（分支 1 RETURNED，currentBranchId=null）→ 无激活分支上下文采用分支 1（RETURNED 生命周期不变，adopted 幂等保持 true，currentBranchId 保持 null——主线当前上下文不变）；simulation_recorded ×2（仅模拟轮登记）；simulation_adopted ×2；分支操作决策追踪 4 轮 llm_used=false（确定性系统回合），ADOPT_BRANCH 轨迹 3 轮——采用轮（成功 ×2）reasonPrimary=explicit_user_direction、拒绝轮 reasonPrimary=invalid_state_transition；全部决策追踪 policy_version=policy_v2.2.0；信封全量有效、sequence 严格单调；终态 WAITING/SIMULATION v12（负向拒绝轮零版本消耗）',
     cAdopt?.pass === true,
     { branchAdopt: cAdopt?.pass },
   );
@@ -1690,7 +1704,7 @@ async function main() {
 
   const versionMatrix = {
     runId: RUN_ID,
-    obligation: 'P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.1.0 变更 1–5，本运行扩展 BRANCH-ADOPT 案例组）',
+    obligation: 'P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.2.0 变更 1–5，本运行扩展 BRANCH-ADOPT 案例组）',
     authorization: { id: 'P3-S2-IMPL-AUTH-01', version: '1.2.0', issued: '2026-10-09', note: '产品负责人签署生效（AUTHORIZED）；§4 修订：F-4 语义冻结文本于首个动态证据运行（S2A-F4-0001）前完成版本化冻结 + C1/C2/C3 Steward 确认（G1 式纪律）' },
     obligationTraceability: {
       'F-4 (WHAT_IF full branch)': {
@@ -1698,15 +1712,15 @@ async function main() {
         frozenDecisions: {
           'D-01': '选项 A（分层实施：第一层多轮模拟持久化随 policy_v1.4.0 生效——frozen 源可机械派生；第二层分支语义经 D-02…D-04 产品负责人版本化裁决后于同一冻结文本内补写生效）',
           'D-02': '选项 A（轴外分支子状态机，model on F-2 创作子状态机纪律——分支记录五分量：branch_id / 源模拟轮次 / 模拟结果记录（四元分离）/ 版本 / 生命周期状态；体验阶段轴不变，WHAT_IF 轮次保持 SIMULATION 阶段，13 §15.3；分支模拟结果默认不回流为主线结论）',
-          'D-03': '选项 A（四操作最小集：CREATE（WHAT_IF 首轮自动创建分支记录）/ SWITCH（显式切换激活分支）/ ABANDON（放弃分支）/ RETURN（返回主线模拟上下文）；操作识别为确定性规则词表，具体词表为实现细节；"采用某分支结论"须产品负责人另案版本化定义，本版不预先写死）——保留面经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效：第五操作 ADOPT_BRANCH（policy_v2.1.0 变更 1–5；词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH）',
+          'D-03': '选项 A（四操作最小集：CREATE（WHAT_IF 首轮自动创建分支记录）/ SWITCH（显式切换激活分支）/ ABANDON（放弃分支）/ RETURN（返回主线模拟上下文）；操作识别为确定性规则词表，具体词表为实现细节；"采用某分支结论"须产品负责人另案版本化定义，本版不预先写死）——保留面经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效：第五操作 ADOPT_BRANCH（policy_v2.2.0 变更 1–5；词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH）',
           'D-04': '选项 A（会话内持久——07 §3 Session State 纪律；跨会话分支持久化属 F-5 Minimal Memory 裁决范围，授权 §2(4) 专管，本切片不实施）',
           'D-05': '选项 A（四元分离事件记录——simulation_recorded，C6 §14 命名模式派生；properties 含 fact / inference / hypothesis / simulation 四元字段 + 源输入摘要；分离不变由事件 schema 互斥注记 + 内容语料分离格式双重保证）',
         },
         implementationFiles: ['src/experience/simulation.ts（新增：模拟域——四元分离派生 / 分支操作词表 / SimulationStore / 快照 API）', 'src/experience/events.ts（模拟域事件词表常量 simulation_recorded）', 'src/experience/policy.ts（POLICY_VERSION=policy_v1.4.0 + §3 变更 1/2 文档注释）', 'src/experience/runtime.ts（WHAT_IF 执行扩展：每轮 simulation_recorded 登记 + 分支操作路由与执行 + 会话终止站点模拟域失效 + getSimulation API）', 'tools/evidence/src/golden.mjs（policy_version 断言同步 policy_v1.4.0）'],
-        adoptExtension: 'S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 实施（policy_v2.1.0 变更 1–5）：src/experience/simulation.ts（BranchRecord adopted 附加属性 + ADOPT_BRANCH 词表与执行——词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH）/ src/experience/events.ts（simulation_adopted 事件词表常量）/ src/experience/runtime.ts（ADOPT_BRANCH 路由与执行——确定性系统回合；simulation_adopted 事件登记；采用结果呈现为新一轮模拟上下文）/ src/experience/policy.ts（POLICY_VERSION=policy_v2.1.0 + 变更 1–5 文档注释）/ tools/evidence/src/golden.mjs（G10 分支回流黄金案例组 + policy_version 断言同步 policy_v2.1.0）/ tools/evidence/src/s2a-f4.mjs（BRANCH-ADOPT 案例组 + policy_version 断言同步 policy_v2.1.0）',
+        adoptExtension: 'S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 实施（policy_v2.2.0 变更 1–5）：src/experience/simulation.ts（BranchRecord adopted 附加属性 + ADOPT_BRANCH 词表与执行——词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH）/ src/experience/events.ts（simulation_adopted 事件词表常量）/ src/experience/runtime.ts（ADOPT_BRANCH 路由与执行——确定性系统回合；simulation_adopted 事件登记；采用结果呈现为新一轮模拟上下文）/ src/experience/policy.ts（POLICY_VERSION=policy_v2.2.0 + 变更 1–5 文档注释）/ tools/evidence/src/golden.mjs（G10 分支回流黄金案例组 + policy_version 断言同步 policy_v2.2.0）/ tools/evidence/src/s2a-f4.mjs（BRANCH-ADOPT 案例组 + policy_version 断言同步 policy_v2.2.0）',
         evidenceCases: caseResults.map((entry) => `${RUN_ID}:${entry.caseId}=${entry.result}`),
         assertions: assertions.map((entry) => `${entry.id}=${entry.passed ? 'PASSED' : 'FAILED'}`),
-        goldenRegression: 'G3-GOLDEN-0001 PASSED（F-4 实施时 32/32 案例，断言已同步 policy_v1.4.0——历史绑定在录；前置基线 2026-10-09：36/36 案例、policy_v2.0.0 / state_machine_v1.5.0、退出码 0——历史绑定在录；本运行再生成基线：40/40 案例（G10 分支回流黄金案例组新增）、policy_v2.1.0 / state_machine_v1.5.0、退出码 0）',
+        goldenRegression: 'G3-GOLDEN-0001 PASSED（F-4 实施时 32/32 案例，断言已同步 policy_v1.4.0——历史绑定在录；前置基线 2026-10-09：36/36 案例、policy_v2.0.0 / state_machine_v1.5.0、退出码 0——历史绑定在录；本运行再生成基线：40/40 案例（G10 分支回流黄金案例组新增）、policy_v2.2.0 / state_machine_v1.5.0、退出码 0）',
       },
     },
     environmentLicense: { id: 'E5-SCOPED-LICENSE-01', version: '1.0.0', decision: 'PD-17', status: 'superseded-by-implementation-authorization' },
@@ -1742,11 +1756,11 @@ async function main() {
     },
     policy: {
       contract: 'C3',
-      version: 'policy_v2.1.0',
+      version: 'policy_v2.2.0',
       frozenMappingsImplemented: {
         DIRECT_ANSWER: 'ANSWER',
         WHY: 'EXPLAIN',
-        WHAT_IF: 'SIMULATE（映射不变——S1 §14；执行语义 F-4 起扩展为多轮模拟持久化 + 轴外分支子状态机，冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.1.0 延续不变——ADOPT_BRANCH 显式回流操作随 policy_v2.1.0 变更 1 生效，S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A）',
+        WHAT_IF: 'SIMULATE（映射不变——S1 §14；执行语义 F-4 起扩展为多轮模拟持久化 + 轴外分支子状态机，冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.2.0 延续不变——ADOPT_BRANCH 显式回流操作随 policy_v2.2.0 变更 1 生效，S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A）',
         CHANGE_DIRECTION: 'CHANGE_EXPERIENCE',
         STOP: 'STOP',
         DEEPEN: 'DEEPEN（S2b 启用——14 §8 恒等映射，policy_v2.0.0 变更 1；动态证据 S2B-0001 登记）',
@@ -1755,7 +1769,7 @@ async function main() {
         CREATE: 'CREATE（PD-21 关闭切片启用；F-2 起承载完整 G04 创作语义；F-3 起创作会话内 MODIFY 别名输入经路由保护回创作解释；SIMULATION → CREATION 衔接 13 §15.5 不变）',
         CORRECTION: 'EXPLAIN（G07 完整语义 F-3 起完整化：定位目标 / 局部修改 / 重生成 / 历史版本化；MODIFY 用户面别名 + RESTORE 恢复子型；策略映射不变）',
       },
-      frozenMapAuthority: 'S1 规范 §14 Policy Rules（acceptance-mapping §A/C 批准范围）+ S2A-F4-SEMANTIC-FREEZE-01 §3 变更文本（policy_v1.4.0，经现行 policy_v2.1.0 延续不变）',
+      frozenMapAuthority: 'S1 规范 §14 Policy Rules（acceptance-mapping §A/C 批准范围）+ S2A-F4-SEMANTIC-FREEZE-01 §3 变更文本（policy_v1.4.0，经现行 policy_v2.2.0 延续不变）',
       semanticGapRegister: 'docs/product/baseline/c3-semantic-gap-register-v1.md（G-1…G-7 已登记，未由编码者补写；冻结点之外一律拒绝并升级）',
     },
     api: {
@@ -1794,10 +1808,10 @@ async function main() {
       evidence: 'EB-02（失败写入不消耗版本号——STALE-REJECT / 分支操作前置校验拒绝）；EB-06（重试是工程恢复机制——本迭代无重试路径改动）；EB-07（超时不自行决定新方向）；EB-13（完成不属于 LLM 自主权限）；EB-14（分析只能观察）；EB-16（版本可追溯——本版本矩阵 + A10/A15）',
       seamBoundary: '本迭代无注入缝改动（注入缝属 F-1；SEAM-INERT 不变式由 S2A-OBL-01-0001 证据保持，本运行进程内形态默认合成网关）',
       s2ScopeItems: {
-        memory: 'Minimal Memory 属 S2a F-5——已实施（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本；src/experience/memory.ts 新增；动态证据 S2A-F5-0001 9/9 案例、14/14 断言；policy_v1.5.0 冻结语义，经 policy_v2.1.0 延续）——非本回归范围',
+        memory: 'Minimal Memory 属 S2a F-5——已实施（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本；src/experience/memory.ts 新增；动态证据 S2A-F5-0001 9/9 案例、14/14 断言；policy_v1.5.0 冻结语义，经 policy_v2.2.0 延续）——非本回归范围',
         deepenSimplifyReframe: 'DEEPEN/SIMPLIFY/REFRAME 属 S2b（PD-23 裁决）——S2b 首批义务 G-1…G-4 已实施启用（顶层语义动作，policy_v2.0.0 变更 1；S2B-SEMANTIC-FREEZE-01 D-01 选项 A；动态证据 S2B-0001 7/7 案例、14/14 断言）——非本回归范围（S2A-F2-0001 DEFERRED-OP 案例为 F-4 时点历史记录）',
         correction: 'G07 完整 Correction 语义属 S2a F-3（policy_v1.3.0）——已实施（S2A-F3-0001）',
-        whatIf: 'WHAT_IF 全分支属 S2a F-4（语义冻结于 policy_v1.4.0，经 policy_v2.1.0 延续）——本迭代已实施（S2A-F4-0001）；本回归轮登记语料升版 synthetic/simulate/v2（S2-CORPUS-TAIL-RULING-01 选项 A）后的域语义',
+        whatIf: 'WHAT_IF 全分支属 S2a F-4（语义冻结于 policy_v1.4.0，经 policy_v2.2.0 延续）——本迭代已实施（S2A-F4-0001）；本回归轮登记语料升版 synthetic/simulate/v2（S2-CORPUS-TAIL-RULING-01 选项 A）后的域语义',
       },
     },
     simulationSemantics: {
@@ -1859,7 +1873,7 @@ async function main() {
       f1: { runId: 'F1-E2E-0001', result: 'PASSED（9/9 案例、12/12 断言、退出码 0）' },
       f2: { runId: 'F2-GS-0001', result: 'PASSED（40/40 案例、24/24 断言、退出码 0）' },
       f3: { runId: 'F3-EB-0001', result: 'PASSED（26/26 案例、28/28 断言、退出码 0）' },
-      g3: { runId: 'G3-GOLDEN-0001', result: 'PASSED（golden 再生验证——F-4 实施时 32/32、断言已同步 policy_v1.4.0；前置基线 2026-10-09：36/36 案例、policy_v2.0.0 / state_machine_v1.5.0、退出码 0——历史绑定在录；本运行再生成基线：40/40 案例（G10 分支回流黄金案例组新增）、policy_v2.1.0 / state_machine_v1.5.0、退出码 0）' },
+      g3: { runId: 'G3-GOLDEN-0001', result: 'PASSED（golden 再生验证——F-4 实施时 32/32、断言已同步 policy_v1.4.0；前置基线 2026-10-09：36/36 案例、policy_v2.0.0 / state_machine_v1.5.0、退出码 0——历史绑定在录；本运行再生成基线：40/40 案例（G10 分支回流黄金案例组新增）、policy_v2.2.0 / state_machine_v1.5.0、退出码 0）' },
       s2a: {
         f1: { runId: 'S2A-OBL-01-0001', result: 'PASSED（7/7 案例、12/12 断言、退出码 0）' },
         f2: { runId: 'S2A-F2-0001', result: 'PASSED（10/10 案例、16/16 断言、退出码 0）' },
@@ -1896,8 +1910,8 @@ async function main() {
   // A16: F-4 version matrix obligations (versioned change texts bound).
   assert(
     'A16',
-    'F-4 版本矩阵义务绑定：policy 版本 policy_v2.1.0（现行冻结——S2B-SEMANTIC-FREEZE-01 D-05 经 policy_v2.1.0 延续 + S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 变更 1–5 补写生效；F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.1.0 延续不变）；state_machine 版本 state_machine_v1.5.0（现行——F-4 契约化冻结于 state_machine_v1.3.0 §4 变更 1/2，延续不变）；frozenDecisions D-01…D-05 齐备（全项选项 A）；黄金回归绑定 G3-GOLDEN-0001（F-4 实施时 32/32、断言已同步 policy_v1.4.0——历史绑定在录）；实施文件清单 5 项齐备（含 simulation.ts 新增）',
-    versionMatrix.policy.version === 'policy_v2.1.0' &&
+    'F-4 版本矩阵义务绑定：policy 版本 policy_v2.2.0（现行冻结——S2B-SEMANTIC-FREEZE-01 D-05 经 policy_v2.2.0 延续 + S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 变更 1–5 补写生效；F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.2.0 延续不变）；state_machine 版本 state_machine_v1.5.0（现行——F-4 契约化冻结于 state_machine_v1.3.0 §4 变更 1/2，延续不变）；frozenDecisions D-01…D-05 齐备（全项选项 A）；黄金回归绑定 G3-GOLDEN-0001（F-4 实施时 32/32、断言已同步 policy_v1.4.0——历史绑定在录）；实施文件清单 5 项齐备（含 simulation.ts 新增）',
+    versionMatrix.policy.version === 'policy_v2.2.0' &&
       versionMatrix.stateMachine.version === 'state_machine_v1.5.0' &&
       Object.keys(versionMatrix.obligationTraceability['F-4 (WHAT_IF full branch)'].frozenDecisions).length === 5 &&
       versionMatrix.obligationTraceability['F-4 (WHAT_IF full branch)'].goldenRegression.includes('policy_v1.4.0') &&
@@ -1909,7 +1923,7 @@ async function main() {
   const allPassedFirst = allCasesPass && assertions.every((entry) => entry.passed);
   const summary = {
     runId: RUN_ID,
-    obligation: 'P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.1.0 变更 1–5，本运行扩展 BRANCH-ADOPT 案例组）',
+    obligation: 'P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.2.0 变更 1–5，本运行扩展 BRANCH-ADOPT 案例组）',
     startedAt,
     finishedAt: new Date().toISOString(),
     durationMs: Date.now() - startedAtMs,
@@ -1952,7 +1966,7 @@ async function main() {
   // Review package (staged for the independent evaluator).
   const reviewReadme = `# ${RUN_ID} — 独立评测人审阅包（staged，待审阅与否决）
 
-运行：${RUN_ID}（S2a F-4 迭代：WHAT_IF 完整分支语义——多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.1.0 变更 1–5，BRANCH-ADOPT 案例组）
+运行：${RUN_ID}（S2a F-4 迭代：WHAT_IF 完整分支语义——多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.2.0 变更 1–5，BRANCH-ADOPT 案例组）
 日期：${new Date().toISOString()}
 执行器：工程负责人角色（代理，Codex）；独立评测负责人：用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）
 
@@ -1977,17 +1991,17 @@ async function main() {
 - 阶段保持与衔接（STAGE-PRESERVED）：CURIOSITY → UNDERSTANDING → SIMULATION → SIMULATION →（CREATE 衔接，13 §15.5）CREATION →（STOP 完成）COMPLETION；创作建立 / 完成事件齐备；创作 COMPLETE（active=false，v1）
 - 陈旧拒绝（STALE-REJECT）：陈旧 expected_state_version（3 vs 4）→ STATE_VERSION_CONFLICT（retryable=false）；状态逐字节不变；无新 simulation_recorded / state_transitioned；拒绝事实经 state_version_conflict 事件登记（trigger=WHAT_IF）；当前版本重试成功（v6）
 - 优先级（STOP-PRIORITY）：静态分类——STOP 标记 → STOP（P-01）/ WHY 标记 → WHY（PD-12）/ 洁净 WHAT_IF 对照不变；动态声明校验——声明 WHAT_IF 但输入含 STOP / WHY 标记 → INVALID_REQUEST（clients cannot inject policy actions）；拒绝后状态逐字节不变；零 simulation_recorded
-- 非创作会话不回归（NONCREATION-INERT）：WHY → EXPLAIN 链路与 policy_v1.3.0 行为逐项一致（why_requested ×1，steps [USER_ACTION]，WAITING/UNDERSTANDING v4，内容逐字节等于 why 语料）；与前置版本（policy_v1.3.0）仅有的差异为 policy_version=policy_v2.1.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续）；模拟域零事件且无模拟上下文
-- 全链路回归（INPROC-REGRESSION）：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（新分支自动 CREATE）→ CREATE 衔接 → 完成信号——信封全量有效（C6 §7）、sequence 严格单调（C6 §25）、全部决策追踪 policy_version=policy_v2.1.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续不变）、内容逐字节等于语料；simulation_recorded ×3（round 1/2 同一分支，round 3 新分支）；RETURN 轮 llm_used=false；模拟域随会话结束失效（D-04）
+- 非创作会话不回归（NONCREATION-INERT）：WHY → EXPLAIN 链路与 policy_v1.3.0 行为逐项一致（why_requested ×1，steps [USER_ACTION]，WAITING/UNDERSTANDING v4，内容逐字节等于 why 语料）；与前置版本（policy_v1.3.0）仅有的差异为 policy_version=policy_v2.2.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续）；模拟域零事件且无模拟上下文
+- 全链路回归（INPROC-REGRESSION）：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（新分支自动 CREATE）→ CREATE 衔接 → 完成信号——信封全量有效（C6 §7）、sequence 严格单调（C6 §25）、全部决策追踪 policy_version=policy_v2.2.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续不变）、内容逐字节等于语料；simulation_recorded ×3（round 1/2 同一分支，round 3 新分支）；RETURN 轮 llm_used=false；模拟域跨会话持久（STOP 后 getSimulation 成功——currentBranchId===null，分支记录 ×2 保留——S3B 取代 S2 时代 D-04 失效不变式）
 - 分支生命周期（BRANCH-LIFECYCLE）：CREATE（首轮自动）→ 累积 → RETURN（RETURNED + 当前清空）→ 自动 CREATE 新分支 → SWITCH（RETURNED 恢复 ACTIVE）→ ABANDON（ABANDONED）→ 负向拒绝 ×2（切换已放弃分支 / 无激活分支 RETURN——INVALID_STATE_TRANSITION，不消耗版本号）；模拟历史 3 轮（轮 1/2 分支 1，轮 3 分支 2）；分支操作决策追踪 6 轮（含 2 拒绝轮）llm_used=false
-- 显式回流（BRANCH-ADOPT）：轮 1/2 自动 CREATE 分支 1 并累积 → ADOPT_BRANCH 分支 1（adopted 标记附加——生命周期 ACTIVE 不变，主线当前上下文不变——currentBranchId 保持分支 1；simulation_adopted ×1，properties 含 branch_id / source_round=1 / adopted_content 摘要=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact——采用结果仍标记为模拟来源；结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文）→ 负向：采用不存在分支序号（分支九）INVALID_STATE_TRANSITION（不消耗版本号）→ RETURN（分支 1 RETURNED，currentBranchId=null）→ 无激活分支上下文采用分支 1（RETURNED 生命周期不变，adopted 幂等，currentBranchId 保持 null——主线当前上下文不变）；simulation_recorded ×2（仅模拟轮登记）；分支操作决策追踪 4 轮 llm_used=false，ADOPT_BRANCH 轨迹 3 轮（采用轮成功 ×2 reasonPrimary=explicit_user_direction、拒绝轮 reasonPrimary=invalid_state_transition）；全部决策追踪 policy_version=policy_v2.1.0
+- 显式回流（BRANCH-ADOPT）：轮 1/2 自动 CREATE 分支 1 并累积 → ADOPT_BRANCH 分支 1（adopted 标记附加——生命周期 ACTIVE 不变，主线当前上下文不变——currentBranchId 保持分支 1；simulation_adopted ×1，properties 含 branch_id / source_round=1 / adopted_content 摘要=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact——采用结果仍标记为模拟来源；结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文）→ 负向：采用不存在分支序号（分支九）INVALID_STATE_TRANSITION（不消耗版本号）→ RETURN（分支 1 RETURNED，currentBranchId=null）→ 无激活分支上下文采用分支 1（RETURNED 生命周期不变，adopted 幂等，currentBranchId 保持 null——主线当前上下文不变）；simulation_recorded ×2（仅模拟轮登记）；分支操作决策追踪 4 轮 llm_used=false，ADOPT_BRANCH 轨迹 3 轮（采用轮成功 ×2 reasonPrimary=explicit_user_direction、拒绝轮 reasonPrimary=invalid_state_transition）；全部决策追踪 policy_version=policy_v2.2.0
 
 ## 未执行（NOT RUN）
 
 - G5 16 项评测包（独立评测）；P2 G01–G08 未覆盖案例
 - S2a 其余义务：F-5（Minimal Memory）——已由 S2a F-5 迭代实施（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本；src/experience/memory.ts；动态证据 S2A-F5-0001 9/9 案例、14/14 断言），非本回归范围
 - S2b（DEEPEN/SIMPLIFY/REFRAME/Search）——已由 S2b 迭代实施（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本；policy_v2.0.0 变更 1–6 / state_machine_v1.5.0；动态证据 S2B-0001 7/7 案例、14/14 断言），非本回归范围
-- "采用某分支结论"显式回流操作——**已实施**（BRANCH-ADOPT 案例组；S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决生效——第五分支操作 ADOPT_BRANCH，policy_v2.1.0 变更 1–5；D-03 保留面关闭）
+- "采用某分支结论"显式回流操作——**已实施**（BRANCH-ADOPT 案例组；S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决生效——第五分支操作 ADOPT_BRANCH，policy_v2.2.0 变更 1–5；D-03 保留面关闭）
 - 真实 LLM 提供方接入（须另经产品决策与隐私六要素批准）；真实用户数据收集（隐私六要素批准前禁用）
 
 ## 待复核项（不得由编码者自行确认）
