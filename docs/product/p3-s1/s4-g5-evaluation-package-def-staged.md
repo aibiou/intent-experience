@@ -1,8 +1,8 @@
 # S4 时代 G5 评测包范围定义提案（S4-G5-EVAL-DEF-01 v0.1.0）
 
-**状态：** STAGED FOR PRODUCT-OWNER RULING（待产品负责人裁决选项 A/B/C）
+**状态：** RULED——产品负责人（用户本人，PD-15）2026-10-10 裁决选项 A（复用 16 项框架对 S4 增量证据执行独立评测）
 **编号：** S4-G5-EVAL-DEF-01
-**版本：** 0.1.0（2026-10-10：staged 登记——CR-31）
+**版本：** 1.0.0（2026-10-10：产品负责人裁决"选项 A"升版 RULED）
 **起草：** 工程负责人角色（代理，Codex 履行，PD-15 委托）
 **关联：** P3-S3-G5-WORKSHEET-01 v0.2.0（S3 时代 G5 独立评测——PASSED 无条件，2026-10-10：16 项 = 12 PASS + 1 N/A（第 9 项——S3 时代不作任何延迟指标宣称））/ P3-S2-G5-WORKSHEET-01 v0.3.0（S2 时代 G5 独立评测——PASSED 无条件）/ P3-S1-G5-WORKSHEET-01 v1.8.0（P2 时代 G5 16 项评测包——PASSED 无条件，2026-10-09）/ S3-G5-EVAL-DEF-01 v1.0.0（S3 时代评测包范围定义——选项 A 裁决先例）/ S2-G5-EVAL-DEF-01 v1.0.0（S2 时代评测包范围定义——选项 A 裁决先例）/ EVIDENCE-MANIFEST-01 v1.6.0（S4 实施证据登记）/ P3-S4-IMPL-ITER v1.0.0（S4 实施迭代记录）/ readiness-record v1.45.0 / decision-register v0.35.0（CR-30 IMPLEMENTED）/ S4-SCOPE-PROPOSAL-01 v1.0.0（D-1…D-6 全项 A 裁决）/ S4A-SEMANTIC-FREEZE-01 v1.0.0（语义冻结文本）
 
@@ -35,7 +35,7 @@ S4 时代证据与 G5 评测之间的空缺（约束自有 frozen 源派生：E5
 
 ### 选项 A（实现方建议）：复用 16 项框架对 S4 增量证据执行独立评测
 
-新建 **P3-S4-G5-WORKSHEET-01**（工作表骨架见 §4），沿用 P3-S1 / P3-S2 / P3-S3-G5-WORKSHEET 的 16 项结构与执行规则（结论取值 PASS / FAIL / DEFERRED / N/A，默认 NOT RUN；任何 P0 失败、缺项或 NOT RUN 均不得被平均分或建议性报告抵消），逐项映射 S4 增量证据并核验 S2/S3 时代结论延续性，结论由角色 5 独立评测人逐项裁决签署。优点：与 P2/S2/S3 时代评测框架一致、可比、可复用既有执行规则与隔离声明；缺点：工作量与 S2/S3 时代相当（16 项）。
+新建 **P3-S4-G5-WORKSHEET-01**（工作表骨架见 §4），沿用 P3-S1 / P3-S2 / P3-S3-G5-WORKSHEET 的 16 项结构与执行规则（结论取值 PASS / FAIL / DEFERRED / N/A，默认 NOT RUN；任何 P0 失败、缺项或 NOT RUN 均不得被平均分或建议性报告抵消），逐项映射 S4 增量证据并核验 S2/S3 时代结论延续性，结论由角色 5 独立评测人逐项裁决签署。优点：与 P2/S2/S3 时代评测框架一致、可比、可复用既有执行规则与隔离声明；缺点：工作量与 S2/S3 时代相当（16 项）。**（2026-10-10 经产品负责人裁决采纳——见 §6）**
 
 ### 选项 B：S4 专属精简框架
 
@@ -47,11 +47,11 @@ S4 证据暂不单独评测，待 P3 退出 Gate（或产品负责人指定的�
 
 ## 4. 选项 A 实施影响
 
-- 新建 `docs/product/p3-s1/s4-g5-evaluation-worksheet.md`（P3-S4-G5-WORKSHEET-01 v0.1.0，STAGED FOR EVALUATOR——骨架见下表；结论列全部 NOT RUN，由角色 5 逐项填写）。
+- 新建 `docs/product/p3-s1/s4-g5-evaluation-worksheet.md`（P3-S4-G5-WORKSHEET-01 v0.1.0，STAGED FOR EVALUATOR——骨架见下表；结论列全部 NOT RUN，由角色 5 逐项填写）。**（2026-10-10 已按本骨架新建 staged——`s4-g5-evaluation-worksheet.md`）**
 - 评测输入：3 运行 staged 审阅包 ×3 + EVIDENCE-MANIFEST-01 v1.6.0 + S4A-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 + S4-SCOPE-PROPOSAL-01 v1.0.0 裁决文本 + decision-register 当前版本快照 + acceptance-mapping / XCC-MAP（S4 范围项）+ P3-S3-G5-WORKSHEET-01 v0.2.0（S3 时代结论——延续性核验输入）/ P3-S4-IMPL-ITER v1.0.0（迭代记录——失败尝试登记输入）。
 - 角色分离不变：实现作者（工程负责人角色代理）不得兼任独立评测人；本提案由实现方起草，裁决权归产品负责人，评测执行权归角色 5（用户本人，PD-15；G5 隔离声明 2026-10-08 签署生效）。
 - 不改变任何已冻结证据：各运行产物（summary.json / cases / traces / SHA256SUMS）为 hash-bound 冻结证据；工作表为评测工具，不是 Gate 证据。
-- 裁决后登记：CR-31 状态 STAGED→RULED（S4 时代 G5 评测包范围定义裁决）+ 新建 P3-S4-G5-WORKSHEET-01 v0.1.0 staged + readiness-record 升版 + 本提案 §6 签署区填写。
+- 裁决后登记：CR-31 状态 STAGED→RULED（S4 时代 G5 评测包范围定义裁决）+ 新建 P3-S4-G5-WORKSHEET-01 v0.1.0 staged + readiness-record 升版 + 本提案 §6 签署区填写。**（均已执行，2026-10-10）**
 
 ### 16 项工作表骨架（选项 A；结论列待角色 5 逐项裁决）
 
@@ -85,5 +85,5 @@ S4 证据暂不单独评测，待 P3 退出 Gate（或产品负责人指定的�
 ## 6. 签署区
 
 - 起草：工程负责人角色（代理，Codex），2026-10-10。
-- 产品负责人裁决：（待填写——选项 A / B / C，裁决日期）
-- 独立评测人（角色 5，用户本人，PD-15）：（待评测执行——P3-S4-G5-WORKSHEET-01 v0.1.0 待新建（16 项骨架，结论列全部 NOT RUN），待角色 5 逐项裁决签署）
+- 产品负责人裁决：**选项 A（复用 16 项框架对 S4 增量证据执行独立评测），2026-10-10**。
+- 独立评测人（角色 5，用户本人，PD-15）：（待评测执行——P3-S4-G5-WORKSHEET-01 v0.1.0 staged 已建（`s4-g5-evaluation-worksheet.md`——16 项骨架，结论列全部 NOT RUN），待角色 5 逐项裁决签署）
