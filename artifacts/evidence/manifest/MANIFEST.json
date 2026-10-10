@@ -1,7 +1,7 @@
 {
   "manifestId": "EVIDENCE-MANIFEST-01",
-  "version": "1.4.0",
-  "generatedAt": "2026-10-10T01:04:09.842Z",
+  "version": "1.5.0",
+  "generatedAt": "2026-10-10T05:38:24.823Z",
   "generatedBy": "工程负责人角色（代理，Codex 履行，PD-15 委托）",
   "authority": "E5 证据执行环境与独立评测计划（P2-EVIDENCE-E5.1）§7 只追加布局；G5 第 15 项（Evidence Index）输入",
   "method": "独立重算生成（不信任执行器自报断言）：每运行 summary.json 计数、SHA256SUMS 逐项重算、run-metadata 代码绑定（code.gitHead）均独立核验",
@@ -730,8 +730,8 @@
     {
       "runId": "S2A-F4-0001",
       "kind": "iteration-evidence",
-      "iteration": "S2a F-4（WHAT_IF 完整分支）",
-      "obligation": "P3-S2-IMPL-AUTH-01 §3(4)：WHAT_IF 完整分支语义——多轮模拟持久化 + 四元分离事件登记（simulation_recorded）+ 轴外分支子状态机（分支记录五分量 + CREATE/SWITCH/ABANDON/RETURN 操作 + ACTIVE/RETURNED/ABANDONED 生命周期）+ S2 分支回流扩展：ADOPT_BRANCH 显式回流操作（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A——第五分支操作，词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH；分支记录附加 adopted 标记幂等、生命周期契约不变；simulation_adopted 事件登记，properties 含 branch_id / source_round / adopted_content 摘要 / separation_invariant=simulation_result_is_not_fact；采纳结果呈新一轮模拟上下文、主线当前上下文不变；确定性系统回合 llm_used=false、reasonPrimary=explicit_user_direction）（F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.0.0 / policy_v2.1.0 延续；本再生产物运行于 policy_v2.1.0 / state_machine_v1.5.0）",
+      "iteration": "S2a F-4（WHAT_IF 完整分支）+ S3 回归扩展（跨会话分支持久化——S2 时代 D-04 失效不变式经 CR-28 D-2 选项 A 取代）",
+      "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.2.0 变更 1–5，本运行扩展 BRANCH-ADOPT 案例组）",
       "path": "artifacts/evidence/runs/S2A-F4-0001",
       "result": {
         "cases": {
@@ -744,9 +744,10 @@
         },
         "exitCode": 0,
         "allPassed": true,
-        "startedAt": "2026-10-10T00:36:31.227Z",
-        "finishedAt": "2026-10-10T00:36:47.844Z",
-        "durationMs": 16612
+        "startedAt": "2026-10-10T05:23:26.083Z",
+        "finishedAt": "2026-10-10T05:23:43.072Z",
+        "durationMs": 16989,
+        "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.2.0 变更 1–5，本运行扩展 BRANCH-ADOPT 案例组）"
       },
       "sha256sums": {
         "path": "artifacts/evidence/runs/S2A-F4-0001/SHA256SUMS",
@@ -852,7 +853,7 @@
         ],
         "note": "运行于未提交工作树（S2 分支回流实施期——产品提交 728b3de / 执行器提交 a7077ce 内容当时未提交，uncommittedEntries 如实记录；其后经 728b3de / a7077ce / 0a4be6d 提交入库，经独立评测人核对满足 E5 §3 记录要求）"
       },
-      "artifactsIntroducedAtCommit": "0a4be6d8e16d22f09c3c6b667e486237e764da40",
+      "artifactsIntroducedAtCommit": "bed768d",
       "artifactsIntroducedNote": "当前再生产物状态（S2 分支回流实施后域回归——新增 BRANCH-ADOPT 案例，10/10 案例、17/17 断言）提交 0a4be6d；首次证据提交 45abe78（policy_v1.4.0 时代，9/9 案例、16/16 断言）；中间再生产物提交 f6763e5（语料裁决 S2-CORPUS-TAIL-RULING-01 选项 A 实施后回归，9/9 案例、16/16 断言——归档留存 S2A-F4-0001-attempt-2026-10-10T00-33-01-157Z）",
       "reviewPackage": "artifacts/evidence/runs/S2A-F4-0001/review/README.md",
       "failedAttemptArchives": [
@@ -1086,35 +1087,106 @@
           "artifactsIntroducedAtCommit": "0a4be6d8e16d22f09c3c6b667e486237e764da40",
           "nature": "失败尝试按 ADR-0002 §5 如实登记，留存于仓库——执行器侧案例断言缺陷（产品运行时无缺陷），执行器谓词修正后重跑通过（缺陷分类与根因分析：P3-S2-IMPL-ITER-ADOPT v1.0.0 §3）",
           "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）"
+        },
+        {
+          "archive": "S2A-F4-0001-attempt-2026-10-10T04-43-27-487Z",
+          "path": "artifacts/evidence/runs/S2A-F4-0001-attempt-2026-10-10T04-43-27-487Z",
+          "artifactsIntroducedAtCommit": "2b2bbf5",
+          "nature": "先前通过运行按 ADR-0002 §5 只追加纪律前置归档（再生产物——非失败尝试）（ADOPT 时代 10/10 通过运行——S3 回归重跑前置归档）",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 10,
+              "pass": 10
+            },
+            "assertions": {
+              "total": 17,
+              "pass": 17
+            },
+            "exitCode": 0,
+            "allPassed": true,
+            "startedAt": "2026-10-10T00:36:31.227Z",
+            "finishedAt": "2026-10-10T00:36:47.844Z",
+            "durationMs": 16612,
+            "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.1.0 变更 1–5，本运行扩展 BRANCH-ADOPT 案例组）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/S2A-F4-0001-attempt-2026-10-10T04-43-27-487Z/SHA256SUMS",
+            "entries": 22,
+            "independentRecompute": {
+              "verified": 22,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
+        },
+        {
+          "archive": "S2A-F4-0001-attempt-2026-10-10T05-23-28-507Z",
+          "path": "artifacts/evidence/runs/S2A-F4-0001-attempt-2026-10-10T05-23-28-507Z",
+          "artifactsIntroducedAtCommit": "bed768d",
+          "nature": "先前通过运行按 ADR-0002 §5 只追加纪律前置归档（再生产物——非失败尝试）（04:43Z 首次通过运行——执行器元数据校正 e6780c8：黄金回归基线链补记 S3a 再生成基线 48/48（G11 长期记忆案例组并入）——历史绑定链 F-4 实施时 32/32 → 2026-10-09 前置 36/36 → ADOPT 迭代 40/40 → S3a 迭代 48/48 完整在录）后重跑——再生产物（bed768d）",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 10,
+              "pass": 10
+            },
+            "assertions": {
+              "total": 17,
+              "pass": 17
+            },
+            "exitCode": 0,
+            "allPassed": true,
+            "startedAt": "2026-10-10T04:43:24.174Z",
+            "finishedAt": "2026-10-10T04:43:41.690Z",
+            "durationMs": 17515,
+            "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.2.0 变更 1–5，本运行扩展 BRANCH-ADOPT 案例组）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/S2A-F4-0001-attempt-2026-10-10T05-23-28-507Z/SHA256SUMS",
+            "entries": 22,
+            "independentRecompute": {
+              "verified": 22,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
         }
       ]
     },
     {
       "runId": "S2A-F5-0001",
       "kind": "iteration-evidence",
-      "iteration": "S2a F-5（Minimal Memory）",
-      "obligation": "P3-S2-IMPL-AUTH-01 §3(5)：Minimal Memory——轴外记忆记录存储 + 四态生命周期（REMEMBERED/IN_USE/DECAYING/EXPIRED）+ 六操作（CREATE/RECALL/DECAY/EXPIRE/CORRECT/WITHDRAW）+ 跨会话短期持久 + 6 个月保留（衰减时钟）+ Runtime 单一写入者（policy_v1.5.0 / state_machine_v1.4.0）",
+      "iteration": "S2a F-5（Minimal Memory）+ S3 回归扩展（长期记忆启用 / 跨会话分支持久化）",
+      "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）+ S3 回归扩展（S3A-SEMANTIC-FREEZE-01 v1.0.0 长期记忆启用 + S3B-SEMANTIC-FREEZE-01 v1.0.0 跨会话分支持久化——S2 时代负向不变式经 CR-28 全项 A 裁决取代）",
       "path": "artifacts/evidence/runs/S2A-F5-0001",
       "result": {
         "cases": {
-          "total": 9,
-          "pass": 9
-        },
-        "assertions": {
           "total": 14,
           "pass": 14
         },
+        "assertions": {
+          "total": 19,
+          "pass": 19
+        },
         "exitCode": 0,
         "allPassed": true,
-        "startedAt": "2026-10-09T13:32:33.713Z",
-        "finishedAt": "2026-10-09T13:32:41.835Z",
-        "durationMs": 8121
+        "startedAt": "2026-10-10T05:22:26.152Z",
+        "finishedAt": "2026-10-10T05:22:35.161Z",
+        "durationMs": 9008,
+        "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）+ S3 回归扩展（S3A-SEMANTIC-FREEZE-01 v1.0.0 长期记忆启用 + S3B-SEMANTIC-FREEZE-01 v1.0.0 跨会话分支持久化——S2 时代负向不变式经 CR-28 全项 A 裁决取代）"
       },
       "sha256sums": {
         "path": "artifacts/evidence/runs/S2A-F5-0001/SHA256SUMS",
-        "entries": 20,
+        "entries": 30,
         "independentRecompute": {
-          "verified": 20,
+          "verified": 30,
           "mismatch": 0,
           "missing": 0
         },
@@ -1123,9 +1195,9 @@
         "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
       },
       "codeBinding": {
-        "note": "run-metadata 以 runtimeFiles + git 节登记文件级哈希与 git 状态（无 code.gitHead 字段——S2a F-5 时代执行器形态）"
+        "note": "run-metadata 以 runtimeFiles + git 节登记文件级哈希与 git 状态（无 code.gitHead 字段——S2a F-5 时代执行器形态）；S3 再生产物（bed768d）——版本矩阵记录现行 state_machine_v1.5.0（轴外记忆子状态机契约化冻结于 state_machine_v1.4.0 §4 变更 1，延续不变——provenance 注记承载，A18 断言描述同步）"
       },
-      "artifactsIntroducedAtCommit": "1cc0083",
+      "artifactsIntroducedAtCommit": "bed768d",
       "reviewPackage": "artifacts/evidence/runs/S2A-F5-0001/review/README.md",
       "failedAttemptArchives": [
         {
@@ -1193,14 +1265,126 @@
           "artifactsIntroducedAtCommit": "1cc0083",
           "nature": "失败尝试按 ADR-0002 §5 如实登记，留存于仓库",
           "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）"
+        },
+        {
+          "archive": "S2A-F5-0001-attempt-2026-10-10T04-36-38-550Z",
+          "path": "artifacts/evidence/runs/S2A-F5-0001-attempt-2026-10-10T04-36-38-550Z",
+          "artifactsIntroducedAtCommit": "2b2bbf5",
+          "nature": "失败尝试按 ADR-0002 §5 如实登记——9 案例 2 FAIL（SESSION-SCOPED-NEG / LONGTERM-DISABLED）：执行器侧负向不变式陈旧——两案例为 S2 时代负向不变式（分支记录会话级失效 / 长期记忆写入路径不存在），经 CR-28 D-1/D-2 选项 A 裁决（2026-10-10）取代，S3a/S3b 语义启用后两不变式反转；修复（负向案例组替换为 LT-EXPLICIT-A / LT-REMEMBER-B / LT-BARE-NEG / LT-CANDIDATE-C / LT-GATE-NEG 正向 + 负向案例组，案例 9→14、断言 12→19）后重跑",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 9,
+              "pass": 7
+            },
+            "assertions": {
+              "total": 14,
+              "pass": 12
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-10T03:50:18.567Z",
+            "finishedAt": "2026-10-10T03:50:32.255Z",
+            "durationMs": 13687,
+            "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/S2A-F5-0001-attempt-2026-10-10T04-36-38-550Z/SHA256SUMS",
+            "entries": 20,
+            "independentRecompute": {
+              "verified": 20,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
+        },
+        {
+          "archive": "S2A-F5-0001-attempt-2026-10-10T04-41-45-293Z",
+          "path": "artifacts/evidence/runs/S2A-F5-0001-attempt-2026-10-10T04-41-45-293Z",
+          "artifactsIntroducedAtCommit": "2b2bbf5",
+          "nature": "FATAL 按 ADR-0002 §5 如实登记——ENOENT（执行器侧 run-metadata 运行时文件清单路径构造附中文描述串），先于 summary.json / SHA256SUMS / run-metadata.json 写入，无汇总与清单产物；部分产物留存（案例记录 14 份——含 3 FAIL：BRANCH-PERSISTENCE TypeError adopt.submission.header（应为 simulation 快照分支记录分量）/ LT-EXPLICIT-A / LT-REMEMBER-B recognition_path 描述串 explicit_a / remember_b——通过条件本身正确）；FATAL 事实经迭代记录 P3-S3-IMPL-ITER v1.0.0 §3 登记；修复后重跑",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）"
+        },
+        {
+          "archive": "S2A-F5-0001-attempt-2026-10-10T04-43-10-669Z",
+          "path": "artifacts/evidence/runs/S2A-F5-0001-attempt-2026-10-10T04-43-10-669Z",
+          "artifactsIntroducedAtCommit": "2b2bbf5",
+          "nature": "失败尝试按 ADR-0002 §5 如实登记——14 案例 1 FAIL（BRANCH-PERSISTENCE——stateVersionUnchanged 取证时序）：执行器侧取证时序缺陷（同 G12-FR 模式）——stateVersionUnchanged 实际值在重试提交后采集，观测到版本已推进；语义要求拒绝后立即取证（拒绝先于任何写入——版本不变）；修复（拒绝提交后立即采集快照并引用常量）后重跑",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 14,
+              "pass": 13
+            },
+            "assertions": {
+              "total": 19,
+              "pass": 18
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-10T04:41:41.206Z",
+            "finishedAt": "2026-10-10T04:41:51.607Z",
+            "durationMs": 10400,
+            "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）+ S3 回归扩展（S3A-SEMANTIC-FREEZE-01 v1.0.0 长期记忆启用 + S3B-SEMANTIC-FREEZE-01 v1.0.0 跨会话分支持久化——S2 时代负向不变式经 CR-28 全项 A 裁决取代）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/S2A-F5-0001-attempt-2026-10-10T04-43-10-669Z/SHA256SUMS",
+            "entries": 30,
+            "independentRecompute": {
+              "verified": 30,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
+        },
+        {
+          "archive": "S2A-F5-0001-attempt-2026-10-10T05-22-28-693Z",
+          "path": "artifacts/evidence/runs/S2A-F5-0001-attempt-2026-10-10T05-22-28-693Z",
+          "artifactsIntroducedAtCommit": "bed768d",
+          "nature": "先前通过运行按 ADR-0002 §5 只追加纪律前置归档（再生产物——非失败尝试）（04:43Z 首次通过运行——执行器元数据校正 e6780c8：版本矩阵 stateMachine.version 陈旧记录 state_machine_v1.4.0（F-5 义务契约化冻结版本），与 s2a-f4 建立的\"版本矩阵记录现行版本 + provenance 注记\"口径不一致——校正为 state_machine_v1.5.0（现行）；goldenRegression 基线字符串 40/40→48/48；A18 断言期望值同步）后重跑——再生产物（bed768d）",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 14,
+              "pass": 14
+            },
+            "assertions": {
+              "total": 19,
+              "pass": 19
+            },
+            "exitCode": 0,
+            "allPassed": true,
+            "startedAt": "2026-10-10T04:43:07.041Z",
+            "finishedAt": "2026-10-10T04:43:16.947Z",
+            "durationMs": 9905,
+            "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）+ S3 回归扩展（S3A-SEMANTIC-FREEZE-01 v1.0.0 长期记忆启用 + S3B-SEMANTIC-FREEZE-01 v1.0.0 跨会话分支持久化——S2 时代负向不变式经 CR-28 全项 A 裁决取代）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/S2A-F5-0001-attempt-2026-10-10T05-22-28-693Z/SHA256SUMS",
+            "entries": 30,
+            "independentRecompute": {
+              "verified": 30,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
         }
       ]
     },
     {
       "runId": "S2B-0001",
       "kind": "iteration-evidence",
-      "iteration": "S2b 首批义务 G-1…G-4",
-      "obligation": "P3-S2B-IMPL-AUTH-01：S2b 体验动作扩展首批义务——G-1 DEEPEN/SIMPLIFY/REFRAME 顶层语义动作（创作域顶层补丁操作承载）+ G-2 SEARCH 内部能力（searchExperienceContext 只读纯函数）+ G-3 First Experience 完整呈现 + G-4 动态证据 S2B-0001 + 黄金套件扩展 G09 方向性操作案例组（policy_v2.0.0 变更 1–6 经 policy_v2.1.0 延续 + S2 分支回流变更 1–5 正交；本再生产物运行于 policy_v2.1.0 / state_machine_v1.5.0）",
+      "iteration": "S2b 首批义务（G-1…G-4）+ S3 回归（黄金回归绑定新基线 policy_v2.2.0 / 48 案例）",
+      "obligation": "P3-S2B-IMPL-AUTH-01 v1.0.0 §1/§2：S2b 体验动作扩展首批义务 G-1…G-4（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 + SEARCH 内部能力 + First Experience 完整呈现）",
       "path": "artifacts/evidence/runs/S2B-0001",
       "result": {
         "cases": {
@@ -1213,9 +1397,10 @@
         },
         "exitCode": 0,
         "allPassed": true,
-        "startedAt": "2026-10-10T00:39:19.732Z",
-        "finishedAt": "2026-10-10T00:39:29.313Z",
-        "durationMs": 9581
+        "startedAt": "2026-10-10T04:56:24.766Z",
+        "finishedAt": "2026-10-10T04:56:35.501Z",
+        "durationMs": 10733,
+        "obligation": "P3-S2B-IMPL-AUTH-01 v1.0.0 §1/§2：S2b 体验动作扩展首批义务 G-1…G-4（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 + SEARCH 内部能力 + First Experience 完整呈现）"
       },
       "sha256sums": {
         "path": "artifacts/evidence/runs/S2B-0001/SHA256SUMS",
@@ -1234,7 +1419,7 @@
         "filesHashed": 44,
         "note": "run-metadata 以文件级哈希登记代码绑定（无 code.gitHead 字段——S2b 时代执行器形态）；本再生产物重跑于 S2 分支回流实施后工作树（产品提交 728b3de / 执行器提交 a7077ce 内容当时未提交，如实记录；其后经 728b3de / a7077ce / 0a4be6d 提交入库）"
       },
-      "artifactsIntroducedAtCommit": "0a4be6d8e16d22f09c3c6b667e486237e764da40",
+      "artifactsIntroducedAtCommit": "2b2bbf5",
       "reviewPackage": "artifacts/evidence/runs/S2B-0001/review/README.md",
       "failedAttemptArchives": [
         {
@@ -1302,6 +1487,48 @@
           "artifactsIntroducedAtCommit": "0a4be6d8e16d22f09c3c6b667e486237e764da40",
           "nature": "先前通过运行的完整目录按只追加纪律归档（再生成前置归档——ADR-0002 §5；非失败尝试）",
           "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）"
+        },
+        {
+          "archive": "S2B-0001（无归档——FATAL 先于运行目录创建）",
+          "fatal": true,
+          "occurredAt": "2026-10-10T04:56 前（先于 S2B-0001 运行 04:56:24）",
+          "nature": "FATAL 按 ADR-0002 §5 如实登记——黄金回归绑定失败（执行器侧基线陈旧：A11 绑定检查冻结于 ADOPT 迭代基线\"须在 policy_v2.1.0 / state_machine_v1.5.0 通过（40/40）\"，而黄金套件经 S3a 迭代已升 policy_v2.2.0 / 48 案例——绑定基线未随黄金套件版本化变更新同步）；FATAL 先于运行目录创建，无运行产物可归档；FATAL 事实经迭代记录 P3-S3-IMPL-ITER v1.0.0 §3 登记；修复（绑定检查同步 policy_v2.2.0 / 48 案例 + 断言值 / 版本矩阵 / carriedForward 文本 15 处同步）后重跑",
+          "preservation": "ADR-0002 §5（失败事实如实登记；无产物留存）"
+        },
+        {
+          "archive": "S2B-0001-attempt-2026-10-10T04-56-27-942Z",
+          "path": "artifacts/evidence/runs/S2B-0001-attempt-2026-10-10T04-56-27-942Z",
+          "artifactsIntroducedAtCommit": "2b2bbf5",
+          "nature": "先前通过运行按 ADR-0002 §5 只追加纪律前置归档（再生产物——非失败尝试）（ADOPT 时代 7/7 通过运行——S3 回归重跑前置归档）",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 7,
+              "pass": 7
+            },
+            "assertions": {
+              "total": 14,
+              "pass": 14
+            },
+            "exitCode": 0,
+            "allPassed": true,
+            "startedAt": "2026-10-10T00:39:19.732Z",
+            "finishedAt": "2026-10-10T00:39:29.313Z",
+            "durationMs": 9581,
+            "obligation": "P3-S2B-IMPL-AUTH-01 v1.0.0 §1/§2：S2b 体验动作扩展首批义务 G-1…G-4（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 + SEARCH 内部能力 + First Experience 完整呈现）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/S2B-0001-attempt-2026-10-10T04-56-27-942Z/SHA256SUMS",
+            "entries": 16,
+            "independentRecompute": {
+              "verified": 16,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
         }
       ],
       "artifactsIntroducedNote": "当前再生产物状态（S2 分支回流实施后重跑——黄金回归绑定 G3-GOLDEN-0001 40/40 通过后执行；policy_v2.1.0 恒等映射经 policy_v2.1.0 延续，7/7 案例、14/14 断言）提交 0a4be6d；首次证据提交 434142f（policy_v2.0.0 时代，7/7 案例、14/14 断言）"
@@ -1309,13 +1536,13 @@
     {
       "runId": "G3-GOLDEN-0001",
       "kind": "golden-suite-regression",
-      "iteration": "G3 黄金套件回归",
-      "obligation": "黄金套件回归（G3 Gate 证据基线）：40 案例（G01–G10 各 NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度——含 S2b G09 方向性操作案例组与 S2 G10 分支回流案例组）——语料裁决 S2-CORPUS-TAIL-RULING-01 v1.0.0 选项 A 实施后再生产（模拟语料 fixtureId synthetic/simulate/v2，SHA256 dfa4045bb0457267f53b7f320472d55afd5b00635cf8366e8449b8aa793bc58a）；G10 案例组依据 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 冻结定义（policy_v2.1.0 变更 1–5）",
+      "iteration": "黄金套件回归（G01–G12 × NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度——48 案例）",
+      "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）",
       "path": "artifacts/evidence/runs/G3-GOLDEN-0001",
       "result": {
         "cases": {
-          "total": 40,
-          "pass": 40
+          "total": 48,
+          "pass": 48
         },
         "assertions": {
           "total": 10,
@@ -1323,15 +1550,16 @@
         },
         "exitCode": 0,
         "allPassed": true,
-        "startedAt": "2026-10-10T00:38:50.195Z",
-        "finishedAt": "2026-10-10T00:39:14.612Z",
-        "durationMs": 24413
+        "startedAt": "2026-10-10T04:48:32.665Z",
+        "finishedAt": "2026-10-10T04:49:01.961Z",
+        "durationMs": 29295,
+        "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）"
       },
       "sha256sums": {
         "path": "artifacts/evidence/runs/G3-GOLDEN-0001/SHA256SUMS",
-        "entries": 82,
+        "entries": 98,
         "independentRecompute": {
-          "verified": 82,
+          "verified": 98,
           "mismatch": 0,
           "missing": 0
         },
@@ -1500,7 +1728,7 @@
         "buildExitCode": 0,
         "note": "运行于未提交工作树（S2 分支回流实施期——产品提交 728b3de / 执行器提交 a7077ce 内容当时未提交，uncommittedEntries 如实记录；其后经 728b3de / a7077ce / 0a4be6d 提交入库，经独立评测人核对满足 E5 §3 记录要求）"
       },
-      "artifactsIntroducedAtCommit": "0a4be6d8e16d22f09c3c6b667e486237e764da40",
+      "artifactsIntroducedAtCommit": "2b2bbf5",
       "artifactsIntroducedNote": "当前再生产物状态（S2 分支回流实施后再生成——新增 G10 分支回流案例组 N/NEG/B/FR，40/40 案例、10/10 断言）提交 0a4be6d；36 案例扩展形态首次提交 849c0fc（G09 案例组纳入）；语料 v2 尾句对齐再生产物提交 f6763e5（36/36 案例、10/10 断言——归档留存 G3-GOLDEN-0001-attempt-2026-10-10T00-37-18-438Z）；本运行为黄金套件回归基线，非 Gate 判定证据（E5 §2：退出码 0 不设置任何 Gate 为 PASS）",
       "reviewPackage": "artifacts/evidence/runs/G3-GOLDEN-0001/review/README.md",
       "failedAttemptArchives": [
@@ -2100,6 +2328,223 @@
           "artifactsIntroducedAtCommit": "0a4be6d8e16d22f09c3c6b667e486237e764da40",
           "nature": "失败尝试按 ADR-0002 §5 如实登记，留存于仓库——执行器侧案例断言缺陷（产品运行时无缺陷），案例断言修复后重跑通过（缺陷分类与根因分析：P3-S2-IMPL-ITER-ADOPT v1.0.0 §3）",
           "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）"
+        },
+        {
+          "archive": "G3-GOLDEN-0001-attempt-2026-10-10T03-51-03-660Z",
+          "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T03-51-03-660Z",
+          "artifactsIntroducedAtCommit": "2b2bbf5",
+          "nature": "先前通过运行按 ADR-0002 §5 只追加纪律前置归档（再生产物——非失败尝试）（ADOPT 时代 40/40 案例基线——S3a 扩维（G11/G12 案例组并入）前最后一次全绿运行）",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 40,
+              "pass": 40
+            },
+            "assertions": {
+              "total": 10,
+              "pass": 10
+            },
+            "exitCode": 0,
+            "allPassed": true,
+            "startedAt": "2026-10-10T00:38:50.195Z",
+            "finishedAt": "2026-10-10T00:39:14.612Z",
+            "durationMs": 24413,
+            "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T03-51-03-660Z/SHA256SUMS",
+            "entries": 82,
+            "independentRecompute": {
+              "verified": 82,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
+        },
+        {
+          "archive": "G3-GOLDEN-0001-attempt-2026-10-10T04-43-51-277Z",
+          "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T04-43-51-277Z",
+          "artifactsIntroducedAtCommit": "2b2bbf5",
+          "nature": "失败尝试按 ADR-0002 §5 如实登记——40 案例 6 FAIL（G04-N/G07-N/G09-N/G10-N/G10-B/G10-FR）：执行器侧案例预期缺陷（产品运行时无缺陷）——通过条件仍断言 policy_v2.1.0（冻结于 ADOPT 迭代），产品经 S3a 实施已升 policy_v2.2.0，期望未随版本化变更同步；修复（期望同步 policy_v2.2.0 + G11/G12 案例组并入）后重跑",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 40,
+              "pass": 34
+            },
+            "assertions": {
+              "total": 10,
+              "pass": 8
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-10T03:50:58.329Z",
+            "finishedAt": "2026-10-10T03:51:26.098Z",
+            "durationMs": 27765,
+            "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T04-43-51-277Z/SHA256SUMS",
+            "entries": 82,
+            "independentRecompute": {
+              "verified": 82,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
+        },
+        {
+          "archive": "G3-GOLDEN-0001-attempt-2026-10-10T04-47-42-104Z",
+          "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T04-47-42-104Z",
+          "artifactsIntroducedAtCommit": "2b2bbf5",
+          "nature": "失败尝试按 ADR-0002 §5 如实登记——48 案例 4 FAIL（G11-N/G12-N/G12-NEG/G12-FR）：执行器侧案例预期缺陷——G11-N recognition_path 期望写 explicit_a（产品发射 explicit_preference——A 类偏好词直接命中形态）；G12 组 setupChain 复用固定默认 requestId 触发请求幂等拒绝（REQUEST_DUPLICATE——request-id 幂等为产品正确行为，执行器多 setupChain 调用须显式区分 id）；修复后重跑",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 48,
+              "pass": 44
+            },
+            "assertions": {
+              "total": 10,
+              "pass": 8
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-10T04:43:47.782Z",
+            "finishedAt": "2026-10-10T04:44:17.531Z",
+            "durationMs": 29748,
+            "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T04-47-42-104Z/SHA256SUMS",
+            "entries": 98,
+            "independentRecompute": {
+              "verified": 98,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
+        },
+        {
+          "archive": "G3-GOLDEN-0001-attempt-2026-10-10T04-48-35-438Z",
+          "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T04-48-35-438Z",
+          "artifactsIntroducedAtCommit": "2b2bbf5",
+          "nature": "失败尝试按 ADR-0002 §5 如实登记——48 案例 1 FAIL（G12-FR）：执行器侧取证时序缺陷——branchAdoptedAfterStale 实际值在对象构造时（重试采用成功之后）才采集，观测到 adopted=true；G12-FR 语义要求\"拒绝后立即取证\"（拒绝先于任何写入——adopted 保持 false，后续重试为合法采用）；修复（拒绝提交后立即采集 simulationAfterStale 快照并引用该常量）后重跑",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 48,
+              "pass": 47
+            },
+            "assertions": {
+              "total": 10,
+              "pass": 8
+            },
+            "exitCode": 1,
+            "allPassed": false,
+            "startedAt": "2026-10-10T04:47:38.815Z",
+            "finishedAt": "2026-10-10T04:48:08.674Z",
+            "durationMs": 29858,
+            "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/G3-GOLDEN-0001-attempt-2026-10-10T04-48-35-438Z/SHA256SUMS",
+            "entries": 98,
+            "independentRecompute": {
+              "verified": 98,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
+        }
+      ]
+    },
+    {
+      "runId": "S3-API-0001",
+      "kind": "iteration-evidence",
+      "iteration": "S3b 暴露层（HTTP API 面扩展——CR-28 D-3 选项 A）",
+      "obligation": "S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划——D-3 选项 A：既有端点 semanticAction 枚举扩展（纯暴露层——同一 ExperienceRuntime 单例，不改变任何运行时语义）；S3A/S3B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施",
+      "path": "artifacts/evidence/runs/S3-API-0001",
+      "result": {
+        "cases": {
+          "total": 8,
+          "pass": 8
+        },
+        "assertions": {
+          "total": 13,
+          "pass": 13
+        },
+        "exitCode": 0,
+        "allPassed": true,
+        "startedAt": "2026-10-10T04:58:29.078Z",
+        "finishedAt": "2026-10-10T04:58:37.001Z",
+        "durationMs": 7923,
+        "obligation": "S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划——D-3 选项 A：既有端点 semanticAction 枚举扩展（纯暴露层——同一 ExperienceRuntime 单例，不改变任何运行时语义）；S3A/S3B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施"
+      },
+      "sha256sums": {
+        "path": "artifacts/evidence/runs/S3-API-0001/SHA256SUMS",
+        "entries": 18,
+        "independentRecompute": {
+          "verified": 18,
+          "mismatch": 0,
+          "missing": 0
+        },
+        "includesSummaryJson": true,
+        "includesReviewReadme": false,
+        "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+      },
+      "codeBinding": {
+        "note": "run-metadata 以 git 节登记绑定（commit 5af559291caf998b5e4bd87faa3fbb9418f397cf、workTreeClean=false——执行形态 HTTP 取证：真实 HTTP 服务器经同一 getServerRuntime 单例）+ API 路由清单（含 GET /api/memory 与 GET /api/experience/{id}/simulation 新增只读观测路由）+ 静态边界发现"
+      },
+      "artifactsIntroducedAtCommit": "2b2bbf5",
+      "reviewPackage": "artifacts/evidence/runs/S3-API-0001/review/README.md",
+      "failedAttemptArchives": [
+        {
+          "archive": "S3-API-0001-attempt-2026-10-10T04-58-31-883Z",
+          "path": "artifacts/evidence/runs/S3-API-0001-attempt-2026-10-10T04-58-31-883Z",
+          "artifactsIntroducedAtCommit": "2b2bbf5",
+          "nature": "先前通过运行按 ADR-0002 §5 只追加纪律前置归档（再生产物——非失败尝试）（首次执行通过运行 04:57:26→04:57:34——通过条件全部正确；执行器侧描述串缺陷：断言 A2 描述文本与审阅包文本写 recognition_path=explicit_a，产品实际发射 explicit_preference（A 类偏好词直接命中形态）——描述串修正后按 ADR-0002 §5 前置归档重跑）",
+          "preservation": "ADR-0002 §5（只追加留存，不删除、不覆写）",
+          "result": {
+            "cases": {
+              "total": 8,
+              "pass": 8
+            },
+            "assertions": {
+              "total": 13,
+              "pass": 13
+            },
+            "exitCode": 0,
+            "allPassed": true,
+            "startedAt": "2026-10-10T04:57:26.878Z",
+            "finishedAt": "2026-10-10T04:57:34.835Z",
+            "durationMs": 7956,
+            "obligation": "S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划——D-3 选项 A：既有端点 semanticAction 枚举扩展（纯暴露层——同一 ExperienceRuntime 单例，不改变任何运行时语义）；S3A/S3B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施"
+          },
+          "sha256sums": {
+            "path": "artifacts/evidence/runs/S3-API-0001-attempt-2026-10-10T04-58-31-883Z/SHA256SUMS",
+            "entries": 18,
+            "independentRecompute": {
+              "verified": 18,
+              "mismatch": 0,
+              "missing": 0
+            },
+            "includesSummaryJson": true,
+            "includesReviewReadme": false,
+            "note": "summary.json 列入清单、review/README.md 不列入（审阅包为治理文档，随治理提交冻结）；独立重算全部精确通过。"
+          }
         }
       ]
     }
@@ -2112,7 +2557,8 @@
     "重跑复现验证已完成（2026-10-08）：全部四个已提交证据包均可被已提交执行器在锁定环境（Node v24.21.0）下重跑复现——见 reproducibilityVerification 与 repro-logs/。",
     "v1.3.0（2026-10-09）：追加 S2 时代证据运行 7 项（S2A-OBL-01-0001 / S2A-F2-0001 / S2A-F3-0001 / S2A-F4-0001 / S2A-F5-0001 / S2B-0001 / G3-GOLDEN-0001 当前再生产物状态）——S2 时代 G5 评测第 15 项（Evidence Index）输入；7 运行 SHA256SUMS 独立重算全部精确通过；30 个尝试归档中 27 个全部精确通过、3 个各 1 项 summary.json 时点性不符（与 F1/F2 同类——执行器写入顺序，实质内容经交叉核验为真）；v1.2.0 及以前内容保持原样（git 历史可查）。",
     "v1.4.0（2026-10-10）：S2 分支回流（ADOPT_BRANCH 显式回流操作——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A，policy_v2.1.0 变更 1–5；产品提交 728b3de / 执行器提交 a7077ce）实施后 S2 时代 3 运行再生产物登记——S2A-F4-0001 重跑（10/10 案例、17/17 断言——新增 BRANCH-ADOPT 案例）、G3-GOLDEN-0001 再生（40/40 案例——新增 G10 分支回流案例组 N/NEG/B/FR）、S2B-0001 重跑（7/7 案例、14/14 断言——黄金回归绑定新基线 40/40）；3 运行退出码 0、SHA256SUMS 独立重算全部精确通过；尝试归档新增 5 个（先前通过运行前置归档 3 个：S2A-F4-0001-attempt-2026-10-10T00-33-01-157Z / G3-GOLDEN-0001-attempt-2026-10-10T00-37-18-438Z / S2B-0001-attempt-2026-10-10T00-39-21-950Z；失败尝试 2 个：S2A-F4-0001-attempt-2026-10-10T00-36-33-645Z / G3-GOLDEN-0001-attempt-2026-10-10T00-38-52-586Z——均为执行器侧案例断言缺陷，产品运行时无缺陷，缺陷分类与根因分析见 P3-S2-IMPL-ITER-ADOPT v1.0.0 §3）；新增 5 个归档 SHA256SUMS 独立重算全部精确通过；尝试归档总数 41；全部产物经证据提交 0a4be6d 入库。",
-    "S2-G5-EVAL-DEF-01 v1.0.0 已经产品负责人 2026-10-09 裁决选项 A（复用 16 项框架对 S2 证据执行独立评测——CR-26 STAGED→RULED；经 76c1605 治理提交生效）；S2 时代 G5 独立评测仍 NOT RUN（P3-S2-G5-WORKSHEET-01 v0.1.0 新建，16 项骨架结论列全部 NOT RUN，待角色 5 逐项裁决签署——实现作者不得兼任独立评测人）。"
+    "S2-G5-EVAL-DEF-01 v1.0.0 已经产品负责人 2026-10-09 裁决选项 A（复用 16 项框架对 S2 证据执行独立评测——CR-26 STAGED→RULED；经 76c1605 治理提交生效）；S2 时代 G5 独立评测仍 NOT RUN（P3-S2-G5-WORKSHEET-01 v0.1.0 新建，16 项骨架结论列全部 NOT RUN，待角色 5 逐项裁决签署——实现作者不得兼任独立评测人）。",
+    "v1.5.0（2026-10-10）：S3 实施（CR-28 D-1…D-5 全项 A——S3a 核心能力（长期记忆启用 + 跨会话分支持久化）+ S3b 暴露层（HTTP API 面扩展）；产品提交 f8b374f / 执行器提交 87681c3 / 执行器元数据校正 e6780c8）后证据登记——黄金套件扩展 G11 长期记忆案例组 + G12 跨会话分支持久化案例组（G3-GOLDEN-0001 再生 48/48 案例、10/10 断言——SHA256SUMS 98 项）；S2A-F5-0001 再生（14/14 案例、19/19 断言——S2 时代负向不变式 SESSION-SCOPED-NEG / LONGTERM-DISABLED 经 CR-28 D-1/D-2 选项 A 裁决取代，案例 9→14、断言 12→19——SHA256SUMS 30 项）；S2A-F4-0001 再生（10/10 案例、17/17 断言——INPROC-REGRESSION 跨会话持久扩展，S2 时代 D-04 失效不变式经 CR-28 D-2 选项 A 取代——SHA256SUMS 22 项）；S2B-0001 重跑（7/7 案例、14/14 断言——黄金回归绑定新基线 policy_v2.2.0 / 48 案例——SHA256SUMS 16 项）；S3-API-0001 首次执行（新运行——8/8 案例、13/13 断言——HTTP 执行形态：三要素请求（request_id + session_id + user_input）经同一 getServerRuntime 单例执行真实运行路径、NDJSON 流、S1 fixture 形态向后兼容、错误语义 400 INVALID_ACTION / 400 INVALID_REQUEST / STATE_VERSION_CONFLICT、只读观测路由 GET /api/memory + GET /api/experience/{id}/simulation——SHA256SUMS 18 项）；五运行退出码 0、SHA256SUMS 独立重算全部精确通过（98/30/22/16/18 项）；尝试归档新增 12 个（失败尝试 5 个：G3-GOLDEN-0001-attempt-2026-10-10T04-43-51-277Z / -04-47-42-104Z / -04-48-35-438Z（policy_v2.1.0 期望未同步 6 FAIL / G11 recognition_path + G12 请求幂等 4 FAIL / G12-FR 取证时序 1 FAIL）+ S2A-F5-0001-attempt-2026-10-10T04-36-38-550Z / -04-43-10-669Z（旧负向不变式 2 FAIL / BRANCH-PERSISTENCE 取证时序 1 FAIL）；FATAL 部分产物 1 个：S2A-F5-0001-attempt-2026-10-10T04-41-45-293Z（runtimeFiles 路径 ENOENT——无 summary.json / SHA256SUMS / run-metadata.json，部分案例记录 / 轨迹 / 日志留存）；先前通过运行前置归档 6 个：G3-GOLDEN-0001-attempt-2026-10-10T03-51-03-660Z / S2A-F4-0001-attempt-2026-10-10T04-43-27-487Z / S2A-F4-0001-attempt-2026-10-10T05-23-28-507Z / S2A-F5-0001-attempt-2026-10-10T05-22-28-693Z / S2B-0001-attempt-2026-10-10T04-56-27-942Z / S3-API-0001-attempt-2026-10-10T04-58-31-883Z）；S2B-0001 另有 FATAL 1 次（黄金回归绑定基线陈旧——先于运行目录创建无运行产物，经迭代记录 P3-S3-IMPL-ITER v1.0.0 §3 登记）——全部失败均为执行器侧案例断言 / 基线 / 元数据缺陷，产品运行时零缺陷；执行器元数据校正（e6780c8——s2a-f5 / s2a-f4 版本矩阵现行口径 state_machine_v1.5.0 + 黄金基线字符串同步 48/48）后 S2A-F5 / S2A-F4 再生产物（bed768d）；v1.4.0 及以前内容保持原样（git 历史可查）。"
   ],
   "reproducibilityVerification": {
     "verifiedAt": "2026-10-08T16:50–16:52Z",
