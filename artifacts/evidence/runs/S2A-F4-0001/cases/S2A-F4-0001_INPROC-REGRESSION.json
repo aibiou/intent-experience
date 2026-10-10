@@ -1,14 +1,14 @@
 {
   "caseIdNamespace": "S2A-F4-0001:INPROC-REGRESSION",
   "sourceClause": "S2A-F4-SEMANTIC-FREEZE-01 §5（S2A-F4-INPROC-REGRESSION 案例大纲）；G2 跨契约一致性；C6 §7（信封）/§25（sequence 单调）；13 §15.5（SIMULATION → CREATION 衔接）；D-04 选项 A（会话结束失效）",
-  "scope": "全链路进程内回归：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（新分支自动 CREATE）→ CREATE 衔接 → 完成信号；信封全量有效、sequence 严格单调、全部决策追踪 policy_version=policy_v2.1.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续不变）、内容逐字节等于语料；simulation_recorded ×3；模拟域随会话结束失效",
+  "scope": "全链路进程内回归：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（新分支自动 CREATE）→ CREATE 衔接 → 完成信号；信封全量有效、sequence 严格单调、全部决策追踪 policy_version=policy_v2.2.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续不变）、内容逐字节等于语料；simulation_recorded ×3；模拟域跨会话持久（STOP 后 getSimulation 成功——currentBranchId===null，分支记录 ×2 保留——S3B 取代 S2 时代失效不变式）",
   "precondition": "WHY 意图链已建立（启动 v2）",
   "inputFault": "\"为什么\" / \"如果摩擦力为零会怎样\" / \"假如速度再高一点会怎样\" / \"如果返回主线呢\" / \"如果摩擦力再小一点会怎样\" / \"做成一个小游戏\" / \"就这样\"",
   "expected": {
     "chain": "WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（新分支自动 CREATE）→ CREATE 衔接（13 §15.5）→ 完成信号（STOP）全链路",
-    "contracts": "全部事件信封符合 C6 §7；sequence_number 严格单调（C6 §25）；全部决策追踪 policy_version=policy_v2.1.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续不变）；WHY / 模拟轮 / CREATE 内容逐字节等于 why / simulate / create 语料",
+    "contracts": "全部事件信封符合 C6 §7；sequence_number 严格单调（C6 §25）；全部决策追踪 policy_version=policy_v2.2.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续不变）；WHY / 模拟轮 / CREATE 内容逐字节等于 why / simulate / create 语料",
     "simulationDomain": "simulation_recorded ×3（round 1/2 同一分支，round 3 新分支——RETURN 后首轮自动 CREATE）；分支操作轮零 simulation_recorded（确定性系统回合）",
-    "finalState": "COMPLETED/COMPLETION；创作 COMPLETE（active=false，v1）；会话 SESSION_ENDED；模拟域随会话结束失效（D-04 选项 A——getSimulation 拒绝）"
+    "finalState": "COMPLETED/COMPLETION；创作 COMPLETE（active=false，v1）；会话 SESSION_ENDED；模拟域跨会话持久（S3B §1.1/§1.5——取代 S2 时代 D-04 失效不变式：getSimulation 成功，currentBranchId===null——会话级指针清空不跨会话自动恢复，分支记录 ×2 与模拟历史全量保留）"
   },
   "actual": {
     "whyOk": true,
@@ -42,11 +42,14 @@
         "branch_id": "branch_synthetic_0002"
       }
     ],
-    "simulationContextAfterStop": "invalidated (D-04)",
+    "simulationContextAfterStop": {
+      "currentBranchId": null,
+      "branches": 2
+    },
     "envelopeViolations": 0,
     "sequenceMonotonic": true,
     "policyVersions": [
-      "policy_v2.1.0"
+      "policy_v2.2.0"
     ],
     "branchOpLlmUsed": [
       false
@@ -71,7 +74,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:INPROC-REGRESSION.jsonl",
-    "traceSha256": "45f6af1c9704a57964e7d23dec6af38ed206480e0da1120b328118ff291077ec",
+    "traceSha256": "05c167ab495183a7754bae17c68efe48fadf4b6b8aace850bf1f98fbd5e47ca1",
     "form": "inprocess",
     "servers": []
   },

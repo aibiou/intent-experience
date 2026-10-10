@@ -1,0 +1,2 @@
+{"caseId":"S2A-F4-0001:NONCREATION-INERT","event":"trace_started","at":"2026-10-10T00:36:41.052Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §5（S2A-F4-NONCREATION-INERT 案例大纲）；G3 黄金套件 G02 语义（非模拟路径不回归）；PD-07","servers":[]}
+{"caseId":"S2A-F4-0001:NONCREATION-INERT","event":"trace_completed","at":"2026-10-10T00:36:41.428Z","startedAt":"2026-10-10T00:36:41.052Z","durationMs":376,"result":"PASS","pass":true}

@@ -1,0 +1,2 @@
+{"caseId":"S3-API-0001:STREAM-LONGTERM-A","event":"trace_started","at":"2026-10-10T04:57:30.436Z","form":"inprocess","sourceClause":"S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1（A 类门槛）/ §1.6（单一写入者）/ §1.8（事件属性扩展）；07 §5（A 类：明确表达的长期偏好）；policy_v2.2.0 变更 1","servers":[]}
+{"caseId":"S3-API-0001:STREAM-LONGTERM-A","event":"trace_completed","at":"2026-10-10T04:57:30.439Z","startedAt":"2026-10-10T04:57:30.435Z","durationMs":4,"result":"PASS","pass":true}

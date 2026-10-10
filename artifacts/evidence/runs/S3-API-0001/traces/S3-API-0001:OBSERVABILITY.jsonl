@@ -1,0 +1,2 @@
+{"caseId":"S3-API-0001:OBSERVABILITY","event":"trace_started","at":"2026-10-10T04:58:35.890Z","form":"inprocess","sourceClause":"S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.1/§1.2（只读快照——currentBranchId 会话级不变式）；API 契约 §2.3（Query 与 Command 分离——只读路由不改变任何状态）；07 §22（检索不改变体验）","servers":[]}
+{"caseId":"S3-API-0001:OBSERVABILITY","event":"trace_completed","at":"2026-10-10T04:58:36.985Z","startedAt":"2026-10-10T04:58:35.890Z","durationMs":1095,"result":"PASS","pass":true}

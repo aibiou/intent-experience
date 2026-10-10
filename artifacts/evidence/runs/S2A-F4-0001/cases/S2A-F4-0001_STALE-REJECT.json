@@ -53,7 +53,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:STALE-REJECT.jsonl",
-    "traceSha256": "06559514563aea264f9807c92879e089df497479081c596ee9b91a3375ed5e4f",
+    "traceSha256": "fb9f8f61181137af6df90d2c94979b639fc2d880403ee3dfb8067b363475860b",
     "form": "inprocess",
     "servers": []
   },

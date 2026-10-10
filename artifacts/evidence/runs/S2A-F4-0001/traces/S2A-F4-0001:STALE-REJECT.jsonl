@@ -1,2 +1,2 @@
-{"caseId":"S2A-F4-0001:STALE-REJECT","event":"trace_started","at":"2026-10-10T00:36:39.645Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §3 变更 1（版本纪律）/ §5（S2A-F4-STALE-REJECT 案例大纲）；S1-12（每次合法提交恰好 +1；stale 拒绝）；OBL-01 纪律（失败写入不消耗版本号）","servers":[]}
-{"caseId":"S2A-F4-0001:STALE-REJECT","event":"trace_completed","at":"2026-10-10T00:36:41.049Z","startedAt":"2026-10-10T00:36:39.644Z","durationMs":1405,"result":"PASS","pass":true}
+{"caseId":"S2A-F4-0001:STALE-REJECT","event":"trace_started","at":"2026-10-10T04:43:33.511Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §3 变更 1（版本纪律）/ §5（S2A-F4-STALE-REJECT 案例大纲）；S1-12（每次合法提交恰好 +1；stale 拒绝）；OBL-01 纪律（失败写入不消耗版本号）","servers":[]}
+{"caseId":"S2A-F4-0001:STALE-REJECT","event":"trace_completed","at":"2026-10-10T04:43:34.915Z","startedAt":"2026-10-10T04:43:33.511Z","durationMs":1404,"result":"PASS","pass":true}

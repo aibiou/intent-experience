@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G10-B","event":"trace_started","at":"2026-10-10T00:39:12.103Z","form":"in-process","sourceClause":"S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A：adopted 附加属性幂等、生命周期契约不变（ACTIVE/RETURNED/ABANDONED 三态）、主线当前上下文不因采用而改变","goldenCase":"G10","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G10-B","event":"trace_completed","at":"2026-10-10T00:39:13.518Z","startedAt":"2026-10-10T00:39:12.103Z","durationMs":1415,"result":"PASS","pass":true}

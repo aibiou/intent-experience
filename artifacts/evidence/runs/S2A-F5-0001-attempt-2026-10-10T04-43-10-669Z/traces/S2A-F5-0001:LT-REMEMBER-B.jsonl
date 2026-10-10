@@ -1,0 +1,2 @@
+{"caseId":"S2A-F5-0001:LT-REMEMBER-B","event":"trace_started","at":"2026-10-10T04:41:50.842Z","form":"inprocess","sourceClause":"S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1（B 类门槛——记住标记 + 偏好内容双命中）/ §1.2（识别词表纪律）；07 §5（B 类：用户明确要求记住）；policy_v2.2.0 变更 1","servers":[]}
+{"caseId":"S2A-F5-0001:LT-REMEMBER-B","event":"trace_completed","at":"2026-10-10T04:41:50.843Z","startedAt":"2026-10-10T04:41:50.841Z","durationMs":2,"result":"PASS","pass":true}

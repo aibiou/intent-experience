@@ -1,0 +1,2 @@
+{"caseId":"S2A-F5-0001:LT-CANDIDATE-C","event":"trace_started","at":"2026-10-10T04:36:44.058Z","form":"inprocess","sourceClause":"S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1（C 类——多次稳定出现仅 candidate_long_term_preference 候选标记，候选 ≠ 已保存；V1 不允许仅凭行为自动升级为永久用户画像）；07 §5（C 类）/ §11（再探索兴趣证据 +0.15 上限 1.0）","servers":[]}
+{"caseId":"S2A-F5-0001:LT-CANDIDATE-C","event":"trace_completed","at":"2026-10-10T04:36:44.800Z","startedAt":"2026-10-10T04:36:44.057Z","durationMs":743,"result":"PASS","pass":true}

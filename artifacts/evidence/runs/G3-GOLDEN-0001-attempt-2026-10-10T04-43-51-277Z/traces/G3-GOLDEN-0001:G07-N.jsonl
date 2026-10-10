@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G07-N","event":"trace_started","at":"2026-10-10T03:51:13.485Z","form":"in-process","sourceClause":"P2 Exit Gate & Sign-off §8 G07 Correction；Evaluation System V1 §5 G07（remove invalid inference / preserve valid context / reassess）；PD-21（产品负责人 2026-10-09 批准）","goldenCase":"G07","dimension":"NORMAL"}
+{"caseId":"G3-GOLDEN-0001:G07-N","event":"trace_completed","at":"2026-10-10T03:51:14.234Z","startedAt":"2026-10-10T03:51:13.485Z","durationMs":749,"result":"FAIL","pass":false}

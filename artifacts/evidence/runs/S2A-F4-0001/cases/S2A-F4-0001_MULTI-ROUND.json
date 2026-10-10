@@ -10,7 +10,7 @@
     "stage": "UNDERSTANDING → SIMULATION → SIMULATION（13 §15.3 多轮模拟阶段保持）",
     "events": "simulation_recorded ×2（round 1 / 2，同一 branch——WHAT_IF 首轮自动 CREATE，D-03 选项 A；branch_created [true, false]）",
     "content": "两轮内容逐字节等于 simulate 语料（合成数据；不省略、不累积）",
-    "decisionTrace": "WHAT_IF 轮次决策追踪 reasonPrimary=semantic_action，llm_used=true，policy_version=policy_v2.1.0（F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经现行 policy_v2.1.0 延续不变）"
+    "decisionTrace": "WHAT_IF 轮次决策追踪 reasonPrimary=semantic_action，llm_used=true，policy_version=policy_v2.2.0（F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经现行 policy_v2.2.0 延续不变）"
   },
   "actual": {
     "round1": {
@@ -75,7 +75,7 @@
       "currentBranchId": "branch_synthetic_0001"
     },
     "policyVersions": [
-      "policy_v2.1.0"
+      "policy_v2.2.0"
     ],
     "llmUsed": [
       true,
@@ -104,7 +104,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:MULTI-ROUND.jsonl",
-    "traceSha256": "77fd696b07d70ad1ce4ce4f90ba2b0edc36ad7f36c39681a3ab25827d776d1d3",
+    "traceSha256": "dbd778950a3aa2e8a882f1701739fcd2325ecbc7ff5e2730b61b2220b4a5d7b0",
     "form": "inprocess",
     "servers": []
   },

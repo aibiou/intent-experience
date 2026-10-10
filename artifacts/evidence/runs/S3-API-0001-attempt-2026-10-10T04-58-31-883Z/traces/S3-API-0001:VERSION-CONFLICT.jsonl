@@ -1,0 +1,2 @@
+{"caseId":"S3-API-0001:VERSION-CONFLICT","event":"trace_started","at":"2026-10-10T04:57:32.301Z","form":"inprocess","sourceClause":"S3B-SEMANTIC-FREEZE-01 v1.0.0 §3 变更 4（执行形态既有体验提交）；S1-12（版本冲突不消耗版本）；OBL-01（失败写入纪律）；G10-FR 故障恢复纪律","servers":[]}
+{"caseId":"S3-API-0001:VERSION-CONFLICT","event":"trace_completed","at":"2026-10-10T04:57:33.731Z","startedAt":"2026-10-10T04:57:32.301Z","durationMs":1430,"result":"PASS","pass":true}

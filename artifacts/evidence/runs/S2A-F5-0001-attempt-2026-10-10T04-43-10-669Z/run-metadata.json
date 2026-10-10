@@ -1,0 +1,310 @@
+{
+  "runId": "S2A-F5-0001",
+  "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）+ S3 回归扩展（S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划——S3A-SEMANTIC-FREEZE-01 v1.0.0 长期记忆启用 + S3B-SEMANTIC-FREEZE-01 v1.0.0 跨会话分支持久化；S2 时代负向不变式经 CR-28 全项 A 裁决取代）",
+  "authorization": {
+    "id": "P3-S2-IMPL-AUTH-01",
+    "version": "1.2.0",
+    "issued": "2026-10-09",
+    "note": "产品负责人签署生效（AUTHORIZED）；F-5 语义冻结文本于首个动态证据运行（S2A-F5-0001）前完成版本化冻结 + C1/C2/C3 Steward 确认（G1 式纪律）；S3 回归扩展依据 CR-28 裁决（2026-10-10 产品负责人确认全项 A——standing authorization 覆盖实施路径）"
+  },
+  "obligationTraceability": {
+    "F-5 (Minimal Memory)": {
+      "semanticFreeze": "docs/product/p3-s1/s2a-f5-semantic-freeze-staged.md（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 FROZEN，2026-10-09 产品负责人签署——D-01…D-05 全项选项 A）",
+      "frozenDecisions": {
+        "D-01": "选项 A（切片内本地持久化记忆记录存储——轴外持久对象，model on F-2 创作对象 / F-4 分支记录纪律；进程内形态；生产形态存储治理按隐私六要素已批准方向执行，属生产部署治理、不属本切片实施范围；S3a 增量——长期记忆按 07 §5 A/B 类经显式表达保存（source=explicit，confidence=1.0），C 类仅 candidate_long_term_preference 候选标记——候选 ≠ 已保存，V1 不允许仅凭行为自动升级为永久用户画像；S3A-SEMANTIC-FREEZE-01 v1.0.0）",
+        "D-02": "选项 A（五阶段生命周期契约化 + 轴外记忆子状态机 + 四事件词表——状态 {REMEMBERED, IN_USE, DECAYING, EXPIRED}；操作 {CREATE, RECALL, DECAY, EXPIRE, CORRECT, WITHDRAW}；事件词表 memory_recorded / memory_corrected / memory_withdrawn / memory_expired，domain=memory，C6 §7 已预留层；07 §10 映射冻结：OBSERVED/CANDIDATE→REMEMBERED，ACTIVE→IN_USE，DECAYING→DECAYING，EXPIRED→EXPIRED，显式 EXPLICIT 路径 S2 不存在）",
+        "D-03": "选项 A（L5 信号注入 + Current Intent 覆盖不变 + 检索只读——07 §21 优先级链；07 §20 检索纪律：以当前意图为检索键，只取相关记录；07 §12 覆盖不变式；07 §22 检索不改变体验、不触发产品动作；L6 长期记忆层 S3a 启用——长期记忆经显式表达保存后作为 L6 信号注入，覆盖关系不变——记忆仅注入上下文，不替用户决定当前意图）",
+        "D-04": "选项 A（最后更新起算 6 个月 + 到期自动删除 + 删除审计 + 示例参数规范化——指数衰减 Day 0 = 0.90 → Day 3 ≈ 0.63，k = ln(0.9/0.63)/3；IN_USE 且 < 0.50 → DECAYING；DECAYING 且 < 0.10 → EXPIRED；删除审计含删除时间 / 记录范围 / 验证信息——隐私要素 1/5）",
+        "D-05": "选项 A（运行时内部写入 API + 用户动作路由——记忆写入仅经 Runtime 内部写入方法；模型 state_update 拒绝（GS-06 / CC02 H05）；用户纠正 / 撤回经确定性规则词表识别（WITHDRAW > CORRECT）经 Runtime 单一写入者执行并留痕；写入侧执行 07 §7 不默认长期记住清单过滤）"
+      },
+      "implementationFiles": [
+        "src/experience/memory.ts（新增：记忆记录存储——五分量记录模型 / 四态生命周期状态机 / 六操作 / 07 §7 写入过滤 / 记忆操作识别词表 / 长期记忆显式表达识别（A/B 类双命中纪律）/ 检索相关性判定 / 规范衰减参数；S3a 增量——MemoryClass 二态 / MemorySource 三态 / long_term 写入门槛 source=explicit）",
+        "src/experience/runtime.ts（L5 Context Builder 集成：buildLlmContext 注入 memory_signals + 懒到期 memory_expired 登记；STOP 完成路径记忆登记（memory_recorded，先于 session_ended）；UNKNOWN + memoryIntent 路由 executeMemoryOperation（withdraw / correct）；UNKNOWN + longTermMemory 路由 executeLongTermMemoryWrite（record_long_term——S3a）；跨会话分支操作三前提校验 + executeBranchOperation（S3b D-2）；getMemory / getSimulation API）",
+        "src/experience/classifier.ts（记忆操作识别接入——分类优先级层全部未命中后调用，仅认领会成为 UNKNOWN 的输入；S3a 增量——recognizeLongTermMemoryExpression 接入同纪律）",
+        "src/experience/events.ts（memory 域事件词表常量：MEMORY_RECORDED_EVENT / MEMORY_CORRECTED_EVENT / MEMORY_WITHDRAWN_EVENT / MEMORY_EXPIRED_EVENT——C6 §14 <domain>_<past_participle>）",
+        "src/experience/policy.ts（POLICY_VERSION=policy_v2.2.0——S3a 变更 1–4 经 policy_v2.2.0 生效，F1–F4 语义延续不变）",
+        "src/experience/state-machine.ts（state_machine_v1.4.0 轴外记忆子状态机契约文档注释——07 §10 映射冻结）",
+        "tools/evidence/src/golden.mjs（policy_v2.2.0 断言同步；G08-B 静态不存在证明→存在证明改写——PD-07 经授权 §2(4) 取代性扩展；S3a 增量——G11/G12 案例组）",
+        "src/experience/http.ts（S3b 增量——执行形态暴露层：request_id + session_id + user_input 三要素请求经同一运行时实例执行真实运行路径；S1 fixture 形态向后兼容；StreamRequestInput.runtime 注入缝）",
+        "app/api/memory/route.ts（新增——GET /api/memory 只读观测路由：记忆域快照查询）",
+        "app/api/experience/[experienceId]/simulation/route.ts（新增——GET /api/experience/{id}/simulation 只读观测路由：模拟域快照查询——分支记录全量分量 + 模拟历史 + current_branch_id）"
+      ],
+      "evidenceCases": [
+        "S2A-F5-0001:CROSS-SESSION=PASS",
+        "S2A-F5-0001:LIFECYCLE=PASS",
+        "S2A-F5-0001:CORRECT-WITHDRAW=PASS",
+        "S2A-F5-0001:BRANCH-PERSISTENCE=FAIL",
+        "S2A-F5-0001:LONGTERM-GATED=PASS",
+        "S2A-F5-0001:CURRENT-INTENT-OVERRIDE=PASS",
+        "S2A-F5-0001:RETRIEVAL-READONLY=PASS",
+        "S2A-F5-0001:SINGLE-WRITER=PASS",
+        "S2A-F5-0001:WRITE-FILTER=PASS",
+        "S2A-F5-0001:LT-EXPLICIT-A=PASS",
+        "S2A-F5-0001:LT-REMEMBER-B=PASS",
+        "S2A-F5-0001:LT-BARE-NEG=PASS",
+        "S2A-F5-0001:LT-CANDIDATE-C=PASS",
+        "S2A-F5-0001:LT-GATE-NEG=PASS"
+      ],
+      "assertions": [
+        "A1=PASSED",
+        "A2=PASSED",
+        "A3=PASSED",
+        "A4=FAILED",
+        "A5=PASSED",
+        "A6=PASSED",
+        "A7=PASSED",
+        "A8=PASSED",
+        "A9=PASSED",
+        "A10=PASSED",
+        "A11=PASSED",
+        "A12=PASSED",
+        "A13=PASSED",
+        "A14=PASSED",
+        "A15=PASSED",
+        "A16=PASSED",
+        "A17-PREFLIGHT=PASSED"
+      ],
+      "goldenRegression": "G3-GOLDEN-0001 PASSED（40/40 案例；断言已同步 policy_v2.2.0——S3a 实施后黄金回归零碰撞：G08-NEG\"记住这个\"对抗语料保持升级）"
+    }
+  },
+  "environmentLicense": {
+    "id": "E5-SCOPED-LICENSE-01",
+    "version": "1.0.0",
+    "decision": "PD-17",
+    "status": "superseded-by-implementation-authorization"
+  },
+  "productDecisions": {
+    "register": "docs/product/baseline/product-owner-decisions-v1.md",
+    "keys": [
+      "PD-01",
+      "PD-02",
+      "PD-03",
+      "PD-04",
+      "PD-05",
+      "PD-06",
+      "PD-07",
+      "PD-08",
+      "PD-09",
+      "PD-10",
+      "PD-11",
+      "PD-12",
+      "PD-13",
+      "PD-14",
+      "PD-15",
+      "PD-16",
+      "PD-17",
+      "PD-21",
+      "PD-22",
+      "PD-23"
+    ],
+    "note": "PD-23：S2 范围裁决（选项 B 两切片；F-5 = Minimal Memory——仅短期记忆持久化 + 用户显式纠正 / 撤回记录；六类数据状态区分；长期记忆 S2 不启用）；PD-07：不持久化跨会话 Memory——F-5 起经授权 §2(4) 取代性扩展为\"仅短期记忆跨会话持久化\"（G08-B 证明同步改写）"
+  },
+  "contracts": {
+    "baseline": "docs/product/baseline/contract-authority-baseline-v1.md",
+    "entries": [
+      {
+        "id": "C1",
+        "name": "Core Schema（核心结构）",
+        "version": "core_schema_v1.0.0",
+        "source": "docs/product/reference/12｜Core Schema Specification V1（核心数据结构规范 V1）.md",
+        "registeredHash": "e6350ae427f6ccb75ea317345398932b2bc6fddd3b3b57af52296ba58ca2e20c",
+        "registeredNote": null,
+        "computedHash": "e6350ae427f6ccb75ea317345398932b2bc6fddd3b3b57af52296ba58ca2e20c",
+        "match": true
+      },
+      {
+        "id": "C2",
+        "name": "State Machine（状态机）",
+        "version": "state_machine_v1.0.0",
+        "source": "docs/product/reference/13｜State Machine Specification V1（状态机规范 V1）.md",
+        "registeredHash": "feb1130cacc0d628b983a5f46815c46fdb99e35245c797cdad476f29ba3499a1",
+        "registeredNote": null,
+        "computedHash": "feb1130cacc0d628b983a5f46815c46fdb99e35245c797cdad476f29ba3499a1",
+        "match": true
+      },
+      {
+        "id": "C3",
+        "name": "Action & Policy（动作与策略）",
+        "version": "action_policy_v1.0.0（基线赋予）",
+        "source": "docs/product/reference/14｜Action & Policy Contract V1（动作与策略契约 V1）.md",
+        "registeredHash": "15139925ae66c023b93e9c2adff3699a4812a1baedb228ebf2dc555db8c46c3f",
+        "registeredNote": null,
+        "computedHash": "15139925ae66c023b93e9c2adff3699a4812a1baedb228ebf2dc555db8c46c3f",
+        "match": true
+      },
+      {
+        "id": "C4",
+        "name": "LLM Contract（大模型契约，正式文件）",
+        "version": "C4-LLM-Contract-v1.0.0",
+        "source": "docs/product/contracts/C4-LLM-Contract-v1.0.0.md",
+        "registeredHash": null,
+        "registeredNote": "§1–§17 全节 SHA-256 范围指纹已登记于 C4-LLM-Contract-v1.0.0.md §18（K-4/K-5，CR-10/CR-11 关闭）",
+        "computedHash": "db3c522c4cafca91b5cf67a864d96b64955b316cdd3767596f4724dded6c03ab",
+        "match": null
+      },
+      {
+        "id": "C5",
+        "name": "API（接口）",
+        "version": "api_v1.0.0",
+        "source": "docs/product/reference/16｜API Contract V1（接口契约 V1）.md",
+        "registeredHash": "2470f0a33d38c0561fcf7b10e4d006b69f75eb4327e33ba48c365a71f21f82eb",
+        "registeredNote": null,
+        "computedHash": "2470f0a33d38c0561fcf7b10e4d006b69f75eb4327e33ba48c365a71f21f82eb",
+        "match": true
+      },
+      {
+        "id": "C6",
+        "name": "Event & Analytics（事件与分析）",
+        "version": "analytics_v1.0.0",
+        "source": "docs/product/reference/17｜Event & Analytics Contract V1（事件与数据分析契约 V1）.md",
+        "registeredHash": "474d73c488744cf22fba2ce2013bfc63b2d7ac6129bf758c4fc46f30a5372671",
+        "registeredNote": null,
+        "computedHash": "474d73c488744cf22fba2ce2013bfc63b2d7ac6129bf758c4fc46f30a5372671",
+        "match": true
+      },
+      {
+        "id": "C7",
+        "name": "Evaluation（评测与验收）",
+        "version": "evaluation_v1.0.0",
+        "source": "docs/product/reference/18｜Evaluation System V1（评测与验收体系 V1）.md",
+        "registeredHash": "ec07d4e68a9f5afaa6eea0c6a3a160619b2950083d0a2ca5c30d4b6f7cf563b0",
+        "registeredNote": null,
+        "computedHash": "ec07d4e68a9f5afaa6eea0c6a3a160619b2950083d0a2ca5c30d4b6f7cf563b0",
+        "match": true
+      }
+    ],
+    "p3s1Candidates": {
+      "source": "SRC-21 / SRC-22 / SRC-24（P3-S1-C01～C09）",
+      "status": "FREEZE CANDIDATE，未获责任人批准；与已批准契约不一致时暂停并升级决策"
+    }
+  },
+  "s1Specifications": [
+    "P3-S1-CC02｜C01～C09 Cross-Contract Consistency Matrix（跨契约一致性矩阵）.md",
+    "P3-S1-C07～C08｜LLM Gateway & Validator Contracts（大模型网关与验证器契约）.md",
+    "P3-S1｜Runtime Vertical Slice Specification（运行时首个完整产品切片规范）.md",
+    "P3-S1-CC01｜Cross-Contract Consistency Specification（跨契约一致性规范）.md",
+    "P3-S1-C01～C04｜Runtime Core Foundation Contracts（运行时核心底座契约）.md",
+    "P3-S1-C07～C09｜LLM Gateway、Validator & Runtime Contracts（大模型网关、验证器与运行时契约）.md",
+    "P3-S1-C05～C06｜Semantic Action & Policy Contracts（语义动作与策略契约）.md"
+  ],
+  "stateMachine": {
+    "contract": "C2",
+    "version": "state_machine_v1.4.0",
+    "implemented": [
+      "L0 Session（§4）",
+      "L2 Experience 状态机（§7）",
+      "L2 阶段机（§14/§15）",
+      "Forbidden Transitions（§23）",
+      "创造状态机 V1（13 §16——轴外子状态机；S2A-F2-SEMANTIC-FREEZE-01 §4 变更 1）",
+      "CORRECTION 操作序列契约化（S2A-F3-SEMANTIC-FREEZE-01 §4 变更 1）",
+      "RESTORE 语义（S2A-F3-SEMANTIC-FREEZE-01 §4 变更 2）",
+      "WHAT_IF_SIMULATE 多轮模拟契约化（S2A-F4-SEMANTIC-FREEZE-01 §4 变更 1）",
+      "WHAT_IF 分支状态（S2A-F4-SEMANTIC-FREEZE-01 §4 变更 2——轴外分支子状态机）",
+      "轴外记忆子状态机（S2A-F5-SEMANTIC-FREEZE-01 §4 变更 1：状态 {REMEMBERED, IN_USE, DECAYING, EXPIRED}；操作 {CREATE（记住）, RECALL（暂时使用）, DECAY（逐渐失效——时间衰减驱动）, EXPIRE（到期——自动）, CORRECT（被用户纠正——内容更正 + 留痕）, WITHDRAW（被用户撤回——撤回留痕 + 删除审计）}；记忆域事件词表 memory_recorded / memory_corrected / memory_withdrawn / memory_expired；07 §10 映射冻结；体验阶段轴不变——记忆操作不新增体验轴触发器）"
+    ]
+  },
+  "policy": {
+    "contract": "C3",
+    "version": "policy_v2.2.0",
+    "frozenMappingsImplemented": {
+      "DIRECT_ANSWER": "ANSWER",
+      "WHY": "EXPLAIN",
+      "WHAT_IF": "SIMULATE（映射不变——S1 §14；执行语义 F-4 起扩展为多轮模拟持久化 + 轴外分支子状态机）",
+      "CHANGE_DIRECTION": "CHANGE_EXPERIENCE",
+      "STOP": "STOP",
+      "CREATE": "CREATE（PD-21 关闭切片启用；F-2 起承载完整 G04 创作语义；F-3 起创作会话内 MODIFY 别名输入经路由保护回创作解释；SIMULATION → CREATION 衔接 13 §15.5 不变）",
+      "CORRECTION": "EXPLAIN（G07 完整语义 F-3 起完整化：定位目标 / 局部修改 / 重生成 / 历史版本化；MODIFY 用户面别名 + RESTORE 恢复子型；策略映射不变）"
+    },
+    "frozenMapAuthority": "S1 规范 §14 Policy Rules（acceptance-mapping §A/C 批准范围）+ S2A-F5-SEMANTIC-FREEZE-01 §3 变更文本（policy_v1.5.0——F-5 不新增语义动作，映射不变）+ S3A/S3B-SEMANTIC-FREEZE-01 §3 变更文本（policy_v2.2.0——S3a/S3b 语义启用，映射不变）",
+    "semanticGapRegister": "docs/product/baseline/c3-semantic-gap-register-v1.md（G-1…G-7 已登记，未由编码者补写；冻结点之外一律拒绝并升级）",
+    "memorySemantics": "S2A-F5-SEMANTIC-FREEZE-01 §3 变更 1–5（policy_v1.5.0）：① 语义动作映射不变；② 新增 Minimal Memory 策略章节（记忆域范围 / 六类数据状态区分纪律 / 信号措辞纪律 / 写入侧过滤 / 作用面纪律 / 单一写入者）；③ Context Builder 集成（优先级链 L0–L6 转写，L5 检索以当前意图为键）；④ 保留与删除（默认 6 个月——最后更新起算，到期自动删除 + 删除审计记录）；⑤ 版本不变式（记忆记录操作不改变体验状态版本链）；S3A-SEMANTIC-FREEZE-01 §3 变更 1–4（policy_v2.2.0）：① 长期记忆启用（07 §5 A/B 类经显式表达保存——source=explicit，confidence=1.0；C 类仅 candidate_long_term_preference 候选标记——候选 ≠ 已保存，V1 不允许仅凭行为自动升级为永久用户画像）；② 优先级链与保留删除纪律（长期记忆永远不是最高优先级——L6 位于短期记忆之后；默认保留 6 个月——复用 MEMORY_RETENTION_MS=180 天；到期自动删除 + 删除审计——用户主权不因记忆类别而削弱）；③ 记忆记录与事件属性扩展（MemoryRecord 增 memoryClass / candidateLongTerm；MemorySource 增 explicit；memory_recorded properties 增 memory_class / source / confidence / recognition_path——C6 §14 属性扩展不新增事件名）；④ 写入经 Runtime 单一写入者（存储层门槛：memoryClass=long_term 须 source=explicit——long_term_requires_explicit 拒绝）；S3B-SEMANTIC-FREEZE-01 §3 变更 3–4（policy_v2.2.0）：③ 分支记录全量跨会话持久化（持久化范围 = 分支记录全部分量；currentBranchId 会话级不变式——会话结束清空，不跨会话自动恢复激活分支；恢复为只读加载，不登记新事件）；④ 跨会话分支操作路径（三前提：WHAT_IF 分类 + 分支操作词识别 / 输入会话 SESSION_ACTIVE / 宿主会话 SESSION_ENDED——放宽仅限分支操作路径，内容轮保持严格会话绑定；COMPLETED 体验的分支记录可操作——分支操作为轴外对象操作，体验轴保持终态）"
+  },
+  "api": {
+    "contract": "C5",
+    "version": "api_v1.0.0",
+    "routes": [
+      "POST /api/session/start",
+      "POST /api/intent/resolve",
+      "POST /api/experience/start",
+      "GET /api/experience/{id}/state",
+      "POST /api/experience/{id}/event",
+      "POST /api/experience/{id}/stream",
+      "GET /api/memory",
+      "GET /api/experience/{id}/simulation"
+    ],
+    "note": "S3b（D-3 选项 A——纯暴露层）：既有端点语义动作经用户输入负载承载（request_id + session_id + user_input 三要素——同一 getServerRuntime 单例，不改变任何运行时语义）；记忆域操作经既有 resolveIntent 路由（UNKNOWN + memoryIntent / longTermMemory）；新增两条只读观测路由（Query 与 Command 分离——GET /api/memory 记忆域快照 / GET /api/experience/{id}/simulation 模拟域快照——只读，不改变任何状态）"
+  },
+  "decisionTrace": {
+    "contract": "C6",
+    "version": "decision_trace_v1.0.0",
+    "memoryDomainEvents": [
+      "memory_recorded",
+      "memory_corrected",
+      "memory_withdrawn",
+      "memory_expired"
+    ],
+    "note": "记忆域事件 domain=memory（C6 §7 事件层枚举已预留）；衰减为内部置信度更新不发事件；检索只读不发事件（D-02 选项 A）"
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "nodeLock": "v24.21.0",
+    "typescript": "7.0.2",
+    "react": "19.3.0",
+    "next": "16.4.0",
+    "packageName": "intent-experience-runtime",
+    "packageVersion": "0.1.0",
+    "lockfileVersion": 3,
+    "sqlite": "3.53.4"
+  },
+  "runtimeFiles": {
+    "count": 44,
+    "sha256": {
+      "package.json": "fa7665b1ea2c862dce091db47f4336e9591d022f3f35f7ae15d932607067f8dc",
+      "package-lock.json": "3bb63eefad5d1c37990b359e3d0b337ad1d4331da9ec7f5536b18acfd859ed86",
+      "tsconfig.json": "11530e52621c1c4c42c1f69c7c8f632aa397b101b17656fdeb9d00e2679c6b61",
+      "tsconfig.core.json": "6df46831678573b0f924650df0aeb521fb9000fdc3c092d2b5e8e0988894c04e",
+      "next.config.ts": "313bbd12b7c02687533a9834c38c1052cd8037ad0b47b26713cbaa19e6fbad74",
+      "app/layout.tsx": "20fef2d253247770bfa0ffad80371b804c60b2ae1b65c258d5164a1683b7d44e",
+      "app/page.tsx": "7593bcb68cca71efa041bab75253f1f656594c7f2b08c6e2740108aa62080b75",
+      "app/api/experience/stream/route.ts": "e549b14180c3939fe7e0e0345e295923b8a1e3f7aa964d67d8e2cecef8b21320",
+      "app/api/session/start/route.ts": "3f032c8de37847d10607b4103f30251689035ca57ec08583285b22812e6329a7",
+      "app/api/intent/resolve/route.ts": "88d452b7122ec6e317d6c01c8f27ca72ab8ef8bd0c713d2fe490c2b89aacda9f",
+      "app/api/experience/start/route.ts": "388db9999ca45a25dd9e016c283cd4f3711110e1b98f76a4fa6b106da03a8026",
+      "app/api/experience/[experienceId]/state/route.ts": "ac786e52885b91168997c4b6a685f70fd480c24c8c9e5001a7373e4103ffb8ac",
+      "app/api/experience/[experienceId]/event/route.ts": "325ff8e6b73c0ef3b140767135b1017a56a41b1d29531f74be1694051d1e14d2",
+      "app/api/memory/route.ts": "e34a9375b1dc769fdc62d82aee468d82da95e4ba85ec5af2b53ba3771ba18353",
+      "app/api/experience/[experienceId]/simulation/route.ts": "dc2981cb2756866847203f05d41f71e42f88eab72bce44c86789a41ccf022a27",
+      "src/experience/policy.ts": "1557ebb038856e07f982ec80675415b0bee2e9154bb5396c79168824428cb819",
+      "src/experience/chunks.ts": "a26f6619842a23e853aae7f7800b94b161756121785e6fe4943a1f7bf01a1755",
+      "src/experience/stream.ts": "a2931765e29382e81f755be747a8dbb9097b94d3a42103a9d8ba87c988281010",
+      "src/experience/audit.ts": "1da20af50e24cde6e4638a78f22e05ec847fa153c0a4655b86134474291ddf0b",
+      "src/experience/http.ts": "f5a6110a6fd582a8981a287a8078d9de2f617a2abc4ec4987e8522615f21b3d5",
+      "src/experience/session.ts": "d7a21131bfb848730643ca7808e71a714e4a757e917cf1103f23c549d68589ae",
+      "src/experience/state-machine.ts": "e78a54e5cc5ee6d9d9ddfb4520bdc7aaa8c0f37d48530b29e9a5bb2d7f9d9044",
+      "src/experience/state-store.ts": "625f747f39f589c8d3d99bf00a61dd58a89c5876e9b21cd2c1f59a346189e863",
+      "src/experience/classifier.ts": "b7522eaf48974971ea57898628abd3f5f967c3da5f3e5ace36c0f91e0a763153",
+      "src/experience/correction.ts": "72897fcf8b3d8a64ceb9d6600a228cd2c447f772cc79c2aa8e46ab63a9d4674c",
+      "src/experience/validator.ts": "46850fea758853531f6687551b8f96280772c7fe4c019ac76559ec93fdc4646a",
+      "src/experience/events.ts": "7c7d399f0dfcf9db3bf89fd6bf3ba7695c52f31181448f21ec3425e08c76f044",
+      "src/experience/decision-trace.ts": "6606aa6e01c100b0217bafd7b49810a174e3dd7cda36a15668ebf0b42506f0c8",
+      "src/experience/llm-gateway.ts": "858dea8a666c6bed47142f39b32695418e88d564d54096b8373ed80f955a1601",
+      "src/experience/creation.ts": "a7fe504b7ffa711ed10820f2d568792819fdefc3e65f0a4af280a2da4da181d4",
+      "src/experience/simulation.ts": "bb2ce53c17e30199969331abe23ffc49659d2881344201c5f8d360b52191d1ed",
+      "src/experience/memory.ts": "ad15f2a443f195a2aff733eecdf36aefb623f551e60122700aeced36dff39c36",
+      "src/experience/runtime.ts": "458f6e26078d4d3147e8c435db7f1c89d095248ae875a7d5b855d21e786c69e2",
+      "src/experience/server-runtime.ts": "b6b3f83166d085e72013661915f2f79398f961081310bd35c5ad4d10412f5700",
+      "src/experience/fixtures/direct-answer.ts": "d2183d5f8fe5075540980462cf3774fba8fcc4c1f0740032654ba27331ed264c",
+      "src/experience/fixtures/why.ts": "8e597e2d9c4082ee4a80e19557c82d3be54ed917f3dbfd68bb8a4752787757e0",
+      "src/experience/fixtures/change-direction.ts": "8db3861f3a0693492054d4aeb9d73ed42a3fb561bcc7f45ed8de0fc47ed6468a",
+      "src/experience/fixtures/simulate.ts": "dfa4045bb0457267f53b7f320472d55afd5b00635cf8366e8449b8aa793bc58a",
+      "src/experience/fixtures/create.ts": "e84eba657c582b8947d10988ed9389ab5eb56563f8d07de97ef7f81f486b7b99",
+      "src/experience/fixtures/correction.ts": "27393524ebcb51cf2f26e32fa163e3c2a787f0cfe2cf9b11fc242dbe7db03f68",
+      "tools/evidence/src/s2a-f5.mjs": "ae7ed70e2223b0584365b6aba7677e9270c8e47d71f3f0ab89ef9a7723bbbeb6"
+    }
+  },
+  "git": {
+    "commit": "5af559291caf998b5e4bd87faa3fbb9418f397cf",
+    "workTreeClean": false
+  },
+  "startedAt": "2026-10-10T04:41:41.206Z"
+}

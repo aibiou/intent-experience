@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G02-N","event":"trace_started","at":"2026-10-10T03:51:05.114Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G02 Why；S1 §26 GS-02；Evaluation System V1 §5 G02","goldenCase":"G02","dimension":"NORMAL"}
+{"caseId":"G3-GOLDEN-0001:G02-N","event":"trace_completed","at":"2026-10-10T03:51:05.558Z","startedAt":"2026-10-10T03:51:05.113Z","durationMs":445,"result":"PASS","pass":true}

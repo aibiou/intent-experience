@@ -1,0 +1,2 @@
+{"caseId":"S2A-F5-0001:LONGTERM-DISABLED","event":"trace_started","at":"2026-10-10T03:50:28.917Z","form":"inprocess","sourceClause":"S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §1 元素 5（长期记忆 S2 不启用——负向不变式）；PD-23（S2-SCOPE-PROPOSAL-01 §5 裁决）；授权 §2(4)（仅短期记忆持久化 + 用户显式纠正 / 撤回记录）；07 §5（Long-term Memory）/ §8（Fact / Inference / Preference 类型层）","servers":[]}
+{"caseId":"S2A-F5-0001:LONGTERM-DISABLED","event":"trace_completed","at":"2026-10-10T03:50:29.663Z","startedAt":"2026-10-10T03:50:28.917Z","durationMs":746,"result":"FAIL","pass":false}

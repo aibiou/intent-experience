@@ -1,15 +1,15 @@
 {
   "caseIdNamespace": "S2A-F4-0001:BRANCH-ADOPT",
-  "sourceClause": "S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A（第五分支操作 ADOPT_BRANCH——产品负责人 2026-10-09 裁决）；policy_v2.1.0 变更 1–5；C6 §14（simulation_adopted 命名模式 <domain>_<past_participle>）；E8-G2-CC07（采用结果仍标记为模拟来源）；D-02 选项 A（主线当前上下文不变——显式回流为经用户指令的例外通道）；S1-12；OBL-01（拒绝不消耗版本号）",
+  "sourceClause": "S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A（第五分支操作 ADOPT_BRANCH——产品负责人 2026-10-09 裁决）；policy_v2.2.0 变更 1–5；C6 §14（simulation_adopted 命名模式 <domain>_<past_participle>）；E8-G2-CC07（采用结果仍标记为模拟来源）；D-02 选项 A（主线当前上下文不变——显式回流为经用户指令的例外通道）；S1-12；OBL-01（拒绝不消耗版本号）",
   "scope": "显式回流操作 ADOPT_BRANCH：分支 1 累积两轮后采用（adopted 标记附加，生命周期 ACTIVE 不变，主线当前上下文不变——currentBranchId 保持分支 1；simulation_adopted ×1，properties 含 branch_id / source_round=1 / adopted_content 摘要=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact；结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文）→ 负向：采用不存在分支序号（分支九）INVALID_STATE_TRANSITION（拒绝先于任何写入，不消耗版本号）→ RETURN（分支 1 RETURNED，currentBranchId=null）→ 无激活分支上下文采用分支 1（RETURNED 生命周期不变，adopted 幂等，currentBranchId 保持 null——主线当前上下文不变）；分支操作轮为确定性系统回合（llm_used=false）",
   "precondition": "WHAT_IF 意图链已建立（启动 v2）；两轮模拟完成（分支 1，version=2，ACTIVE）",
   "inputFault": "WHAT_IF 洁净输入两轮 + 分支操作输入（\"如果采用分支一的结论呢\" ×2 / \"如果采用分支九的结论呢\"〔负向〕/ \"如果返回主线呢\"）",
   "expected": {
     "chain": "WHAT_IF 轮 1（自动 CREATE 分支 1）→ 轮 2（累积）→ ADOPT_BRANCH 分支 1（adopted 附加，主线当前上下文不变）→ 负向：采用分支九 INVALID_STATE_TRANSITION（不消耗版本号）→ RETURN（分支 1 RETURNED，当前清空）→ ADOPT_BRANCH 分支 1（RETURNED 生命周期不变，adopted 幂等，currentBranchId 保持 null）",
-    "contracts": "全部事件信封符合 C6 §7；sequence_number 严格单调（C6 §25）；全部决策追踪 policy_version=policy_v2.1.0（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 经 policy_v2.1.0 变更 1–5 生效）；模拟轮内容逐字节等于 simulate 语料；采用轮结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文",
+    "contracts": "全部事件信封符合 C6 §7；sequence_number 严格单调（C6 §25）；全部决策追踪 policy_version=policy_v2.2.0（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 经 policy_v2.2.0 变更 1–5 生效）；模拟轮内容逐字节等于 simulate 语料；采用轮结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文",
     "simulationDomain": "simulation_recorded ×2（round 1/2 同一分支——仅模拟轮登记）；simulation_adopted ×2（branch_id=分支 1，source_round=1，adopted_content=分支 1 最新模拟轮模拟内容，separation_invariant=simulation_result_is_not_fact——采用结果仍标记为模拟来源）",
     "branchModel": "分支 1：lifecycle ACTIVE→ACTIVE（采用不变）→RETURNED（RETURN）→RETURNED（采用不变）；adopted false→true（附加标记，幂等）；version=2（采用不累积模拟轮次）；currentBranchId 分支 1→分支 1（采用不变）→null（RETURN）→null（采用不变——主线当前上下文不变）",
-    "decisionTraces": "分支操作决策追踪 4 轮（采用 1 / 采用九拒绝 / RETURN / 采用 2）llm_used=false（确定性系统回合）；ADOPT_BRANCH 轨迹 3 轮——采用轮（成功 ×2）reasonPrimary=explicit_user_direction、拒绝轮 reasonPrimary=invalid_state_transition；全部 policy_version=policy_v2.1.0",
+    "decisionTraces": "分支操作决策追踪 4 轮（采用 1 / 采用九拒绝 / RETURN / 采用 2）llm_used=false（确定性系统回合）；ADOPT_BRANCH 轨迹 3 轮——采用轮（成功 ×2）reasonPrimary=explicit_user_direction、拒绝轮 reasonPrimary=invalid_state_transition；全部 policy_version=policy_v2.2.0",
     "finalState": "WAITING/SIMULATION v12（启动 v2 + 轮 1/2 各 +2 + 采用 1 +2 + RETURN +2 + 采用 2 +2；负向拒绝轮零消耗——OBL-01）"
   },
   "actual": {
@@ -24,7 +24,7 @@
     "adopt1Ok": true,
     "adopt1SelectedAction": "SIMULATE",
     "adopt1Reason": "simulation_branch_operation",
-    "adopt1PolicyVersion": "policy_v2.1.0",
+    "adopt1PolicyVersion": "policy_v2.2.0",
     "adopt1ContentPresentsAdoptedContent": true,
     "branchAdoptedAfterAdopt1": true,
     "branchLifecycleAfterAdopt1": "ACTIVE",
@@ -86,7 +86,7 @@
     "envelopeViolations": 0,
     "sequenceMonotonic": true,
     "policyVersions": [
-      "policy_v2.1.0"
+      "policy_v2.2.0"
     ],
     "finalStateVersion": 12
   },
@@ -108,7 +108,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:BRANCH-ADOPT.jsonl",
-    "traceSha256": "26077b89e731924f367dd6d62ec897ec9c38c0b7f54065c61690fc2e67fc13ce",
+    "traceSha256": "38895e6541cc69e119879f9676c402418cbaef3c13f5fb95c68e4a101dc37711",
     "form": "inprocess",
     "servers": []
   },

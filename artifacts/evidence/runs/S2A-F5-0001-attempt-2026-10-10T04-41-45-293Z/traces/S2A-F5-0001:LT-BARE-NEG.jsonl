@@ -1,0 +1,2 @@
+{"caseId":"S2A-F5-0001:LT-BARE-NEG","event":"trace_started","at":"2026-10-10T04:36:44.057Z","form":"inprocess","sourceClause":"S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.2（B 类双命中纪律——裸记住请求不识别为记忆写入）；黄金 G08-NEG 不变式（\"记住这个\"对抗语料——零黄金回归面纪律）；授权 §5.7（未知情况升级而非由系统决定）","servers":[]}
+{"caseId":"S2A-F5-0001:LT-BARE-NEG","event":"trace_completed","at":"2026-10-10T04:36:44.057Z","startedAt":"2026-10-10T04:36:44.057Z","durationMs":0,"result":"PASS","pass":true}

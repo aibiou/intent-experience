@@ -1,0 +1,256 @@
+{
+  "caseIdNamespace": "S2B-0001:FIRST-EXPERIENCE",
+  "sourceClause": "S2B-SEMANTIC-FREEZE-01 §5.2 案例面 4 + §4 变更 3；E2 §5/§6/§7；D-04 选项 A",
+  "scope": "S2b G-3：First Experience 完整呈现——入口流程 / 六阶段（含 BRANCH Simulation 呈现面区分）/ 完成 / 退出 / 中断流程模型；视图→呈现阶段映射；默认查询；生命周期游走（六阶段全路径 START→WHY→WHAT_IF→CREATE→DEEPEN→STOP）",
+  "precondition": "独立运行时（默认查询）+ WHY 意图体验会话（生命周期游走）",
+  "inputFault": "无（呈现路径验证：只读查询不产生事件、不改变状态；分支激活区分经模拟域快照判定）",
+  "expected": {
+    "model": "入口流程 3 步（question_presented / exploration_started / change_one）；六阶段（curiosity / understanding / simulation / branch / creation / completion——branch 的 stateMachineStage=SIMULATION）；完成流程 3 步；退出流程 2 步；中断流程 3 步（E2 §5/§6/§7 冻结面）",
+    "mapping": "状态机视图 → 呈现阶段：ENTERING/CURIOSITY→CURIOSITY；READY/UNDERSTANDING→UNDERSTANDING；WAITING/SIMULATION→SIMULATION（branchActive=false）或 BRANCH（branchActive=true——分支探索呈现面）；WAITING/CREATION→CREATION；COMPLETED/COMPLETION→COMPLETION",
+    "defaultQuery": "无体验查询——current.experienceId=null / view=null / presentationStage=CURIOSITY / branchActive=false",
+    "lifecycle": "START(READY/UNDERSTANDING v2, UNDERSTANDING——startExperience 内候选选定完成；瞬态 ENTERING/CURIOSITY 由纯映射与默认查询覆盖) → WHY(WAITING/UNDERSTANDING v4, UNDERSTANDING) → WHAT_IF(WAITING/SIMULATION v6, BRANCH——首轮模拟创建激活分支；SIMULATION 面由纯映射覆盖) → CREATE(WAITING/CREATION v8, CREATION) → DEEPEN(WAITING/CREATION v10, CREATION) → STOP(COMPLETED/COMPLETION v11, COMPLETION——完成路径消耗 +1 版本)；终态创作 active=false（STOP 完成路径登记）"
+  },
+  "actual": {
+    "modelChecks": [
+      {
+        "name": "entryFlow",
+        "actual": [
+          "question_presented",
+          "exploration_started",
+          "change_one"
+        ],
+        "expected": [
+          "question_presented",
+          "exploration_started",
+          "change_one"
+        ],
+        "matches": true
+      },
+      {
+        "name": "stages（六阶段）",
+        "actual": [
+          "curiosity",
+          "understanding",
+          "simulation",
+          "branch",
+          "creation",
+          "completion"
+        ],
+        "expected": [
+          "curiosity",
+          "understanding",
+          "simulation",
+          "branch",
+          "creation",
+          "completion"
+        ],
+        "matches": true
+      },
+      {
+        "name": "stages→stateMachineStage 映射",
+        "actual": [
+          "CURIOSITY",
+          "UNDERSTANDING",
+          "SIMULATION",
+          "SIMULATION",
+          "CREATION",
+          "COMPLETION"
+        ],
+        "expected": [
+          "CURIOSITY",
+          "UNDERSTANDING",
+          "SIMULATION",
+          "SIMULATION",
+          "CREATION",
+          "COMPLETION"
+        ],
+        "matches": true
+      },
+      {
+        "name": "completionFlow",
+        "actual": [
+          "goal_reached",
+          "completion_registered",
+          "short_term_memory_recorded"
+        ],
+        "expected": [
+          "goal_reached",
+          "completion_registered",
+          "short_term_memory_recorded"
+        ],
+        "matches": true
+      },
+      {
+        "name": "exitFlow",
+        "actual": [
+          "exit_requested",
+          "exit_registered"
+        ],
+        "expected": [
+          "exit_requested",
+          "exit_registered"
+        ],
+        "matches": true
+      },
+      {
+        "name": "interruptFlow",
+        "actual": [
+          "interrupt_requested",
+          "old_candidate_cancelled",
+          "new_cycle"
+        ],
+        "expected": [
+          "interrupt_requested",
+          "old_candidate_cancelled",
+          "new_cycle"
+        ],
+        "matches": true
+      }
+    ],
+    "mappingChecks": [
+      {
+        "view": "ENTERING/CURIOSITY",
+        "branchActive": false,
+        "expected": "CURIOSITY",
+        "actual": "CURIOSITY",
+        "matches": true
+      },
+      {
+        "view": "READY/UNDERSTANDING",
+        "branchActive": false,
+        "expected": "UNDERSTANDING",
+        "actual": "UNDERSTANDING",
+        "matches": true
+      },
+      {
+        "view": "WAITING/SIMULATION",
+        "branchActive": false,
+        "expected": "SIMULATION",
+        "actual": "SIMULATION",
+        "matches": true
+      },
+      {
+        "view": "WAITING/SIMULATION",
+        "branchActive": true,
+        "expected": "BRANCH",
+        "actual": "BRANCH",
+        "matches": true
+      },
+      {
+        "view": "WAITING/CREATION",
+        "branchActive": false,
+        "expected": "CREATION",
+        "actual": "CREATION",
+        "matches": true
+      },
+      {
+        "view": "COMPLETED/COMPLETION",
+        "branchActive": false,
+        "expected": "COMPLETION",
+        "actual": "COMPLETION",
+        "matches": true
+      }
+    ],
+    "defaultQueryChecks": [
+      {
+        "name": "experienceId",
+        "actual": null,
+        "expected": null,
+        "matches": true
+      },
+      {
+        "name": "view",
+        "actual": null,
+        "expected": null,
+        "matches": true
+      },
+      {
+        "name": "presentationStage",
+        "actual": "CURIOSITY",
+        "expected": "CURIOSITY",
+        "matches": true
+      },
+      {
+        "name": "branchActive",
+        "actual": false,
+        "expected": false,
+        "matches": true
+      }
+    ],
+    "walk": [
+      {
+        "label": "START",
+        "view": "READY/UNDERSTANDING",
+        "stateVersion": 2,
+        "branchActive": false,
+        "presentationStage": "UNDERSTANDING",
+        "lastSemanticAction": null
+      },
+      {
+        "label": "WHY",
+        "view": "WAITING/UNDERSTANDING",
+        "stateVersion": 4,
+        "branchActive": false,
+        "presentationStage": "UNDERSTANDING",
+        "lastSemanticAction": "WHY"
+      },
+      {
+        "label": "WHAT_IF",
+        "view": "WAITING/SIMULATION",
+        "stateVersion": 6,
+        "branchActive": true,
+        "presentationStage": "BRANCH",
+        "lastSemanticAction": "WHAT_IF"
+      },
+      {
+        "label": "CREATE",
+        "view": "WAITING/CREATION",
+        "stateVersion": 8,
+        "branchActive": true,
+        "presentationStage": "CREATION",
+        "lastSemanticAction": "CREATE"
+      },
+      {
+        "label": "DEEPEN",
+        "view": "WAITING/CREATION",
+        "stateVersion": 10,
+        "branchActive": true,
+        "presentationStage": "CREATION",
+        "lastSemanticAction": "DEEPEN"
+      },
+      {
+        "label": "STOP",
+        "view": "COMPLETED/COMPLETION",
+        "stateVersion": 11,
+        "branchActive": false,
+        "presentationStage": "COMPLETION",
+        "lastSemanticAction": "STOP"
+      }
+    ],
+    "creationActiveAfterWalk": false
+  },
+  "invariants": [
+    "S2b 范围边界（S2B-SEMANTIC-FREEZE-01 §2/§3/§4）：DEEPEN / SIMPLIFY / REFRAME 为顶层语义动作（14 §8 恒等映射，policy_v2.0.0 变更 1，经 policy_v2.1.0 延续）；创作域顶层补丁操作 deepen / simplify / reframe（与 add / remove / modify 同级，非 modify 子型——变更 3）；优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER（变更 4）",
+    "非创作会话保护（policy_v2.0.0 变更 5，经 policy_v2.1.0 延续）：DEEPEN / SIMPLIFY / REFRAME 在无活跃创作对象时按升级规则处理——INVALID_ACTION 升级，不静默执行未定义语义（C3 纪律，model on F-2/F-3 创作会话路由保护）；拒绝先于任何写入（失败不消耗版本号，OBL-01 纪律）",
+    "SEARCH 能力纪律（policy_v2.0.0 变更 2/6，经 policy_v2.1.0 延续；14 §7）：内部能力动作，不入 SemanticAction 域；只读——不改变体验、不触发产品动作、不产生事件；无外部网络出口（确定性规则检索，不调用任何提供方）；作用面限当前体验内容 / 创作对象 / 会话内上下文（D-03 选项 A；跨会话记忆检索属 F-5 记忆域 L5，不经 SEARCH 动作）",
+    "VERIFY 附列裁决区选项 A：VERIFY 不启用为语义动作——VERIFY 类输入按既有 WHY / DIRECT_ANSWER 解释层处理，SEARCH 能力在这些路径内被调用（14 §8 路由纪律）",
+    "First Experience 呈现路径（S2B-SEMANTIC-FREEZE-01 §4 变更 3；D-04 选项 A）：六阶段呈现（Curiosity → Understanding → Simulation → Branch → Creation → Completion）为已有体验阶段轴的呈现补全——E2 §7 冻结面不变，13 号状态机阶段轴不变（Branch 为 Simulation 阶段的分支探索呈现面——轴外分支记录 F-4 D-02）；只读呈现层——不产生事件、不改变任何状态；视觉样式不在冻结范围（E2 §5）",
+    "方向性补丁合成模式（D-01 选项 A；08 §11 局部变更纪律）：结构保持（不重新生成整个作品）、版本单调 +1（S1-12 不变式）、user_changes 权威登记方向性条目（change.direction 标识操作方向——08 §11 不重新生成整个作品）；目标经 TARGET_SYNONYMS 确定性派生（默认 creation 级方向性修改）",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12 同族）；失败写入不消耗任何版本号（OBL-01 纪律）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）；创作修改轮次决策追踪 llm_used=false（确定性规则，非模型）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
+  ],
+  "evidence": {
+    "trace": "traces/S2B-0001:FIRST-EXPERIENCE.jsonl",
+    "traceSha256": "561a238a0c3317a213fd719e3a974d99894412546e334079ca9b7bd5b8fa6080",
+    "form": "in-process",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

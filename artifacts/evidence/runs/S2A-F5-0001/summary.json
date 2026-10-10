@@ -1,9 +1,9 @@
 {
   "runId": "S2A-F5-0001",
-  "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）",
-  "startedAt": "2026-10-09T13:32:33.713Z",
-  "finishedAt": "2026-10-09T13:32:41.835Z",
-  "durationMs": 8121,
+  "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）+ S3 回归扩展（S3A-SEMANTIC-FREEZE-01 v1.0.0 长期记忆启用 + S3B-SEMANTIC-FREEZE-01 v1.0.0 跨会话分支持久化——S2 时代负向不变式经 CR-28 全项 A 裁决取代）",
+  "startedAt": "2026-10-10T04:43:07.041Z",
+  "finishedAt": "2026-10-10T04:43:16.947Z",
+  "durationMs": 9905,
   "cases": [
     {
       "caseId": "CROSS-SESSION",
@@ -18,11 +18,11 @@
       "result": "PASS"
     },
     {
-      "caseId": "SESSION-SCOPED-NEG",
+      "caseId": "BRANCH-PERSISTENCE",
       "result": "PASS"
     },
     {
-      "caseId": "LONGTERM-DISABLED",
+      "caseId": "LONGTERM-GATED",
       "result": "PASS"
     },
     {
@@ -39,6 +39,26 @@
     },
     {
       "caseId": "WRITE-FILTER",
+      "result": "PASS"
+    },
+    {
+      "caseId": "LT-EXPLICIT-A",
+      "result": "PASS"
+    },
+    {
+      "caseId": "LT-REMEMBER-B",
+      "result": "PASS"
+    },
+    {
+      "caseId": "LT-BARE-NEG",
+      "result": "PASS"
+    },
+    {
+      "caseId": "LT-CANDIDATE-C",
+      "result": "PASS"
+    },
+    {
+      "caseId": "LT-GATE-NEG",
       "result": "PASS"
     }
   ],
@@ -70,18 +90,18 @@
     },
     {
       "id": "A4",
-      "description": "SESSION-SCOPED-NEG：Current State / Session State 会话结束即失效（负向）——WHAT_IF 轮建立的模拟分支状态随会话结束失效（getSimulation 拒绝——F-4 D-04 选项 A）；已结束会话上的旧体验操作拒绝（INVALID_STATE_TRANSITION——07 §3）；对照：短期记忆跨会话存活（getMemory 可查，主题\"为什么\"，REMEMBERED——07 §4；D-01 选项 A）——六类数据状态区分纪律：同一会话内 Session State / Current State 失效而 Short-term Memory 不失效；simulation_recorded ×1（仅 WHAT_IF 轮）",
+      "description": "BRANCH-PERSISTENCE：分支记录跨会话持久化（S3B §1.1/§1.4/§1.5——取代 S2 时代 SESSION-SCOPED-NEG 负向不变式，CR-28 D-2 选项 A）——WHAT_IF 轮建立的模拟分支状态在 STOP 会话结束后全量持久（getSimulation 成功：currentBranchId===null——会话级指针清空不跨会话自动恢复，分支记录 ×1 轮次 ×1）；已结束会话上的旧体验内容操作拒绝（INVALID_STATE_TRANSITION——07 §3）；会话 B（SESSION_ACTIVE）对已结束会话 A 的体验\"如果采用分支一\"→ ADOPT_BRANCH 成功（分支标记 adopted=true——S3B §1.4 三前提）；跨会话内容轮（WHY——非分支操作）→ 拒绝（放宽仅限分支操作路径）；对照：短期记忆跨会话存活（getMemory 可查，主题\"为什么\"，REMEMBERED——07 §4）——六类数据状态区分纪律：Session State / Current State 会话级失效而 Short-term Memory 与轴外分支记录跨会话持久；simulation_recorded ×1（仅 WHAT_IF 轮）",
       "passed": true,
       "detail": {
-        "sessionScopedNeg": true
+        "branchPersistence": true
       }
     },
     {
       "id": "A5",
-      "description": "LONGTERM-DISABLED：长期记忆（偏好画像）写入路径不存在（负向）——静态：src/experience/memory.ts 不含 EXPLICIT / LONG_TERM / long_term / preference profile 标识符，MemoryLifecycle 联合恰为四态（REMEMBERED / IN_USE / DECAYING / EXPIRED），MemorySource 联合恰为 session_observation | user_correction；动态：全流程（两主题 WHY→STOP 登记 + 一次显式纠正）后全部记录 source ∈ {session_observation, user_correction}，lifecycle ∈ 四态集合——长期记忆写入路径不存在（PD-23；授权 §2(4)）",
+      "description": "LONGTERM-GATED：长期记忆写入路径启用（S3A §1.1/§1.2/§1.6——取代 S2 时代 LONGTERM-DISABLED 负向不变式，CR-28 D-1 选项 A）——静态：src/experience/memory.ts 含 EXPLICIT / LONG_TERM / long_term 标识符（启用），MemoryLifecycle 联合恰为四态（REMEMBERED / IN_USE / DECAYING / EXPIRED——不变），MemorySource 联合恰为 session_observation | user_correction | explicit（三态——显式路径启用），MemoryClass 联合恰为 short_term | long_term；动态：全流程（两主题 WHY→STOP 短期登记 + 一次显式纠正 + A 类\"我喜欢古典音乐\" + B 类\"请记住我一直用深色模式\" + 裸记住请求负向）后记录 source ∈ 三态集合、lifecycle ∈ 四态集合、memoryClass ∈ {short_term, long_term}；A/B 类经 resolveIntent 路由为 memory_operation（record_long_term——source=explicit，confidence=1.0）；裸记住请求保持 UNKNOWN 升级（零写入——黄金 G08-NEG 不变式）",
       "passed": true,
       "detail": {
-        "longtermDisabled": true
+        "longtermGated": true
       }
     },
     {
@@ -118,24 +138,64 @@
     },
     {
       "id": "A10",
-      "description": "全部 9 案例记录齐备且 12 字段完整（E5 §4；9 执行；PD-19 延期义务已履行——F-5 关闭切片执行，无 DEFERRED 登记）",
+      "description": "LT-EXPLICIT-A：A 类显式长期偏好表达（S3A §1.1）——\"我喜欢古典音乐\"（偏好词直接命中，全部优先级层与记忆操作词表未命中后识别）→ resolveIntent action=memory_operation，memoryOperation.kind=record_long_term，executed=true，memoryClass=long_term；记录 topic=\"我喜欢古典音乐\"，source=explicit，confidence=1.0，lifecycle=REMEMBERED，candidateLongTerm=false；memory_recorded 事件 properties：memory_class=long_term / source=explicit / confidence=1 / recognition_path=explicit_preference（事件属性扩展——C6 §14 不新增事件名）；记忆操作不创建新体验（session_started=1，experience_started=0）",
       "passed": true,
       "detail": {
-        "recordFiles": 9,
-        "expected": 9,
-        "allCasesPass": true
+        "ltExplicitA": true
       }
     },
     {
       "id": "A11",
-      "description": "全部 9 案例轨迹文件齐备且非空",
+      "description": "LT-REMEMBER-B：B 类记住请求（S3A §1.1/§1.2——记住标记 + 偏好内容双命中）——\"请记住我一直用深色模式\" → resolveIntent action=memory_operation，record_long_term；记录 topic=\"我一直用深色模式\"，memoryClass=long_term，source=explicit，confidence=1.0（用户明确要求记住即显式表达）；memory_recorded 事件 properties.recognition_path=remember_request",
       "passed": true,
       "detail": {
-        "traceFiles": 9
+        "ltRememberB": true
       }
     },
     {
-      "id": "A12-PREFLIGHT",
+      "id": "A12",
+      "description": "LT-BARE-NEG：裸记住请求不识别为记忆写入（负向——S3A §1.2 双命中纪律）——\"记住这个\"（黄金 G08-NEG 对抗语料）→ resolveIntent action=escalate（UNKNOWN 升级）；\"记住这个想法\"（标记命中但余下内容非偏好表达）→ 同样升级；分类器级：classifyInput 两者均返回 {semanticAction: UNKNOWN} 且无 longTermMemory 字段，对照 \"记住我喜欢古典音乐\" 识别为 longTermMemory（topic=\"我喜欢古典音乐\"）；零记忆写入（快照 records=0，零 memory_recorded 事件）",
+      "passed": true,
+      "detail": {
+        "ltBareNeg": true
+      }
+    },
+    {
+      "id": "A13",
+      "description": "LT-CANDIDATE-C：C 类再探索候选标记（S3A §1.1——候选 ≠ 已保存；V1 不允许仅凭行为自动升级为永久用户画像）——会话 A WHY→STOP：短期记录 ×1（short_term，candidateLongTerm=false，interestSignal=0.90 锚点）；会话 B 同主题 WHY→STOP：再探索而非新记录（records 仍 ×1，interestSignal=1.05→上限 1.0，candidateLongTerm=true——C 类候选标记）；记录保持 short_term（不自动升级为 long_term）；memory_recorded ×2（再探索轮次 properties.reexploration=true 留痕）",
+      "passed": true,
+      "detail": {
+        "ltCandidateC": true
+      }
+    },
+    {
+      "id": "A14",
+      "description": "LT-GATE-NEG：长期记忆存储层门槛（负向——S3A §1.1/§1.6）——直接 MemoryStore 写入：memoryClass=long_term 且 source=session_observation → recorded=false, reason=long_term_requires_explicit；source=user_correction → 同样拒绝；正向对照：source=explicit + memoryClass=long_term → 写入成功（confidence=1.0）；短期记忆（memoryClass 缺省）经 session_observation 写入不受门槛影响（既有语义不变）；存储 records=2",
+      "passed": true,
+      "detail": {
+        "ltGateNeg": true
+      }
+    },
+    {
+      "id": "A15",
+      "description": "全部 14 案例记录齐备且 12 字段完整（E5 §4；14 执行；PD-19 延期义务已履行——F-5 关闭切片执行，无 DEFERRED 登记）",
+      "passed": true,
+      "detail": {
+        "recordFiles": 14,
+        "expected": 14,
+        "allCasesPass": true
+      }
+    },
+    {
+      "id": "A16",
+      "description": "全部 14 案例轨迹文件齐备且非空",
+      "passed": true,
+      "detail": {
+        "traceFiles": 14
+      }
+    },
+    {
+      "id": "A17-PREFLIGHT",
       "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配（失败为 FATAL，不计入断言池）",
       "passed": true,
       "detail": {
@@ -146,23 +206,23 @@
       }
     },
     {
-      "id": "A13",
-      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + F-5 记忆语义专项 memorySemantics + obligationTraceability：F-5 → 案例 / 断言映射）",
+      "id": "A18",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + F-5 记忆语义专项 memorySemantics + obligationTraceability：F-5 → 案例 / 断言映射；policy 版本 policy_v2.2.0——S3a 语义启用）",
       "passed": true,
       "detail": {
-        "policyVersion": "policy_v1.5.0",
+        "policyVersion": "policy_v2.2.0",
         "stateMachineVersion": "state_machine_v1.4.0",
         "frozenDecisionCount": 5,
-        "implementationFileCount": 7,
+        "implementationFileCount": 10,
         "missingSections": []
       }
     },
     {
-      "id": "A16",
+      "id": "A19",
       "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
       "passed": true,
       "detail": {
-        "verified": 20,
+        "verified": 30,
         "failed": []
       }
     }
