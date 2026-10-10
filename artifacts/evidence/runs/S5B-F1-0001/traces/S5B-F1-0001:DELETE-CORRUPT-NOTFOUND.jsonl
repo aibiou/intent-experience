@@ -1,0 +1,3 @@
+{"caseId":"S5B-F1-0001:DELETE-CORRUPT-NOTFOUND","event":"trace_started","at":"2026-10-10T10:26:58.342Z","form":"in-process","sourceClause":"config-store.ts CONFIG_NOT_FOUND / CONFIG_STORE_CORRUPT / CONFIG_CONFIRMATION_STORE_CORRUPT","servers":[]}
+{"caseId":"S5B-F1-0001:DELETE-CORRUPT-NOTFOUND","event":"case-fact","at":"2026-10-10T10:26:58.348Z","deletedEnableCode":"CONFIG_NOT_FOUND","deletedGetCode":"CONFIG_NOT_FOUND","recordsAfterDelete":0,"corruptListCode":"CONFIG_STORE_CORRUPT","corruptConfirmCode":"CONFIG_CONFIRMATION_STORE_CORRUPT"}
+{"caseId":"S5B-F1-0001:DELETE-CORRUPT-NOTFOUND","event":"trace_completed","at":"2026-10-10T10:26:58.349Z","startedAt":"2026-10-10T10:26:58.342Z","durationMs":7,"result":"PASS","pass":true}

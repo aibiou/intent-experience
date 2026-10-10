@@ -102,7 +102,7 @@ export interface ProviderLlmConfig {
   systemPrompt: string;
 }
 
-const PROVIDER_PROFILES: Readonly<
+export const PROVIDER_PROFILES: Readonly<
   Record<string, { endpoint: string; defaultModel: string; temperature: number; systemPrompt: string }>
 > = {
   dashscope: {

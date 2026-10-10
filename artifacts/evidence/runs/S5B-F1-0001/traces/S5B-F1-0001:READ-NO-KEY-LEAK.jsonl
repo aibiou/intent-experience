@@ -1,0 +1,3 @@
+{"caseId":"S5B-F1-0001:READ-NO-KEY-LEAK","event":"trace_started","at":"2026-10-10T10:26:58.356Z","form":"in-process","sourceClause":"config-store.ts summarize / listProviderConfigs / listPrivacyConfirmations","servers":[]}
+{"caseId":"S5B-F1-0001:READ-NO-KEY-LEAK","event":"case-fact","at":"2026-10-10T10:26:58.358Z","leaks":{"summariesContainNoPlaintext":true,"summariesContainNoCiphertextField":true,"allHaveHasKeyTrue":true,"confirmationsContainNoPlaintext":true,"storeContainsNoPlaintext":true,"recordCount":2},"idPrefixes":["pc_","pc_"]}
+{"caseId":"S5B-F1-0001:READ-NO-KEY-LEAK","event":"trace_completed","at":"2026-10-10T10:26:58.358Z","startedAt":"2026-10-10T10:26:58.356Z","durationMs":2,"result":"PASS","pass":true}

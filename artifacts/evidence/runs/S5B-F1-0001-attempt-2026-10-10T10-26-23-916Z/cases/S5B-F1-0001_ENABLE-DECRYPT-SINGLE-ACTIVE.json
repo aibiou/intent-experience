@@ -1,0 +1,45 @@
+{
+  "caseIdNamespace": "S5B-F1-0001:ENABLE-DECRYPT-SINGLE-ACTIVE",
+  "sourceClause": "config-store.ts enableProviderConfig / getEnabledProviderConfig",
+  "scope": "S5B D-3（NORMAL）：启用 + 解密回环 + 单激活——启用第二配置后第一配置自动关闭",
+  "precondition": "两配置并存；均已确认",
+  "inputFault": "无（正常启用序列）",
+  "expected": {
+    "firstEnabled": true,
+    "decryptRoundTrip": true,
+    "singleActive": true,
+    "activeModelAfterSecondEnable": "qwen-max"
+  },
+  "actual": {
+    "firstEnabled": true,
+    "decryptedProvider": "dashscope",
+    "decryptedModel": "qwen-plus",
+    "decryptRoundTrip": true,
+    "secondEnabled": true,
+    "firstEnabledAfterSecond": false,
+    "secondEnabledAfterSecond": true,
+    "activeModel": "qwen-max"
+  },
+  "invariants": [
+    "S5B 范围边界（S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0 裁决选项 A）：配置面是运行期基础设施——不新增语义动作、不改变任何策略 / 状态机 / 事件契约（policy_v2.3.0 / state_machine_v1.5.0 不变）",
+    "静态加密（隐私六要素 P3-S1-PRIVACY-SIX-01 v0.4.2 要素 4）：API key 仅以 AES-256-GCM 密文持久化（base64(iv).base64(ciphertext).base64(tag)）；明文 key 零落盘（零文件、零日志、零证据产物）",
+    "密钥分离：加密密钥经环境变量 EXPERIENCE_CONFIG_ENCRYPTION_KEY 注入（32 字节 hex），不随密文同处存储；缺失或非法时拒绝持久化（CONFIG_ENCRYPTION_KEY_MISSING / _INVALID——不静默降级）",
+    "D-3 多记录模型：每提供方一条配置（provider / model / key 密文引用），可多条并存；同时至多一条启用（单激活）",
+    "D-5 隐私再确认：确认记录经通用模板 PRIVACY-RECONFIRM-GENERIC/V1 签署（提供方名称于签署时填写，产品代码不写死任何提供方）；确认人 = 产品负责人 + 安全负责人双重身份；未确认提供方的配置不得启用（PROVIDER_NOT_CONFIRMED）",
+    "提供方准入：仅已登记提供方（PROVIDER_PROFILES——S5A-SEMANTIC-FREEZE-01 §1 D-2 规则族）可创建 / 确认 / 启用——未登记值拒绝（PROVIDER_NOT_REGISTERED）",
+    "读操作纪律（D-4）：list / 查询永不返回 key 明文或密文——仅 hasKey 标记存在",
+    "运行时优先级（server-runtime）：证据注入缝（EXPERIENCE_LLM_GATEWAY_SEAM=1）> 页面持久化配置（已启用）> 环境变量 LLM 模式（EXPERIENCE_LLM_MODE=provider）> 合成默认；持久化配置经 PersistedConfigLlmGateway 每次调用解析——启用 / 禁用 / 删除即时生效（单进程内存缓存，无需重启）",
+    "SEAM-INERT 不变式：无任何配置时委托网关委托 SyntheticLlmGateway——与 S1–S4 默认形态行为完全一致（零行为变化）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成数据边界（ADR-0002 §3）：本运行不调用任何真实 LLM 提供方（不进入 ProviderLlmGateway 网络路径）；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/S5B-F1-0001:ENABLE-DECRYPT-SINGLE-ACTIVE.jsonl",
+    "traceSha256": "0263e5adca4f7b90fd6192ddb0250faca8608434da7c8b543b6660a92c232719",
+    "form": "in-process",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；真实 LLM 提供方接入属产品决策 + 隐私六要素批准范畴"
+}

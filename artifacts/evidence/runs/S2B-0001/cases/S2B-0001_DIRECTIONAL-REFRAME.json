@@ -55,7 +55,7 @@
     "userChanges": [
       {
         "version": 2,
-        "at": "2026-10-10T09:21:45.445Z",
+        "at": "2026-10-10T10:11:25.062Z",
         "patch": {
           "operation": "reframe",
           "target": "difficulty",
@@ -87,7 +87,7 @@
   ],
   "evidence": {
     "trace": "traces/S2B-0001:DIRECTIONAL-REFRAME.jsonl",
-    "traceSha256": "8a4e99e9be58b48a337f7fce372c68ad119373feeee5e0e6c956b9b0ffbf2964",
+    "traceSha256": "7e92f7e35b0ad2b813204c5e54a6da0af1dc33375e25bb58a310ea2513e6a125",
     "form": "in-process",
     "servers": []
   },

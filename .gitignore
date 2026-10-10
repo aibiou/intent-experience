@@ -23,3 +23,6 @@ tsconfig.tsbuildinfo
 # browser automation state / demo screenshots (not product or evidence artifacts)
 .playwright-mcp/
 product-home.png
+
+# local provider config store (S5B——密文持久化；绝不提交)
+data/
