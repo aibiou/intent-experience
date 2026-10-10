@@ -190,7 +190,38 @@ const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
  * CORRECTION→EXPLAIN）；Minimal Memory 语义（policy_v1.5.0）
  * 不变。
  */
-export const POLICY_VERSION = 'policy_v2.0.0';
+/**
+ * policy_v2.1.0（S2 分支回流版本化变更，2026-10-09 产品
+ * 负责人批准——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A
+ * 裁决语义，经产品实施授权路径签发补写生效）：
+ * 显式回流操作（第五分支操作 ADOPT_BRANCH）：
+ * 变更 1——ADOPT_BRANCH 注册为分支操作（词表优先级
+ * RETURN > SWITCH > ABANDON > ADOPT_BRANCH；须命中
+ * 分支作用域词表 + 可解析目标序号，否则走通用 SIMULATE
+ * 执行路径——同 SWITCH / ABANDON 识别纪律）。
+ * 变更 2——目标分支记录附加 adopted 标记（生命周期
+ * 契约不变——ACTIVE / RETURNED / ABANDONED 三态不增
+ * 第四态，adopted 为分支记录附加属性而非生命周期
+ * 状态；幂等）。
+ * 变更 3——模拟域事件 simulation_adopted（C6 §14 命名
+ * 模式 <domain>_<past_participle> 派生；properties 含
+ * branch_id / source_round / adopted_content 摘要 /
+ * separation_invariant=simulation_result_is_not_fact——
+ * 采用结果仍标记为模拟来源，模拟结果不得表现为事实，
+ * E8-G2-CC07）。
+ * 变更 4——采用结果呈现为新一轮模拟上下文（主线当前
+ * 上下文不变——用户须另行 CREATE 提交方将采纳内容
+ * 纳入作品，创作版本化纪律不变）。
+ * 变更 5——确定性系统回合（llm_used=false，决策追踪
+ * reasonPrimary=explicit_user_direction——同分支操作
+ * 纪律）。
+ * 不变：既有分支操作语义（CREATE / SWITCH / ABANDON /
+ * RETURN）与"分支模拟结果默认不回流为主线结论"的默认
+ * 语义（D-02 选项 A——显式回流是经用户指令的例外
+ * 通道，非默认行为）；既有语义动作映射不变；不新增
+ * 顶层 SemanticAction / PolicyAction（PD-23 §5）。
+ */
+export const POLICY_VERSION = 'policy_v2.1.0';
 
 export type PolicyResolution =
   | { ok: true; semanticAction: SemanticAction; policyAction: PolicyAction }

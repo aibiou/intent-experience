@@ -25,6 +25,24 @@
  *   版本化定义，本版不预先写死）。
  * - 分支状态会话内持久，会话结束失效（D-04 选项 A——与 F-2 D-03 / F-3
  *   同纪律；事件为不可变权威事实——C6 §5，失效仅作用于运行时存储）。
+ *
+ * 第三层（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——
+ * 显式回流操作 ADOPT_BRANCH）：
+ * - 第五分支操作 ADOPT_BRANCH（词表优先级 RETURN > SWITCH >
+ *   ABANDON > ADOPT_BRANCH；须命中分支作用域词表 + 可解析目标
+ *   序号，否则走通用 SIMULATE 执行路径——同 SWITCH / ABANDON
+ *   识别纪律）。
+ * - 目标分支记录附加 adopted 标记（生命周期契约不变——ACTIVE /
+ *   RETURNED / ABANDONED 三态不增第四态，adopted 为分支记录
+ *   附加属性而非生命周期状态）。
+ * - 采用结果经模拟域事件 simulation_adopted 登记（events.ts；
+ *   properties 含 branch_id / source_round / adopted_content 摘要 /
+ *   separation_invariant=simulation_result_is_not_fact——采用结果
+ *   仍标记为模拟来源）。
+ * - 采用结果呈现为新一轮模拟上下文（主线当前上下文不变——用户
+ *   须另行 CREATE 提交方将采纳内容纳入作品，创作版本化纪律
+ *   不变）；显式回流是经用户指令的例外通道，"分支模拟结果默认
+ *   不回流为主线结论"的默认语义不变。
  */
 
 /** 四元分离（E8-G2-CC07）：事实 / 推断 / 假设 / 模拟结果。 */
@@ -73,17 +91,24 @@ export interface BranchRecord {
   /** 分支版本（分支内模拟轮次计数——单调不减）。 */
   version: number;
   lifecycle: BranchLifecycle;
+  /**
+   * 采用标记（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A——ADOPT_BRANCH
+   * 附加属性，非生命周期状态：lifecycle 契约保持 ACTIVE / RETURNED /
+   * ABANDONED 三态；标记经显式回流操作 ADOPT_BRANCH 附加，
+   * 幂等（重复采用不改变已置标记）。
+   */
+  adopted: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-/** 分支操作（D-03 选项 A——四操作最小集；CREATE 由首轮模拟自动执行）。 */
-export type BranchOperationKind = 'SWITCH' | 'ABANDON' | 'RETURN';
+/** 分支操作（D-03 选项 A——四操作最小集 + S2-BRANCH-REFLOW-DEF-01 第五操作 ADOPT_BRANCH；CREATE 由首轮模拟自动执行）。 */
+export type BranchOperationKind = 'SWITCH' | 'ABANDON' | 'RETURN' | 'ADOPT_BRANCH';
 
 /** 分支操作识别结果（确定性规则词表——具体词表为实现细节）。 */
 export interface BranchOperation {
   operation: BranchOperationKind;
-  /** 目标分支序号（SWITCH / ABANDON；RETURN 返回主线无目标）。 */
+  /** 目标分支序号（SWITCH / ABANDON / ADOPT_BRANCH；RETURN 返回主线无目标）。 */
   targetOrdinal: number | null;
 }
 
@@ -121,7 +146,9 @@ const BRANCH_RETURN_PATTERNS: ReadonlyArray<RegExp> = [
 const BRANCH_SWITCH_PATTERNS: ReadonlyArray<RegExp> = [/切换/, /换到/, /查看/];
 /** ABANDON 词表（放弃分支）。 */
 const BRANCH_ABANDON_PATTERNS: ReadonlyArray<RegExp> = [/放弃/, /丢弃/, /删除/];
-/** 分支作用域词表（SWITCH / ABANDON 须命中分支域限定）。 */
+/** ADOPT_BRANCH 词表（显式采用分支结论——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A）。 */
+const BRANCH_ADOPT_PATTERNS: ReadonlyArray<RegExp> = [/采用/, /采纳/];
+/** 分支作用域词表（SWITCH / ABANDON / ADOPT_BRANCH 须命中分支域限定）。 */
 const BRANCH_SCOPE_PATTERNS: ReadonlyArray<RegExp> = [/分支/, /支线/];
 /** 目标分支序号提取（分支一 / 分支 2——序号从 1 起，与分支记录顺序一致）。 */
 const BRANCH_ORDINAL_PATTERN = /分支\s*([0-9一二三四五六七八九十]+)/;
@@ -152,10 +179,13 @@ function parseBranchOrdinal(rawInput: string): number | null {
 }
 
 /**
- * 分支操作识别（确定性规则词表——D-03 选项 A）。
- * 词表优先级 RETURN > SWITCH > ABANDON（确定性，无歧义输入集）；
- * SWITCH / ABANDON 须同时命中分支作用域词表与可解析目标序号，
- * 否则不识别为分支操作（未命中 → 通用 SIMULATE 执行路径）。
+ * 分支操作识别（确定性规则词表——D-03 选项 A；
+ * ADOPT_BRANCH 经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A
+ * 裁决补写生效）。
+ * 词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH
+ * （确定性，无歧义输入集）；SWITCH / ABANDON / ADOPT_BRANCH
+ * 须同时命中分支作用域词表与可解析目标序号，否则不识别
+ * 为分支操作（未命中 → 通用 SIMULATE 执行路径）。
  */
 export function interpretBranchOperation(rawInput: string): BranchOperation | null {
   if (BRANCH_RETURN_PATTERNS.some((pattern) => pattern.test(rawInput))) {
@@ -166,15 +196,19 @@ export function interpretBranchOperation(rawInput: string): BranchOperation | nu
   }
   const switchHit = BRANCH_SWITCH_PATTERNS.some((pattern) => pattern.test(rawInput));
   const abandonHit = BRANCH_ABANDON_PATTERNS.some((pattern) => pattern.test(rawInput));
-  if (!switchHit && !abandonHit) {
+  const adoptHit = BRANCH_ADOPT_PATTERNS.some((pattern) => pattern.test(rawInput));
+  if (!switchHit && !abandonHit && !adoptHit) {
     return null;
   }
   const targetOrdinal = parseBranchOrdinal(rawInput);
   if (targetOrdinal === null || targetOrdinal < 1) {
     return null;
   }
-  // SWITCH 优先于 ABANDON（词表优先级；确定性选择）。
-  return { operation: switchHit ? 'SWITCH' : 'ABANDON', targetOrdinal };
+  // 词表优先级 SWITCH > ABANDON > ADOPT_BRANCH（确定性选择）。
+  return {
+    operation: switchHit ? 'SWITCH' : abandonHit ? 'ABANDON' : 'ADOPT_BRANCH',
+    targetOrdinal,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -274,6 +308,7 @@ export class SimulationStore {
         rounds: [],
         version: 0,
         lifecycle: 'ACTIVE',
+        adopted: false,
         createdAt: input.now,
         updatedAt: input.now,
       };
@@ -322,6 +357,11 @@ export class SimulationStore {
   /**
    * 分支操作前置校验（确定性——提交前拒绝路径；不修改任何状态，
    * 失败不消耗版本号——OBL-01 同族纪律）。
+   * ADOPT_BRANCH 同 SWITCH / ABANDON 校验纪律：目标序号须解析
+   * 为存活分支（ABANDONED 分支不可操作）；不要求激活分支
+   * 上下文（采用面向分支记录本身，与主线当前上下文无关——
+   * S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A：主线当前上下文
+   * 不变）。
    */
   validateBranchOperation(
     experienceId: string,
@@ -397,6 +437,32 @@ export class SimulationStore {
         branch: abandoned,
         previousBranchId: wasCurrent ? target.branchId : (this.currentBranch.get(experienceId) ?? null),
         summary: `abandoned branch ${target.branchId} (lifecycle ABANDONED; branch records persist to session end - D-04)`,
+      };
+    }
+    if (operation.operation === 'ADOPT_BRANCH') {
+      // ADOPT_BRANCH：显式采用分支结论（S2-BRANCH-REFLOW-DEF-01
+      // v1.0.0 选项 A——第五分支操作）。目标分支记录附加
+      // adopted 标记（幂等——重复采用不改变已置标记）；
+      // 生命周期契约不变（ACTIVE / RETURNED / ABANDONED
+      // 三态，adopted 为附加属性而非生命周期状态）；主线
+      // 当前上下文不变（current_branch 不改动——采用结果
+      // 呈现为新一轮模拟上下文，用户须另行 CREATE 提交
+      // 方将采纳内容纳入作品——创作版本化纪律不变；分支
+      // 模拟结果默认不回流为主线结论的默认语义不变，
+      // 显式回流是经用户指令的例外通道）。
+      const adoptedBranch: BranchRecord = {
+        ...target,
+        adopted: true,
+        updatedAt: now,
+      };
+      this.branches.set(
+        experienceId,
+        branchList.map((entry) => (entry.branchId === target.branchId ? adoptedBranch : entry)),
+      );
+      return {
+        branch: adoptedBranch,
+        previousBranchId: this.currentBranch.get(experienceId) ?? null,
+        summary: `adopted branch ${target.branchId} conclusion as new simulation context (source round ${target.sourceRound}; branch marked adopted; lifecycle ${target.lifecycle} unchanged; the adopted result remains simulation-sourced and does not flow back to the mainline as fact - S2-BRANCH-REFLOW-DEF-01; incorporate the adopted content via a separate CREATE submit)`,
       };
     }
     // SWITCH：显式切换激活分支（RETURNED 分支经切换恢复探索——

@@ -42,6 +42,7 @@ import {
   MEMORY_EXPIRED_EVENT,
   MEMORY_RECORDED_EVENT,
   MEMORY_WITHDRAWN_EVENT,
+  SIMULATION_ADOPTED_EVENT,
   SIMULATION_RECORDED_EVENT,
   type EventSink,
   type ExperienceEvent,
@@ -1031,7 +1032,9 @@ export class ExperienceRuntime {
     const stateBefore: ExperienceView = { status: current.status, stage: current.stage };
     const decisionId = nextDecisionId();
 
-    // --- WHAT_IF 分支操作路由（D-03 选项 A；policy_v1.4.0 变更 2） ---
+    // --- WHAT_IF 分支操作路由（D-03 选项 A；policy_v1.4.0 变更 2；
+    //     ADOPT_BRANCH 经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A
+    //     裁决补写生效——policy_v2.1.0 变更 1） ---
     // WHAT_IF 分类输入经分支操作词表识别（确定性规则词表——同分类器
     // 纪律，具体词表为实现细节）：命中 → 分支操作轮次（确定性系统
     // 回合，无 LLM 提案——llm_used=false）；未命中 → 通用 SIMULATE
@@ -1058,7 +1061,9 @@ export class ExperienceRuntime {
       branchResult = await this.executeCreate(input, session, experience, current, stateBefore, policy, decisionId);
     } else if (branchOperation) {
       // WHAT_IF 分支操作轮次（D-03 选项 A——四操作最小集
-      // SWITCH / ABANDON / RETURN；CREATE 由模拟轮次自动执行）。
+      // SWITCH / ABANDON / RETURN + S2-BRANCH-REFLOW-DEF-01
+      // v1.0.0 选项 A 第五操作 ADOPT_BRANCH；CREATE 由模拟
+      // 轮次自动执行）。
       branchResult = await this.executeBranchOperation(
         input,
         session,
@@ -2719,7 +2724,8 @@ export class ExperienceRuntime {
 
   // ---------------------------------------------------------------------
   // WHAT_IF 分支操作执行（S2a F-4；D-03 选项 A——四操作最小集
-  // SWITCH / ABANDON / RETURN；CREATE 由模拟轮次自动执行）
+  // SWITCH / ABANDON / RETURN + S2-BRANCH-REFLOW-DEF-01 v1.0.0
+  // 选项 A 第五操作 ADOPT_BRANCH；CREATE 由模拟轮次自动执行）
   // ---------------------------------------------------------------------
 
   private async executeBranchOperation(
@@ -2882,6 +2888,29 @@ export class ExperienceRuntime {
       },
     });
 
+    // 采用结果登记（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A
+    // 变更 3——模拟域事件 simulation_adopted：properties 含
+    // branch_id / source_round / adopted_content 摘要（分支
+    // 最新模拟轮的模拟结果内容——分支探索摘要）/
+    // separation_invariant=simulation_result_is_not_fact——
+    // 采用结果仍标记为模拟来源（模拟结果不得表现为事实，
+    // E8-G2-CC07）；主线当前上下文不变（变更 4——采用内容
+    // 经独立 CREATE 提交方纳入作品，创作版本化纪律不变）。
+    if (branchOperation.operation === 'ADOPT_BRANCH') {
+      const adoptLatestRound = applied.branch.rounds[applied.branch.rounds.length - 1];
+      await this.recordEvent(SIMULATION_ADOPTED_EVENT, {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: commit.state.stateVersion, request_id: input.requestId, decision_id: decisionId },
+        source: { layer: 'runtime', component: 'simulation-runtime' },
+        properties: {
+          branch_id: applied.branch.branchId,
+          source_round: applied.branch.sourceRound,
+          adopted_content: adoptLatestRound ? adoptLatestRound.separation.simulation : '',
+          separation_invariant: 'simulation_result_is_not_fact',
+        },
+      });
+    }
+
     await this.writeDecisionTrace({
       decisionId,
       sessionId: input.sessionId,
@@ -2906,7 +2935,28 @@ export class ExperienceRuntime {
         ? '切换激活分支'
         : branchOperation.operation === 'ABANDON'
           ? '放弃分支'
-          : '返回主线模拟上下文';
+          : branchOperation.operation === 'ADOPT_BRANCH'
+            ? '采用分支结论（显式回流）'
+            : '返回主线模拟上下文';
+    // 采用结果呈现（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A
+    // 变更 4）：采纳结果呈现为新一轮模拟上下文——分支
+    // 最新模拟轮的模拟结果内容随结果流呈现（模拟来源、
+    // 非事实——separation_invariant 互斥注记随文标注）；
+    // 主线当前上下文不变，采纳内容经独立 CREATE 提交
+    // 方纳入作品（创作版本化纪律不变）。
+    const adoptLatestRound =
+      branchOperation.operation === 'ADOPT_BRANCH'
+        ? applied.branch.rounds[applied.branch.rounds.length - 1]
+        : null;
+    const operationChunks =
+      branchOperation.operation === 'ADOPT_BRANCH' && adoptLatestRound
+        ? [
+            `分支操作（确定性规则词表，D-03 选项 A；S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A）：${operationLabel}——${applied.summary}`,
+            `新一轮模拟上下文（分支 ${applied.branch.branchId} 最新模拟轮 ${adoptLatestRound.round} 的模拟结果——模拟来源，非事实；separation_invariant=simulation_result_is_not_fact；采纳内容经独立 CREATE 提交方纳入作品）：`,
+            adoptLatestRound.separation.simulation,
+            '（流式结束）',
+          ]
+        : [`分支操作（确定性规则词表，D-03 选项 A）：${operationLabel}——${applied.summary}（流式结束）`];
     const header: SubmissionHeader = {
       type: 'submission',
       accepted: true,
@@ -2935,7 +2985,7 @@ export class ExperienceRuntime {
         semanticAction: policy.semanticAction,
         policyAction: policy.policyAction,
         fixtureId: 'simulation_branch_operation',
-        chunks: [`分支操作（确定性规则词表，D-03 选项 A）：${operationLabel}——${applied.summary}（流式结束）`],
+        chunks: operationChunks,
         signal: combinedSignal,
         chunkDelayMs: 0,
         audit: this.auditSink,

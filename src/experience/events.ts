@@ -91,6 +91,21 @@ export const CORRECTION_RESTORED_EVENT = 'correction_restored';
 export const SIMULATION_RECORDED_EVENT = 'simulation_recorded';
 
 /**
+ * 模拟域事件词表扩展（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项
+ * A——第五分支操作 ADOPT_BRANCH 显式回流；C6 §14 命名模式
+ * <domain>_<past_participle>——同 simulation_recorded /
+ * correction_applied 先例；event_version 1.0.0 不变——词表
+ * 扩展经 C6 §14 派生）。
+ * properties 含 branch_id / source_round / adopted_content
+ * 摘要（分支最新模拟轮的模拟结果内容——分支探索摘要）/
+ * separation_invariant=simulation_result_is_not_fact——
+ * 采用结果仍标记为模拟来源（模拟结果不得表现为事实，
+ * E8-G2-CC07）；主线当前上下文不变（采用内容经独立
+ * CREATE 提交方纳入作品——创作版本化纪律不变）。
+ */
+export const SIMULATION_ADOPTED_EVENT = 'simulation_adopted';
+
+/**
  * 记忆域事件词表（S2a F-5；D-02 选项 A；C6 §14 命名模式
  * <domain>_<past_participle>——同 correction_applied /
  * simulation_recorded 先例；event_version 1.0.0 不变——词表
