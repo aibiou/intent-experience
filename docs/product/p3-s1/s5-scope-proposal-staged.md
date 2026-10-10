@@ -1,8 +1,8 @@
 # S5 范围提案（S5-SCOPE-PROPOSAL-01 v0.2.0）
 
-**状态：** STAGED FOR PRODUCT-OWNER RULING（待产品负责人逐项裁决 D-1…D-7）
+**状态：** RULED——产品负责人（用户本人，PD-15）2026-10-10 裁决 D-1…D-7 全项 A
 **编号：** S5-SCOPE-PROPOSAL-01
-**版本：** 0.2.0（2026-10-10：按产品负责人指令修订——「和模型无关」为产品初衷，提供方必须可选择；D-1 重铸为 model-agnostic 接入架构 + 配置化提供方选择 + 首个验证提供方（实现方撤回 v0.1.0 单提供方写死形态）；D-2 重铸为按提供方版本化的构造规则族；D-4/D-7 随 D-1/D-2 联动修订；v0.1.0 起草文本被本版取代）
+**版本：** 1.0.0（2026-10-10：产品负责人裁决 D-1…D-7 全项 A 升版 RULED——§3 选项文本经裁决版本化冻结；语义冻结文本签发：S5A-SEMANTIC-FREEZE-01 v1.0.0（`s5a-semantic-freeze.md`——D-1…D-7 语义定义版本化冻结，含首个验证提供方 dashscope profile v1 构造规则）；v0.2.0 修订文本经裁决冻结）
 **起草：** 工程负责人角色（代理，Codex 履行，PD-15 委托）
 **关联：** ADR-0002 §3（硬边界——产品代码不含真实 LLM 提供方——本提案即该边界的版本化解除申请）/ P3-S1-PRIVACY-SIX-01 v0.4.2（隐私六要素已裁决签署——要素 2：区域=中国大陆（cn）、服务商=阿里云、介质=云存储）/ SRC-06 §16/§17（LLM Request 结构化 / LLM Response 为 Proposal / LLM 禁止动作）/ `src/experience/llm-gateway.ts`（`LlmGateway` 接口——`propose(LlmRequest)→LlmProposal`；`SyntheticLlmGateway` / `EvidenceFaultLlmGateway`）/ `src/experience/server-runtime.ts`（`resolveServerGateway()` 环境门控注入缝）/ OBL-02-LATENCY-METHOD-01 v1.0.0（延迟测量方法——provider / model / version 分层纪律）/ S4-SCOPE-PROPOSAL-01 v1.0.0（S4 先例）/ decision-register CR-08（隐私六要素关闭登记）
 **记录日期：** 2026-10-10
@@ -89,5 +89,6 @@
 ## 6. 签署区
 
 - 起草：工程负责人角色（代理，Codex），2026-10-10；v0.2.0 修订（产品负责人指令——model-agnostic 初衷）2026-10-10。
-- 产品负责人裁决：（待裁决——D-1…D-7 逐项）
+- 产品负责人裁决：**D-1…D-7 全项 A，2026-10-10**——D-1 model-agnostic 接入架构（`LlmGateway` 接口即提供方抽象——产品运行时不写死任何提供方）+ 配置化提供方选择（环境变量形态——`EXPERIENCE_LLM_PROVIDER` / `EXPERIENCE_LLM_MODEL` 等）+ 首个验证提供方（阿里云地域内 DashScope / 通义千问——隐私六要素要素 2 对齐，仅路径验证与证据执行用途；用户可选集 = 经 D-5 隐私再确认的提供方集合——选择自由以隐私确认为边界）/ D-2 构造规则按提供方版本化冻结（规则族——新增提供方经各自规则版本化冻结后方可启用）/ D-3 双模式（合成 DEFAULT 不变 + LLM 模式环境门控 `EXPERIENCE_LLM_MODE=provider`——未登记提供方或 API key 缺失拒绝启动并报错，不静默回退）/ D-4 双层证据（合成基线 G3-GOLDEN-0001 再生 48/48 不变式 + S2B-0001 重跑；LLM 模式结构断言 S5A-F1-0001——内容不断言字节；接口契约断言对任何提供方一致）/ D-5 隐私再确认逐提供方（产品负责人 + 安全负责人确认 DPA 与六要素一致性——首个验证提供方 dashscope 确认为实施开工前置条件）/ D-6 延迟测量按 OBL-02-LATENCY-METHOD-01 v1.0.0 §3 分层（阈值另行裁决——PB-03/PD-08）/ D-7 一次性实施（架构 + 首个验证提供方接入与路径验证 → S5A-F1-0001 证据执行器 → S5 G5 评测链；第二提供方起属后续切片）。
+- 独立评测人（角色 5，用户本人，PD-15）：（待评测执行——S5 G5 评测链另行 staged）
 - 独立评测人（角色 5，用户本人，PD-15）：（待评测执行——S5 G5 评测链另行 staged）

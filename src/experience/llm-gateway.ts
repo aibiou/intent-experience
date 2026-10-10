@@ -78,6 +78,177 @@ export class EvidenceFaultLlmGateway implements LlmGateway {
 let proposalCounter = 0;
 
 /**
+ * 提供方接入（S5；S5A-SEMANTIC-FREEZE-01 v1.0.0）。
+ *
+ * model-agnostic 架构：LlmGateway 接口即提供方抽象层——产品运行时
+ * 只依赖接口，不依赖任何提供方实现；提供方身份（provider / model /
+ * 参数）经配置注入（环境变量——S5 形态）。产品代码不写死任何提供方。
+ *
+ * 提供方规则按提供方版本化冻结（S5A-SEMANTIC-FREEZE-01 §1 D-2）：
+ * 本版本登记首个验证提供方 dashscope profile v1——仅用于路径验证与
+ * 证据执行，非产品默认、非产品写死；新增提供方经各自构造规则版本化
+ * 冻结后方可启用（未登记值经 loadProviderGatewayConfig 拒绝启动）。
+ *
+ * 隐私纪律（D-5）：提供方启用前须经产品负责人 + 安全负责人隐私再
+ * 确认——用户可选集 = 已确认集。API key 仅运行期环境变量注入：
+ * 绝不写死、绝不落盘、不进日志、错误信息不得包含 key。
+ */
+export interface ProviderLlmConfig {
+  provider: string;
+  endpoint: string;
+  model: string;
+  temperature: number;
+  apiKey: string;
+  systemPrompt: string;
+}
+
+const PROVIDER_PROFILES: Readonly<
+  Record<string, { endpoint: string; defaultModel: string; temperature: number; systemPrompt: string }>
+> = {
+  dashscope: {
+    endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    defaultModel: 'qwen-plus',
+    temperature: 0.7,
+    systemPrompt: '你是个人体验引擎的回应生成器。依据提供的上下文，生成对用户的回应内容。',
+  },
+};
+
+let providerProposalCounter = 0;
+
+export class ProviderLlmGateway implements LlmGateway {
+  private readonly config: ProviderLlmConfig;
+  private calls = 0;
+
+  constructor(config: ProviderLlmConfig) {
+    this.config = config;
+  }
+
+  async propose(request: LlmRequest): Promise<LlmProposal> {
+    this.calls += 1;
+    const body = {
+      model: this.config.model,
+      messages: [
+        { role: 'system', content: this.config.systemPrompt },
+        { role: 'user', content: renderProviderUserMessage(request.context) },
+      ],
+      temperature: this.config.temperature,
+    };
+    let response: Response;
+    try {
+      response = await fetch(this.config.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.config.apiKey}`,
+        },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      // 错误信息仅含 provider / 调用计数——不含 key、不含请求体。
+      throw new Error(
+        `llm provider upstream network failure (provider=${this.config.provider}, call=${this.calls})`,
+      );
+    }
+    if (!response.ok) {
+      throw new Error(
+        `llm provider upstream failed (provider=${this.config.provider}, status=${response.status}, call=${this.calls})`,
+      );
+    }
+    let parsed: unknown;
+    try {
+      parsed = await response.json();
+    } catch {
+      throw new Error(
+        `llm provider response malformed (provider=${this.config.provider}, call=${this.calls}: non-JSON body)`,
+      );
+    }
+    const content = extractProviderContent(parsed);
+    if (content === undefined) {
+      throw new Error(
+        `llm provider response malformed (provider=${this.config.provider}, call=${this.calls}: missing choices[0].message.content)`,
+      );
+    }
+    providerProposalCounter += 1;
+    return {
+      proposal_id: `proposal_provider_${String(providerProposalCounter).padStart(4, '0')}`,
+      content,
+      // LLM 禁止动作（SRC-06 §17）：提供方不提案状态写入——恒空对象。
+      state_update_proposal: {},
+      // 提供方未返回结构化置信字段——映射为固定值 1.0（与合成模式一致；未来经版本化修订）。
+      confidence: 1,
+    };
+  }
+}
+
+function extractProviderContent(parsed: unknown): string | undefined {
+  if (parsed === null || typeof parsed !== 'object') {
+    return undefined;
+  }
+  const choices = (parsed as { choices?: unknown }).choices;
+  if (!Array.isArray(choices) || choices.length === 0) {
+    return undefined;
+  }
+  const first = choices[0];
+  if (first === null || typeof first !== 'object') {
+    return undefined;
+  }
+  const message = (first as { message?: unknown }).message;
+  if (message === null || typeof message !== 'object') {
+    return undefined;
+  }
+  const content = (message as { content?: unknown }).content;
+  return typeof content === 'string' ? content : undefined;
+}
+
+function renderProviderUserMessage(context: unknown): string {
+  // 确定性映射（S5A-SEMANTIC-FREEZE-01 §1 D-2）：LlmRequest.context
+  // 为运行时构造的 { raw_input, memory_signals } 形态；缺失该形态时
+  // 回退 JSON.stringify（防御性兜底——确定性）。
+  if (context !== null && typeof context === 'object' && 'raw_input' in context) {
+    const c = context as { raw_input: unknown; memory_signals?: unknown };
+    return [String(c.raw_input), '[memory_signals]', JSON.stringify(c.memory_signals ?? [])].join('\n');
+  }
+  return JSON.stringify(context ?? null);
+}
+
+/**
+ * 经环境变量解析 LLM 模式配置（server-runtime 注入缝调用）。
+ *
+ * - EXPERIENCE_LLM_MODE !== 'provider' → undefined（合成默认——行为零变化）
+ * - 未登记提供方 → 抛出（配置不得绕过版本化纪律——拒绝启动并报错）
+ * - API key 缺失 → 抛出（不静默回退合成模式——静默回退违背「LLM 模式
+ *   已启用」的启用意图）
+ */
+export function loadProviderGatewayConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): ProviderLlmConfig | undefined {
+  if (env.EXPERIENCE_LLM_MODE !== 'provider') {
+    return undefined;
+  }
+  const provider = env.EXPERIENCE_LLM_PROVIDER ?? '';
+  const profile = PROVIDER_PROFILES[provider];
+  if (!profile) {
+    throw new Error(
+      `llm mode enabled but provider not registered (provider=${provider || '(empty)'}; registered: ${Object.keys(PROVIDER_PROFILES).join(', ')})——S5A-SEMANTIC-FREEZE-01 提供方规则未经版本化冻结不得启用`,
+    );
+  }
+  const apiKey = env.EXPERIENCE_LLM_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      'llm mode enabled but EXPERIENCE_LLM_API_KEY missing——API key 仅运行期环境变量注入；缺失时拒绝启动（不静默回退合成模式）',
+    );
+  }
+  return {
+    provider,
+    endpoint: profile.endpoint,
+    model: env.EXPERIENCE_LLM_MODEL ?? profile.defaultModel,
+    temperature: profile.temperature,
+    apiKey,
+    systemPrompt: profile.systemPrompt,
+  };
+}
+
+/**
  * 合成网关：按语义动作返回合成语料提案。
  * state_update_proposal 恒为空对象——合成模式下模型从不提案状态写入
  * （越权提案只能经证据注入的脚本化网关产生，以测试拒绝路径）。
