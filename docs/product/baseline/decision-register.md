@@ -1,7 +1,7 @@
 # 产品冲突与未决决策登记册
 
 **编号：** BASELINE-DECISIONS-01
-**版本：** 0.24.0（2026-10-09：S2a 首个迭代 F-1（OBL-01）完成登记——动态证据 S2A-OBL-01-0001 通过（7/7 案例、12/12 断言、退出码 0，只表示本运行断言通过，不设置任何 Gate）；CR-18 选项 B 登记的 DEFERRED 项（HTTP 形态 LLM 故障 503 补测）已履行，P2-SIGNOFF-01 遗留债务 D-01 关闭；其余内容与 v0.23.0 相同）
+**版本：** 0.25.0（2026-10-10：F-009-1（P3-S1-REVIEW-009 登记，Minor）实际更正——CR-16 证据行引用"C6 事件契约（SRC-06）"更正为"SRC-08（reference/17）"（按评测人 2026-10-10 指令执行，本修订说明引用 F-009-1）；同时更正 CR-16 状态行注记——v0.11.0 登记"待下次修订更正"（C6 应为 SRC-08），v0.12.0 版本注记与状态行误记为"已于 v0.12.0 更正为 SRC-08"而证据行引用实际未更正，本版本（v0.25.0）方实际更正，不影响映射实质；其余内容与 v0.24.0 相同）
 **状态：** PODR-001 v1.0.4 已裁决 CR-01…CR-07、CR-09、CR-12、CR-13、CR-14，并增补 PD-14 / PD-15 / PD-16 / PD-17；CR-07 / CR-08 / CR-09 / CR-10 / CR-11 / CR-12 / CR-13 / CR-15 / CR-16 / CR-17 / CR-18 已关闭（CR-08 于 2026-10-09 关闭：隐私六要素全部裁决签署，P3-S1-PRIVACY-SIX-01 v0.4.0；CR-16 / CR-17 于 2026-10-09 经 REVIEW-009 非作者复核签署关闭；CR-18 于 2026-10-09 经产品负责人裁决关闭：选项 B——维持不暴露网关注入缝，HTTP 形态 LLM 故障 503 登记 DEFERRED TO 后续切片；CR-15 于 2026-10-08 经 PD-17 裁决关闭：选项 A，scoped 预授权许可签发）；G6 处置表（PB-01…PB-04）已建立，PB-01 解除条件已满足（2026-10-08）。
 **规则：** 执行团队不得自行把产品决策解释为运行证据或 Gate PASS。
 
@@ -143,13 +143,13 @@
 
 ## CR-16｜S1 §23 最低事件名称与 C6 权威事件名称调和
 
-- **证据：** S1 §23 最低事件清单使用 intent_created / semantic_action_detected / user_action / version_conflict 等名称；C6 事件契约（SRC-06）使用权威名称 intent_received / intent_parsed / C6 §14 交互事件（question_asked / why_requested / what_if_requested / change_direction_requested / stop_requested）/ state_version_conflict。两者指同一事实类别但命名不同。
+- **证据：** S1 §23 最低事件清单使用 intent_created / semantic_action_detected / user_action / version_conflict 等名称；C6 事件契约（SRC-08，reference/17）使用权威名称 intent_received / intent_parsed / C6 §14 交互事件（question_asked / why_requested / what_if_requested / change_direction_requested / stop_requested）/ state_version_conflict。两者指同一事实类别但命名不同。
 - **影响：** C6-MINSET 案例与 G2 跨契约一致性检查无法定稿；实现侧必须选择权威名称并记录调和依据，否则最低事件集验证不可判定。
 - **建议：** 实施侧调和表（intent_created→intent_received；semantic_action_detected→intent_parsed（properties.semantic_action）；user_action→C6 §14 交互事件五项；version_conflict→state_version_conflict；其余 10 项同名）已建立并 staged 于 `artifacts/evidence/runs/F2-GS-0001/review/README.md`；本登记不作默认——须 R2 非作者复核确认后方可作为契约结论。
 - **严重度：** Important。
 - **决策负责人：** 非作者复核人（角色 8 流程，R2）。
 - **所需变更：** 非作者复核签署确认调和表，或裁定替代映射并回写 XCC-MAP。
-- **状态：** RESOLVED（2026-10-09：调和表经非作者复核签署确认，P3-S1-REVIEW-009 §2-A——作为契约结论生效；C6-MINSET 与 G2 事件次序检查依据成立；F-009-1 编号笔误已于本版本（v0.12.0）更正为 SRC-08，不影响映射实质）。
+- **状态：** RESOLVED（2026-10-09：调和表经非作者复核签署确认，P3-S1-REVIEW-009 §2-A——作为契约结论生效；C6-MINSET 与 G2 事件次序检查依据成立；F-009-1 编号笔误更正史：v0.11.0 登记"待下次修订更正"（C6 应为 SRC-08），v0.12.0 版本注记与本状态行误记为"已于 v0.12.0 更正为 SRC-08"而证据行引用实际未更正；2026-10-10 按评测人指令于本版本（v0.25.0）实际更正——证据行"C6 事件契约（SRC-06）"更正为"SRC-08（reference/17）"，修订说明引用 F-009-1，不影响映射实质）。
 
 ## CR-17｜policy_decided 事件发射时机与内容解释
 
