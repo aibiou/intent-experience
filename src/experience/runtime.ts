@@ -24,6 +24,7 @@ import {
   type SemanticAction,
 } from './policy';
 import { classifyInput } from './classifier';
+import { recognizeGenerationIntent } from './generation-intent';
 import { validateProposal } from './validator';
 import {
   initialExperienceView,
@@ -341,6 +342,16 @@ export class ExperienceRuntime {
     this.requestIds.add(input.requestId);
 
     const classification = classifyInput(input.rawInput);
+    // 生成意图确定性路由（产品负责人指令 2026-10-10）：
+    // 分类未命中（UNKNOWN）但生成意图规则命中时，
+    // 意图确定性路由为 CREATE（创作族——「画 / 生成 /
+    // 制作」是创作表达；不发明语义动作，policy
+    // 词汇表不变；与 WHAT_IF 首轮自动 CREATE 同一
+    // 先例）。分类命中时生成意图不干预（对话回应
+    // 照常，生成编排由暴露层在流末触发）。
+    const generationRouted =
+      classification.semanticAction === 'UNKNOWN' &&
+      recognizeGenerationIntent(input.rawInput) !== null;
     this.counters.intent += 1;
     const intentId = `intent_synthetic_${String(this.counters.intent).padStart(4, '0')}`;
     const now = new Date().toISOString();
@@ -348,7 +359,7 @@ export class ExperienceRuntime {
       intentId,
       sessionId: input.sessionId,
       rawInput: input.rawInput,
-      semanticAction: classification.semanticAction,
+      semanticAction: generationRouted ? 'CREATE' : classification.semanticAction,
       state: 'INTERPRETED',
       createdAt: now,
     };
@@ -366,7 +377,7 @@ export class ExperienceRuntime {
       identity: { user_id: this.userId, session_id: input.sessionId },
       context: { experience_id: null, intent_id: intentId, state_version: null, request_id: input.requestId },
       source: { layer: 'input', component: 'intent-resolver' },
-      properties: { semantic_action: classification.semanticAction },
+      properties: { semantic_action: intent.semanticAction },
     });
 
     // 首个意图解析使 Session 进入 ACTIVE（状态机规范 §4.2）。
@@ -433,9 +444,9 @@ export class ExperienceRuntime {
     return {
       ok: true,
       intent,
-      semanticAction: classification.semanticAction,
+      semanticAction: intent.semanticAction,
       confidence: 1,
-      action: classification.semanticAction === 'UNKNOWN' ? 'escalate' : 'start_experience',
+      action: intent.semanticAction === 'UNKNOWN' ? 'escalate' : 'start_experience',
       events: [received, parsed],
     };
   }
@@ -1145,6 +1156,18 @@ export class ExperienceRuntime {
           ),
         };
       }
+    }
+    // 生成意图确定性路由（产品负责人指令 2026-10-10）：
+    // 分类未命中（UNKNOWN）但生成意图规则命中时，
+    // 语义动作确定性路由为 CREATE（与 resolveIntent
+    // 同一规则——提交层与解析层一致；客户端不能注入
+    // 策略动作的守卫不变：路由由确定性规则完成，
+    // 声明与分类结果经同一规则收敛为一致）。
+    if (
+      semanticAction === 'UNKNOWN' &&
+      recognizeGenerationIntent(input.rawInput) !== null
+    ) {
+      semanticAction = 'CREATE';
     }
     if (semanticAction === 'UNKNOWN') {
       return {

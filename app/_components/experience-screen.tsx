@@ -47,6 +47,23 @@ interface DockAction {
   input: string;
 }
 
+interface GenerationState {
+  id: number;
+  modality: 'image' | 'video' | 'voice';
+  status: 'pending' | 'completed' | 'unconfigured' | 'failed';
+  prompt: string;
+  url?: string;
+  dataUri?: string;
+  mime?: string;
+  message?: string;
+}
+
+const GENERATION_MODALITY_LABELS: Record<GenerationState['modality'], string> = {
+  image: '图像',
+  video: '视频',
+  voice: '语音',
+};
+
 const ACTION_LABELS: Record<string, string> = {
   DIRECT_ANSWER: '回应',
   WHY: '为什么',
@@ -93,6 +110,7 @@ export function ExperienceScreen({
   const [roundCount, setRoundCount] = useState(0);
   const [currentBranchId, setCurrentBranchId] = useState<string | null>(null);
   const [memories, setMemories] = useState<MemoryInfo[]>([]);
+  const [generations, setGenerations] = useState<GenerationState[]>([]);
 
   const sessionRef = useRef(session);
   const idCounter = useRef(0);
@@ -102,6 +120,44 @@ export function ExperienceScreen({
   const followRef = useRef(true);
 
   const nextId = () => (idCounter.current += 1);
+
+  const applyGenerationEvent = useCallback((event: Record<string, unknown>) => {
+    const status = String(event.status ?? '');
+    const modality = String(event.modality ?? '') as GenerationState['modality'];
+    if (status === 'started') {
+      setGenerations((prev) => [
+        ...prev,
+        {
+          id: nextId(),
+          modality,
+          status: 'pending',
+          prompt: String(event.prompt ?? ''),
+        },
+      ]);
+      return;
+    }
+    setGenerations((prev) => {
+      // 匹配该模态最近一条待完成产物（同一轮只生成一次）。
+      let index = -1;
+      for (let i = prev.length - 1; i >= 0; i -= 1) {
+        if (prev[i].status === 'pending' && prev[i].modality === modality) {
+          index = i;
+          break;
+        }
+      }
+      if (index === -1) return prev;
+      const next: GenerationState = {
+        ...prev[index],
+        status:
+          status === 'completed' ? 'completed' : status === 'unconfigured' ? 'unconfigured' : 'failed',
+        ...(typeof event.url === 'string' ? { url: event.url } : {}),
+        ...(typeof event.dataUri === 'string' ? { dataUri: event.dataUri } : {}),
+        ...(typeof event.mime === 'string' ? { mime: event.mime } : {}),
+        ...(typeof event.message === 'string' ? { message: event.message } : {}),
+      };
+      return [...prev.slice(0, index), next, ...prev.slice(index + 1)];
+    });
+  }, []);
 
   const applySession = useCallback(
     (next: SessionState) => {
@@ -309,6 +365,8 @@ export function ExperienceScreen({
                 ),
               );
               refreshPanels();
+            } else if (event.type === 'generation') {
+              applyGenerationEvent(event);
             } else if (event.type === 'stopped') {
               const targetId = assistantId;
               setMessages((prev) =>
@@ -441,6 +499,47 @@ export function ExperienceScreen({
           </div>
         ))}
       </div>
+
+      {generations.length > 0 && (
+        <section className="generations">
+          <h2 className="generations-title">生成物</h2>
+          <div className="generations-row">
+            {generations.map((item) => (
+              <article
+                key={item.id}
+                className={`gen-card gen-${item.modality} gen-${item.status}`}
+              >
+                {item.status === 'pending' && (
+                  <div className="gen-pending">
+                    <span className="gen-pending-dot" aria-hidden="true" />
+                    <span>{GENERATION_MODALITY_LABELS[item.modality]}生成中…</span>
+                  </div>
+                )}
+                {item.status === 'completed' &&
+                  (item.url !== undefined || item.dataUri !== undefined) &&
+                  (item.modality === 'voice' ? (
+                    <audio className="gen-audio" controls src={item.dataUri ?? item.url} />
+                  ) : item.modality === 'video' ? (
+                    <video className="gen-media" controls src={item.dataUri ?? item.url} />
+                  ) : (
+                    <img className="gen-media" src={item.dataUri ?? item.url} alt={item.prompt} />
+                  ))}
+                {(item.status === 'unconfigured' || item.status === 'failed') && (
+                  <p className="gen-message">{item.message}</p>
+                )}
+                <footer className="gen-foot">
+                  <span className={`gen-tag gen-tag-${item.modality}`}>
+                    {GENERATION_MODALITY_LABELS[item.modality]}
+                  </span>
+                  <span className="gen-prompt" title={item.prompt}>
+                    {item.prompt}
+                  </span>
+                </footer>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="panels">
         <button

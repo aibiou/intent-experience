@@ -216,3 +216,21 @@ export function SettingsIcon({ size = 18, ...props }: IconProps) {
     </svg>
   );
 }
+
+export function FlameIcon({ size = 18, ...props }: IconProps) {
+  return (
+    <svg {...base(size)} {...props}>
+      <path d="M12 3s5 4.5 5 9.5a5 5 0 0 1-10 0c0-2 1-3.8 2.2-5.2.3 1 .9 1.9 1.8 2.4C11 8 11 5.5 12 3Z" />
+      <path d="M12 21a3 3 0 0 1-3-3c0-1.5 1-2.7 1.8-3.7.2.7.6 1.3 1.2 1.7.3-1 .5-2.2.5-3.3 1.8 1.3 2.5 3 2.5 5.3a3 3 0 0 1-3 3Z" />
+    </svg>
+  );
+}
+
+export function ClockIcon({ size = 18, ...props }: IconProps) {
+  return (
+    <svg {...base(size)} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeftIcon,
   CheckIcon,
@@ -16,12 +16,29 @@ interface ProviderConfig {
   provider: string;
   model: string;
   endpoint: string;
+  modality?: Modality;
   createdAt: string;
   updatedAt: string;
   enabled: boolean;
   providerConfirmed: boolean;
   hasKey: true;
 }
+
+type Modality = 'text' | 'voice' | 'image' | 'video';
+
+const MODALITIES: { id: Modality; label: string; hint: string }[] = [
+  { id: 'text', label: '文本', hint: '对话回应' },
+  { id: 'voice', label: '语音', hint: '朗读生成' },
+  { id: 'image', label: '图像', hint: '绘画生成' },
+  { id: 'video', label: '视频', hint: '视频生成' },
+];
+
+const MODALITY_LABEL: Record<Modality, string> = {
+  text: '文本',
+  voice: '语音',
+  image: '图像',
+  video: '视频',
+};
 
 interface ProviderProfile {
   provider: string;
@@ -46,18 +63,37 @@ function endpointHost(endpoint: string): string {
   }
 }
 
-/** 模型类别识别（呈现层——按模型名关键词：image/img → 图像，video/vid → 视频，其余为文本）。 */
-function categorizeModels(models: string[]): Array<{ label: string; items: string[] }> {
-  const groups = [
-    { label: '文本模型', items: [] as string[] },
-    { label: '图像模型', items: [] as string[] },
-    { label: '视频模型', items: [] as string[] },
+/** 模型模态识别（确定性规则——按模型名关键词归入
+ * 文本 / 语音 / 图像 / 视频四类；未命中归文本）。 */
+function categorizeModels(
+  models: string[],
+): Array<{ modality: Modality; label: string; items: string[] }> {
+  const groups: Array<{ modality: Modality; label: string; items: string[] }> = [
+    { modality: 'text', label: '文本模型', items: [] },
+    { modality: 'voice', label: '语音模型', items: [] },
+    { modality: 'image', label: '图像模型', items: [] },
+    { modality: 'video', label: '视频模型', items: [] },
   ];
   for (const entry of models) {
     const lower = entry.toLowerCase();
-    if (lower.includes('image') || lower.includes('img')) {
+    if (
+      lower.includes('video') || lower.includes('vid') ||
+      lower.includes('movie') || lower.includes('animate')
+    ) {
+      groups[3].items.push(entry);
+    } else if (
+      lower.includes('tts') || lower.includes('speech') ||
+      lower.includes('audio') || lower.includes('voice') ||
+      lower.includes('sonic') || lower.includes('bark') ||
+      lower.includes('whisper') || lower.includes('stt')
+    ) {
       groups[1].items.push(entry);
-    } else if (lower.includes('video') || lower.includes('vid')) {
+    } else if (
+      lower.includes('image') || lower.includes('img') ||
+      lower.includes('dall') || lower.includes('flux') ||
+      lower.includes('stable') || lower.includes('pix') ||
+      lower.includes('draw') || lower.includes('paint')
+    ) {
       groups[2].items.push(entry);
     } else {
       groups[0].items.push(entry);
@@ -66,22 +102,23 @@ function categorizeModels(models: string[]): Array<{ label: string; items: strin
   return groups.filter((group) => group.items.length > 0);
 }
 
-/** 已存配置的模型列表（按类别分组呈现——当前启用模型标记「当前」）。 */
+/** 模型分组选择（按模态分组——组内单选，
+ * 再点已选项取消；选中态经 selectedByModality 传入）。 */
 function ModelGroups({
   models,
-  activeModel,
+  selectedByModality = {},
   onSelect,
 }: {
   models: string[];
-  activeModel: string;
-  onSelect: (model: string) => void;
+  selectedByModality: Partial<Record<Modality, string>>;
+  onSelect: (modality: Modality, model: string) => void;
 }) {
   const groups = categorizeModels(models);
   return (
     <div className="config-model-groups">
       <span className="config-preset-label">该提供方模型（点击选用）：</span>
       {groups.map((group) => (
-        <div key={group.label} className="config-model-group">
+        <div key={group.modality} className="config-model-group">
           <span className="config-model-group-label">
             {group.label}（{group.items.length}）
           </span>
@@ -91,12 +128,21 @@ function ModelGroups({
                 key={entry}
                 type="button"
                 className={`config-button config-button-quiet${
-                  entry === activeModel ? ' config-button-active' : ''
+                  entry === selectedByModality[group.modality]
+                    ? ' config-button-active'
+                    : ''
                 }`}
-                onClick={() => onSelect(entry)}
+                onClick={() =>
+                  onSelect(
+                    group.modality,
+                    entry === selectedByModality[group.modality]
+                      ? ''
+                      : entry,
+                  )
+                }
               >
                 {entry}
-                {entry === activeModel && (
+                {entry === selectedByModality[group.modality] && (
                   <span className="config-model-active-tag">当前</span>
                 )}
               </button>
@@ -124,6 +170,12 @@ export default function ConfigPage() {
   const [endpoint, setEndpoint] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [creating, setCreating] = useState(false);
+  /** 识别后按模态选择的模型（一次填写、多模态共享
+   * 同端点与 key——无需逐模态重复配置）。 */
+  const [selectedModels, setSelectedModels] = useState<
+    Partial<Record<Modality, string>>
+  >({});
+  const [creatingSelected, setCreatingSelected] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editModel, setEditModel] = useState('');
@@ -143,6 +195,12 @@ export default function ConfigPage() {
   const [confirming, setConfirming] = useState(false);
 
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [modality, setModality] = useState<Modality>('text');
+
+  const visibleConfigs = useMemo(
+    () => configs.filter((config) => (config.modality ?? 'text') === modality),
+    [configs, modality],
+  );
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -211,6 +269,7 @@ export default function ConfigPage() {
           model: model.trim(),
           endpoint: endpoint.trim(),
           api_key: apiKey,
+          modality,
         }),
       });
       if (!response.ok) {
@@ -223,6 +282,66 @@ export default function ConfigPage() {
       setCreating(false);
     }
   }, [provider, model, apiKey, creating, handleApiError, refresh]);
+
+  /** 按模态选择模型（组内单选——传空串取消）。 */
+  const selectModelByModality = useCallback(
+    (modality: Modality, modelName: string) => {
+      setSelectedModels((prev) => {
+        const next = { ...prev };
+        if (modelName.length === 0) {
+          delete next[modality];
+        } else {
+          next[modality] = modelName;
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  /** 保存所选模态（各条记录共享同一端点与
+   * key——仅模态与模型不同；key 仅以密文持久化）。 */
+  const createSelected = useCallback(async () => {
+    const entries = (Object.keys(selectedModels) as Modality[]).filter(
+      (item) => selectedModels[item] && selectedModels[item]!.length > 0,
+    );
+    if (
+      entries.length === 0 ||
+      !provider.trim() ||
+      !endpoint.trim() ||
+      !apiKey.trim() ||
+      creatingSelected
+    ) {
+      return;
+    }
+    setCreatingSelected(true);
+    setError(null);
+    try {
+      for (const item of entries) {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: provider.trim(),
+            model: selectedModels[item],
+            endpoint: endpoint.trim(),
+            api_key: apiKey,
+            modality: item,
+          }),
+        });
+        if (!response.ok) {
+          await handleApiError(response, `保存${MODALITY_LABEL[item]}模型失败`);
+          return;
+        }
+      }
+      setSelectedModels({});
+      setProbedModels([]);
+      setApiKey('');
+      await refresh();
+    } finally {
+      setCreatingSelected(false);
+    }
+  }, [selectedModels, provider, endpoint, apiKey, creatingSelected, handleApiError, refresh]);
 
   const saveEdit = useCallback(
     async (id: string) => {
@@ -364,6 +483,7 @@ export default function ConfigPage() {
       }
       const data = (await response.json()) as { models: string[] };
       setProbedModels(data.models);
+      setSelectedModels({});
     } finally {
       setProbing(false);
     }
@@ -385,6 +505,7 @@ export default function ConfigPage() {
       }
       const data = (await response.json()) as { models: string[] };
       setProbedModels(data.models);
+      setSelectedModels({});
     } finally {
       setProbing(false);
     }
@@ -413,6 +534,32 @@ export default function ConfigPage() {
     },
     [probingConfigId, handleApiError],
   );
+
+  /** 按模态克隆（已存配置的模型列表选用其他
+  * 模态模型——共享该配置的端点与 key，
+  * 服务端密文原样复制——无需重复填写）。 */
+  const cloneForModality = useCallback(
+    async (sourceId: string, item: Modality, modelName: string) => {
+      setBusyId(sourceId);
+      setError(null);
+      try {
+        const response = await fetch(`/api/config/${sourceId}/modality`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ modality: item, model: modelName }),
+        });
+        if (!response.ok) {
+          await handleApiError(response, `保存${MODALITY_LABEL[item]}模型失败`);
+          return;
+        }
+        await refresh();
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [handleApiError, refresh],
+  );
+
 
   return (
     <main className="config-page">
@@ -455,6 +602,23 @@ export default function ConfigPage() {
 
       <section className="config-card">
         <h2 className="config-card-title">添加提供方配置</h2>
+        <div className="config-field">
+          <label>模型模态（每类至多启用一条）</label>
+          <div className="modality-tabs">
+            {MODALITIES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`modality-tab${modality === item.id ? ' is-active' : ''}`}
+                onClick={() => setModality(item.id)}
+                title={item.hint}
+              >
+                <span className="modality-tab-label">{item.label}</span>
+                <span className="modality-tab-hint">{item.hint}</span>
+              </button>
+            ))}
+          </div>
+        </div>
         {profiles.length > 0 && (
           <div className="config-presets">
             <span className="config-preset-label">预设（自动填充）：</span>
@@ -524,6 +688,38 @@ export default function ConfigPage() {
             <p className="config-field-hint">
               识别将向端点 /models 发起请求（仅发送上方填写的 key）；不支持该接口的提供方可手动填写。
             </p>
+            {probedModels.length > 0 && (
+              <div className="config-probe-panel">
+                <ModelGroups
+                  models={probedModels}
+                  selectedByModality={selectedModels}
+                  onSelect={selectModelByModality}
+                />
+                <div className="config-selected-actions">
+                  <button
+                    type="button"
+                    className="config-button config-button-primary"
+                    onClick={() => void createSelected()}
+                    disabled={
+                      creatingSelected ||
+                      Object.values(selectedModels).every(
+                        (entry) => !entry || entry.length === 0,
+                      ) ||
+                      provider.trim().length === 0 ||
+                      endpoint.trim().length === 0 ||
+                      apiKey.trim().length === 0
+                    }
+                  >
+                    {creatingSelected
+                      ? '保存中…'
+                      : `保存所选（${Object.values(selectedModels).filter((entry) => entry && entry.length > 0).length} 个模态）`}
+                  </button>
+                  <span className="config-field-hint">
+                    一次填写端点与 key，所选模型按模态分别保存——无需逐模态重复配置。
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
           <div className="config-field">
             <label htmlFor="config-api-key">API key</label>
@@ -570,6 +766,22 @@ export default function ConfigPage() {
       <section className="config-card">
         <div className="config-card-head">
           <h2 className="config-card-title">已保存的配置</h2>
+          <div className="modality-filter">
+            {MODALITIES.map((item) => {
+              const count = configs.filter((config) => (config.modality ?? 'text') === item.id).length;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`modality-chip${modality === item.id ? ' is-active' : ''}`}
+                  onClick={() => setModality(item.id)}
+                >
+                  {item.label}
+                  <span className="modality-chip-count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
           <button
             type="button"
             className="config-button config-button-quiet"
@@ -579,13 +791,17 @@ export default function ConfigPage() {
             <RefreshIcon size={14} /> 刷新
           </button>
         </div>
-        {loading && configs.length === 0 ? (
+        {loading && visibleConfigs.length === 0 ? (
           <p className="config-empty">加载中…</p>
-        ) : configs.length === 0 ? (
-          <p className="config-empty">还没有配置——从上面添加第一个提供方。</p>
+        ) : visibleConfigs.length === 0 ? (
+          <p className="config-empty">
+            {configs.length === 0
+              ? '还没有配置——从上面添加第一个提供方。'
+              : `${MODALITY_LABEL[modality]}模型还没有配置——从上面添加并启用。`}
+          </p>
         ) : (
           <ul className="config-list">
-            {configs.map((config) => (
+            {visibleConfigs.map((config) => (
               <li key={config.id} className="config-item">
                 {editingId === config.id ? (
                   <div className="config-form config-form-edit">
@@ -673,6 +889,9 @@ export default function ConfigPage() {
                     <div className="config-item-head">
                       <span className="config-provider">{config.provider}</span>
                       <span className="config-model">{config.model}</span>
+                <span className={`modality-badge modality-${config.modality ?? 'text'}`}>
+                  {MODALITY_LABEL[config.modality ?? 'text']}
+                </span>
                       <span className="config-endpoint" title={config.endpoint}>
                         {endpointHost(config.endpoint)}
                       </span>
@@ -703,10 +922,17 @@ export default function ConfigPage() {
                     {configModels[config.id] && (
                       <ModelGroups
                         models={configModels[config.id]}
-                        activeModel={config.model}
-                        onSelect={(entry) => {
-                          startEdit(config);
-                          setEditModel(entry);
+                        selectedByModality={{
+                          [config.modality ?? 'text']: config.model,
+                        }}
+                        onSelect={(item, entry) => {
+                          if (entry.length === 0) return;
+                          if (item === (config.modality ?? 'text')) {
+                            startEdit(config);
+                            setEditModel(entry);
+                            return;
+                          }
+                          void cloneForModality(config.id, item, entry);
                         }}
                       />
                     )}
