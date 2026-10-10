@@ -55,7 +55,7 @@
     "userChanges": [
       {
         "version": 2,
-        "at": "2026-10-10T10:11:23.991Z",
+        "at": "2026-10-10T13:30:06.973Z",
         "patch": {
           "operation": "simplify",
           "target": "difficulty",
@@ -87,7 +87,7 @@
   ],
   "evidence": {
     "trace": "traces/S2B-0001:DIRECTIONAL-SIMPLIFY.jsonl",
-    "traceSha256": "e931e7e4d4de15825840342e752944c08f4e3dd1b2a36b9a8d77b5bdf831f541",
+    "traceSha256": "6eb85c31d86eb0f183e9b131d34266642726fa21527131c3cc15322f8ef05047",
     "form": "in-process",
     "servers": []
   },
