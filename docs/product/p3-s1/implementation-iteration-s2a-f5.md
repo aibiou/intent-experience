@@ -64,7 +64,7 @@
 
 - S2b（DEEPEN/SIMPLIFY/REFRAME/Search 启用 + First Experience 完整呈现 + 更完整 Golden Suite）：实施授权 P3-S2B-IMPL-AUTH-01 v0.1.0 staged 待产品负责人签署（前置条件已满足）；S2b 实施按 S2B-SEMANTIC-FREEZE-01 v1.0.0 §3/§4 冻结文本执行（policy_v2.0.0 / state_machine_v1.5.0）；动态证据 S2B-0001。
 - 模拟语料尾句文本更新（`synthetic/simulate/v1` 尾句"本提案为单次模拟，不建立分支状态"与 F-4 起运行时行为不一致）：待产品负责人语料裁决（另案——F-4 迭代记录 §4 第 3 项观察，本迭代未改语料）。
-- "采用某分支结论"显式回流操作（F-4 D-03 选项 A 说明）：**已裁决（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A——启用显式回流操作 ADOPT_BRANCH，产品负责人 2026-10-09 裁决；CR-27 登记；语义定义经裁决版本化冻结；产品实施按授权路径另行签发）**。
+- "采用某分支结论"显式回流操作（F-4 D-03 选项 A 说明）：**已实施（2026-10-10——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效：ADOPT_BRANCH 产品实施完成（产品提交 `728b3de`——simulation.ts / events.ts / runtime.ts / policy.ts 四文件，policy_v2.1.0 变更 1–5；state_machine_v1.5.0 不变）；动态证据 S2A-F4-0001 重跑 10/10 案例、17/17 断言（回归扩展 BRANCH-ADOPT 案例）+ 黄金套件扩展 G10 分支回流案例组（G3-GOLDEN-0001 再生 40/40 案例）+ S2B-0001 重跑 7/7 案例，退出码 0 只表示各运行断言通过；失败尝试 2 次按 ADR-0002 §5 归档留存（均为执行器侧案例断言缺陷，产品运行时无缺陷）；迭代记录 P3-S2-IMPL-ITER-ADOPT v1.0.0；CR-27 RULED→IMPLEMENTED；readiness-record v1.34.0）**。
 - S2a 动态证据扩展：G5 独立评测（角色 5）对 S2A-F1-0001…S2A-F5-0001 全部 staged 审阅包保留审阅与否决权。
 - OBL-02（延迟测量）：任何延迟指标宣称前须满足方法第 5 节样本纪律并注明分层（方法 v1.0.0 已经产品负责人按 E3 批准）。
 

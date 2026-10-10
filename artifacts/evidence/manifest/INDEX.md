@@ -1,9 +1,9 @@
 # 证据运行包索引（EVIDENCE-MANIFEST-01）
 
-**版本：** 1.3.0（2026-10-09：追加 S2 时代证据运行 7 项——S2A-OBL-01-0001 / S2A-F2-0001 / S2A-F3-0001 / S2A-F4-0001 / S2A-F5-0001 / S2B-0001 / G3-GOLDEN-0001 当前再生产物状态；7 运行 SHA256SUMS 独立重算全部精确通过；30 个尝试归档中 27 个全部精确通过、3 个各 1 项 summary.json 时点性不符（与 F1/F2 同类——执行器写入顺序，实质内容经交叉核验为真）；v1.0.0/v1.2.0 内容保持原样，git 历史可查）
-生成：2026-10-08T16:35:08.546081Z（v1.0.0，工程负责人角色，代理）；v1.3.0 追加生成 2026-10-09（工程负责人角色，代理）
+**版本：** 1.4.0（2026-10-10：S2 分支回流（ADOPT_BRANCH 显式回流操作——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A，policy_v2.1.0 变更 1–5；产品提交 `728b3de` / 执行器提交 `a7077ce`）实施后 S2 时代 3 运行再生产物登记——S2A-F4-0001 重跑（10/10 案例、17/17 断言——新增 BRANCH-ADOPT 案例）、G3-GOLDEN-0001 再生（40/40 案例——新增 G10 分支回流案例组 N/NEG/B/FR）、S2B-0001 重跑（7/7 案例、14/14 断言——黄金回归绑定新基线 40/40）；3 运行退出码 0、SHA256SUMS 独立重算全部精确通过；尝试归档新增 5 个（先前通过运行前置归档 3 个 + 失败尝试 2 个——均为执行器侧案例断言缺陷，产品运行时无缺陷），新增 5 个归档 SHA256SUMS 独立重算全部精确通过；尝试归档总数 41；全部产物经证据提交 `0a4be6d` 入库；v1.0.0/v1.2.0/v1.3.0 内容保持原样，git 历史可查）
+生成：2026-10-08T16:35:08.546081Z（v1.0.0，工程负责人角色，代理）；v1.3.0 追加生成 2026-10-09（工程负责人角色，代理）；v1.4.0 再生生成 2026-10-10（工程负责人角色，代理）
 依据：E5 计划 §7 只追加布局；G5 第 15 项（Evidence Index）输入。方法：独立重算（不信任执行器自报断言）。
-**退出码 0 / 案例 PASS 只表示本运行中的断言通过；不设置任何 Gate 为 PASS。P2 时代 G5 16 项评测包已于 2026-10-09 完成（PASSED 无条件——P3-S1-G5-WORKSHEET-01 v1.8.0）；S2 时代 G5 评测包 NOT RUN（范围定义提案 S2-G5-EVAL-DEF-01 v0.1.0 staged 待产品负责人裁决——独立评测人：用户本人，角色 5，PD-15）。**
+**退出码 0 / 案例 PASS 只表示本运行中的断言通过；不设置任何 Gate 为 PASS。P2 时代 G5 16 项评测包已于 2026-10-09 完成（PASSED 无条件——P3-S1-G5-WORKSHEET-01 v1.8.0）；S2 时代 G5 独立评测 NOT RUN（范围定义 S2-G5-EVAL-DEF-01 v1.0.0 已经产品负责人 2026-10-09 裁决选项 A——复用 16 项框架对 S2 证据执行独立评测，CR-26 STAGED→RULED；评测工作表 P3-S2-G5-WORKSHEET-01 v0.1.0 新建，16 项骨架结论列全部 NOT RUN，待角色 5 逐项裁决签署——独立评测人：用户本人，角色 5，PD-15；实现作者不得兼任独立评测人）。**
 
 ## E5-TRIAL-0001（E5 环境就绪（A5））
 - 义务：E5-SCOPED-LICENSE-01（PD-17 选项 A）：首次端到端试运行——证据管线可复现性验证（非产品运行时验证）
@@ -68,13 +68,13 @@
   - 失败尝试归档：`S2A-F3-0001-attempt-2026-10-09T09-10-28-595Z`（案例 4/8 PASS；断言 11/15；退出码 1）；`S2A-F3-0001-attempt-2026-10-09T09-11-45-939Z`（案例 7/8；断言 14/15；退出码 1）（ADR-0002 §5，留存于仓库）
 
 ## S2A-F4-0001（S2a F-4 / WHAT_IF 完整分支）
-- 义务：P3-S2-IMPL-AUTH-01 §3(4)：WHAT_IF 完整分支语义——多轮模拟持久化 + 四元分离事件登记（simulation_recorded）+ 轴外分支子状态机（分支记录五分量 + CREATE/SWITCH/ABANDON/RETURN 操作 + ACTIVE/RETURNED/ABANDONED 生命周期）
-- 结果：案例 9/9 PASS；断言 16/16；退出码 0；耗时 15767ms（当前再生产物：语料裁决 S2-CORPUS-TAIL-RULING-01 选项 A 实施后域回归，运行于 policy_v2.0.0 / state_machine_v1.5.0——F-4 语义经 policy_v1.4.0 冻结、policy_v2.0.0 延续不变）
-- 代码绑定：gitHead `44b7fa6`（workTreeClean=False——语料裁决实施期未提交工作树如实记录）
-- SHA256SUMS 独立重算：20/20 通过（全部精确通过）；清单含 summary.json=True、review/README.md=False
-- 产物提交：当前状态 `f6763e5`（首次证据提交 `45abe78`——policy_v1.4.0 时代 9/9 案例、16/16 断言）；审阅包：`artifacts/evidence/runs/S2A-F4-0001/review/README.md`
-  - 失败尝试归档：`S2A-F4-0001-attempt-2026-10-09T09-49-21-804Z`（案例 7/9 PASS；断言 14/16；退出码 1）；`S2A-F4-0001-attempt-2026-10-09T09-49-38-948Z`（案例 8/9；断言 15/16；退出码 1）；`S2A-F4-0001-attempt-2026-10-09T09-51-02-708Z`（案例 8/9；断言 15/16；退出码 1）；`S2A-F4-0001-attempt-2026-10-09T17-50-08-431Z`（案例 6/9；断言 13/16；退出码 1——**执行器侧缺陷**：执行器期望硬编码 policy_v1.4.0，而运行时自 S2b 实施 `65ea951` 起合法输出 policy_v2.0.0，致 A1/A7/A8 失败；产品运行时无缺陷（失败运行实际数据：内容逐字节等于语料、版本链单调、simulation_recorded ×2 同一分支、四元分离、分支快照 ACTIVE 全数成立）；执行器期望同步修复后重跑通过——迭代记录 P3-S2-CORPUS-ALIGN-ITER v1.0.0 §3）（ADR-0002 §5，留存于仓库）
-  - 先前通过运行归档：`S2A-F4-0001-attempt-2026-10-09T17-37-26-969Z`（案例 9/9 PASS；断言 16/16；退出码 0——语料再生成前置归档，非失败尝试；只追加纪律留存）
+- 义务：P3-S2-IMPL-AUTH-01 §3(4)：WHAT_IF 完整分支语义——多轮模拟持久化 + 四元分离事件登记（simulation_recorded）+ 轴外分支子状态机（分支记录五分量 + CREATE/SWITCH/ABANDON/RETURN 操作 + ACTIVE/RETURNED/ABANDONED 生命周期）+ S2 分支回流扩展：ADOPT_BRANCH 显式回流操作（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A——第五分支操作，词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH；分支记录附加 adopted 标记幂等、生命周期契约不变；simulation_adopted 事件登记，properties 含 branch_id / source_round / adopted_content 摘要 / separation_invariant=simulation_result_is_not_fact；采纳结果呈新一轮模拟上下文、主线当前上下文不变；确定性系统回合 llm_used=false、reasonPrimary=explicit_user_direction）（F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.0.0 / policy_v2.1.0 延续；本再生产物运行于 policy_v2.1.0 / state_machine_v1.5.0）
+- 结果：案例 10/10 PASS；断言 17/17；退出码 0；耗时 16612ms（当前再生产物：S2 分支回流实施后域回归——新增 BRANCH-ADOPT 案例，运行于 policy_v2.1.0 / state_machine_v1.5.0——F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续不变）
+- 代码绑定：gitHead `76c1605`（workTreeClean=False——S2 分支回流实施期未提交工作树如实记录：产品提交 728b3de / 执行器提交 a7077ce 内容当时未提交，uncommittedEntries 32 项经 run-metadata.json code 登记；其后经 728b3de / a7077ce / 0a4be6d 提交入库，经独立评测人核对满足 E5 §3 记录要求）
+- SHA256SUMS 独立重算：22/22 通过（全部精确通过）；清单含 summary.json=True、review/README.md=False
+- 产物提交：当前状态 `0a4be6d`（首次证据提交 `45abe78`——policy_v1.4.0 时代 9/9 案例、16/16 断言；中间再生产物 `f6763e5`——语料裁决 S2-CORPUS-TAIL-RULING-01 选项 A 实施后回归 9/9 案例、16/16 断言）；审阅包：`artifacts/evidence/runs/S2A-F4-0001/review/README.md`
+  - 失败尝试归档：`S2A-F4-0001-attempt-2026-10-09T09-49-21-804Z`（案例 7/9 PASS；断言 14/16；退出码 1）；`S2A-F4-0001-attempt-2026-10-09T09-49-38-948Z`（案例 8/9；断言 15/16；退出码 1）；`S2A-F4-0001-attempt-2026-10-09T09-51-02-708Z`（案例 8/9；断言 15/16；退出码 1）；`S2A-F4-0001-attempt-2026-10-09T17-50-08-431Z`（案例 6/9；断言 13/16；退出码 1——**执行器侧缺陷**：执行器期望硬编码 policy_v1.4.0，而运行时自 S2b 实施 `65ea951` 起合法输出 policy_v2.0.0，致 A1/A7/A8 失败；产品运行时无缺陷（失败运行实际数据：内容逐字节等于语料、版本链单调、simulation_recorded ×2 同一分支、四元分离、分支快照 ACTIVE 全数成立）；执行器期望同步修复后重跑通过——迭代记录 P3-S2-CORPUS-ALIGN-ITER v1.0.0 §3）；`S2A-F4-0001-attempt-2026-10-10T00-36-33-645Z`（案例 9/10 PASS；断言 16/17；退出码 1——**执行器侧缺陷**：A10 BRANCH-ADOPT 案例断言失败——执行器通过谓词期望 2 条 ADOPT_BRANCH 决策轨迹，实际 3 条（负向拒绝轮 reasonSecondary 亦含 ADOPT_BRANCH 字样——拒绝轮 reasonPrimary=invalid_state_transition）；产品运行时行为经逐字段核验符合 S2-BRANCH-REFLOW-DEF-01 v1.0.0 冻结定义（adopted 附加标记、生命周期不变、主线当前上下文不变、simulation_adopted ×1 属性齐备、拒绝轮零版本消耗、终态 v12），无产品缺陷；执行器谓词修正后重跑通过——迭代记录 P3-S2-IMPL-ITER-ADOPT v1.0.0 §3）（ADR-0002 §5，留存于仓库）
+  - 先前通过运行归档：`S2A-F4-0001-attempt-2026-10-09T17-37-26-969Z`（案例 9/9 PASS；断言 16/16；退出码 0——语料再生成前置归档，非失败尝试；只追加纪律留存）；`S2A-F4-0001-attempt-2026-10-10T00-33-01-157Z`（案例 9/9 PASS；断言 16/16；退出码 0——S2 分支回流再生成前置归档（语料裁决实施后通过运行），非失败尝试；只追加纪律留存）
 
 ## S2A-F5-0001（S2a F-5 / Minimal Memory）
 - 义务：P3-S2-IMPL-AUTH-01 §3(5)：Minimal Memory——轴外记忆记录存储 + 四态生命周期（REMEMBERED/IN_USE/DECAYING/EXPIRED）+ 六操作（CREATE/RECALL/DECAY/EXPIRE/CORRECT/WITHDRAW）+ 跨会话短期持久 + 6 个月保留（衰减时钟）+ Runtime 单一写入者（policy_v1.5.0 / state_machine_v1.4.0）
@@ -85,22 +85,23 @@
   - 失败尝试归档：`S2A-F5-0001-attempt-2026-10-09T13-27-49-284Z`（案例 0/9 PASS；断言 5/14；退出码 1）；`S2A-F5-0001-attempt-2026-10-09T13-32-36-510Z`（案例 5/9；断言 10/14；退出码 1）（ADR-0002 §5，留存于仓库）
 
 ## S2B-0001（S2b 首批义务 G-1…G-4）
-- 义务：P3-S2B-IMPL-AUTH-01：S2b 体验动作扩展首批义务——G-1 DEEPEN/SIMPLIFY/REFRAME 顶层语义动作（创作域顶层补丁操作承载）+ G-2 SEARCH 内部能力（searchExperienceContext 只读纯函数）+ G-3 First Experience 完整呈现 + G-4 动态证据 S2B-0001 + 黄金套件扩展 G09 方向性操作案例组（policy_v2.0.0 / state_machine_v1.5.0）
-- 结果：案例 7/7 PASS；断言 14/14；退出码 0；耗时 9896ms
-- 代码绑定：run-metadata 以文件级哈希登记代码绑定（42 个运行时/证据文件，无 code.gitHead 字段——S2b 时代执行器形态）
+- 义务：P3-S2B-IMPL-AUTH-01：S2b 体验动作扩展首批义务——G-1 DEEPEN/SIMPLIFY/REFRAME 顶层语义动作（创作域顶层补丁操作承载）+ G-2 SEARCH 内部能力（searchExperienceContext 只读纯函数）+ G-3 First Experience 完整呈现 + G-4 动态证据 S2B-0001 + 黄金套件扩展 G09 方向性操作案例组（policy_v2.0.0 变更 1–6 经 policy_v2.1.0 延续 + S2 分支回流变更 1–5 正交；本再生产物运行于 policy_v2.1.0 / state_machine_v1.5.0）
+- 结果：案例 7/7 PASS；断言 14/14；退出码 0；耗时 9581ms（当前再生产物：S2 分支回流实施后重跑——黄金回归绑定 G3-GOLDEN-0001 40/40 通过后执行；policy_v2.1.0 恒等映射经 policy_v2.1.0 延续）
+- 代码绑定：run-metadata 以文件级哈希登记代码绑定（44 个运行时/证据文件，无 code.gitHead 字段——S2b 时代执行器形态）；本再生产物重跑于 S2 分支回流实施后工作树（产品提交 728b3de / 执行器提交 a7077ce 内容当时未提交，如实记录；其后经 728b3de / a7077ce / 0a4be6d 提交入库）
 - SHA256SUMS 独立重算：16/16 通过（全部精确通过）；清单含 summary.json=True、review/README.md=False
-- 产物提交：`434142f`；审阅包：`artifacts/evidence/runs/S2B-0001/review/README.md`（**2026-10-09 角色 5 独立评测人审阅结论：PASS——S2b 独立评测关闭，G-4 关闭；审阅包为治理文档，不列入 SHA256SUMS，随治理提交 `b4c1cc2` 冻结**）
+- 产物提交：当前状态 `0a4be6d`（首次证据提交 `434142f`——policy_v2.0.0 时代 7/7 案例、14/14 断言）；审阅包：`artifacts/evidence/runs/S2B-0001/review/README.md`（**2026-10-09 角色 5 独立评测人审阅结论：PASS——S2b 独立评测关闭，G-4 关闭；审阅包为治理文档，不列入 SHA256SUMS，随治理提交 `b4c1cc2` 冻结**）
   - 失败尝试归档：`S2B-0001-attempt-2026-10-09T15-17-14-442Z`（案例 6/7 PASS；断言 11/14；退出码 1——执行器侧案例预期缺陷，产品源码无缺陷；ADR-0002 §5，留存于仓库）
+  - 先前通过运行归档：`S2B-0001-attempt-2026-10-10T00-39-21-950Z`（案例 7/7 PASS；断言 14/14；退出码 0——S2 分支回流重跑前置归档（policy_v2.0.0 时代通过运行），非失败尝试；只追加纪律留存）
 
 ## G3-GOLDEN-0001（G3 黄金套件回归）
-- 义务：黄金套件回归（G3 Gate 证据基线）：36 案例（含 S2b G09 方向性操作四维度案例组）——语料裁决 S2-CORPUS-TAIL-RULING-01 v1.0.0 选项 A 实施后再生产（模拟语料 fixtureId `synthetic/simulate/v2`，SHA256 `dfa4045bb0457267f53b7f320472d55afd5b00635cf8366e8449b8aa793bc58a`）
-- 结果：案例 36/36 PASS；断言 10/10（A1–A10）；退出码 0；耗时 19855ms
-- 代码绑定：gitHead `44b7fa6`（workTreeClean=False——语料裁决实施期未提交工作树如实记录）
-- SHA256SUMS 独立重算：74/74 通过（全部精确通过）；清单含 summary.json=True、review/README.md=False
-- 产物提交：当前状态 `f6763e5`（36 案例扩展形态首次提交 `849c0fc`——G09 案例组纳入）；审阅包：`artifacts/evidence/runs/G3-GOLDEN-0001/review/README.md`
+- 义务：黄金套件回归（G3 Gate 证据基线）：40 案例（G01–G10 各 NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度——含 S2b G09 方向性操作案例组与 S2 G10 分支回流案例组）——语料裁决 S2-CORPUS-TAIL-RULING-01 v1.0.0 选项 A 实施后再生产（模拟语料 fixtureId `synthetic/simulate/v2`，SHA256 `dfa4045bb0457267f53b7f320472d55afd5b00635cf8366e8449b8aa793bc58a`）；G10 案例组依据 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 冻结定义（policy_v2.1.0 变更 1–5）
+- 结果：案例 40/40 PASS；断言 10/10（A1–A10）；退出码 0；耗时 24413ms（当前再生产物：S2 分支回流实施后再生成——新增 G10 分支回流案例组 N/NEG/B/FR，运行于 policy_v2.1.0 / state_machine_v1.5.0）
+- 代码绑定：gitHead `76c1605`（workTreeClean=False——S2 分支回流实施期未提交工作树如实记录：产品提交 728b3de / 执行器提交 a7077ce 内容当时未提交，uncommittedEntries 118 项经 run-metadata.json code 登记；其后经 728b3de / a7077ce / 0a4be6d 提交入库，经独立评测人核对满足 E5 §3 记录要求）
+- SHA256SUMS 独立重算：82/82 通过（全部精确通过）；清单含 summary.json=True、review/README.md=False
+- 产物提交：当前状态 `0a4be6d`（40 案例形态首次提交 `849c0fc`——G09 案例组纳入；36 案例再生产物 `f6763e5`——语料 v2 尾句对齐）；审阅包：`artifacts/evidence/runs/G3-GOLDEN-0001/review/README.md`
 - 说明：本运行为黄金套件回归基线，非 Gate 判定证据（E5 §2：退出码 0 不设置任何 Gate 为 PASS；G3 Gate 判定经角色 5 独立评测人裁决——P2-G3-WORKSHEET-01 v1.0.0，2026-10-09 PASS）
-  - 失败尝试归档（4）：`G3-GOLDEN-0001-attempt-2026-10-09T03-39-36-322Z`（案例 18/23 PASS；断言 8/10；退出码 1）；`G3-GOLDEN-0001-attempt-2026-10-09T12-57-51-194Z`（案例 29/32；断言 8/10；退出码 1）；`G3-GOLDEN-0001-attempt-2026-10-09T14-57-52-489Z`（案例 35/36；断言 8/10；退出码 1）；`G3-GOLDEN-0001-attempt-2026-10-09T14-58-52-514Z`（案例 35/36；断言 8/10；退出码 1）（ADR-0002 §5，留存于仓库）
-  - 先前通过运行归档（12，再生成前置归档——非失败尝试，只追加纪律留存）：`04-37-02-222Z`（20/23 案例、10/10 断言）、`07-23-42-361Z` / `07-26-46-098Z` / `07-39-01-294Z` / `08-06-40-720Z` / `08-46-45-835Z` / `09-35-23-291Z` / `09-54-12-711Z` / `12-52-28-861Z` / `13-32-11-467Z` / `14-48-51-128Z`（各 32/32 案例、10/10 断言）、`17-36-20-924Z`（36/36 案例、10/10 断言——语料 v1 尾句时代 36 案例形态）
+  - 失败尝试归档（5）：`G3-GOLDEN-0001-attempt-2026-10-09T03-39-36-322Z`（案例 18/23 PASS；断言 8/10；退出码 1）；`G3-GOLDEN-0001-attempt-2026-10-09T12-57-51-194Z`（案例 29/32；断言 8/10；退出码 1）；`G3-GOLDEN-0001-attempt-2026-10-09T14-57-52-489Z`（案例 35/36；断言 8/10；退出码 1）；`G3-GOLDEN-0001-attempt-2026-10-09T14-58-52-514Z`（案例 35/36；断言 8/10；退出码 1）；`G3-GOLDEN-0001-attempt-2026-10-10T00-38-52-586Z`（案例 37/40 PASS；断言 8/10；退出码 1——**执行器侧缺陷**：G10-N / G10-NEG / G10-FR 三案例失败，三类案例编写缺陷（①G10-N 误断言迁移提交时视图的 state_version 与头状态——迁移提交时视图为 7 / ACTIVE/SIMULATION，结算后定居 8 / WAITING/SIMULATION，13 §15.3；②G10-NEG 引用 golden.mjs 不存在的 jsonEquals 辅助——ReferenceError；③G10-FR 引用未导入绑定名 create——实际导入名 createFixture，TypeError）；产品运行时无缺陷，案例断言修复后重跑 40/40 通过——迭代记录 P3-S2-IMPL-ITER-ADOPT v1.0.0 §3）（ADR-0002 §5，留存于仓库）
+  - 先前通过运行归档（13，再生成前置归档——非失败尝试，只追加纪律留存）：`04-37-02-222Z`（20/23 案例、10/10 断言）、`07-23-42-361Z` / `07-26-46-098Z` / `07-39-01-294Z` / `08-06-40-720Z` / `08-46-45-835Z` / `09-35-23-291Z` / `09-54-12-711Z` / `12-52-28-861Z` / `13-32-11-467Z` / `14-48-51-128Z`（各 32/32 案例、10/10 断言）、`17-36-20-924Z`（36/36 案例、10/10 断言——语料 v1 尾句时代 36 案例形态）、`00-37-18-438Z`（36/36 案例、10/10 断言——S2 分支回流再生成前置归档（语料 v2 尾句时代 36 案例形态））
   - 归档哈希注记：`03-39-36-322Z` / `04-37-02-222Z` / `07-23-42-361Z` 三个归档各 1 项 summary.json 时点性不符（列入清单后定稿——与 F1/F2 同类系统性行为；实质内容经交叉核验为真：案例计数与 cases/ 目录一致；其余各项精确通过）
 
 ## 审计说明
@@ -109,7 +110,8 @@
 - F1/F2 的 summary.json 列入其 SHA256SUMS 但在清单计算之后才定稿（各 1 项声明哈希不符，实质内容经交叉核验为真）；F3 执行器已改进（summary.json 不列入清单）。
 - 案例记录 evidence.traceSha256 绑定轨迹文件除末行 trace_completed 信封外的内容（三迭代系统性行为，"除末行外"重算全部匹配）；完整产物核验以各运行 SHA256SUMS 为准。
 - v1.3.0 追加登记：G3-GOLDEN-0001 三个尝试归档（`03-39-36-322Z` / `04-37-02-222Z` / `07-23-42-361Z`）各 1 项 summary.json 时点性不符（列入清单后在清单计算之后才定稿——与 F1/F2 同类系统性行为，非篡改；实质内容经交叉核验为真：案例计数与 cases/ 目录一致，其余各项精确通过）。S2 时代其余 27 个尝试归档与全部 7 个现行运行目录 SHA256SUMS 独立重算全部精确通过。
-- 本清单不产生任何 Gate 结论。P2 时代 G5 16 项评测包已于 2026-10-09 完成（PASSED 无条件——P3-S1-G5-WORKSHEET-01 v1.8.0）；S2 时代 G5 评测包 NOT RUN（范围定义提案 S2-G5-EVAL-DEF-01 v0.1.0 staged 待产品负责人裁决——独立评测人：用户本人，角色 5，PD-15）。
+- v1.4.0 再生登记：S2 分支回流实施后 3 运行再生产物（S2A-F4-0001 / G3-GOLDEN-0001 / S2B-0001）summary.json 计数、SHA256SUMS 逐项独立重算（22/22、82/82、16/16 全部精确通过）、run-metadata 代码绑定核验（gitHead `76c1605`、workTreeClean=False——实施期未提交工作树如实记录）；新增 5 个尝试归档 SHA256SUMS 独立重算全部精确通过；失败尝试 2 个（`S2A-F4-0001-attempt-2026-10-10T00-36-33-645Z` / `G3-GOLDEN-0001-attempt-2026-10-10T00-38-52-586Z`）均为执行器侧案例断言缺陷，产品运行时无缺陷（缺陷分类与根因分析：P3-S2-IMPL-ITER-ADOPT v1.0.0 §3）。
+- 本清单不产生任何 Gate 结论。P2 时代 G5 16 项评测包已于 2026-10-09 完成（PASSED 无条件——P3-S1-G5-WORKSHEET-01 v1.8.0）；S2 时代 G5 独立评测 NOT RUN（范围定义 S2-G5-EVAL-DEF-01 v1.0.0 已经产品负责人 2026-10-09 裁决选项 A——复用 16 项框架对 S2 证据执行独立评测，CR-26 STAGED→RULED；评测工作表 P3-S2-G5-WORKSHEET-01 v0.1.0 新建，16 项骨架结论列全部 NOT RUN，待角色 5 逐项裁决签署——独立评测人：用户本人，角色 5，PD-15；实现作者不得兼任独立评测人）。
 
 ## 重跑复现验证（2026-10-08，manifest v1.2.0）
 
@@ -126,3 +128,11 @@
 - 方法：与 v1.0.0 一致——每运行 summary.json 计数、SHA256SUMS 逐项独立重算（含全部 30 个尝试归档）、run-metadata 代码绑定核验；7 运行全部精确通过；30 个尝试归档中 27 个全部精确通过、3 个各 1 项 summary.json 时点性不符（与 F1/F2 同类——执行器写入顺序，实质内容经交叉核验为真）。
 - S2A-F4-0001 注记：当前再生产物为语料裁决（CR-25）实施后域回归；失败尝试 `S2A-F4-0001-attempt-2026-10-09T17-50-08-431Z` 为执行器侧过期期望（policy_v1.4.0）缺陷，产品运行时无缺陷——根因分析与修复登记于迭代记录 P3-S2-CORPUS-ALIGN-ITER v1.0.0 §3。
 - 本追加不改变 v1.2.0 及以前已评测内容（git 历史可查）；不产生任何 Gate 结论。
+
+## S2 时代运行再生产物登记（2026-10-10，manifest v1.4.0）
+
+- 范围：S2 分支回流（ADOPT_BRANCH 显式回流操作——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A，policy_v2.1.0 变更 1–5；产品提交 `728b3de` / 执行器提交 `a7077ce`）实施后 S2 时代 3 运行再生产物——S2A-F4-0001 重跑（10/10 案例、17/17 断言——新增 BRANCH-ADOPT 案例）、G3-GOLDEN-0001 再生（40/40 案例——新增 G10 分支回流案例组 N/NEG/B/FR）、S2B-0001 重跑（7/7 案例、14/14 断言——黄金回归绑定新基线 40/40）。
+- 方法：与 v1.0.0/v1.3.0 一致——每运行 summary.json 计数、SHA256SUMS 逐项独立重算（22/22、82/82、16/16 全部精确通过）、run-metadata 代码绑定核验（gitHead `76c1605`、workTreeClean=False——实施期未提交工作树如实记录）。
+- 尝试归档：新增 5 个（先前通过运行前置归档 3 个：`S2A-F4-0001-attempt-2026-10-10T00-33-01-157Z` / `G3-GOLDEN-0001-attempt-2026-10-10T00-37-18-438Z` / `S2B-0001-attempt-2026-10-10T00-39-21-950Z`；失败尝试 2 个：`S2A-F4-0001-attempt-2026-10-10T00-36-33-645Z` / `G3-GOLDEN-0001-attempt-2026-10-10T00-38-52-586Z`——均为执行器侧案例断言缺陷，产品运行时无缺陷，缺陷分类与根因分析见 P3-S2-IMPL-ITER-ADOPT v1.0.0 §3）；新增 5 个归档 SHA256SUMS 独立重算全部精确通过；尝试归档总数 41。
+- 产物提交：全部再生产物经证据提交 `0a4be6d` 入库。
+- 本追加不改变 v1.3.0 及以前已评测内容（git 历史可查）；不产生任何 Gate 结论。

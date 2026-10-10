@@ -63,7 +63,7 @@
 ## 6. 后续义务
 
 - S2a F-5（Minimal Memory：仅短期记忆形态，6 个月自动删除，无长期画像——PD-23 / PB-04）：隐私敏感存储/加密设计须经产品负责人方向指示后版本化冻结，NOT STARTED；跨会话分支持久化属 F-5 裁决范围（D-04 选项 A——本切片不实施）。
-- "采用某分支结论"显式回流操作（D-03 选项 A 说明）：**已裁决（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A——启用显式回流操作 ADOPT_BRANCH，产品负责人 2026-10-09 裁决；CR-27 登记；语义定义经裁决版本化冻结；产品实施按授权路径另行签发）**。
+- "采用某分支结论"显式回流操作（D-03 选项 A 说明）：**已实施（2026-10-10——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效：ADOPT_BRANCH 产品实施完成（产品提交 `728b3de`——simulation.ts / events.ts / runtime.ts / policy.ts 四文件，policy_v2.1.0 变更 1–5）；本迭代动态证据 S2A-F4-0001 重跑 10/10 案例、17/17 断言、退出码 0——回归扩展 BRANCH-ADOPT 案例（采用分支 1：adopted 附加、生命周期不变、主线当前上下文不变、simulation_adopted ×1、内容流呈现采纳内容为新一轮模拟上下文、确定性系统回合；负向：采用分支九 INVALID_STATE_TRANSITION 零版本消耗；RETURN 后无激活分支上下文采用分支 1：RETURNED 生命周期不变、幂等、currentBranchId 保持 null；终态 v12）；失败尝试 1 次按 ADR-0002 §5 归档留存（S2A-F4-0001-attempt-2026-10-10T00-36-33-645Z——执行器侧案例断言缺陷，产品运行时无缺陷）；黄金套件扩展 G10 分支回流案例组（G3-GOLDEN-0001 再生 40/40 案例）；迭代记录 P3-S2-IMPL-ITER-ADOPT v1.0.0；CR-27 RULED→IMPLEMENTED；readiness-record v1.34.0）**。
 - 模拟语料尾句文本更新（§4 第 3 项观察）：待产品负责人语料裁决。
 - S2a 动态证据扩展：S2 动态证据套件 + G3 黄金套件扩展 + 独立评测（角色 5 签署）。
 - S2b（DEEPEN/SIMPLIFY/REFRAME/Search）：新动作语义定义须在 S2b 授权前由产品负责人版本化冻结；S2b 须另行裁决与授权。

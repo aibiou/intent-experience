@@ -46,7 +46,7 @@
 
 ## 5. 后续义务
 
-- 分支回流操作版本化定义（F-4 D-02/D-03 选项 A 说明）：**已裁决（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A——启用显式回流操作 ADOPT_BRANCH，产品负责人 2026-10-09 裁决；CR-27 登记；`branch-reflow-operation-def-staged.md` 升版 RULED；产品实施按授权路径另行签发）**。
+- 分支回流操作版本化定义（F-4 D-02/D-03 选项 A 说明）：**已实施（2026-10-10——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效：ADOPT_BRANCH 产品实施完成（产品提交 `728b3de`——simulation.ts / events.ts / runtime.ts / policy.ts 四文件，policy_v2.1.0 变更 1–5）；动态证据 S2A-F4-0001 重跑 10/10 案例、17/17 断言（回归扩展 BRANCH-ADOPT 案例）+ 黄金套件扩展 G10 分支回流案例组（G3-GOLDEN-0001 再生 40/40 案例）+ S2B-0001 重跑 7/7 案例，退出码 0 只表示各运行断言通过；失败尝试 2 次按 ADR-0002 §5 归档留存（均为执行器侧案例断言缺陷，产品运行时无缺陷）；迭代记录 P3-S2-IMPL-ITER-ADOPT v1.0.0；CR-27 RULED→IMPLEMENTED；readiness-record v1.34.0）**。
 - G5 16 项评测包：NOT RUN（属 G5 工作表范围；S2b 独立评测已经角色 5 签署 PASS，2026-10-09；S2 时代 G5 评测包范围定义 S2-G5-EVAL-DEF-01 v1.0.0 已经产品负责人 2026-10-09 裁决选项 A——复用 16 项框架对 S2 证据执行独立评测（CR-26 STAGED→RULED）；新建 P3-S2-G5-WORKSHEET-01 v0.1.0 staged（`s2-g5-evaluation-worksheet.md`——16 项骨架，结论列全部 NOT RUN，待角色 5 逐项裁决签署）；EVIDENCE-MANIFEST-01 升版 v1.3.0——S2 时代 7 运行追加，7 运行 SHA256SUMS 独立重算全部精确通过）。
 - 黄金套件持续扩展：随后续批次经产品负责人另行版本化裁决与授权纳入 G3-GOLDEN-0001 回归基准。
 
