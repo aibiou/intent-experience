@@ -7,8 +7,8 @@ import {
 
 /**
  * GET /api/config/{id} — 单条配置（读操作不返回 key）。
- * PUT /api/config/{id} — 更新（model / api_key——key
- * 更新仅以密文持久化）。
+ * PUT /api/config/{id} — 更新（model / endpoint / api_key——
+ * key 更新仅以密文持久化）。
  * DELETE /api/config/{id} — 删除（启用中配置删除后
  * 运行时即时回退合成模式——委托网关每次调用解析）。
  */
@@ -43,13 +43,17 @@ export async function PUT(
   } catch {
     return Response.json({ code: 'INVALID_REQUEST', message: 'body must be valid JSON' }, { status: 400 });
   }
-  const body = parsed as { model?: unknown; api_key?: unknown };
-  if (body.model === undefined && body.api_key === undefined) {
-    return Response.json({ code: 'INVALID_REQUEST', message: 'model or api_key is required' }, { status: 400 });
+  const body = parsed as { model?: unknown; endpoint?: unknown; api_key?: unknown };
+  if (body.model === undefined && body.endpoint === undefined && body.api_key === undefined) {
+    return Response.json({ code: 'INVALID_REQUEST', message: 'model, endpoint or api_key is required' }, { status: 400 });
+  }
+  if (body.endpoint !== undefined && typeof body.endpoint !== 'string') {
+    return Response.json({ code: 'INVALID_REQUEST', message: 'endpoint must be a string when provided' }, { status: 400 });
   }
   try {
     const config = await updateProviderConfig(params.id, {
       ...(typeof body.model === 'string' ? { model: body.model } : {}),
+      ...(typeof body.endpoint === 'string' ? { endpoint: body.endpoint } : {}),
       ...(typeof body.api_key === 'string' ? { apiKey: body.api_key } : {}),
     });
     return Response.json({ config });

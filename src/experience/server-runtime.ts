@@ -40,7 +40,6 @@ import { ExperienceRuntime } from './runtime';
 import {
   EvidenceFaultLlmGateway,
   ProviderLlmGateway,
-  PROVIDER_PROFILES,
   SyntheticLlmGateway,
   loadProviderGatewayConfig,
   type LlmGateway,
@@ -91,9 +90,10 @@ function resolveServerGateway(): LlmGateway | undefined {
 }
 
 /**
- * S5B 页面持久化配置委托网关（model-agnostic——经 PROVIDER_PROFILES
- * 已登记提供方规则族构造 ProviderLlmGateway；提供方身份由用户在
- * 配置面选择，产品代码不写死任何提供方）。
+ * S5B 页面持久化配置委托网关（model-agnostic——按已启用配置
+ * 记录的端点直连构造 ProviderLlmGateway；任何 OpenAI 兼容提供方
+ * 由用户自定义配置（S5B-SEMANTIC-FREEZE-01 v1.1.0——取消提供方
+ * 准入登记，PROVIDER_PROFILES 仅作预设），产品代码不写死任何提供方）。
  */
 class PersistedConfigLlmGateway implements LlmGateway {
   private synthetic?: SyntheticLlmGateway;
@@ -101,14 +101,13 @@ class PersistedConfigLlmGateway implements LlmGateway {
   async propose(request: LlmRequest): Promise<LlmProposal> {
     const persisted = await getEnabledProviderConfig();
     if (persisted) {
-      const profile = PROVIDER_PROFILES[persisted.provider];
       return new ProviderLlmGateway({
         provider: persisted.provider,
-        endpoint: profile.endpoint,
+        endpoint: persisted.endpoint,
         model: persisted.model,
-        temperature: profile.temperature,
+        temperature: persisted.temperature,
         apiKey: persisted.apiKey,
-        systemPrompt: profile.systemPrompt,
+        systemPrompt: persisted.systemPrompt,
       }).propose(request);
     }
     this.synthetic ??= new SyntheticLlmGateway(allFixtures());

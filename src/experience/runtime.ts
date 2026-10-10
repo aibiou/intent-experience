@@ -52,7 +52,7 @@ import {
   nextDecisionId,
   type DecisionTraceSink,
 } from './decision-trace';
-import { SyntheticLlmGateway, type LlmGateway } from './llm-gateway';
+import { SyntheticLlmGateway, type LlmGateway, type LlmProposal } from './llm-gateway';
 import { createExperienceStream, type StreamEvent } from './stream';
 import { allFixtures, loadChunkFixture } from './chunks';
 import {
@@ -149,6 +149,20 @@ function runtimeError(
   details?: Record<string, unknown>,
 ): RuntimeError {
   return { code, message, retryable, status: errorCodeStatus(code), details };
+}
+
+/**
+ * 提供方内容确定性分块（句界切分——S5A 内容流缺口修复）：
+ * 真实模型响应按句界分段流式（与合成语料既有分块形态
+ * 对齐的流式体验）；无句界文本整体为一块。确定性纯函数
+ * ——同输入恒同输出。
+ */
+function chunkProviderContent(content: string): string[] {
+  const segments = content
+    .split(/(?<=[。！？!?；;\n])/)
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+  return segments.length > 0 ? segments : [content];
 }
 
 export interface IntentRecord {
@@ -1887,7 +1901,7 @@ export class ExperienceRuntime {
         semanticAction: policy.semanticAction,
         policyAction: policy.policyAction,
         fixtureId: fixture.fixture.fixtureId,
-        chunks: fixture.fixture.chunks,
+        chunks: this.resolveGenerationChunks(proposal, fixture.fixture.chunks),
         signal: combinedSignal,
         chunkDelayMs: 40,
         audit: this.auditSink,
@@ -2236,7 +2250,7 @@ export class ExperienceRuntime {
         semanticAction: policy.semanticAction,
         policyAction: policy.policyAction,
         fixtureId: fixture.fixture.fixtureId,
-        chunks: fixture.fixture.chunks,
+        chunks: this.resolveGenerationChunks(proposal, fixture.fixture.chunks),
         signal: combinedSignal,
         chunkDelayMs: 40,
         audit: this.auditSink,
@@ -3504,7 +3518,7 @@ export class ExperienceRuntime {
         semanticAction: policy.semanticAction,
         policyAction: policy.policyAction,
         fixtureId: fixture.fixture.fixtureId,
-        chunks: fixture.fixture.chunks,
+        chunks: this.resolveGenerationChunks(proposal, fixture.fixture.chunks),
         signal: combinedSignal,
         chunkDelayMs: 40,
         audit: this.auditSink,
@@ -4076,7 +4090,7 @@ export class ExperienceRuntime {
         semanticAction: policy.semanticAction,
         policyAction: policy.policyAction,
         fixtureId: fixture.fixture.fixtureId,
-        chunks: fixture.fixture.chunks,
+        chunks: this.resolveGenerationChunks(proposal, fixture.fixture.chunks),
         signal: combinedSignal,
         chunkDelayMs: 40,
         audit: this.auditSink,
@@ -4266,6 +4280,24 @@ export class ExperienceRuntime {
       // state_write_rejected / state_version_conflict 事件权威登记。
       void generationCompletedEvent;
     })();
+  }
+
+  /**
+   * 生成流分块解析（提供方模式内容面修复——S5A 内容流缺口）：
+   * 合成模式提案内容与语料拼接文本字节一致——保持既有分块
+   * 边界（黄金回归零变化）；提供方模式提案内容（真实模型
+   * 响应）经确定性句界分块流式——用户看到模型实际响应，
+   * 而非合成语料。事件流 / 状态机 / 策略契约均不变（仅
+   * chunk 事件 content 与 totalChunks 随内容变化）。
+   */
+  private resolveGenerationChunks(
+    proposal: LlmProposal,
+    fixtureChunks: string[],
+  ): string[] {
+    if (proposal.content === fixtureChunks.join('')) {
+      return fixtureChunks;
+    }
+    return chunkProviderContent(proposal.content);
   }
 
   /** 流观测到取消时登记 generation_cancelled（与 interruptGeneration 幂等互斥）。 */
