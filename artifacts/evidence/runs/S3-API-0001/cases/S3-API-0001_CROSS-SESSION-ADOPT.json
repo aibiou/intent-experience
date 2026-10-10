@@ -1,0 +1,62 @@
+{
+  "caseIdNamespace": "S3-API-0001:CROSS-SESSION-ADOPT",
+  "sourceClause": "S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.4（跨会话操作路径三前提）/ §1.1（持久化范围）；S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A（ADOPT_BRANCH 显式回流）；policy_v2.2.0 变更 3",
+  "scope": "跨会话分支操作（执行形态既有体验提交）：会话 A 执行形态 WHAT_IF → STOP（会话结束）→ 会话 B（SESSION_ACTIVE）经 experience_id + state_version 定位持久体验，\"如果采用分支一的结论呢\" → 200 NDJSON 流（selected_action=SIMULATE，reason=simulation_branch_operation——确定性系统回合 llm_used=false）；分支 adopted=true，currentBranchId 保持 null（会话级不变式）；simulation_adopted ×1",
+  "precondition": "会话 A 持久分支记录存在（已 STOP）；会话 B SESSION_ACTIVE（经自身体验建立）",
+  "inputFault": "洁净 WHAT_IF 分支操作词输入（跨会话三前提齐备）",
+  "expected": {
+    "setup": "会话 A：执行形态 WHAT_IF（真实运行路径）→ STOP（会话结束——currentBranchId 会话级清空，分支记录持久）；会话 B：新会话 + 自身体验（SESSION_ACTIVE）",
+    "crossSession": "执行形态既有体验提交（experience_id + state_version 定位持久体验）：会话 B 对已结束会话 A 的体验\"如果采用分支一的结论呢\"（WHAT_IF + ADOPT_BRANCH 词表识别——S3B §1.4 三前提）→ 200 NDJSON 流（submission：selected_action=SIMULATE，reason=simulation_branch_operation，policy_version=policy_v2.2.0——确定性系统回合，llm_used=false）",
+    "branchModel": "分支 1：adopted false→true（附加标记——生命周期 ACTIVE 不变）；currentBranchId 保持 null（跨会话采用不恢复主线指针——会话级不变式）；simulation_adopted ×1（adopted_content=分支最新模拟轮模拟内容，separation_invariant=simulation_result_is_not_fact）"
+  },
+  "actual": {
+    "stopOk": true,
+    "stateAfterStop": "COMPLETED",
+    "sessionAState": "SESSION_ENDED",
+    "sessionBState": "SESSION_ACTIVE",
+    "adoptStatus": 200,
+    "adoptSubmission": {
+      "accepted": true,
+      "experience_id": "experience_synthetic_0001",
+      "session_id": "session_synthetic_0005",
+      "selected_action": "SIMULATE",
+      "reason": "simulation_branch_operation",
+      "policy_version": "policy_v2.2.0"
+    },
+    "simulation": {
+      "currentBranchId": null,
+      "branchAdopted": true,
+      "branchLifecycle": "ACTIVE",
+      "branchRounds": 1
+    },
+    "simulationAdoptedEvents": [
+      {
+        "branch_id": "branch_synthetic_0001",
+        "source_round": 1,
+        "separation_invariant": "simulation_result_is_not_fact"
+      }
+    ],
+    "decisionTraceReason": "explicit_user_direction",
+    "decisionTraceLlmUsed": false,
+    "finalStatus": "COMPLETED"
+  },
+  "invariants": [
+    "纯暴露层不变式（S3B-SEMANTIC-FREEZE-01 v1.0.0 §3 变更 4 / D-3 选项 A）：API 面扩展不改变任何运行时语义、决策追踪、事件契约——同一运行时实例（证据形态经 options.runtime 注入构造的运行时，进程内证据不经服务器单例）",
+    "请求形态判定（S3b）：会话上下文三要素齐备（request_id + session_id + user_input 均非空字符串）→ S2/S3 执行形态（真实运行路径）；否则为 S1 fixture 形态（semanticAction 直送——向后兼容，行为不变）",
+    "执行形态路由（S3b）：experience_id + state_version 齐备 → 既有体验直接提交（含跨会话分支操作——会话绑定放宽仅限分支操作路径，运行时内校验三前提）；缺省 → resolveIntent（记忆操作 → NDJSON 单行结果 + done；升级 → 400 INVALID_ACTION；start_experience → startExperience + submitExperienceEvent → NDJSON 流）",
+    "长期记忆识别纪律（S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.2）：识别仅在全部既有优先级层与记忆操作词表未命中后调用（仅认领会成为 UNKNOWN 的输入）；B 类须记住标记与偏好内容双命中——裸记住请求保持 UNKNOWN 升级纪律（黄金 G08-NEG 不变式）",
+    "跨会话分支操作三前提（S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.4）：WHAT_IF 分类 + 分支操作词识别；输入会话 SESSION_ACTIVE；宿主会话 SESSION_ENDED——放宽仅限分支操作路径（内容轮保持严格会话绑定）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据；默认仅合成数据（ADR-0002 §3 证据沙箱硬边界）"
+  ],
+  "evidence": {
+    "trace": "traces/S3-API-0001:CROSS-SESSION-ADOPT.jsonl",
+    "traceSha256": "3daf6cb9681ca16c43e3d8806d1c06d03b9940c8e10963528db062b308ef3e64",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 评测包 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

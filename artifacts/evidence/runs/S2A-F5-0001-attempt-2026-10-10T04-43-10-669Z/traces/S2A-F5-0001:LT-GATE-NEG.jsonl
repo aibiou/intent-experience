@@ -1,0 +1,2 @@
+{"caseId":"S2A-F5-0001:LT-GATE-NEG","event":"trace_started","at":"2026-10-10T04:41:51.585Z","form":"inprocess","sourceClause":"S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1/§1.6（存储层门槛——recordMemory 以 memoryClass=long_term 写入须 source=explicit，否则拒绝）；07 §5（显式表达门槛——存储层强制）","servers":[]}
+{"caseId":"S2A-F5-0001:LT-GATE-NEG","event":"trace_completed","at":"2026-10-10T04:41:51.586Z","startedAt":"2026-10-10T04:41:51.585Z","durationMs":1,"result":"PASS","pass":true}

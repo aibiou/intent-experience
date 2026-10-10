@@ -1,7 +1,7 @@
 # S2A-F4-0001 — 独立评测人审阅包（staged，待审阅与否决）
 
-运行：S2A-F4-0001（S2a F-4 迭代：WHAT_IF 完整分支语义——多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.1.0 变更 1–5，BRANCH-ADOPT 案例组）
-日期：2026-10-10T00:36:47.851Z
+运行：S2A-F4-0001（S2a F-4 迭代：WHAT_IF 完整分支语义——多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.2.0 变更 1–5，BRANCH-ADOPT 案例组）
+日期：2026-10-10T04:43:41.694Z
 执行器：工程负责人角色（代理，Codex）；独立评测负责人：用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）
 
 ## 结果
@@ -25,17 +25,17 @@
 - 阶段保持与衔接（STAGE-PRESERVED）：CURIOSITY → UNDERSTANDING → SIMULATION → SIMULATION →（CREATE 衔接，13 §15.5）CREATION →（STOP 完成）COMPLETION；创作建立 / 完成事件齐备；创作 COMPLETE（active=false，v1）
 - 陈旧拒绝（STALE-REJECT）：陈旧 expected_state_version（3 vs 4）→ STATE_VERSION_CONFLICT（retryable=false）；状态逐字节不变；无新 simulation_recorded / state_transitioned；拒绝事实经 state_version_conflict 事件登记（trigger=WHAT_IF）；当前版本重试成功（v6）
 - 优先级（STOP-PRIORITY）：静态分类——STOP 标记 → STOP（P-01）/ WHY 标记 → WHY（PD-12）/ 洁净 WHAT_IF 对照不变；动态声明校验——声明 WHAT_IF 但输入含 STOP / WHY 标记 → INVALID_REQUEST（clients cannot inject policy actions）；拒绝后状态逐字节不变；零 simulation_recorded
-- 非创作会话不回归（NONCREATION-INERT）：WHY → EXPLAIN 链路与 policy_v1.3.0 行为逐项一致（why_requested ×1，steps [USER_ACTION]，WAITING/UNDERSTANDING v4，内容逐字节等于 why 语料）；与前置版本（policy_v1.3.0）仅有的差异为 policy_version=policy_v2.1.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续）；模拟域零事件且无模拟上下文
-- 全链路回归（INPROC-REGRESSION）：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（新分支自动 CREATE）→ CREATE 衔接 → 完成信号——信封全量有效（C6 §7）、sequence 严格单调（C6 §25）、全部决策追踪 policy_version=policy_v2.1.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续不变）、内容逐字节等于语料；simulation_recorded ×3（round 1/2 同一分支，round 3 新分支）；RETURN 轮 llm_used=false；模拟域随会话结束失效（D-04）
+- 非创作会话不回归（NONCREATION-INERT）：WHY → EXPLAIN 链路与 policy_v1.3.0 行为逐项一致（why_requested ×1，steps [USER_ACTION]，WAITING/UNDERSTANDING v4，内容逐字节等于 why 语料）；与前置版本（policy_v1.3.0）仅有的差异为 policy_version=policy_v2.2.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续）；模拟域零事件且无模拟上下文
+- 全链路回归（INPROC-REGRESSION）：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（新分支自动 CREATE）→ CREATE 衔接 → 完成信号——信封全量有效（C6 §7）、sequence 严格单调（C6 §25）、全部决策追踪 policy_version=policy_v2.2.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续不变）、内容逐字节等于语料；simulation_recorded ×3（round 1/2 同一分支，round 3 新分支）；RETURN 轮 llm_used=false；模拟域跨会话持久（STOP 后 getSimulation 成功——currentBranchId===null，分支记录 ×2 保留——S3B 取代 S2 时代 D-04 失效不变式）
 - 分支生命周期（BRANCH-LIFECYCLE）：CREATE（首轮自动）→ 累积 → RETURN（RETURNED + 当前清空）→ 自动 CREATE 新分支 → SWITCH（RETURNED 恢复 ACTIVE）→ ABANDON（ABANDONED）→ 负向拒绝 ×2（切换已放弃分支 / 无激活分支 RETURN——INVALID_STATE_TRANSITION，不消耗版本号）；模拟历史 3 轮（轮 1/2 分支 1，轮 3 分支 2）；分支操作决策追踪 6 轮（含 2 拒绝轮）llm_used=false
-- 显式回流（BRANCH-ADOPT）：轮 1/2 自动 CREATE 分支 1 并累积 → ADOPT_BRANCH 分支 1（adopted 标记附加——生命周期 ACTIVE 不变，主线当前上下文不变——currentBranchId 保持分支 1；simulation_adopted ×1，properties 含 branch_id / source_round=1 / adopted_content 摘要=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact——采用结果仍标记为模拟来源；结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文）→ 负向：采用不存在分支序号（分支九）INVALID_STATE_TRANSITION（不消耗版本号）→ RETURN（分支 1 RETURNED，currentBranchId=null）→ 无激活分支上下文采用分支 1（RETURNED 生命周期不变，adopted 幂等，currentBranchId 保持 null——主线当前上下文不变）；simulation_recorded ×2（仅模拟轮登记）；分支操作决策追踪 4 轮 llm_used=false，ADOPT_BRANCH 轨迹 3 轮（采用轮成功 ×2 reasonPrimary=explicit_user_direction、拒绝轮 reasonPrimary=invalid_state_transition）；全部决策追踪 policy_version=policy_v2.1.0
+- 显式回流（BRANCH-ADOPT）：轮 1/2 自动 CREATE 分支 1 并累积 → ADOPT_BRANCH 分支 1（adopted 标记附加——生命周期 ACTIVE 不变，主线当前上下文不变——currentBranchId 保持分支 1；simulation_adopted ×1，properties 含 branch_id / source_round=1 / adopted_content 摘要=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact——采用结果仍标记为模拟来源；结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文）→ 负向：采用不存在分支序号（分支九）INVALID_STATE_TRANSITION（不消耗版本号）→ RETURN（分支 1 RETURNED，currentBranchId=null）→ 无激活分支上下文采用分支 1（RETURNED 生命周期不变，adopted 幂等，currentBranchId 保持 null——主线当前上下文不变）；simulation_recorded ×2（仅模拟轮登记）；分支操作决策追踪 4 轮 llm_used=false，ADOPT_BRANCH 轨迹 3 轮（采用轮成功 ×2 reasonPrimary=explicit_user_direction、拒绝轮 reasonPrimary=invalid_state_transition）；全部决策追踪 policy_version=policy_v2.2.0
 
 ## 未执行（NOT RUN）
 
 - G5 16 项评测包（独立评测）；P2 G01–G08 未覆盖案例
 - S2a 其余义务：F-5（Minimal Memory）——已由 S2a F-5 迭代实施（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本；src/experience/memory.ts；动态证据 S2A-F5-0001 9/9 案例、14/14 断言），非本回归范围
 - S2b（DEEPEN/SIMPLIFY/REFRAME/Search）——已由 S2b 迭代实施（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本；policy_v2.0.0 变更 1–6 / state_machine_v1.5.0；动态证据 S2B-0001 7/7 案例、14/14 断言），非本回归范围
-- "采用某分支结论"显式回流操作——**已实施**（BRANCH-ADOPT 案例组；S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决生效——第五分支操作 ADOPT_BRANCH，policy_v2.1.0 变更 1–5；D-03 保留面关闭）
+- "采用某分支结论"显式回流操作——**已实施**（BRANCH-ADOPT 案例组；S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决生效——第五分支操作 ADOPT_BRANCH，policy_v2.2.0 变更 1–5；D-03 保留面关闭）
 - 真实 LLM 提供方接入（须另经产品决策与隐私六要素批准）；真实用户数据收集（隐私六要素批准前禁用）
 
 ## 待复核项（不得由编码者自行确认）

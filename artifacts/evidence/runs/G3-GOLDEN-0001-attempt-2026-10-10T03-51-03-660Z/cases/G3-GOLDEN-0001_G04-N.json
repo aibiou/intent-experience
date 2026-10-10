@@ -1,0 +1,70 @@
+{
+  "caseIdNamespace": "G3-GOLDEN-0001:G04-N",
+  "sourceClause": "P2 Exit Gate & Sign-off §8 G04 Creation；Evaluation System V1 §5 G04；E2 Stage 5（最小 Creation Branch）；PD-21（产品负责人 2026-10-09 批准）",
+  "scope": "P2 G3 黄金套件——关闭切片（PD-21 最小实现；完整 Creation 语义 DEFERRED TO S2，acceptance-mapping §B）",
+  "precondition": "WHY 探索完成（WAITING/UNDERSTANDING，v4）",
+  "inputFault": "无（正向路径：显式 CREATE）",
+  "expected": {
+    "classification": "CREATE（\"做成\"模式；PD-21 关闭切片）",
+    "policy": "CREATE → CREATE（policy_v2.1.0）",
+    "stream": "submission → chunks → done → state_updated",
+    "content": "已接收创造意图（合成数据）。在当前探索上下文上构建最小可玩形态：沿用本会话的问题与已有推断，产出首个可试玩构建并等你反馈。（流式结束）",
+    "headerState": "ACTIVE/CREATION（迁移提交时视图）",
+    "finalState": "WAITING/CREATION（阶段迁移 UNDERSTANDING → CREATION）",
+    "stateVersion": "6（v4 + CREATE 迁移 v5 + 完成提交 v6）",
+    "persistence": "零 memory 事件（CREATE 流程不登记记忆——记忆仅经体验完成 STOP 路径与显式记忆操作登记，F-5）"
+  },
+  "actual": {
+    "classification": "CREATE",
+    "policyAction": "CREATE",
+    "policyVersion": "policy_v2.1.0",
+    "stateVersion": 5,
+    "headerState": "ACTIVE/CREATION",
+    "streamTypes": [
+      "submission",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "done",
+      "state_updated"
+    ],
+    "contentEqualsFixture": true,
+    "eventExperienceId": "experience_synthetic_0001",
+    "eventSessionId": "session_synthetic_0020",
+    "createRequestedEvents": 1,
+    "whyRequestedEvents": 1,
+    "stateTransitionedCreate": true,
+    "decisionTraceSemanticAction": "CREATE",
+    "decisionTracePolicyVersion": "policy_v2.1.0",
+    "decisionTraceReason": "explicit_user_direction",
+    "finalState": "WAITING/CREATION",
+    "finalStateVersion": 6,
+    "lastSemanticAction": "CREATE",
+    "memoryEvents": 0
+  },
+  "invariants": [
+    "P2 G3 黄金套件不变式（P2 Exit Gate §8）：每个黄金案例覆盖 Normal/Negative/Boundary/Failure-Recovery 四维度",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "旧 operation 不得提交（generation epoch 守卫 + 版本双重检查，S1-10；CC02 H03）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "失败不消耗版本号（EB-02）；取消的 generation 不提交（CC02 H02）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
+  ],
+  "evidence": {
+    "trace": "traces/G3-GOLDEN-0001:G04-N.jsonl",
+    "traceSha256": "3aec4a261ba83cf870d46e95aca845831c3cf1de87c55a8de308c879a8162171",
+    "form": "in-process",
+    "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G3 Gate 逐项判定属独立评测范畴（角色 5）；G04/G07/G08 完整语义 DEFERRED TO S2（acceptance-mapping §B）"
+}

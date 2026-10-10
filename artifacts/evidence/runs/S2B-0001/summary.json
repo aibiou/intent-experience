@@ -1,9 +1,9 @@
 {
   "runId": "S2B-0001",
   "obligation": "P3-S2B-IMPL-AUTH-01 v1.0.0 §1/§2：S2b 体验动作扩展首批义务 G-1…G-4（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 + SEARCH 内部能力 + First Experience 完整呈现）",
-  "startedAt": "2026-10-10T00:39:19.732Z",
-  "finishedAt": "2026-10-10T00:39:29.313Z",
-  "durationMs": 9581,
+  "startedAt": "2026-10-10T04:56:24.766Z",
+  "finishedAt": "2026-10-10T04:56:35.501Z",
+  "durationMs": 10733,
   "cases": [
     {
       "caseId": "DIRECTIONAL-DEEPEN",
@@ -124,7 +124,7 @@
     },
     {
       "id": "A6",
-      "description": "DIRECTIONAL 正常路径：DEEPEN / SIMPLIFY / REFRAME 创作会话内顶层补丁操作——分类正确（词表识别）、policy_v2.1.0 恒等映射、reason=creation_modification、头状态 ACTIVE/CREATION v7、流内容逐字节等于各方向性语料、<action>_requested ×1、creation_patch_applied ×1（operation/target/change={direction}/creation_version=2）、CREATE 迁移 ×2、决策追踪 semantic_action + explicit_user_direction + llm_used=false、终态 WAITING/CREATION v8 + lastSemanticAction、创作版本 2 + user_changes 权威登记 + 结构逐字段保持",
+      "description": "DIRECTIONAL 正常路径：DEEPEN / SIMPLIFY / REFRAME 创作会话内顶层补丁操作——分类正确（词表识别）、policy_v2.2.0 恒等映射、reason=creation_modification、头状态 ACTIVE/CREATION v7、流内容逐字节等于各方向性语料、<action>_requested ×1、creation_patch_applied ×1（operation/target/change={direction}/creation_version=2）、CREATE 迁移 ×2、决策追踪 semantic_action + explicit_user_direction + llm_used=false、终态 WAITING/CREATION v8 + lastSemanticAction、创作版本 2 + user_changes 权威登记 + 结构逐字段保持",
       "passed": true,
       "detail": {
         "deepen": true,
@@ -166,13 +166,13 @@
     },
     {
       "id": "A11",
-      "description": "黄金回归绑定：G3-GOLDEN-0001 在 policy_v2.1.0 / state_machine_v1.5.0 通过（40/40 案例、全部断言、退出码 0）——本运行动态证据的回归基线（S2b 案例已纳入 G3-GOLDEN-0001 回归基准，freeze §5.3）",
+      "description": "黄金回归绑定：G3-GOLDEN-0001 在 policy_v2.2.0 / state_machine_v1.5.0 通过（48/48 案例、全部断言、退出码 0——S3a 迭代后基线）——本运行动态证据的回归基线（S2b 案例已纳入 G3-GOLDEN-0001 回归基准，freeze §5.3）",
       "passed": true,
       "detail": {
         "goldenExitCode": 0,
-        "goldenCases": 40,
+        "goldenCases": 48,
         "goldenAllPass": true,
-        "goldenPolicy": "policy_v2.1.0（S2b 版本化变更 + S2 分支回流版本化变更）",
+        "goldenPolicy": "policy_v2.2.0（S2b 版本化变更 + S2 分支回流版本化变更）",
         "goldenStateMachine": "state_machine_v1.5.0"
       }
     },

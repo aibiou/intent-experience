@@ -1,0 +1,234 @@
+{
+  "runId": "S2A-F5-0001",
+  "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）+ S3 回归扩展（S3A-SEMANTIC-FREEZE-01 v1.0.0 长期记忆启用 + S3B-SEMANTIC-FREEZE-01 v1.0.0 跨会话分支持久化——S2 时代负向不变式经 CR-28 全项 A 裁决取代）",
+  "startedAt": "2026-10-10T04:41:41.206Z",
+  "finishedAt": "2026-10-10T04:41:51.607Z",
+  "durationMs": 10400,
+  "cases": [
+    {
+      "caseId": "CROSS-SESSION",
+      "result": "PASS"
+    },
+    {
+      "caseId": "LIFECYCLE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "CORRECT-WITHDRAW",
+      "result": "PASS"
+    },
+    {
+      "caseId": "BRANCH-PERSISTENCE",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "LONGTERM-GATED",
+      "result": "PASS"
+    },
+    {
+      "caseId": "CURRENT-INTENT-OVERRIDE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "RETRIEVAL-READONLY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "SINGLE-WRITER",
+      "result": "PASS"
+    },
+    {
+      "caseId": "WRITE-FILTER",
+      "result": "PASS"
+    },
+    {
+      "caseId": "LT-EXPLICIT-A",
+      "result": "PASS"
+    },
+    {
+      "caseId": "LT-REMEMBER-B",
+      "result": "PASS"
+    },
+    {
+      "caseId": "LT-BARE-NEG",
+      "result": "PASS"
+    },
+    {
+      "caseId": "LT-CANDIDATE-C",
+      "result": "PASS"
+    },
+    {
+      "caseId": "LT-GATE-NEG",
+      "result": "PASS"
+    }
+  ],
+  "allCasesPass": false,
+  "assertions": [
+    {
+      "id": "A1",
+      "description": "CROSS-SESSION：跨会话持久化——会话 A WHY 探索 → STOP 完成 → 短期记忆登记（主题 = 起源意图输入\"为什么\"，意图信号 turns=1;actions=WHY，来源 session_observation，置信度 0.7，兴趣锚点 0.90，生命周期 REMEMBERED）；memory_recorded 在 session_ended 之前登记；会话 B（新会话，同一 Runtime）同主题 WHY 探索 → 生成上下文注入 memory_signals ×1（recordId / 主题一致，生命周期 IN_USE——RECALL 经检索触发，lastRecalledAt 刷新，有效兴趣 > 0.85）；记忆记录跨会话归属不变；会话 B 零 memory 域事件（检索只读——D-02 选项 A）",
+      "passed": true,
+      "detail": {
+        "crossSession": true
+      }
+    },
+    {
+      "id": "A2",
+      "description": "LIFECYCLE：生命周期迁移 + 规范衰减参数——CREATE(t0)→REMEMBERED（兴趣 0.90）→RECALL(t0)→IN_USE（lastRecalledAt=t0）→Day 5 DECAYING（IN_USE 且有效兴趣 < 0.50）→Day 14 保持 DECAYING（兴趣 ≈ 0.170 > 0.10）→Day 19 EXPIRED（decay_threshold + 删除审计：删除时间 / 记录范围 / 验证信息）；保留期路径：Day 179 未到期（REMEMBERED）→Day 180 整 EXPIRED（retention_expired + 删除审计）；Day 0 = 0.90 / Day 3 ≈ 0.63 锚点（k = ln(0.9/0.63)/3——07 §11 示例形态采纳为规范参数）；规范参数 MEMORY_INTEREST_ANCHOR=0.9 / MEMORY_DECAY_THRESHOLD=0.5 / MEMORY_EXPIRE_THRESHOLD=0.1 / MEMORY_RETENTION_MS=180 天",
+      "passed": true,
+      "detail": {
+        "lifecycle": true
+      }
+    },
+    {
+      "id": "A3",
+      "description": "CORRECT-WITHDRAW：用户显式纠正 / 撤回——\"记忆纠正：量子计算原理\"（UNKNOWN + memoryIntent=correct，经 Runtime 单一写入者执行）：主题更正\"量子计算原理\"，corrections=1，来源 user_correction，置信度 0.95，兴趣重置锚点 0.90，回到 REMEMBERED，memory_corrected 留痕（corrected_topic / previous_lifecycle）；\"别再给我这个\"（UNKNOWN + memoryIntent=withdraw）：→EXPIRED + 撤回留痕 + 删除审计 reason=withdrawn（记录范围 / 验证信息），memory_withdrawn 留痕；重复撤回 → 幂等空操作（no_memory_target，不重复留痕）；存储层对已 EXPIRED 记录直接撤回 → MEMORY_EXPIRED 幂等拒绝；记忆操作不创建新体验（session_started=4，experience_started=1）",
+      "passed": true,
+      "detail": {
+        "correctWithdraw": true
+      }
+    },
+    {
+      "id": "A4",
+      "description": "BRANCH-PERSISTENCE：分支记录跨会话持久化（S3B §1.1/§1.4/§1.5——取代 S2 时代 SESSION-SCOPED-NEG 负向不变式，CR-28 D-2 选项 A）——WHAT_IF 轮建立的模拟分支状态在 STOP 会话结束后全量持久（getSimulation 成功：currentBranchId===null——会话级指针清空不跨会话自动恢复，分支记录 ×1 轮次 ×1）；已结束会话上的旧体验内容操作拒绝（INVALID_STATE_TRANSITION——07 §3）；会话 B（SESSION_ACTIVE）对已结束会话 A 的体验\"如果采用分支一\"→ ADOPT_BRANCH 成功（分支标记 adopted=true——S3B §1.4 三前提）；跨会话内容轮（WHY——非分支操作）→ 拒绝（放宽仅限分支操作路径）；对照：短期记忆跨会话存活（getMemory 可查，主题\"为什么\"，REMEMBERED——07 §4）——六类数据状态区分纪律：Session State / Current State 会话级失效而 Short-term Memory 与轴外分支记录跨会话持久；simulation_recorded ×1（仅 WHAT_IF 轮）",
+      "passed": false,
+      "detail": {
+        "branchPersistence": false
+      }
+    },
+    {
+      "id": "A5",
+      "description": "LONGTERM-GATED：长期记忆写入路径启用（S3A §1.1/§1.2/§1.6——取代 S2 时代 LONGTERM-DISABLED 负向不变式，CR-28 D-1 选项 A）——静态：src/experience/memory.ts 含 EXPLICIT / LONG_TERM / long_term 标识符（启用），MemoryLifecycle 联合恰为四态（REMEMBERED / IN_USE / DECAYING / EXPIRED——不变），MemorySource 联合恰为 session_observation | user_correction | explicit（三态——显式路径启用），MemoryClass 联合恰为 short_term | long_term；动态：全流程（两主题 WHY→STOP 短期登记 + 一次显式纠正 + A 类\"我喜欢古典音乐\" + B 类\"请记住我一直用深色模式\" + 裸记住请求负向）后记录 source ∈ 三态集合、lifecycle ∈ 四态集合、memoryClass ∈ {short_term, long_term}；A/B 类经 resolveIntent 路由为 memory_operation（record_long_term——source=explicit，confidence=1.0）；裸记住请求保持 UNKNOWN 升级（零写入——黄金 G08-NEG 不变式）",
+      "passed": true,
+      "detail": {
+        "longtermGated": true
+      }
+    },
+    {
+      "id": "A6",
+      "description": "CURRENT-INTENT-OVERRIDE：Current Intent 覆盖 L5（07 §12）——会话 B 同主题 WHY：memory_signals ×1 注入生成上下文，提交行为与无记忆时完全一致（selected_action=EXPLAIN，内容逐字节等于 why 语料，终态 WAITING/UNDERSTANDING v4——策略动作由当前意图决定，记忆仅注入上下文，不替用户决定当前意图——GS-04）；会话 C WHAT_IF（与记忆主题无 2 字窗口交集）：memory_signals ×0（07 §20 相关性过滤——只取相关记录，不全量塞入）",
+      "passed": true,
+      "detail": {
+        "currentIntentOverride": true
+      }
+    },
+    {
+      "id": "A7",
+      "description": "RETRIEVAL-READONLY：检索不改变体验（负向；07 §22）——会话 B 的 L5 检索零 memory 域事件（检索只读——D-02 选项 A）；零 session_started / experience_started（检索不触发产品动作——不自动启动新体验）；state_transitioned 恰为 WHY 流自身两次（体验启动 CURIOSITY→UNDERSTANDING + 提交 USER_ACTION——无额外状态写入）；连续两次 getMemory() 快照逐字节一致（查询不改写记录）",
+      "passed": true,
+      "detail": {
+        "retrievalReadonly": true
+      }
+    },
+    {
+      "id": "A8",
+      "description": "SINGLE-WRITER：模型 state_update 拒绝（GS-06 / CC02 H01/H05）——越权网关提案（非空 state_update_proposal：memory_record 键——模型尝试直接写记忆）→ POLICY_REJECTED（llm_state_mutation_forbidden）→ llm_output_rejected + state_write_rejected 事件留痕；记忆快照 records=0（模型未写入任何记忆——记忆写入仅经 Runtime 内部写入方法）；体验状态版本不变（拒绝不提交——失败写入不消耗版本号，OBL-01 / S1-12）；决策追踪 reasonPrimary=proposal_rejected",
+      "passed": true,
+      "detail": {
+        "singleWriter": true
+      }
+    },
+    {
+      "id": "A9",
+      "description": "WRITE-FILTER：07 §7 写入侧过滤（负向）——存储层六类不默认长期记住清单（临时情绪 / 一次性兴趣 / 一次性任务 / 当前环境 / 单次拒绝 / 推测人格）全部 recorded=false, reason=write_filter（存储为空）；运行时级——\"为什么一次性兴趣\"经 WHY 优先级层分类（分类行为不变——记忆操作识别仅在全部既有层未命中后调用）→ STOP 完成路径写入被过滤（主题含\"一次性\"标记）：快照 records=0，零 memory_recorded 事件",
+      "passed": true,
+      "detail": {
+        "writeFilter": true
+      }
+    },
+    {
+      "id": "A10",
+      "description": "LT-EXPLICIT-A：A 类显式长期偏好表达（S3A §1.1）——\"我喜欢古典音乐\"（偏好词直接命中，全部优先级层与记忆操作词表未命中后识别）→ resolveIntent action=memory_operation，memoryOperation.kind=record_long_term，executed=true，memoryClass=long_term；记录 topic=\"我喜欢古典音乐\"，source=explicit，confidence=1.0，lifecycle=REMEMBERED，candidateLongTerm=false；memory_recorded 事件 properties：memory_class=long_term / source=explicit / confidence=1 / recognition_path=explicit_preference（事件属性扩展——C6 §14 不新增事件名）；记忆操作不创建新体验（session_started=1，experience_started=0）",
+      "passed": true,
+      "detail": {
+        "ltExplicitA": true
+      }
+    },
+    {
+      "id": "A11",
+      "description": "LT-REMEMBER-B：B 类记住请求（S3A §1.1/§1.2——记住标记 + 偏好内容双命中）——\"请记住我一直用深色模式\" → resolveIntent action=memory_operation，record_long_term；记录 topic=\"我一直用深色模式\"，memoryClass=long_term，source=explicit，confidence=1.0（用户明确要求记住即显式表达）；memory_recorded 事件 properties.recognition_path=remember_request",
+      "passed": true,
+      "detail": {
+        "ltRememberB": true
+      }
+    },
+    {
+      "id": "A12",
+      "description": "LT-BARE-NEG：裸记住请求不识别为记忆写入（负向——S3A §1.2 双命中纪律）——\"记住这个\"（黄金 G08-NEG 对抗语料）→ resolveIntent action=escalate（UNKNOWN 升级）；\"记住这个想法\"（标记命中但余下内容非偏好表达）→ 同样升级；分类器级：classifyInput 两者均返回 {semanticAction: UNKNOWN} 且无 longTermMemory 字段，对照 \"记住我喜欢古典音乐\" 识别为 longTermMemory（topic=\"我喜欢古典音乐\"）；零记忆写入（快照 records=0，零 memory_recorded 事件）",
+      "passed": true,
+      "detail": {
+        "ltBareNeg": true
+      }
+    },
+    {
+      "id": "A13",
+      "description": "LT-CANDIDATE-C：C 类再探索候选标记（S3A §1.1——候选 ≠ 已保存；V1 不允许仅凭行为自动升级为永久用户画像）——会话 A WHY→STOP：短期记录 ×1（short_term，candidateLongTerm=false，interestSignal=0.90 锚点）；会话 B 同主题 WHY→STOP：再探索而非新记录（records 仍 ×1，interestSignal=1.05→上限 1.0，candidateLongTerm=true——C 类候选标记）；记录保持 short_term（不自动升级为 long_term）；memory_recorded ×2（再探索轮次 properties.reexploration=true 留痕）",
+      "passed": true,
+      "detail": {
+        "ltCandidateC": true
+      }
+    },
+    {
+      "id": "A14",
+      "description": "LT-GATE-NEG：长期记忆存储层门槛（负向——S3A §1.1/§1.6）——直接 MemoryStore 写入：memoryClass=long_term 且 source=session_observation → recorded=false, reason=long_term_requires_explicit；source=user_correction → 同样拒绝；正向对照：source=explicit + memoryClass=long_term → 写入成功（confidence=1.0）；短期记忆（memoryClass 缺省）经 session_observation 写入不受门槛影响（既有语义不变）；存储 records=2",
+      "passed": true,
+      "detail": {
+        "ltGateNeg": true
+      }
+    },
+    {
+      "id": "A15",
+      "description": "全部 14 案例记录齐备且 12 字段完整（E5 §4；14 执行；PD-19 延期义务已履行——F-5 关闭切片执行，无 DEFERRED 登记）",
+      "passed": true,
+      "detail": {
+        "recordFiles": 14,
+        "expected": 14,
+        "allCasesPass": false
+      }
+    },
+    {
+      "id": "A16",
+      "description": "全部 14 案例轨迹文件齐备且非空",
+      "passed": true,
+      "detail": {
+        "traceFiles": 14
+      }
+    },
+    {
+      "id": "A17-PREFLIGHT",
+      "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配（失败为 FATAL，不计入断言池）",
+      "passed": true,
+      "detail": {
+        "typecheckExitCode": 0,
+        "buildExitCode": 0,
+        "referenceVerified": "36/36",
+        "fingerprintsAllMatch": true
+      }
+    },
+    {
+      "id": "A18",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + F-5 记忆语义专项 memorySemantics + obligationTraceability：F-5 → 案例 / 断言映射；policy 版本 policy_v2.2.0——S3a 语义启用）",
+      "passed": true,
+      "detail": {
+        "policyVersion": "policy_v2.2.0",
+        "stateMachineVersion": "state_machine_v1.4.0",
+        "frozenDecisionCount": 5,
+        "implementationFileCount": 10,
+        "missingSections": []
+      }
+    },
+    {
+      "id": "A19",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
+      "passed": true,
+      "detail": {
+        "verified": 30,
+        "failed": []
+      }
+    }
+  ],
+  "allAssertionsPass": false,
+  "allPassed": false,
+  "exitCode": 1,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2/G4/G8）或产品状态为 PASS（E5 §2）。F-5 证据本运行已执行；G5 独立评测 NOT RUN（独立评测人须先审阅本运行 staged 材料）。"
+}

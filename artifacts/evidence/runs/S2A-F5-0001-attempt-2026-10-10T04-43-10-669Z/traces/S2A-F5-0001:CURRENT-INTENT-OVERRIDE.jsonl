@@ -1,0 +1,2 @@
+{"caseId":"S2A-F5-0001:CURRENT-INTENT-OVERRIDE","event":"trace_started","at":"2026-10-10T04:41:48.251Z","form":"inprocess","sourceClause":"S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §1 元素 6 / §2 D-03 选项 A（L2 Current Intent 覆盖 L5）；07 §12（Current Intent 覆盖）；07 §20（检索纪律——只取相关记录）；07 §21（优先级链 L0–L6）","servers":[]}
+{"caseId":"S2A-F5-0001:CURRENT-INTENT-OVERRIDE","event":"trace_completed","at":"2026-10-10T04:41:49.723Z","startedAt":"2026-10-10T04:41:48.251Z","durationMs":1472,"result":"PASS","pass":true}

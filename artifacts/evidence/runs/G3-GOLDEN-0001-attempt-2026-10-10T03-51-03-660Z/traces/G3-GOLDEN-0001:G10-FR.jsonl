@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G10-FR","event":"trace_started","at":"2026-10-10T00:39:13.519Z","form":"in-process","sourceClause":"S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A；S1-12 陈旧版本写入拒绝；创作版本化纪律不变（采用内容经独立 CREATE 提交纳入作品，不自动写入）","goldenCase":"G10","dimension":"FAILURE_RECOVERY"}
+{"caseId":"G3-GOLDEN-0001:G10-FR","event":"trace_completed","at":"2026-10-10T00:39:14.596Z","startedAt":"2026-10-10T00:39:13.519Z","durationMs":1077,"result":"PASS","pass":true}

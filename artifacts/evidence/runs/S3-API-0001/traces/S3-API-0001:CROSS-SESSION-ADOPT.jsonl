@@ -1,0 +1,2 @@
+{"caseId":"S3-API-0001:CROSS-SESSION-ADOPT","event":"trace_started","at":"2026-10-10T04:58:33.007Z","form":"inprocess","sourceClause":"S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.4（跨会话操作路径三前提）/ §1.1（持久化范围）；S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A（ADOPT_BRANCH 显式回流）；policy_v2.2.0 变更 3","servers":[]}
+{"caseId":"S3-API-0001:CROSS-SESSION-ADOPT","event":"trace_completed","at":"2026-10-10T04:58:33.737Z","startedAt":"2026-10-10T04:58:33.007Z","durationMs":730,"result":"PASS","pass":true}

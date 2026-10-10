@@ -1,7 +1,7 @@
 # S2B-0001 — 独立评测人审阅包（staged，待审阅与否决）
 
 运行：S2B-0001（S2b 体验动作扩展首批义务 G-1…G-4——DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 + SEARCH 内部能力 + First Experience 完整呈现）
-日期：2026-10-10T00:39:29.318Z
+日期：2026-10-10T04:56:35.504Z
 执行器：工程负责人角色（代理，Codex）；独立评测负责人：用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）
 
 ## 结果
@@ -19,7 +19,7 @@
 
 ## 本运行覆盖（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 §5.2 案例面）
 
-- 案例面 1 正常路径（DIRECTIONAL-DEEPEN / SIMPLIFY / REFRAME）：创作会话内顶层补丁操作——词表分类、policy_v2.1.0 恒等映射、reason=creation_modification、头状态 ACTIVE/CREATION v7、流内容逐字节等于方向性语料、<action>_requested ×1、creation_patch_applied ×1（operation / target 经 TARGET_SYNONYMS 派生 / change={direction} / creation_version=2）、决策追踪 explicit_user_direction + llm_used=false、终态 WAITING/CREATION v8、创作版本 2 + user_changes 权威登记 + 结构逐字段保持（08 §11 局部变更纪律：不重新生成整个作品）
+- 案例面 1 正常路径（DIRECTIONAL-DEEPEN / SIMPLIFY / REFRAME）：创作会话内顶层补丁操作——词表分类、policy_v2.2.0 恒等映射、reason=creation_modification、头状态 ACTIVE/CREATION v7、流内容逐字节等于方向性语料、<action>_requested ×1、creation_patch_applied ×1（operation / target 经 TARGET_SYNONYMS 派生 / change={direction} / creation_version=2）、决策追踪 explicit_user_direction + llm_used=false、终态 WAITING/CREATION v8、创作版本 2 + user_changes 权威登记 + 结构逐字段保持（08 §11 局部变更纪律：不重新生成整个作品）
 - 案例面 2 非创作会话升级（ESCALATION-NEG）：三动作在无创作对象时 INVALID_ACTION 升级（policy_v2.0.0 变更 5；C3 纪律）——状态版本 / 视图零增量、零方向性事件、零补丁事件（拒绝先于任何写入——OBL-01）
 - 案例面 3 SEARCH 内部能力（SEARCH-CAPABILITY）：三面只读检索（read_only 恒真 / 相关性判定 / 非活跃创作对象面跳过）；VERIFY 类输入经既有 WHY / DIRECT_ANSWER 解释层路由（附列裁决区选项 A——VERIFY 不启用）；WHY 路径端到端无副作用；只读不变式；静态边界（纯函数模块 / 无外部网络出口 / 双生成路径集成）
 - 案例面 4 First Experience 呈现（FIRST-EXPERIENCE）：入口 / 六阶段 / 完成 / 退出 / 中断流程模型（E2 §5/§6/§7 冻结面）；视图→呈现阶段映射（含 BRANCH Simulation 呈现面区分）；默认查询；生命周期游走（v2→v4→v6〔BRANCH〕→v8→v10→v11——STOP 完成路径消耗 +1 版本；瞬态 ENTERING/CURIOSITY 与非分支 SIMULATION 面由纯映射覆盖；STOP 完成路径登记创作 active=false）

@@ -1,0 +1,2 @@
+{"caseId":"S2A-F5-0001:WRITE-FILTER","event":"trace_started","at":"2026-10-10T04:41:50.467Z","form":"inprocess","sourceClause":"S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §1 元素 11 / §2 D-05 选项 A（写入侧执行 07 §7 过滤）；07 §7（不默认长期记住清单：临时情绪 / 一次性兴趣 / 一次性任务 / 当前环境 / 单次拒绝 / 推测人格）","servers":[]}
+{"caseId":"S2A-F5-0001:WRITE-FILTER","event":"trace_completed","at":"2026-10-10T04:41:50.840Z","startedAt":"2026-10-10T04:41:50.467Z","durationMs":373,"result":"PASS","pass":true}

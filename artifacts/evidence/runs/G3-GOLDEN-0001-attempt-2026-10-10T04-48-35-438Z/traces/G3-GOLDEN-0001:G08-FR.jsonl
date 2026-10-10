@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G08-FR","event":"trace_started","at":"2026-10-10T04:47:56.104Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G08 Failure/Recovery；授权 §5.7（升级路径零副作用）；PD-07；PD-21","goldenCase":"G08","dimension":"FAILURE_RECOVERY"}
+{"caseId":"G3-GOLDEN-0001:G08-FR","event":"trace_completed","at":"2026-10-10T04:47:56.477Z","startedAt":"2026-10-10T04:47:56.104Z","durationMs":373,"result":"PASS","pass":true}

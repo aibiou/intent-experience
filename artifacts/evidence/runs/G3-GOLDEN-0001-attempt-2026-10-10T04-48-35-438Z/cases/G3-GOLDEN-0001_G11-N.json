@@ -1,0 +1,61 @@
+{
+  "caseIdNamespace": "G3-GOLDEN-0001:G11-N",
+  "sourceClause": "P2 Exit Gate §8 G11 长期记忆（S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划）；S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1（A 类门槛）/ §1.6（单一写入者）/ §1.8（事件属性扩展）；07 §5（A 类：明确表达的长期偏好）；policy_v2.2.0 变更 1",
+  "scope": "P2 G3 黄金套件——S3a 新增长期记忆黄金案例（A 类显式表达正常路径）",
+  "precondition": "新会话（SESSION_IDLE——记忆操作经 resolveIntent 路由，不要求体验轴）",
+  "inputFault": "无（正向路径——\"我喜欢古典音乐\"A 类显式表达）",
+  "expected": {
+    "classification": "UNKNOWN + longTermMemory 识别（A 类——偏好词直接命中；全部优先级层与记忆操作词表未命中后调用——零优先级层变更）",
+    "policy": "记忆操作无策略动作轴——resolveIntent action=memory_operation（记忆域为轴外持久对象——不创建体验轴）",
+    "flow": "A 类显式表达 → record_long_term 执行（source=explicit，confidence=1.0——显式表达即保存）",
+    "record": "记录 ×1：topic=\"我喜欢古典音乐\"，memoryClass=long_term，source=explicit，confidence=1.0，lifecycle=REMEMBERED，candidateLongTerm=false",
+    "event": "memory_recorded ×1（properties：memory_class=long_term / source=explicit / confidence=1 / recognition_path=explicit_preference——C6 §14 属性扩展不新增事件名）",
+    "discipline": "记忆操作不创建新体验（session_started=1 为会话启动本身 / experience_started=0）；写入经 Runtime 单一写入者"
+  },
+  "actual": {
+    "classification": "UNKNOWN",
+    "classifierLongTermMemoryTopic": "我喜欢古典音乐",
+    "resolutionOk": true,
+    "resolutionAction": "memory_operation",
+    "memoryOperationKind": "record_long_term",
+    "memoryOperationExecuted": true,
+    "memoryOperationClass": "long_term",
+    "record": {
+      "topic": "我喜欢古典音乐",
+      "memoryClass": "long_term",
+      "source": "explicit",
+      "confidence": 1,
+      "lifecycle": "REMEMBERED",
+      "candidateLongTerm": false
+    },
+    "memoryRecordedEvents": [
+      {
+        "memory_class": "long_term",
+        "source": "explicit",
+        "confidence": 1,
+        "recognition_path": "explicit_preference"
+      }
+    ],
+    "sessionStarted": 1,
+    "experienceStarted": 0
+  },
+  "invariants": [
+    "P2 G3 黄金套件不变式（P2 Exit Gate §8）：每个黄金案例覆盖 Normal/Negative/Boundary/Failure-Recovery 四维度",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "旧 operation 不得提交（generation epoch 守卫 + 版本双重检查，S1-10；CC02 H03）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "失败不消耗版本号（EB-02）；取消的 generation 不提交（CC02 H02）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
+  ],
+  "evidence": {
+    "trace": "traces/G3-GOLDEN-0001:G11-N.jsonl",
+    "traceSha256": "e3c44bbcc7e4e3f28af10ec41c38e05d522029c308fe7978b31de769a5070e2b",
+    "form": "in-process",
+    "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G3 Gate 逐项判定属独立评测范畴（角色 5）；G04/G07/G08 完整语义 DEFERRED TO S2（acceptance-mapping §B）"
+}

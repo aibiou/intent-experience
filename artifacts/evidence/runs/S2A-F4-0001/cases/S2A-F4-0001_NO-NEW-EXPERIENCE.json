@@ -39,7 +39,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:NO-NEW-EXPERIENCE.jsonl",
-    "traceSha256": "d431993f71c15912b9cbdd60977e0eeebfe7d76ac90b2249fcf010b8f4259080",
+    "traceSha256": "ec27ede1b547d033832bf548ea9c8af280fdef18ced171e0b5b54d82a1d5994c",
     "form": "inprocess",
     "servers": []
   },

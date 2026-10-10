@@ -1,0 +1,91 @@
+{
+  "caseIdNamespace": "S3-API-0001:STREAM-EXECUTION",
+  "sourceClause": "S3B-SEMANTIC-FREEZE-01 v1.0.0 §3 变更 4（D-3 选项 A——纯暴露层）；S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划；S1 §14（WHAT_IF → SIMULATE 映射不变）；S2A-F4-SEMANTIC-FREEZE-01 §2 D-03 选项 A（WHAT_IF 首轮自动 CREATE 分支）",
+  "scope": "执行形态 WHAT_IF 全链路：三要素请求 → resolveIntent → startExperience → submitExperienceEvent（真实运行路径）→ NDJSON 流（submission 首行 policy_v2.2.0 + chunk ×17 逐字节等于 simulate 语料 + done + state_updated）；模拟域首轮分支自动 CREATE（快照可查）",
+  "precondition": "新会话（SESSION_IDLE）；案例独立运行时经 StreamRequestInput.runtime 注入",
+  "inputFault": "洁净 WHAT_IF 输入（执行形态三要素齐备）",
+  "expected": {
+    "routing": "三要素齐备（request_id + session_id + user_input）→ S2/S3 执行形态：resolveIntent（WHAT_IF）→ startExperience → submitExperienceEvent——真实运行路径（与进程内提交完全一致）",
+    "stream": "NDJSON 流：submission 首行（accepted=true，experience_id，policy_decision{policy_version=policy_v2.2.0，semantic_action=WHAT_IF，selected_action=SIMULATE}，state_version，state）+ chunk ×17（内容逐字节等于 simulate 语料）+ done + state_updated（WAITING/SIMULATION，waiting_for_user=true）",
+    "domain": "WHAT_IF 首轮自动 CREATE 分支 1（模拟域快照可查——currentBranchId=分支 1，rounds ×1，sourceInput=用户输入）；短期记忆经 STOP 路径登记（本案例无 STOP——records=0）",
+    "integrity": "全部事件信封符合 C6 §7；零信封违规"
+  },
+  "actual": {
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "lineTypes": [
+      "submission",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "chunk",
+      "done",
+      "state_updated"
+    ],
+    "submission": {
+      "accepted": true,
+      "experience_id": "experience_synthetic_0001",
+      "session_id": "session_synthetic_0001",
+      "policy_version": "policy_v2.2.0",
+      "semantic_action": "WHAT_IF",
+      "selected_action": "SIMULATE",
+      "state_version": 3,
+      "state": {
+        "status": "ACTIVE",
+        "stage": "SIMULATION",
+        "waiting_for_user": false
+      }
+    },
+    "chunkCount": 17,
+    "contentMatchesFixture": true,
+    "donePresent": true,
+    "stateUpdated": {
+      "state_version": 4,
+      "status": "WAITING",
+      "stage": "SIMULATION",
+      "waiting_for_user": true
+    },
+    "simulation": {
+      "currentBranchId": "branch_synthetic_0001",
+      "branches": 1,
+      "rounds": 1,
+      "sourceInput": "如果摩擦力为零会怎样"
+    },
+    "memoryRecords": 0,
+    "envelopeViolations": 0,
+    "sessionStartedEvents": 1,
+    "experienceStartedEvents": 1
+  },
+  "invariants": [
+    "纯暴露层不变式（S3B-SEMANTIC-FREEZE-01 v1.0.0 §3 变更 4 / D-3 选项 A）：API 面扩展不改变任何运行时语义、决策追踪、事件契约——同一运行时实例（证据形态经 options.runtime 注入构造的运行时，进程内证据不经服务器单例）",
+    "请求形态判定（S3b）：会话上下文三要素齐备（request_id + session_id + user_input 均非空字符串）→ S2/S3 执行形态（真实运行路径）；否则为 S1 fixture 形态（semanticAction 直送——向后兼容，行为不变）",
+    "执行形态路由（S3b）：experience_id + state_version 齐备 → 既有体验直接提交（含跨会话分支操作——会话绑定放宽仅限分支操作路径，运行时内校验三前提）；缺省 → resolveIntent（记忆操作 → NDJSON 单行结果 + done；升级 → 400 INVALID_ACTION；start_experience → startExperience + submitExperienceEvent → NDJSON 流）",
+    "长期记忆识别纪律（S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.2）：识别仅在全部既有优先级层与记忆操作词表未命中后调用（仅认领会成为 UNKNOWN 的输入）；B 类须记住标记与偏好内容双命中——裸记住请求保持 UNKNOWN 升级纪律（黄金 G08-NEG 不变式）",
+    "跨会话分支操作三前提（S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.4）：WHAT_IF 分类 + 分支操作词识别；输入会话 SESSION_ACTIVE；宿主会话 SESSION_ENDED——放宽仅限分支操作路径（内容轮保持严格会话绑定）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据；默认仅合成数据（ADR-0002 §3 证据沙箱硬边界）"
+  ],
+  "evidence": {
+    "trace": "traces/S3-API-0001:STREAM-EXECUTION.jsonl",
+    "traceSha256": "7f13bbf09014de6270d865738c4b888342fa474619e2f6403514bf2be051855f",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 评测包 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

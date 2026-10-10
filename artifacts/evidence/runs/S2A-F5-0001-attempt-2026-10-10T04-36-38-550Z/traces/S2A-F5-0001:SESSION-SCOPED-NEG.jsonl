@@ -1,0 +1,2 @@
+{"caseId":"S2A-F5-0001:SESSION-SCOPED-NEG","event":"trace_started","at":"2026-10-10T03:50:27.841Z","form":"inprocess","sourceClause":"S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §1 元素 4（Current State / Session State 会话结束即失效——负向不变式）；授权 §2(4)；07 §2.1（Current State）/ §3（Session State）/ §4（Short-term Memory 对照）；S2A-F4-SEMANTIC-FREEZE-01 §2 D-04 选项 A（模拟分支状态会话结束失效）","servers":[]}
+{"caseId":"S2A-F5-0001:SESSION-SCOPED-NEG","event":"trace_completed","at":"2026-10-10T03:50:28.916Z","startedAt":"2026-10-10T03:50:27.841Z","durationMs":1075,"result":"FAIL","pass":false}

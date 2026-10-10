@@ -1,0 +1,98 @@
+{
+  "runId": "S3-API-0001",
+  "obligation": "S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划——D-3 选项 A：既有端点 semanticAction 枚举扩展（纯暴露层——同一 ExperienceRuntime 单例，不改变任何运行时语义）；S3A/S3B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施",
+  "authorization": {
+    "id": "CR-28",
+    "version": "S3-SCOPE-PROPOSAL-01 v1.0.0 RULED",
+    "issued": "2026-10-10",
+    "note": "产品负责人确认全项 A（D-1…D-5）——standing authorization 覆盖实施路径；S3b 暴露层依据 D-3 选项 A"
+  },
+  "obligationTraceability": {
+    "S3b 暴露层（D-3 选项 A）": {
+      "semanticFreeze": "docs/product/p3-s1/s3b-semantic-freeze.md（S3B-SEMANTIC-FREEZE-01 v1.0.0 FROZEN，2026-10-10 产品负责人签署——§3 变更 4：既有端点 semanticAction 枚举扩展——纯暴露层）",
+      "frozenDecisions": {
+        "D-3": "选项 A（既有端点 semanticAction 枚举扩展——纯暴露层：同一 ExperienceRuntime 单例 getServerRuntime，不改变任何运行时语义；WHAT_IF 分支操作经用户输入负载携带分支操作词，与进程内识别完全一致）"
+      },
+      "implementationFiles": [
+        "src/experience/http.ts（S2/S3 执行形态：三要素请求 → 真实运行路径；S1 fixture 形态向后兼容；StreamRequestInput.runtime 注入缝——进程内证据不经服务器单例）",
+        "app/api/experience/stream/route.ts（薄封装——转发至 handleExperienceStreamRequest，形态差异仅在调用入口）",
+        "app/api/memory/route.ts（新增——GET /api/memory 只读观测路由）",
+        "app/api/experience/[experienceId]/simulation/route.ts（新增——GET /api/experience/{id}/simulation 只读观测路由）"
+      ],
+      "evidenceCases": [
+        "S3-API-0001:STREAM-EXECUTION=PASS",
+        "S3-API-0001:STREAM-LONGTERM-A=PASS",
+        "S3-API-0001:STREAM-LONGTERM-BARE-NEG=PASS",
+        "S3-API-0001:STREAM-S1-FORM=PASS",
+        "S3-API-0001:CROSS-SESSION-ADOPT=PASS",
+        "S3-API-0001:CROSS-SESSION-CONTENT-NEG=PASS",
+        "S3-API-0001:VERSION-CONFLICT=PASS",
+        "S3-API-0001:OBSERVABILITY=PASS"
+      ],
+      "assertions": [
+        "A1=PASSED",
+        "A2=PASSED",
+        "A3=PASSED",
+        "A4=PASSED",
+        "A5=PASSED",
+        "A6=PASSED",
+        "A7=PASSED",
+        "A8=PASSED",
+        "A9=PASSED",
+        "A10=PASSED",
+        "A11-PREFLIGHT=PASSED"
+      ]
+    }
+  },
+  "staticBoundary": {
+    "note": "静态边界断言读取已提交产品源码字节（不做代码推断——只验证事实）",
+    "findings": {
+      "executionFormDetection": true,
+      "runtimeInjection": true,
+      "s1FormPreserved": true,
+      "serverRuntimeSingleton": true
+    }
+  },
+  "api": {
+    "contract": "C5",
+    "version": "api_v1.0.0",
+    "routes": [
+      "POST /api/session/start",
+      "POST /api/intent/resolve",
+      "POST /api/experience/start",
+      "GET /api/experience/{id}/state",
+      "POST /api/experience/{id}/event",
+      "POST /api/experience/{id}/stream（S2/S3 执行形态——三要素请求经真实运行路径）",
+      "GET /api/memory（新增——只读观测）",
+      "GET /api/experience/{id}/simulation（新增——只读观测）"
+    ],
+    "note": "纯暴露层不变式：API 面扩展不改变任何运行时语义、决策追踪、事件契约——同一运行时实例（证据形态经 options.runtime 注入构造的运行时，进程内证据不经服务器单例）"
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "nodeLock": "v24.21.0",
+    "typescript": "7.0.2",
+    "react": "19.3.0",
+    "next": "16.4.0",
+    "packageName": "intent-experience-runtime",
+    "packageVersion": "0.1.0",
+    "lockfileVersion": 3,
+    "sqlite": "3.53.4"
+  },
+  "sourceFiles": {
+    "count": 6,
+    "sha256": {
+      "src/experience/http.ts": "f5a6110a6fd582a8981a287a8078d9de2f617a2abc4ec4987e8522615f21b3d5",
+      "src/experience/runtime.ts": "458f6e26078d4d3147e8c435db7f1c89d095248ae875a7d5b855d21e786c69e2",
+      "src/experience/server-runtime.ts": "b6b3f83166d085e72013661915f2f79398f961081310bd35c5ad4d10412f5700",
+      "app/api/experience/stream/route.ts": "e549b14180c3939fe7e0e0345e295923b8a1e3f7aa964d67d8e2cecef8b21320",
+      "app/api/memory/route.ts": "e34a9375b1dc769fdc62d82aee468d82da95e4ba85ec5af2b53ba3771ba18353",
+      "app/api/experience/[experienceId]/simulation/route.ts": "dc2981cb2756866847203f05d41f71e42f88eab72bce44c86789a41ccf022a27"
+    }
+  },
+  "git": {
+    "commit": "5af559291caf998b5e4bd87faa3fbb9418f397cf",
+    "workTreeClean": false
+  },
+  "startedAt": "2026-10-10T04:57:26.878Z"
+}

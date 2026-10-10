@@ -1,2 +1,2 @@
-{"caseId":"S2B-0001:ESCALATION-NEG","event":"trace_started","at":"2026-10-10T00:39:25.233Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 案例面 2；policy_v2.0.0 变更 5；C3 升级纪律（model on F-2/F-3 创作会话路由保护）","servers":[]}
-{"caseId":"S2B-0001:ESCALATION-NEG","event":"trace_completed","at":"2026-10-10T00:39:26.350Z","startedAt":"2026-10-10T00:39:25.233Z","durationMs":1117,"result":"PASS","pass":true}
+{"caseId":"S2B-0001:ESCALATION-NEG","event":"trace_started","at":"2026-10-10T04:56:31.313Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 案例面 2；policy_v2.0.0 变更 5；C3 升级纪律（model on F-2/F-3 创作会话路由保护）","servers":[]}
+{"caseId":"S2B-0001:ESCALATION-NEG","event":"trace_completed","at":"2026-10-10T04:56:32.470Z","startedAt":"2026-10-10T04:56:31.313Z","durationMs":1157,"result":"PASS","pass":true}

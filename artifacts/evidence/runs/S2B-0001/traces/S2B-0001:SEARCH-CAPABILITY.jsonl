@@ -1,2 +1,2 @@
-{"caseId":"S2B-0001:SEARCH-CAPABILITY","event":"trace_started","at":"2026-10-10T00:39:26.350Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 案例面 3 + 附列裁决区选项 A；policy_v2.0.0 变更 2/6；14 §7/§8","servers":[]}
-{"caseId":"S2B-0001:SEARCH-CAPABILITY","event":"trace_completed","at":"2026-10-10T00:39:26.726Z","startedAt":"2026-10-10T00:39:26.350Z","durationMs":376,"result":"PASS","pass":true}
+{"caseId":"S2B-0001:SEARCH-CAPABILITY","event":"trace_started","at":"2026-10-10T04:56:32.475Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 案例面 3 + 附列裁决区选项 A；policy_v2.0.0 变更 2/6；14 §7/§8","servers":[]}
+{"caseId":"S2B-0001:SEARCH-CAPABILITY","event":"trace_completed","at":"2026-10-10T04:56:32.860Z","startedAt":"2026-10-10T04:56:32.472Z","durationMs":388,"result":"PASS","pass":true}
