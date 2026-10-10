@@ -74,7 +74,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:INPROC-REGRESSION.jsonl",
-    "traceSha256": "05c167ab495183a7754bae17c68efe48fadf4b6b8aace850bf1f98fbd5e47ca1",
+    "traceSha256": "de81f49579f66c303e7cbb08b49cb89535d21b75b4bee6c020b0aea5f3327a1a",
     "form": "inprocess",
     "servers": []
   },

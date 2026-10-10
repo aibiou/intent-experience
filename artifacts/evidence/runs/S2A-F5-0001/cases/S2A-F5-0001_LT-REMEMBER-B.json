@@ -50,7 +50,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F5-0001:LT-REMEMBER-B.jsonl",
-    "traceSha256": "daed80c63801451f959ad3b722c18e694846241c33e2c18400bbe94341dc3402",
+    "traceSha256": "3b967fcba0e16772d8c4b66c8d3e4a4b9b305871e6d7574db094b5fad3039a02",
     "form": "inprocess",
     "servers": []
   },

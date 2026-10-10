@@ -1,2 +1,2 @@
-{"caseId":"S2A-F5-0001:LT-EXPLICIT-A","event":"trace_started","at":"2026-10-10T04:43:16.181Z","form":"inprocess","sourceClause":"S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1（A 类门槛）/ §1.8（事件属性扩展——C6 §14 属性扩展不新增事件名）；07 §5（A 类：明确表达的长期偏好）；policy_v2.2.0 变更 1/3","servers":[]}
-{"caseId":"S2A-F5-0001:LT-EXPLICIT-A","event":"trace_completed","at":"2026-10-10T04:43:16.182Z","startedAt":"2026-10-10T04:43:16.181Z","durationMs":1,"result":"PASS","pass":true}
+{"caseId":"S2A-F5-0001:LT-EXPLICIT-A","event":"trace_started","at":"2026-10-10T05:22:34.360Z","form":"inprocess","sourceClause":"S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1（A 类门槛）/ §1.8（事件属性扩展——C6 §14 属性扩展不新增事件名）；07 §5（A 类：明确表达的长期偏好）；policy_v2.2.0 变更 1/3","servers":[]}
+{"caseId":"S2A-F5-0001:LT-EXPLICIT-A","event":"trace_completed","at":"2026-10-10T05:22:34.363Z","startedAt":"2026-10-10T05:22:34.360Z","durationMs":3,"result":"PASS","pass":true}

@@ -104,7 +104,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:MULTI-ROUND.jsonl",
-    "traceSha256": "dbd778950a3aa2e8a882f1701739fcd2325ecbc7ff5e2730b61b2220b4a5d7b0",
+    "traceSha256": "50d27df6f9b56cd1857522ed89ad3cb2eb6927097a06765d7baa2bbb16a5cc72",
     "form": "inprocess",
     "servers": []
   },

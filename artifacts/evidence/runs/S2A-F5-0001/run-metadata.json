@@ -64,7 +64,7 @@
         "A16=PASSED",
         "A17-PREFLIGHT=PASSED"
       ],
-      "goldenRegression": "G3-GOLDEN-0001 PASSED（40/40 案例；断言已同步 policy_v2.2.0——S3a 实施后黄金回归零碰撞：G08-NEG\"记住这个\"对抗语料保持升级）"
+      "goldenRegression": "G3-GOLDEN-0001 PASSED（48/48 案例；policy_v2.2.0 / state_machine_v1.5.0——S3a 迭代后回归基线（G11 长期记忆案例组并入）；断言已同步 policy_v2.2.0——S3a 实施后黄金回归零碰撞：G08-NEG\"记住这个\"对抗语料保持升级）"
     }
   },
   "environmentLicense": {
@@ -189,7 +189,7 @@
   ],
   "stateMachine": {
     "contract": "C2",
-    "version": "state_machine_v1.4.0",
+    "version": "state_machine_v1.5.0",
     "implemented": [
       "L0 Session（§4）",
       "L2 Experience 状态机（§7）",
@@ -200,7 +200,8 @@
       "RESTORE 语义（S2A-F3-SEMANTIC-FREEZE-01 §4 变更 2）",
       "WHAT_IF_SIMULATE 多轮模拟契约化（S2A-F4-SEMANTIC-FREEZE-01 §4 变更 1）",
       "WHAT_IF 分支状态（S2A-F4-SEMANTIC-FREEZE-01 §4 变更 2——轴外分支子状态机）",
-      "轴外记忆子状态机（S2A-F5-SEMANTIC-FREEZE-01 §4 变更 1：状态 {REMEMBERED, IN_USE, DECAYING, EXPIRED}；操作 {CREATE（记住）, RECALL（暂时使用）, DECAY（逐渐失效——时间衰减驱动）, EXPIRE（到期——自动）, CORRECT（被用户纠正——内容更正 + 留痕）, WITHDRAW（被用户撤回——撤回留痕 + 删除审计）}；记忆域事件词表 memory_recorded / memory_corrected / memory_withdrawn / memory_expired；07 §10 映射冻结；体验阶段轴不变——记忆操作不新增体验轴触发器）"
+      "轴外记忆子状态机（S2A-F5-SEMANTIC-FREEZE-01 §4 变更 1：状态 {REMEMBERED, IN_USE, DECAYING, EXPIRED}；操作 {CREATE（记住）, RECALL（暂时使用）, DECAY（逐渐失效——时间衰减驱动）, EXPIRE（到期——自动）, CORRECT（被用户纠正——内容更正 + 留痕）, WITHDRAW（被用户撤回——撤回留痕 + 删除审计）}；记忆域事件词表 memory_recorded / memory_corrected / memory_withdrawn / memory_expired；07 §10 映射冻结；体验阶段轴不变——记忆操作不新增体验轴触发器——契约化冻结于 state_machine_v1.4.0 §4 变更 1，延续不变）",
+      "S2b 时代扩展（state_machine_v1.5.0 变更 1–3：创作域补丁操作域扩展 {add, remove, modify, deepen, simplify, reframe} / SEARCH 能力状态纪律 / First Experience 呈现路径——S2B-SEMANTIC-FREEZE-01 §4；本清单为 F-5 义务绑定范围，S2b 扩展由 S2B-0001 证据登记）"
     ]
   },
   "policy": {
@@ -299,12 +300,12 @@
       "src/experience/fixtures/simulate.ts": "dfa4045bb0457267f53b7f320472d55afd5b00635cf8366e8449b8aa793bc58a",
       "src/experience/fixtures/create.ts": "e84eba657c582b8947d10988ed9389ab5eb56563f8d07de97ef7f81f486b7b99",
       "src/experience/fixtures/correction.ts": "27393524ebcb51cf2f26e32fa163e3c2a787f0cfe2cf9b11fc242dbe7db03f68",
-      "tools/evidence/src/s2a-f5.mjs": "b9cea8392bbb112f4bed132aeb00cd2d9aad265c7d8cec85c09aa7134e4039ee"
+      "tools/evidence/src/s2a-f5.mjs": "d9aaa4894cd866aa6e626a6d2f08cb97bcea47a5b6a9e2db279859c0febbc39e"
     }
   },
   "git": {
-    "commit": "5af559291caf998b5e4bd87faa3fbb9418f397cf",
-    "workTreeClean": false
+    "commit": "e6780c802fe63b6f666d862e53cda34a8c6f98a0",
+    "workTreeClean": true
   },
-  "startedAt": "2026-10-10T04:43:07.041Z"
+  "startedAt": "2026-10-10T05:22:26.152Z"
 }

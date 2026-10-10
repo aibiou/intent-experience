@@ -57,7 +57,7 @@
       "recordId": "memory_synthetic_0001",
       "topic": "为什么",
       "lifecycle": "IN_USE",
-      "lastRecalledAt": "2026-10-10T04:43:15.430Z"
+      "lastRecalledAt": "2026-10-10T05:22:33.594Z"
     }
   },
   "invariants": [
@@ -83,7 +83,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F5-0001:RETRIEVAL-READONLY.jsonl",
-    "traceSha256": "f6b5d9cdb02b1b5deb659ac609c773d31d42a80f5f9e9b7222cc885a8a566cf4",
+    "traceSha256": "e587f2ffb97815c8523991141b73c71399d9c5d5de8483eae8408514e0149c98",
     "form": "inprocess",
     "servers": []
   },

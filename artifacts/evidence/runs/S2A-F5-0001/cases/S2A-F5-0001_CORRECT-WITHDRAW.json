@@ -67,21 +67,21 @@
           "previous_lifecycle": "REMEMBERED",
           "lifecycle": "EXPIRED",
           "deletion_audit": {
-            "deletedAt": "2026-10-10T04:43:11.795Z",
+            "deletedAt": "2026-10-10T05:22:29.855Z",
             "scope": "record memory_synthetic_0001 (topic: 量子计算原理)",
             "reason": "withdrawn",
-            "verification": "withdrawal acknowledged at 2026-10-10T04:43:11.795Z; record marked EXPIRED and excluded from retrieval"
+            "verification": "withdrawal acknowledged at 2026-10-10T05:22:29.855Z; record marked EXPIRED and excluded from retrieval"
           }
         }
       ],
       "recordAfterWithdraw": {
         "lifecycle": "EXPIRED",
-        "withdrawnAt": "2026-10-10T04:43:11.795Z",
+        "withdrawnAt": "2026-10-10T05:22:29.855Z",
         "deletionAudit": {
-          "deletedAt": "2026-10-10T04:43:11.795Z",
+          "deletedAt": "2026-10-10T05:22:29.855Z",
           "scope": "record memory_synthetic_0001 (topic: 量子计算原理)",
           "reason": "withdrawn",
-          "verification": "withdrawal acknowledged at 2026-10-10T04:43:11.795Z; record marked EXPIRED and excluded from retrieval"
+          "verification": "withdrawal acknowledged at 2026-10-10T05:22:29.855Z; record marked EXPIRED and excluded from retrieval"
         }
       }
     },
@@ -130,7 +130,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F5-0001:CORRECT-WITHDRAW.jsonl",
-    "traceSha256": "6c3171c12462822a35096d257aaf833f4fb3b1680d2a1c1bdb7aebc9742e2a9a",
+    "traceSha256": "64df4f2ce5f5b083d7607c88ddc1f2a18f2e2ae1471762426a5cdd288f45f0f8",
     "form": "inprocess",
     "servers": []
   },

@@ -1,2 +1,2 @@
-{"caseId":"S2A-F5-0001:CROSS-SESSION","event":"trace_started","at":"2026-10-10T04:43:10.670Z","form":"inprocess","sourceClause":"S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §2 D-01 选项 A（切片内本地持久化记忆记录存储）/ D-03 选项 A（L5 信号注入）；授权 §2(4)（跨会话主题 / 意图信号持久化）；07 §4（短期记忆语义）/ §20（检索纪律）/ §21（优先级链 L5）/ §22（检索不应改变体验）","servers":[]}
-{"caseId":"S2A-F5-0001:CROSS-SESSION","event":"trace_completed","at":"2026-10-10T04:43:11.419Z","startedAt":"2026-10-10T04:43:10.670Z","durationMs":749,"result":"PASS","pass":true}
+{"caseId":"S2A-F5-0001:CROSS-SESSION","event":"trace_started","at":"2026-10-10T05:22:28.694Z","form":"inprocess","sourceClause":"S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §2 D-01 选项 A（切片内本地持久化记忆记录存储）/ D-03 选项 A（L5 信号注入）；授权 §2(4)（跨会话主题 / 意图信号持久化）；07 §4（短期记忆语义）/ §20（检索纪律）/ §21（优先级链 L5）/ §22（检索不应改变体验）","servers":[]}
+{"caseId":"S2A-F5-0001:CROSS-SESSION","event":"trace_completed","at":"2026-10-10T05:22:29.469Z","startedAt":"2026-10-10T05:22:28.694Z","durationMs":775,"result":"PASS","pass":true}
