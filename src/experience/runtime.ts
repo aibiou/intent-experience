@@ -52,7 +52,7 @@ import {
   nextDecisionId,
   type DecisionTraceSink,
 } from './decision-trace';
-import { SyntheticLlmGateway, type LlmGateway, type LlmProposal } from './llm-gateway';
+import { SyntheticLlmGateway, nextProviderProposalId, type LlmGateway, type LlmProposal, type LlmRequest } from './llm-gateway';
 import { createExperienceStream, type StreamEvent } from './stream';
 import { allFixtures, loadChunkFixture } from './chunks';
 import {
@@ -1700,72 +1700,86 @@ export class ExperienceRuntime {
       source: { layer: 'llm', component: 'llm-gateway' },
       properties: { generation_id: generationId, semantic_action: policy.semanticAction, allowed_action: policy.policyAction },
     });
-    let proposal;
-    try {
-      proposal = await this.gateway.propose({
-        request_id: requestId,
-        session_id: input.sessionId,
-        experience_id: input.experienceId,
-        intent: { intent_id: experience.intentId },
-        experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
-        semantic_action: policy.semanticAction,
-        allowed_action: policy.policyAction,
-        context: await this.buildLlmContext(input.rawInput),
+    const llmRequest: LlmRequest = {
+      request_id: requestId,
+      session_id: input.sessionId,
+      experience_id: input.experienceId,
+      intent: { intent_id: experience.intentId },
+      experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
+      semantic_action: policy.semanticAction,
+      allowed_action: policy.policyAction,
+      context: await this.buildLlmContext(input.rawInput),
+    };
+    // 流式形态（S5A-SEMANTIC-FREEZE-01 v1.2.0 / CR-38）：
+    // 提供方网关经可选 proposeStream 增量产出——chunk 事件随
+    // SSE delta 逐片到达（真流式呈现）；提案于流末构造并验证
+    // （llm_request_completed / 验证 / llm_output_validated /
+    // 决策轨迹于流末产出——完成时机差异经冻结文本 §1 登记，
+    // 事件契约 / 名称 / 形状不变）。静态形态（合成 / 故障
+    // 注入网关）保持单次完整提案路径（行为零变化——黄金回归
+    // 不变式）；STOP 永不流式（策略硬边界——不产出内容分块，
+    // stopped 事件纪律不变）。
+    const streamingForm =
+      policy.policyAction !== 'STOP' && typeof this.gateway.proposeStream === 'function';
+    let proposal: LlmProposal | undefined;
+    if (!streamingForm) {
+      try {
+        proposal = await this.gateway.propose(llmRequest);
+      } catch {
+        return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'synthetic gateway failed', true) };
+      }
+      await this.recordEvent('llm_request_completed', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: requestId, decision_id: decisionId },
+        source: { layer: 'llm', component: 'llm-gateway' },
+        properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
       });
-    } catch {
-      return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'synthetic gateway failed', true) };
-    }
-    await this.recordEvent('llm_request_completed', {
-      identity: { user_id: this.userId, session_id: input.sessionId },
-      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: requestId, decision_id: decisionId },
-      source: { layer: 'llm', component: 'llm-gateway' },
-      properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
-    });
 
-    // 5. 验证（S1-08：LLM 输出永远是提案；越权状态写入拒绝）。
-    const validation = validateProposal(proposal);
-    if (!validation.ok) {
-      await this.recordEvent('llm_output_rejected', {
+      // 5. 验证（S1-08：LLM 输出永远是提案；越权状态写入拒绝）。
+      const validation = validateProposal(proposal);
+      if (!validation.ok) {
+        await this.recordEvent('llm_output_rejected', {
+          identity: { user_id: this.userId, session_id: input.sessionId },
+          context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: requestId, decision_id: decisionId },
+          source: { layer: 'llm', component: 'validator' },
+          properties: { generation_id: generationId, proposal_id: proposal.proposal_id, code: validation.code, reason: validation.reason },
+        });
+        if (validation.code === 'POLICY_REJECTED') {
+          await this.recordEvent('state_write_rejected', {
+            identity: { user_id: this.userId, session_id: input.sessionId },
+            context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: requestId, decision_id: decisionId },
+            source: { layer: 'runtime', component: 'validator' },
+            properties: { reason: 'llm_state_mutation_forbidden', generation_id: generationId, detail: validation.reason },
+          });
+        }
+        await this.writeDecisionTrace({
+          decisionId,
+          sessionId: input.sessionId,
+          experienceId: input.experienceId,
+          semanticAction: policy.semanticAction,
+          stateBefore,
+          stateBeforeVersion: current.stateVersion,
+          stateAfter: null,
+          selectedAction: policy.policyAction,
+          reasonPrimary: 'proposal_rejected',
+          reasonSecondary: `${validation.code}: ${validation.reason}`,
+          llmUsed: true,
+          userOverride: true,
+          inputEvent: null,
+          intentBefore: null,
+        });
+        return {
+          ok: false,
+          error: runtimeError(validation.code, validation.reason),
+        };
+      }
+      await this.recordEvent('llm_output_validated', {
         identity: { user_id: this.userId, session_id: input.sessionId },
         context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: requestId, decision_id: decisionId },
         source: { layer: 'llm', component: 'validator' },
-        properties: { generation_id: generationId, proposal_id: proposal.proposal_id, code: validation.code, reason: validation.reason },
+        properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
       });
-      if (validation.code === 'POLICY_REJECTED') {
-        await this.recordEvent('state_write_rejected', {
-          identity: { user_id: this.userId, session_id: input.sessionId },
-          context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: requestId, decision_id: decisionId },
-          source: { layer: 'runtime', component: 'validator' },
-          properties: { reason: 'llm_state_mutation_forbidden', generation_id: generationId, detail: validation.reason },
-        });
-      }
-      await this.writeDecisionTrace({
-        decisionId,
-        sessionId: input.sessionId,
-        experienceId: input.experienceId,
-        semanticAction: policy.semanticAction,
-        stateBefore,
-        stateBeforeVersion: current.stateVersion,
-        stateAfter: null,
-        selectedAction: policy.policyAction,
-        reasonPrimary: 'proposal_rejected',
-        reasonSecondary: `${validation.code}: ${validation.reason}`,
-        llmUsed: true,
-        userOverride: true,
-        inputEvent: null,
-        intentBefore: null,
-      });
-      return {
-        ok: false,
-        error: runtimeError(validation.code, validation.reason),
-      };
     }
-    await this.recordEvent('llm_output_validated', {
-      identity: { user_id: this.userId, session_id: input.sessionId },
-      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: requestId, decision_id: decisionId },
-      source: { layer: 'llm', component: 'validator' },
-      properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
-    });
 
     // 6. 新候选（Create New Candidate）。
     this.counters.candidate += 1;
@@ -1851,22 +1865,26 @@ export class ExperienceRuntime {
       },
     });
 
-    await this.writeDecisionTrace({
-      decisionId,
-      sessionId: input.sessionId,
-      experienceId: input.experienceId,
-      semanticAction: policy.semanticAction,
-      stateBefore,
-      stateBeforeVersion: current.stateVersion,
-      stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
-      selectedAction: policy.policyAction,
-      reasonPrimary: 'explicit_user_direction',
-      reasonSecondary: 'CHANGE_DIRECTION cancels old generation, rejects old candidate, starts new direction (P-02)',
-      llmUsed: true,
-      userOverride: true,
-      inputEvent: null,
-      intentBefore: null,
-    });
+    // 决策轨迹：静态形态于流前写入；流式形态于流末由
+    // chunk 源写入（完成时机经 S5A v1.2.0 §1 登记）。
+    if (!streamingForm) {
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'explicit_user_direction',
+        reasonSecondary: 'CHANGE_DIRECTION cancels old generation, rejects old candidate, starts new direction (P-02)',
+        llmUsed: true,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+    }
 
     const header: SubmissionHeader = {
       type: 'submission',
@@ -1893,6 +1911,34 @@ export class ExperienceRuntime {
     const combinedSignal = input.signal
       ? AbortSignal.any([input.signal, controller.signal])
       : controller.signal;
+    // 流式形态：增量分块源于此实例化（combinedSignal 就绪——
+    // 取消经 request.signal 中止上游连接）。
+    let providerChunkSource: AsyncGenerator<StreamEvent> | undefined;
+    if (streamingForm) {
+      llmRequest.signal = combinedSignal;
+      providerChunkSource = this.createProviderChunkSource({
+        request: llmRequest,
+        semanticAction: policy.semanticAction,
+        policyAction: policy.policyAction,
+        fixtureId: fixture.fixture.fixtureId,
+        generationId,
+        llmRequestId: requestId,
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        intentId: experience.intentId,
+        stateVersion: current.stateVersion,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'explicit_user_direction',
+        reasonSecondary: 'CHANGE_DIRECTION cancels old generation, rejects old candidate, starts new direction (P-02)',
+        llmUsed: true,
+        userOverride: true,
+        audit: this.auditSink,
+      });
+    }
     const stream = this.wrapGenerationStream({
       header,
       experienceId: input.experienceId,
@@ -1901,10 +1947,13 @@ export class ExperienceRuntime {
         semanticAction: policy.semanticAction,
         policyAction: policy.policyAction,
         fixtureId: fixture.fixture.fixtureId,
-        chunks: this.resolveGenerationChunks(proposal, fixture.fixture.chunks),
+        // 流式形态：分块经 chunkSource 增量产出（chunks 不消费）；
+        // 静态形态：提案内容经确定性句界分块（既有纪律）。
+        chunks: proposal ? this.resolveGenerationChunks(proposal, fixture.fixture.chunks) : fixture.fixture.chunks,
         signal: combinedSignal,
         chunkDelayMs: 40,
         audit: this.auditSink,
+        ...(providerChunkSource ? { chunkSource: providerChunkSource } : {}),
       },
       completionCommit: true,
       stateTransitionedEvent: stateTransitions,
@@ -3871,69 +3920,83 @@ export class ExperienceRuntime {
       source: { layer: 'llm', component: 'llm-gateway' },
       properties: { generation_id: generationId, semantic_action: policy.semanticAction, allowed_action: policy.policyAction },
     });
-    let proposal;
-    try {
-      proposal = await this.gateway.propose({
-        request_id: llmRequestId,
-        session_id: input.sessionId,
-        experience_id: input.experienceId,
-        intent: { intent_id: experience.intentId },
-        experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
-        semantic_action: policy.semanticAction,
-        allowed_action: policy.policyAction,
-        context: await this.buildGenerationContext(input),
+    const llmRequest: LlmRequest = {
+      request_id: llmRequestId,
+      session_id: input.sessionId,
+      experience_id: input.experienceId,
+      intent: { intent_id: experience.intentId },
+      experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
+      semantic_action: policy.semanticAction,
+      allowed_action: policy.policyAction,
+      context: await this.buildGenerationContext(input),
+    };
+    // 流式形态（S5A-SEMANTIC-FREEZE-01 v1.2.0 / CR-38）：
+    // 提供方网关经可选 proposeStream 增量产出——chunk 事件随
+    // SSE delta 逐片到达（真流式呈现）；提案于流末构造并验证
+    // （llm_request_completed / 验证 / llm_output_validated /
+    // 模拟结果登记 / 决策轨迹于流末产出——完成时机差异经
+    // 冻结文本 §1 登记，事件契约 / 名称 / 形状不变）。静态
+    // 形态（合成 / 故障注入网关）保持单次完整提案路径（行为
+    // 零变化——黄金回归不变式）；STOP 永不流式（策略硬边界——
+    // 不产出内容分块，stopped 事件纪律不变）。
+    const streamingForm =
+      policy.policyAction !== 'STOP' && typeof this.gateway.proposeStream === 'function';
+    let proposal: LlmProposal | undefined;
+    if (!streamingForm) {
+      try {
+        proposal = await this.gateway.propose(llmRequest);
+      } catch {
+        return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'synthetic gateway failed', true) };
+      }
+      await this.recordEvent('llm_request_completed', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+        source: { layer: 'llm', component: 'llm-gateway' },
+        properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
       });
-    } catch {
-      return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'synthetic gateway failed', true) };
-    }
-    await this.recordEvent('llm_request_completed', {
-      identity: { user_id: this.userId, session_id: input.sessionId },
-      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
-      source: { layer: 'llm', component: 'llm-gateway' },
-      properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
-    });
 
-    // 3. 验证（S1-08；GS-06：任何越权状态写入提案在此拒绝，不产生状态写入）。
-    const validation = validateProposal(proposal);
-    if (!validation.ok) {
-      await this.recordEvent('llm_output_rejected', {
+      // 3. 验证（S1-08；GS-06：任何越权状态写入提案在此拒绝，不产生状态写入）。
+      const validation = validateProposal(proposal);
+      if (!validation.ok) {
+        await this.recordEvent('llm_output_rejected', {
+          identity: { user_id: this.userId, session_id: input.sessionId },
+          context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+          source: { layer: 'llm', component: 'validator' },
+          properties: { generation_id: generationId, proposal_id: proposal.proposal_id, code: validation.code, reason: validation.reason },
+        });
+        if (validation.code === 'POLICY_REJECTED') {
+          await this.recordEvent('state_write_rejected', {
+            identity: { user_id: this.userId, session_id: input.sessionId },
+            context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+            source: { layer: 'runtime', component: 'validator' },
+            properties: { reason: 'llm_state_mutation_forbidden', generation_id: generationId, detail: validation.reason },
+          });
+        }
+        await this.writeDecisionTrace({
+          decisionId,
+          sessionId: input.sessionId,
+          experienceId: input.experienceId,
+          semanticAction: policy.semanticAction,
+          stateBefore,
+          stateBeforeVersion: current.stateVersion,
+          stateAfter: null,
+          selectedAction: policy.policyAction,
+          reasonPrimary: 'proposal_rejected',
+          reasonSecondary: `${validation.code}: ${validation.reason}`,
+          llmUsed: true,
+          userOverride: false,
+          inputEvent: null,
+          intentBefore: null,
+        });
+        return { ok: false, error: runtimeError(validation.code, validation.reason) };
+      }
+      await this.recordEvent('llm_output_validated', {
         identity: { user_id: this.userId, session_id: input.sessionId },
         context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
         source: { layer: 'llm', component: 'validator' },
-        properties: { generation_id: generationId, proposal_id: proposal.proposal_id, code: validation.code, reason: validation.reason },
+        properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
       });
-      if (validation.code === 'POLICY_REJECTED') {
-        await this.recordEvent('state_write_rejected', {
-          identity: { user_id: this.userId, session_id: input.sessionId },
-          context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
-          source: { layer: 'runtime', component: 'validator' },
-          properties: { reason: 'llm_state_mutation_forbidden', generation_id: generationId, detail: validation.reason },
-        });
-      }
-      await this.writeDecisionTrace({
-        decisionId,
-        sessionId: input.sessionId,
-        experienceId: input.experienceId,
-        semanticAction: policy.semanticAction,
-        stateBefore,
-        stateBeforeVersion: current.stateVersion,
-        stateAfter: null,
-        selectedAction: policy.policyAction,
-        reasonPrimary: 'proposal_rejected',
-        reasonSecondary: `${validation.code}: ${validation.reason}`,
-        llmUsed: true,
-        userOverride: false,
-        inputEvent: null,
-        intentBefore: null,
-      });
-      return { ok: false, error: runtimeError(validation.code, validation.reason) };
     }
-    await this.recordEvent('llm_output_validated', {
-      identity: { user_id: this.userId, session_id: input.sessionId },
-      context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
-      source: { layer: 'llm', component: 'validator' },
-      properties: { generation_id: generationId, proposal_id: proposal.proposal_id },
-    });
 
     // 4. 版本化提交（复合迁移结果）。
     const commit = await this.store.commit(input.experienceId, input.expectedStateVersion, (state) => ({
@@ -4009,7 +4072,9 @@ export class ExperienceRuntime {
     // 格式双重保证）；模拟历史会话内持久（D-04 选项 A）；
     // WHAT_IF 首轮自动创建分支记录（D-03 选项 A CREATE——
     // 无激活分支上下文时自动开启新分支）。
-    if (policy.policyAction === 'SIMULATE') {
+    // 流式形态：提案于流末构造——登记经 chunk 源 onProposal
+    // 钩子于流末执行（同一纪律；完成时机经 S5A v1.2.0 §1 登记）。
+    const recordSimulation = async (proposal: LlmProposal): Promise<void> => {
       const recorded = this.simulations.recordRound({
         experienceId: input.experienceId,
         sessionId: input.sessionId,
@@ -4039,23 +4104,30 @@ export class ExperienceRuntime {
           generation_id: generationId,
         },
       });
+    };
+    if (policy.policyAction === 'SIMULATE' && proposal) {
+      await recordSimulation(proposal);
     }
-    await this.writeDecisionTrace({
-      decisionId,
-      sessionId: input.sessionId,
-      experienceId: input.experienceId,
-      semanticAction: policy.semanticAction,
-      stateBefore,
-      stateBeforeVersion: current.stateVersion,
-      stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
-      selectedAction: policy.policyAction,
-      reasonPrimary: 'semantic_action',
-      reasonSecondary: `${policy.semanticAction} resolves to ${policy.policyAction} via the frozen S1 §14 policy map`,
-      llmUsed: true,
-      userOverride: false,
-      inputEvent: null,
-      intentBefore: null,
-    });
+    // 决策轨迹：静态形态于流前写入；流式形态于流末由
+    // chunk 源写入（完成时机经 S5A v1.2.0 §1 登记）。
+    if (!streamingForm) {
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'semantic_action',
+        reasonSecondary: `${policy.semanticAction} resolves to ${policy.policyAction} via the frozen S1 §14 policy map`,
+        llmUsed: true,
+        userOverride: false,
+        inputEvent: null,
+        intentBefore: null,
+      });
+    }
 
     const header: SubmissionHeader = {
       type: 'submission',
@@ -4082,6 +4154,35 @@ export class ExperienceRuntime {
     const combinedSignal = input.signal
       ? AbortSignal.any([input.signal, controller.signal])
       : controller.signal;
+    // 流式形态：增量分块源于此实例化（combinedSignal 就绪——
+    // 取消经 request.signal 中止上游连接）。
+    let providerChunkSource: AsyncGenerator<StreamEvent> | undefined;
+    if (streamingForm) {
+      llmRequest.signal = combinedSignal;
+      providerChunkSource = this.createProviderChunkSource({
+        request: llmRequest,
+        semanticAction: policy.semanticAction,
+        policyAction: policy.policyAction,
+        fixtureId: fixture.fixture.fixtureId,
+        generationId,
+        llmRequestId,
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        intentId: experience.intentId,
+        stateVersion: current.stateVersion,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+        selectedAction: policy.policyAction,
+        reasonPrimary: 'semantic_action',
+        reasonSecondary: `${policy.semanticAction} resolves to ${policy.policyAction} via the frozen S1 §14 policy map`,
+        llmUsed: true,
+        userOverride: false,
+        audit: this.auditSink,
+        onProposal: policy.policyAction === 'SIMULATE' ? recordSimulation : undefined,
+      });
+    }
     const stream = this.wrapGenerationStream({
       header,
       experienceId: input.experienceId,
@@ -4090,10 +4191,13 @@ export class ExperienceRuntime {
         semanticAction: policy.semanticAction,
         policyAction: policy.policyAction,
         fixtureId: fixture.fixture.fixtureId,
-        chunks: this.resolveGenerationChunks(proposal, fixture.fixture.chunks),
+        // 流式形态：分块经 chunkSource 增量产出（chunks 不消费）；
+        // 静态形态：提案内容经确定性句界分块（既有纪律）。
+        chunks: proposal ? this.resolveGenerationChunks(proposal, fixture.fixture.chunks) : fixture.fixture.chunks,
         signal: combinedSignal,
         chunkDelayMs: 40,
         audit: this.auditSink,
+        ...(providerChunkSource ? { chunkSource: providerChunkSource } : {}),
       },
       completionCommit: true,
       stateTransitionedEvent: stateTransitions,
@@ -4209,7 +4313,15 @@ export class ExperienceRuntime {
     header: SubmissionHeader;
     experienceId: string;
     generationId: string;
-    streamOptions: Parameters<typeof createExperienceStream>[0];
+    streamOptions: Parameters<typeof createExperienceStream>[0] & {
+      /**
+       * 增量分块源（提供方真流式——S5A-SEMANTIC-FREEZE-01
+       * v1.2.0 / CR-38）：chunk 事件随提供方 SSE delta 逐片
+       * 产出（真流式呈现）。缺省走静态分块流（合成 / 故障
+       * 注入网关——行为零变化，黄金回归不变式）。
+       */
+      chunkSource?: AsyncGenerator<StreamEvent>;
+    };
     /** 流正常结束后是否执行 RESPONSE_COMPLETED 提交（STOP 流为 false）。 */
     completionCommit: boolean;
     stateTransitionedEvent?: ExperienceEvent;
@@ -4221,7 +4333,8 @@ export class ExperienceRuntime {
     return (async function* generate() {
       yield header;
       let generationCompletedEvent: ExperienceEvent | null = null;
-      for await (const event of createExperienceStream(streamOptions)) {
+      const chunkSource = streamOptions.chunkSource;
+      for await (const event of (chunkSource ?? createExperienceStream(streamOptions))) {
         lastType = event.type;
         if (event.type === 'cancelled') {
           // 客户端断开/中断：登记 generation_cancelled（若尚未由中断控制器登记）。
@@ -4280,6 +4393,207 @@ export class ExperienceRuntime {
       // state_write_rejected / state_version_conflict 事件权威登记。
       void generationCompletedEvent;
     })();
+  }
+
+  /**
+   * 提供方增量分块源（S5A-SEMANTIC-FREEZE-01 v1.2.0 / CR-38）：
+   * 经 LlmGateway.proposeStream 逐片产出 chunk 事件（真流式
+   * 呈现——内容随提供方 SSE delta 到达，而非完整响应后
+   * 分块重放）。流末构造提案并经既有纪律：llm_request_completed
+   * → 验证（S1-08——提供方网关构造不变式：state_update_proposal
+   * 恒空、confidence 恒 1.0）→ llm_output_validated / 拒绝链
+   * → 决策轨迹 → 方法特定流末处理（WHAT_IF 模拟结果登记）
+   * → done。
+   *
+   * 流式形态时序（S5A v1.2.0 §1 登记）：版本化提交先于流
+   * （header 携带已提交版本），chunk 事件流式产出，上述
+   * 事件于流末产出（静态形态于流前——完成时机差异经冻结
+   * 文本版本化登记；事件契约 / 名称 / 形状不变）。
+   *
+   * 取消：信号中止 → cancelled 事件（与静态路径同形；上游
+   * 连接随 request.signal 中止）。提供方流故障（非取消）
+   * 向上抛出——客户端按连接中断处理（不静默回退，与静态
+   * 形态 LLM_UNAVAILABLE 同纪律）。
+   */
+  private async *createProviderChunkSource(options: {
+    request: LlmRequest;
+    semanticAction: SemanticAction;
+    policyAction: PolicyAction;
+    fixtureId: string;
+    generationId: string;
+    llmRequestId: string;
+    decisionId: string;
+    sessionId: string;
+    experienceId: string;
+    intentId: string | null;
+    /** 请求 / 事件用状态版本（迁移前版本——与静态形态一致）。 */
+    stateVersion: number;
+    stateBefore: ExperienceView;
+    stateBeforeVersion: number;
+    stateAfter: { status: ExperienceStatus; stage: ExperienceStage; state_version: number };
+    selectedAction: PolicyAction;
+    reasonPrimary: string;
+    reasonSecondary: string | null;
+    llmUsed: boolean;
+    userOverride: boolean;
+    /** 审计汇（每次事件写入——与静态路径同纪律）。 */
+    audit?: (event: StreamEvent) => void | Promise<void>;
+    /** 流末（提案验证通过后）方法特定处理（WHAT_IF 模拟结果登记）。 */
+    onProposal?: (proposal: LlmProposal) => Promise<void>;
+  }): AsyncGenerator<StreamEvent> {
+    const emit = async (event: StreamEvent): Promise<void> => {
+      await options.audit?.(event);
+    };
+    let content = '';
+    let produced = 0;
+    let streamFailure: Error | null = null;
+    if (!this.gateway.proposeStream) {
+      // 不应到达（调用方经 streamingForm 门控）——防御性直接
+      // 结束（无事件产出；wrapGenerationStream 的完成提交
+      // 守卫由此不执行——与静态路径 stopped 形态同纪律）。
+      return;
+    }
+    try {
+      for await (const delta of this.gateway.proposeStream(options.request)) {
+        if (options.request.signal?.aborted) {
+          const cancelled: StreamEvent = {
+            policyAction: options.policyAction,
+            semanticAction: options.semanticAction,
+            fixtureId: options.fixtureId,
+            index: produced,
+            totalChunks: produced,
+            content: null,
+            at: new Date().toISOString(),
+            type: 'cancelled',
+          };
+          await emit(cancelled);
+          yield cancelled;
+          return;
+        }
+        content += delta;
+        const event: StreamEvent = {
+          policyAction: options.policyAction,
+          semanticAction: options.semanticAction,
+          fixtureId: options.fixtureId,
+          index: produced,
+          // 流式形态：chunk 事件 totalChunks 为已产出数（总数
+          // 于流末可知——done 事件携带最终总数；S5A v1.2.0 §1）。
+          totalChunks: produced + 1,
+          content: delta,
+          at: new Date().toISOString(),
+          type: 'chunk',
+        };
+        produced += 1;
+        await emit(event);
+        yield event;
+      }
+    } catch (error) {
+      if (options.request.signal?.aborted) {
+        // 取消：上游连接随信号中止——cancelled 事件（同静态路径）。
+        const cancelled: StreamEvent = {
+          policyAction: options.policyAction,
+          semanticAction: options.semanticAction,
+          fixtureId: options.fixtureId,
+          index: produced,
+          totalChunks: produced,
+          content: null,
+          at: new Date().toISOString(),
+          type: 'cancelled',
+        };
+        await emit(cancelled);
+        yield cancelled;
+        return;
+      }
+      streamFailure = error instanceof Error ? error : new Error(String(error));
+    }
+    // 流末：提案构造（提供方网关构造不变式——state_update_proposal
+    // 恒空、confidence 恒 1.0）→ 既有验证 / 事件纪律。
+    const proposal: LlmProposal = {
+      proposal_id: nextProviderProposalId(),
+      content,
+      state_update_proposal: {},
+      confidence: 1,
+    };
+    await this.recordEvent('llm_request_completed', {
+      identity: { user_id: this.userId, session_id: options.sessionId },
+      context: { experience_id: options.experienceId, intent_id: options.intentId, state_version: options.stateVersion, request_id: options.llmRequestId, decision_id: options.decisionId },
+      source: { layer: 'llm', component: 'llm-gateway' },
+      properties: { generation_id: options.generationId, proposal_id: proposal.proposal_id },
+    });
+    const validation = validateProposal(proposal);
+    if (!validation.ok) {
+      // 拒绝路径（结构不可达——提供方网关构造不变式；保留与
+      // 静态形态同形的拒绝链以守住 S1-08 纪律）。
+      await this.recordEvent('llm_output_rejected', {
+        identity: { user_id: this.userId, session_id: options.sessionId },
+        context: { experience_id: options.experienceId, intent_id: options.intentId, state_version: options.stateVersion, request_id: options.llmRequestId, decision_id: options.decisionId },
+        source: { layer: 'llm', component: 'validator' },
+        properties: { generation_id: options.generationId, proposal_id: proposal.proposal_id, code: validation.code, reason: validation.reason },
+      });
+      if (validation.code === 'POLICY_REJECTED') {
+        await this.recordEvent('state_write_rejected', {
+          identity: { user_id: this.userId, session_id: options.sessionId },
+          context: { experience_id: options.experienceId, intent_id: options.intentId, state_version: options.stateVersion, request_id: options.llmRequestId, decision_id: options.decisionId },
+          source: { layer: 'runtime', component: 'validator' },
+          properties: { reason: 'llm_state_mutation_forbidden', generation_id: options.generationId, detail: validation.reason },
+        });
+      }
+      await this.writeDecisionTrace({
+        decisionId: options.decisionId,
+        sessionId: options.sessionId,
+        experienceId: options.experienceId,
+        semanticAction: options.semanticAction,
+        stateBefore: options.stateBefore,
+        stateBeforeVersion: options.stateBeforeVersion,
+        stateAfter: null,
+        selectedAction: options.selectedAction,
+        reasonPrimary: 'proposal_rejected',
+        reasonSecondary: `${validation.code}: ${validation.reason}`,
+        llmUsed: options.llmUsed,
+        userOverride: options.userOverride,
+        inputEvent: null,
+        intentBefore: null,
+      });
+    } else {
+      await this.recordEvent('llm_output_validated', {
+        identity: { user_id: this.userId, session_id: options.sessionId },
+        context: { experience_id: options.experienceId, intent_id: options.intentId, state_version: options.stateVersion, request_id: options.llmRequestId, decision_id: options.decisionId },
+        source: { layer: 'llm', component: 'validator' },
+        properties: { generation_id: options.generationId, proposal_id: proposal.proposal_id },
+      });
+      await options.onProposal?.(proposal);
+      await this.writeDecisionTrace({
+        decisionId: options.decisionId,
+        sessionId: options.sessionId,
+        experienceId: options.experienceId,
+        semanticAction: options.semanticAction,
+        stateBefore: options.stateBefore,
+        stateBeforeVersion: options.stateBeforeVersion,
+        stateAfter: options.stateAfter,
+        selectedAction: options.selectedAction,
+        reasonPrimary: options.reasonPrimary,
+        reasonSecondary: options.reasonSecondary,
+        llmUsed: options.llmUsed,
+        userOverride: options.userOverride,
+        inputEvent: null,
+        intentBefore: null,
+      });
+    }
+    if (streamFailure) {
+      throw streamFailure;
+    }
+    const doneEvent: StreamEvent = {
+      policyAction: options.policyAction,
+      semanticAction: options.semanticAction,
+      fixtureId: options.fixtureId,
+      index: produced,
+      totalChunks: produced,
+      content: null,
+      at: new Date().toISOString(),
+      type: 'done',
+    };
+    await emit(doneEvent);
+    yield doneEvent;
   }
 
   /**

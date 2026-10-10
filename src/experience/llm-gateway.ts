@@ -25,6 +25,8 @@ export interface LlmRequest {
   semantic_action: SemanticAction;
   allowed_action: PolicyAction;
   context: unknown;
+  /** 取消信号（可选——增量流式形态经此中止上游连接；S5A v1.2.0）。 */
+  signal?: AbortSignal;
 }
 
 export interface LlmProposal {
@@ -36,6 +38,14 @@ export interface LlmProposal {
 
 export interface LlmGateway {
   propose(request: LlmRequest): Promise<LlmProposal>;
+  /**
+   * 增量流式提案（S5A-SEMANTIC-FREEZE-01 v1.2.0 / CR-38）：
+   * 内容增量逐片产出（提供方 SSE delta）——运行期经此路径
+   * 增量产出 chunk 事件（真流式呈现）。默认实现委托
+   * propose()（合成 / 故障注入网关——单次完整内容，行为
+   * 零变化）；提供方网关覆写为真流式（请求体 stream:true）。
+   */
+  proposeStream?(request: LlmRequest): AsyncIterable<string>;
 }
 
 /**
@@ -128,6 +138,17 @@ export const PROVIDER_PROFILES: Readonly<
 
 let providerProposalCounter = 0;
 
+/**
+ * 提供方提案 id 分配（与 propose() / 流式形态共享计数——
+ * S5A-SEMANTIC-FREEZE-01 v1.2.0 / CR-38）：运行期流式
+ * 路径于流末构造提案时经此分配（propose() 与 proposeStream
+ * 路径 id 不重复）。
+ */
+export function nextProviderProposalId(): string {
+  providerProposalCounter += 1;
+  return `proposal_provider_${String(providerProposalCounter).padStart(4, '0')}`;
+}
+
 export class ProviderLlmGateway implements LlmGateway {
   private readonly config: ProviderLlmConfig;
   private calls = 0;
@@ -192,15 +213,92 @@ export class ProviderLlmGateway implements LlmGateway {
         `llm provider response malformed (provider=${this.config.provider}, call=${this.calls}: missing choices[0].message.content)`,
       );
     }
-    providerProposalCounter += 1;
     return {
-      proposal_id: `proposal_provider_${String(providerProposalCounter).padStart(4, '0')}`,
+      proposal_id: nextProviderProposalId(),
       content,
       // LLM 禁止动作（SRC-06 §17）：提供方不提案状态写入——恒空对象。
       state_update_proposal: {},
       // 提供方未返回结构化置信字段——映射为固定值 1.0（与合成模式一致；未来经版本化修订）。
       confidence: 1,
     };
+  }
+
+  /**
+   * 增量流式提案（S5A-SEMANTIC-FREEZE-01 v1.2.0 / CR-38）：
+   * 请求体增 stream:true（chat-completions 兼容 SSE 流式
+   * 形态）；响应经 data: 行逐片解析（choices[0].delta
+   * .content），[DONE] 终止。失败映射与 propose() 同纪律
+   * （错误信息仅含 provider / 状态码 / 调用计数——不含
+   * key、不含请求体）。取消：request.signal 中止上游连接。
+   */
+  async *proposeStream(request: LlmRequest): AsyncIterable<string> {
+    this.calls += 1;
+    const body = {
+      model: this.config.model,
+      messages: [
+        { role: 'system', content: this.config.systemPrompt },
+        { role: 'user', content: renderProviderUserMessage(request.context) },
+      ],
+      temperature: this.config.temperature,
+      stream: true,
+    };
+    let response: Response;
+    try {
+      response = await fetch(this.requestUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.config.apiKey}`,
+        },
+        body: JSON.stringify(body),
+        signal: request.signal,
+      });
+    } catch {
+      // 取消（信号中止）与网络故障同形上抛——运行期按信号
+      // 状态区分（取消产出 cancelled 事件，故障映射流中断）。
+      throw new Error(
+        `llm provider upstream network failure (provider=${this.config.provider}, call=${this.calls})`,
+      );
+    }
+    if (!response.ok) {
+      throw new Error(
+        `llm provider upstream failed (provider=${this.config.provider}, status=${response.status}, call=${this.calls})`,
+      );
+    }
+    if (!response.body) {
+      throw new Error(
+        `llm provider response malformed (provider=${this.config.provider}, call=${this.calls}: no response body stream)`,
+      );
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let newlineIndex = buffer.indexOf('\n');
+      while (newlineIndex !== -1) {
+        const line = buffer.slice(0, newlineIndex).trim();
+        buffer = buffer.slice(newlineIndex + 1);
+        newlineIndex = buffer.indexOf('\n');
+        if (line.length === 0 || !line.startsWith('data:')) continue;
+        const data = line.slice('data:'.length).trim();
+        if (data === '[DONE]') return;
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(data);
+        } catch {
+          throw new Error(
+            `llm provider response malformed (provider=${this.config.provider}, call=${this.calls}: non-JSON SSE data)`,
+          );
+        }
+        const delta = extractProviderDelta(parsed);
+        if (delta !== undefined && delta.length > 0) {
+          yield delta;
+        }
+      }
+    }
   }
 }
 
@@ -221,6 +319,27 @@ function extractProviderContent(parsed: unknown): string | undefined {
     return undefined;
   }
   const content = (message as { content?: unknown }).content;
+  return typeof content === 'string' ? content : undefined;
+}
+
+/** SSE 流式增量解析（choices[0].delta.content——S5A v1.2.0）。 */
+function extractProviderDelta(parsed: unknown): string | undefined {
+  if (parsed === null || typeof parsed !== 'object') {
+    return undefined;
+  }
+  const choices = (parsed as { choices?: unknown }).choices;
+  if (!Array.isArray(choices) || choices.length === 0) {
+    return undefined;
+  }
+  const first = choices[0];
+  if (first === null || typeof first !== 'object') {
+    return undefined;
+  }
+  const delta = (first as { delta?: unknown }).delta;
+  if (delta === null || typeof delta !== 'object') {
+    return undefined;
+  }
+  const content = (delta as { content?: unknown }).content;
   return typeof content === 'string' ? content : undefined;
 }
 
