@@ -95,7 +95,7 @@
   ],
   "evidence": {
     "trace": "traces/S2B-0001:PRIORITY-CHAIN.jsonl",
-    "traceSha256": "139b9add915cb67c18666429dafef58600555bb32f2f180c194dd73adc8a3eab",
+    "traceSha256": "8af8b1e803039cb3a53e3a2def5ffba3de9ceba88f54869699223ed1381e528e",
     "form": "in-process",
     "servers": []
   },

@@ -1,2 +1,2 @@
-{"caseId":"S2B-0001:PRIORITY-CHAIN","event":"trace_started","at":"2026-10-10T10:11:28.707Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 案例面 5；policy_v2.0.0 变更 4；P-01/P-03","servers":[]}
-{"caseId":"S2B-0001:PRIORITY-CHAIN","event":"trace_completed","at":"2026-10-10T10:11:29.457Z","startedAt":"2026-10-10T10:11:28.707Z","durationMs":750,"result":"PASS","pass":true}
+{"caseId":"S2B-0001:PRIORITY-CHAIN","event":"trace_started","at":"2026-10-10T13:30:11.673Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 案例面 5；policy_v2.0.0 变更 4；P-01/P-03","servers":[]}
+{"caseId":"S2B-0001:PRIORITY-CHAIN","event":"trace_completed","at":"2026-10-10T13:30:12.415Z","startedAt":"2026-10-10T13:30:11.673Z","durationMs":742,"result":"PASS","pass":true}
