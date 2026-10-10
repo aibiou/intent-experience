@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G04-NEG","event":"trace_started","at":"2026-10-09T17:36:28.759Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G04 Negative；P-02 同族（生成中 CREATE：取消旧生成、拒绝旧候选）；PD-21","goldenCase":"G04","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G04-NEG","event":"trace_completed","at":"2026-10-09T17:36:29.136Z","startedAt":"2026-10-09T17:36:28.759Z","durationMs":377,"result":"PASS","pass":true}

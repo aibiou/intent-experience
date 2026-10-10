@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G01-N","event":"trace_started","at":"2026-10-09T17:36:20.924Z","form":"in-process","sourceClause":"P2 Exit Gate & Sign-off §8 G01 Direct Answer；S1 §26 GS-01；Evaluation System V1 §5 G01；CC04","goldenCase":"G01","dimension":"NORMAL"}
-{"caseId":"G3-GOLDEN-0001:G01-N","event":"trace_completed","at":"2026-10-09T17:36:21.261Z","startedAt":"2026-10-09T17:36:20.924Z","durationMs":337,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G01-N","event":"trace_started","at":"2026-10-10T00:38:52.587Z","form":"in-process","sourceClause":"P2 Exit Gate & Sign-off §8 G01 Direct Answer；S1 §26 GS-01；Evaluation System V1 §5 G01；CC04","goldenCase":"G01","dimension":"NORMAL"}
+{"caseId":"G3-GOLDEN-0001:G01-N","event":"trace_completed","at":"2026-10-10T00:38:52.922Z","startedAt":"2026-10-10T00:38:52.587Z","durationMs":335,"result":"PASS","pass":true}

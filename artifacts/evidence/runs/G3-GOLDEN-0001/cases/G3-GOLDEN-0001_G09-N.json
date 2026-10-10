@@ -6,7 +6,7 @@
   "inputFault": "无（正常路径；\"再深入关卡一点\" → DEEPEN，目标经 TARGET_SYNONYMS 由\"关卡\"派生为 level）",
   "expected": {
     "classification": "DEEPEN（\"深入\"词表；目标经 TARGET_SYNONYMS 由\"关卡\"派生为 level）",
-    "policy": "DEEPEN → DEEPEN（policy_v2.0.0；14 §8 恒等映射）",
+    "policy": "DEEPEN → DEEPEN（policy_v2.1.0；14 §8 恒等映射）",
     "flow": "WHY → CREATE → DEEPEN（创作会话内顶层补丁操作）",
     "content": "方向性修改提案（合成数据）：深入——扩展当前创作对象的主题深度，补充更深层的机制说明与推导；作品结构保持，仅登记方向性补丁（版本单调 +1）。（流式结束）",
     "headerState": "ACTIVE/CREATION（迁移提交时视图）",
@@ -18,7 +18,7 @@
   "actual": {
     "classification": "DEEPEN",
     "policyAction": "DEEPEN",
-    "policyVersion": "policy_v2.0.0",
+    "policyVersion": "policy_v2.1.0",
     "policyReason": "creation_modification",
     "stateVersion": 7,
     "headerState": "ACTIVE/CREATION",
@@ -45,7 +45,7 @@
     "patchCreationVersion": 2,
     "createTransitions": 2,
     "decisionTraceSemanticAction": "DEEPEN",
-    "decisionTracePolicyVersion": "policy_v2.0.0",
+    "decisionTracePolicyVersion": "policy_v2.1.0",
     "decisionTraceReason": "explicit_user_direction",
     "finalState": "WAITING/CREATION",
     "finalStateVersion": 8,
@@ -67,7 +67,7 @@
   ],
   "evidence": {
     "trace": "traces/G3-GOLDEN-0001:G09-N.jsonl",
-    "traceSha256": "a31c24353db49f0d6a4f2e7e8f05691ac372032611110aa67dafda7a1a01d91a",
+    "traceSha256": "ac556f0361e72c45a0a043d9e71807a5e2e39f9f19e8b4110dde2e104d4cc895",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },

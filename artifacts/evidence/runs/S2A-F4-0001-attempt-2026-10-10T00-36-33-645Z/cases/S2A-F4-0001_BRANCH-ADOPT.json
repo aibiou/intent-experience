@@ -1,0 +1,117 @@
+{
+  "caseIdNamespace": "S2A-F4-0001:BRANCH-ADOPT",
+  "sourceClause": "S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A（第五分支操作 ADOPT_BRANCH——产品负责人 2026-10-09 裁决）；policy_v2.1.0 变更 1–5；C6 §14（simulation_adopted 命名模式 <domain>_<past_participle>）；E8-G2-CC07（采用结果仍标记为模拟来源）；D-02 选项 A（主线当前上下文不变——显式回流为经用户指令的例外通道）；S1-12；OBL-01（拒绝不消耗版本号）",
+  "scope": "显式回流操作 ADOPT_BRANCH：分支 1 累积两轮后采用（adopted 标记附加，生命周期 ACTIVE 不变，主线当前上下文不变——currentBranchId 保持分支 1；simulation_adopted ×1，properties 含 branch_id / source_round=1 / adopted_content 摘要=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact；结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文）→ 负向：采用不存在分支序号（分支九）INVALID_STATE_TRANSITION（拒绝先于任何写入，不消耗版本号）→ RETURN（分支 1 RETURNED，currentBranchId=null）→ 无激活分支上下文采用分支 1（RETURNED 生命周期不变，adopted 幂等，currentBranchId 保持 null——主线当前上下文不变）；分支操作轮为确定性系统回合（llm_used=false）",
+  "precondition": "WHAT_IF 意图链已建立（启动 v2）；两轮模拟完成（分支 1，version=2，ACTIVE）",
+  "inputFault": "WHAT_IF 洁净输入两轮 + 分支操作输入（\"如果采用分支一的结论呢\" ×2 / \"如果采用分支九的结论呢\"〔负向〕/ \"如果返回主线呢\"）",
+  "expected": {
+    "chain": "WHAT_IF 轮 1（自动 CREATE 分支 1）→ 轮 2（累积）→ ADOPT_BRANCH 分支 1（adopted 附加，主线当前上下文不变）→ 负向：采用分支九 INVALID_STATE_TRANSITION（不消耗版本号）→ RETURN（分支 1 RETURNED，当前清空）→ ADOPT_BRANCH 分支 1（RETURNED 生命周期不变，adopted 幂等，currentBranchId 保持 null）",
+    "contracts": "全部事件信封符合 C6 §7；sequence_number 严格单调（C6 §25）；全部决策追踪 policy_version=policy_v2.1.0（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 经 policy_v2.1.0 变更 1–5 生效）；模拟轮内容逐字节等于 simulate 语料；采用轮结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文",
+    "simulationDomain": "simulation_recorded ×2（round 1/2 同一分支——仅模拟轮登记）；simulation_adopted ×2（branch_id=分支 1，source_round=1，adopted_content=分支 1 最新模拟轮模拟内容，separation_invariant=simulation_result_is_not_fact——采用结果仍标记为模拟来源）",
+    "branchModel": "分支 1：lifecycle ACTIVE→ACTIVE（采用不变）→RETURNED（RETURN）→RETURNED（采用不变）；adopted false→true（附加标记，幂等）；version=2（采用不累积模拟轮次）；currentBranchId 分支 1→分支 1（采用不变）→null（RETURN）→null（采用不变——主线当前上下文不变）",
+    "finalState": "WAITING/SIMULATION v12（启动 v2 + 轮 1/2 各 +2 + 采用 1 +2 + RETURN +2 + 采用 2 +2；负向拒绝轮零消耗——OBL-01）"
+  },
+  "actual": {
+    "r1Ok": true,
+    "r2Ok": true,
+    "roundContentMatchesFixture": true,
+    "branchCountAfterR2": 1,
+    "branchAdoptedAfterR2": false,
+    "branchLifecycleAfterR2": "ACTIVE",
+    "branchVersionAfterR2": 2,
+    "currentBranchIdAfterR2": "branch_synthetic_0001",
+    "adopt1Ok": true,
+    "adopt1SelectedAction": "SIMULATE",
+    "adopt1Reason": "simulation_branch_operation",
+    "adopt1PolicyVersion": "policy_v2.1.0",
+    "adopt1ContentPresentsAdoptedContent": true,
+    "branchAdoptedAfterAdopt1": true,
+    "branchLifecycleAfterAdopt1": "ACTIVE",
+    "branchVersionAfterAdopt1": 2,
+    "branchRoundsAfterAdopt1": 2,
+    "currentBranchIdAfterAdopt1": "branch_synthetic_0001",
+    "adoptNineOk": false,
+    "adoptNineErrorCode": "INVALID_STATE_TRANSITION",
+    "versionBeforeNegative": 8,
+    "versionAfterNegative": 8,
+    "retOk": true,
+    "branchLifecycleAfterReturn": "RETURNED",
+    "currentBranchIdAfterReturn": null,
+    "adopt2Ok": true,
+    "adopt2SelectedAction": "SIMULATE",
+    "adopt2Reason": "simulation_branch_operation",
+    "adopt2ContentPresentsAdoptedContent": true,
+    "branchAdoptedAfterAdopt2": true,
+    "branchLifecycleAfterAdopt2": "RETURNED",
+    "branchVersionAfterAdopt2": 2,
+    "branchRoundsAfterAdopt2": 2,
+    "currentBranchIdAfterAdopt2": null,
+    "simulationRecorded": [
+      {
+        "round": 1,
+        "branch_id": "branch_synthetic_0001"
+      },
+      {
+        "round": 2,
+        "branch_id": "branch_synthetic_0001"
+      }
+    ],
+    "simulationAdopted": [
+      {
+        "branch_id": "branch_synthetic_0001",
+        "source_round": 1,
+        "adopted_content_matches_latest_round": true,
+        "separation_invariant": "simulation_result_is_not_fact"
+      },
+      {
+        "branch_id": "branch_synthetic_0001",
+        "source_round": 1,
+        "adopted_content_matches_latest_round": true,
+        "separation_invariant": "simulation_result_is_not_fact"
+      }
+    ],
+    "branchOpLlmUsed": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "adoptTraceReasons": [
+      "explicit_user_direction",
+      "invalid_state_transition",
+      "explicit_user_direction"
+    ],
+    "adoptTraceCount": 3,
+    "envelopeViolations": 0,
+    "sequenceMonotonic": true,
+    "policyVersions": [
+      "policy_v2.1.0"
+    ],
+    "finalStateVersion": 12
+  },
+  "invariants": [
+    "F-4 范围边界（S2A-F4-SEMANTIC-FREEZE-01 §1/§2 D-01 选项 A 分层）：WHAT_IF → SIMULATE 映射不变（S1 §14）；执行语义由 PD-06 单次模拟提案扩展为多轮模拟持久化（第一层）+ 轴外分支子状态机（第二层，D-02/D-03 选项 A）；不新增顶层 SemanticAction / PolicyAction（PD-23 §5）；分类优先级层不变（STOP > CHANGE_DIRECTION > CORRECTION > CREATE > WHY > WHAT_IF > DIRECT_ANSWER）",
+    "多轮模拟持久化（§3 变更 1，第一层）：每轮模拟结果经模拟域事件登记（simulation_recorded，D-05 选项 A）——properties 含 fact / inference / hypothesis / simulation 四元分离字段 + 源输入摘要；模拟历史会话内持久（D-04 选项 A——07 §3 Session State 纪律）；多轮模拟阶段迁移保持 SIMULATION（13 §15.3）；每次合法提交版本恰好 +1（S1-12；stale 拒绝）；不新建 Session / Experience（G03-N 不变式）",
+    "四元分离不变式（E8-G2-CC07）：模拟结果不得表现为事实——事件 schema 约束（simulation 字段与 fact 字段互斥注记 separation_invariant=simulation_result_is_not_fact）+ 内容语料分离格式（事实——/推断——/假设——标记）双重保证",
+    "轴外分支子状态机（§3 变更 2 / §4 变更 2，D-02 选项 A）：分支记录为体验状态轴之外的持久对象（branch_id / 源模拟轮次 / 模拟结果记录（四元分离）/ 版本 / 生命周期状态五分量）；体验阶段轴不变（WHAT_IF 轮次保持 SIMULATION 阶段，13 §15.3——分支操作不新增体验轴触发器）；分支模拟结果默认不回流为主线结论（D-02 选项 A 推导——\"采用某分支结论\"须产品负责人另案版本化定义，本版不预先写死）",
+    "分支生命周期操作集（D-03 选项 A 四操作最小集 + S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 第五操作）：CREATE（WHAT_IF 首轮自动创建分支记录）/ SWITCH（显式切换激活分支）/ ABANDON（放弃分支）/ RETURN（返回主线模拟上下文）/ ADOPT_BRANCH（显式采用分支结论——目标分支记录附加 adopted 标记，生命周期契约不变；采用结果经 simulation_adopted 事件登记，properties 含 branch_id / source_round / adopted_content 摘要 / separation_invariant=simulation_result_is_not_fact；采用结果呈现为新一轮模拟上下文，主线当前上下文不变，用户须另行 CREATE 提交方将采纳内容纳入作品）；操作识别为确定性规则词表（同分类器纪律，具体词表为实现细节；词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH）；SWITCH / ABANDON / ADOPT_BRANCH 须命中分支作用域词表 + 可解析目标序号，否则走通用 SIMULATE 执行路径；分支模拟结果默认不回流为主线结论（D-02 选项 A——显式回流是经用户指令的例外通道，非默认行为）",
+    "分支状态会话内持久、会话结束失效（D-04 选项 A）：跨 USER_ACTION / RESPONSE_COMPLETED 周期存活；体验完成 / 方向变更 / 重复 CREATE 取代在途创作会话时模拟域失效（事件为不可变权威事实——C6 §5，失效仅作用于运行时存储）；跨会话分支持久化属 F-5 Minimal Memory 裁决范围（授权 §2(4) 专管），本切片不实施",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action；PD-12 同层解释顺序 WHY > WHAT_IF",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；分支操作轮次经同一串行化写者纪律（版本化提交后应用——S1-12）；失败写入不消耗任何版本号（OBL-01 纪律——含分支操作前置校验拒绝）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）；分支操作轮次为确定性系统回合（无 LLM 提案——决策追踪 llm_used=false）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）；模拟轮次决策追踪 reasonPrimary=semantic_action（llm_used=true）；分支操作轮次 reasonPrimary=explicit_user_direction（llm_used=false）；拒绝轮次 reasonPrimary=invalid_state_transition",
+    "模拟不持久化跨会话（PD-07——模拟域事件与分支记录均为会话内事实登记，无 memory 层事件）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/S2A-F4-0001:BRANCH-ADOPT.jsonl",
+    "traceSha256": "701465eb1a430c31e11d3dceaf63304d98da4839377660e495101a168a9409fd",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "FAIL",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "本案例未通过——按 ADR-0002 §5 如实登记，不得重跑至通过为止；缺陷须在下一迭代处置"
+}

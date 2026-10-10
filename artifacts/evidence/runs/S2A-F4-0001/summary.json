@@ -1,9 +1,9 @@
 {
   "runId": "S2A-F4-0001",
-  "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表）",
-  "startedAt": "2026-10-09T17:50:05.675Z",
-  "finishedAt": "2026-10-09T17:50:21.444Z",
-  "durationMs": 15767,
+  "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.1.0 变更 1–5，本运行扩展 BRANCH-ADOPT 案例组）",
+  "startedAt": "2026-10-10T00:36:31.227Z",
+  "finishedAt": "2026-10-10T00:36:47.844Z",
+  "durationMs": 16612,
   "cases": [
     {
       "caseId": "MULTI-ROUND",
@@ -40,13 +40,17 @@
     {
       "caseId": "BRANCH-LIFECYCLE",
       "result": "PASS"
+    },
+    {
+      "caseId": "BRANCH-ADOPT",
+      "result": "PASS"
     }
   ],
   "allCasesPass": true,
   "assertions": [
     {
       "id": "A1",
-      "description": "MULTI-ROUND：多轮模拟持久化——两轮 WHAT_IF（\"如果摩擦力为零会怎样\" → \"假如速度再高一点会怎样\"）各一次合法提交两次版本化提交（版本链 2→3→4→5→6，每次合法提交恰好 +1，S1-12）；selected_action=SIMULATE；阶段 UNDERSTANDING → SIMULATION → SIMULATION（13 §15.3）；simulation_recorded ×2（round 1/2 同一分支，branch_created [true, false]，separation_invariant=simulation_result_is_not_fact）；内容逐字节等于 simulate 语料；决策追踪 reasonPrimary=semantic_action，llm_used=true，policy_version=policy_v2.0.0（F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.0.0 延续不变）；模拟域快照 1 分支（ACTIVE，version=2，sourceRound=1）",
+      "description": "MULTI-ROUND：多轮模拟持久化——两轮 WHAT_IF（\"如果摩擦力为零会怎样\" → \"假如速度再高一点会怎样\"）各一次合法提交两次版本化提交（版本链 2→3→4→5→6，每次合法提交恰好 +1，S1-12）；selected_action=SIMULATE；阶段 UNDERSTANDING → SIMULATION → SIMULATION（13 §15.3）；simulation_recorded ×2（round 1/2 同一分支，branch_created [true, false]，separation_invariant=simulation_result_is_not_fact）；内容逐字节等于 simulate 语料；决策追踪 reasonPrimary=semantic_action，llm_used=true，policy_version=policy_v2.1.0（F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.1.0 延续不变）；模拟域快照 1 分支（ACTIVE，version=2，sourceRound=1）",
       "passed": true,
       "detail": {
         "multiRound": true
@@ -94,7 +98,7 @@
     },
     {
       "id": "A7",
-      "description": "NONCREATION-INERT：非模拟场景（WHY → EXPLAIN）行为与前置版本一致——why_requested ×1，state_transitioned steps [USER_ACTION]，终态 WAITING/UNDERSTANDING v4，内容逐字节等于 why 语料，决策追踪 llm_used=true；与前置版本（policy_v1.3.0）仅有的差异为 policy_version=policy_v2.0.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.0.0 延续）；模拟域零事件（simulation_recorded=0）且无模拟上下文（getSimulation 拒绝——非模拟路径不受 F-4 影响）",
+      "description": "NONCREATION-INERT：非模拟场景（WHY → EXPLAIN）行为与前置版本一致——why_requested ×1，state_transitioned steps [USER_ACTION]，终态 WAITING/UNDERSTANDING v4，内容逐字节等于 why 语料，决策追踪 llm_used=true；与前置版本（policy_v1.3.0）仅有的差异为 policy_version=policy_v2.1.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续）；模拟域零事件（simulation_recorded=0）且无模拟上下文（getSimulation 拒绝——非模拟路径不受 F-4 影响）",
       "passed": true,
       "detail": {
         "noncreationInert": true
@@ -102,7 +106,7 @@
     },
     {
       "id": "A8",
-      "description": "INPROC-REGRESSION：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（RETURN 后首轮自动 CREATE 新分支）→ CREATE 衔接（13 §15.5）→ 完成信号（STOP）全链路——信封全量有效（C6 §7）、sequence_number 严格单调（C6 §25）、全部决策追踪 policy_version=policy_v2.0.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.0.0 延续不变）；WHY / 模拟轮 / CREATE 内容逐字节等于 why / simulate / create 语料；RETURN 轮 selected_action=SIMULATE 且 reason=simulation_branch_operation（确定性系统回合）；simulation_recorded ×3（round 1/2 同一分支，round 3 新分支）；终态 COMPLETED/COMPLETION；创作 COMPLETE（active=false，v1）；会话 SESSION_ENDED；模拟域随会话结束失效（D-04 选项 A——getSimulation 拒绝）",
+      "description": "INPROC-REGRESSION：WHY → 模拟轮 1 → 模拟轮 2 → 分支操作 RETURN → 模拟轮 3（RETURN 后首轮自动 CREATE 新分支）→ CREATE 衔接（13 §15.5）→ 完成信号（STOP）全链路——信封全量有效（C6 §7）、sequence_number 严格单调（C6 §25）、全部决策追踪 policy_version=policy_v2.1.0（F-4 语义经 policy_v1.4.0 冻结、policy_v2.1.0 延续不变）；WHY / 模拟轮 / CREATE 内容逐字节等于 why / simulate / create 语料；RETURN 轮 selected_action=SIMULATE 且 reason=simulation_branch_operation（确定性系统回合）；simulation_recorded ×3（round 1/2 同一分支，round 3 新分支）；终态 COMPLETED/COMPLETION；创作 COMPLETE（active=false，v1）；会话 SESSION_ENDED；模拟域随会话结束失效（D-04 选项 A——getSimulation 拒绝）",
       "passed": true,
       "detail": {
         "inprocRegression": true
@@ -118,24 +122,32 @@
     },
     {
       "id": "A10",
-      "description": "全部 9 案例记录齐备且 12 字段完整（E5 §4；9 执行；PD-19 延期义务已履行——G04/G07/G08 关闭切片执行，无 DEFERRED 登记）",
+      "description": "BRANCH-ADOPT：显式回流操作 ADOPT_BRANCH（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A——第五分支操作，policy_v2.1.0 变更 1–5）——轮 1/2 自动 CREATE 分支 1 并累积（adopted=false，ACTIVE，version=2）→ 采用分支 1（adopted=true 附加，生命周期 ACTIVE 不变，主线当前上下文不变——currentBranchId 保持分支 1；simulation_adopted ×1，properties 含 branch_id / source_round=1 / adopted_content 摘要=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact；结果流呈现采纳内容为新一轮模拟上下文；selected_action=SIMULATE，reason=simulation_branch_operation，policy_version=policy_v2.1.0）→ 负向：采用不存在分支序号（分支九）INVALID_STATE_TRANSITION（拒绝先于任何写入，不消耗版本号——OBL-01）→ RETURN（分支 1 RETURNED，currentBranchId=null）→ 无激活分支上下文采用分支 1（RETURNED 生命周期不变，adopted 幂等保持 true，currentBranchId 保持 null——主线当前上下文不变）；simulation_recorded ×2（仅模拟轮登记）；simulation_adopted ×2；分支操作决策追踪 4 轮 llm_used=false（确定性系统回合），ADOPT_BRANCH 轨迹 3 轮——采用轮（成功 ×2）reasonPrimary=explicit_user_direction、拒绝轮 reasonPrimary=invalid_state_transition；全部决策追踪 policy_version=policy_v2.1.0；信封全量有效、sequence 严格单调；终态 WAITING/SIMULATION v12（负向拒绝轮零版本消耗）",
       "passed": true,
       "detail": {
-        "recordFiles": 9,
-        "expected": 9,
-        "allCasesPass": true
+        "branchAdopt": true
       }
     },
     {
       "id": "A11",
-      "description": "全部 9 案例轨迹文件齐备且非空",
+      "description": "全部 10 案例记录齐备且 12 字段完整（E5 §4；10 执行；PD-19 延期义务已履行——G04/G07/G08 关闭切片执行，无 DEFERRED 登记）",
       "passed": true,
       "detail": {
-        "traceFiles": 9
+        "recordFiles": 10,
+        "expected": 10,
+        "allCasesPass": true
       }
     },
     {
-      "id": "A12-PREFLIGHT",
+      "id": "A12",
+      "description": "全部 10 案例轨迹文件齐备且非空",
+      "passed": true,
+      "detail": {
+        "traceFiles": 10
+      }
+    },
+    {
+      "id": "A13-PREFLIGHT",
       "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配（失败为 FATAL，不计入断言池）",
       "passed": true,
       "detail": {
@@ -146,7 +158,7 @@
       }
     },
     {
-      "id": "A13",
+      "id": "A14",
       "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + F-4 模拟语义专项 simulationSemantics + obligationTraceability）",
       "passed": true,
       "detail": {
@@ -154,7 +166,7 @@
       }
     },
     {
-      "id": "A14",
+      "id": "A15",
       "description": "环境锁定：engines.node === \"24.21.0\"（F-2 精确锁定，F-4 延续）且执行于 Node v24.21.0；lockfileVersion 3；Next.js / React / TypeScript 版本登记",
       "passed": true,
       "detail": {
@@ -167,22 +179,22 @@
       }
     },
     {
-      "id": "A15",
-      "description": "F-4 版本矩阵义务绑定：policy 版本 policy_v2.0.0（现行冻结——S2B-SEMANTIC-FREEZE-01 D-05；F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.0.0 延续不变）；state_machine 版本 state_machine_v1.5.0（现行——F-4 契约化冻结于 state_machine_v1.3.0 §4 变更 1/2，延续不变）；frozenDecisions D-01…D-05 齐备（全项选项 A）；黄金回归绑定 G3-GOLDEN-0001（F-4 实施时 32/32、断言已同步 policy_v1.4.0——历史绑定在录）；实施文件清单 5 项齐备（含 simulation.ts 新增）",
+      "id": "A16",
+      "description": "F-4 版本矩阵义务绑定：policy 版本 policy_v2.1.0（现行冻结——S2B-SEMANTIC-FREEZE-01 D-05 经 policy_v2.1.0 延续 + S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 变更 1–5 补写生效；F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2，经 policy_v2.1.0 延续不变）；state_machine 版本 state_machine_v1.5.0（现行——F-4 契约化冻结于 state_machine_v1.3.0 §4 变更 1/2，延续不变）；frozenDecisions D-01…D-05 齐备（全项选项 A）；黄金回归绑定 G3-GOLDEN-0001（F-4 实施时 32/32、断言已同步 policy_v1.4.0——历史绑定在录）；实施文件清单 5 项齐备（含 simulation.ts 新增）",
       "passed": true,
       "detail": {
-        "policyVersion": "policy_v2.0.0",
+        "policyVersion": "policy_v2.1.0",
         "stateMachineVersion": "state_machine_v1.5.0",
         "frozenDecisionCount": 5,
         "implementationFileCount": 5
       }
     },
     {
-      "id": "A16",
+      "id": "A17",
       "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
       "passed": true,
       "detail": {
-        "verified": 20,
+        "verified": 22,
         "failed": []
       }
     }

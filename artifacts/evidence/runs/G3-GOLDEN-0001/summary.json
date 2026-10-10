@@ -1,9 +1,9 @@
 {
   "runId": "G3-GOLDEN-0001",
   "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）",
-  "startedAt": "2026-10-09T17:36:17.891Z",
-  "finishedAt": "2026-10-09T17:36:37.747Z",
-  "durationMs": 19855,
+  "startedAt": "2026-10-10T00:38:50.195Z",
+  "finishedAt": "2026-10-10T00:39:14.612Z",
+  "durationMs": 24413,
   "goldenCases": [
     {
       "goldenCase": "G01",
@@ -79,6 +79,15 @@
     },
     {
       "goldenCase": "G09",
+      "dimensions": [
+        "NORMAL",
+        "NEGATIVE",
+        "BOUNDARY",
+        "FAILURE_RECOVERY"
+      ]
+    },
+    {
+      "goldenCase": "G10",
       "dimensions": [
         "NORMAL",
         "NEGATIVE",
@@ -303,9 +312,33 @@
       "goldenCase": "G09",
       "dimension": "FAILURE_RECOVERY",
       "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G10-N",
+      "goldenCase": "G10",
+      "dimension": "NORMAL",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G10-NEG",
+      "goldenCase": "G10",
+      "dimension": "NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G10-B",
+      "goldenCase": "G10",
+      "dimension": "BOUNDARY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G10-FR",
+      "goldenCase": "G10",
+      "dimension": "FAILURE_RECOVERY",
+      "result": "PASS"
     }
   ],
-  "executedCases": 36,
+  "executedCases": 40,
   "allExecutedCasesPass": true,
   "deferredCases": [],
   "assertions": [
@@ -316,17 +349,17 @@
     },
     {
       "id": "A3",
-      "description": "全部 36 案例记录齐备且 12 字段完整（E5 §4；36 执行；PD-19 延期义务已履行——G04/G07/G08 关闭切片执行，无 DEFERRED 登记）",
+      "description": "全部 40 案例记录齐备且 12 字段完整（E5 §4；40 执行；PD-19 延期义务已履行——G04/G07/G08 关闭切片执行，无 DEFERRED 登记）",
       "passed": true
     },
     {
       "id": "A4",
-      "description": "全部 36 执行案例轨迹齐备且非空（trace_started + 案例事实 + trace_completed）",
+      "description": "全部 40 执行案例轨迹齐备且非空（trace_started + 案例事实 + trace_completed）",
       "passed": true
     },
     {
       "id": "A5",
-      "description": "黄金维度覆盖：G01–G09 各具备 NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度（P2 Exit Gate §8；G04/G07/G08 为 PD-21 关闭切片最小实现；G09 为 S2b 新增黄金案例）",
+      "description": "黄金维度覆盖：G01–G10 各具备 NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度（P2 Exit Gate §8；G04/G07/G08 为 PD-21 关闭切片最小实现；G09 为 S2b 新增黄金案例；G10 为 S2 分支回流新增黄金案例——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A）",
       "passed": true
     },
     {
@@ -346,7 +379,7 @@
     },
     {
       "id": "A9",
-      "description": "全部 36 执行案例 PASS（本运行断言；不设置 G3 为 PASS——G3 判定属独立评测）",
+      "description": "全部 40 执行案例 PASS（本运行断言；不设置 G3 为 PASS——G3 判定属独立评测）",
       "passed": true
     },
     {
