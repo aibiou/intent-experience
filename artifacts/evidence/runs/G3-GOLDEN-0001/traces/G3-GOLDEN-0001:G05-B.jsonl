@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G05-B","event":"trace_started","at":"2026-10-10T04:48:40.591Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G05 Boundary；C6 §27 / API §2.4 请求幂等（REQUEST_DUPLICATE）","goldenCase":"G05","dimension":"BOUNDARY"}
-{"caseId":"G3-GOLDEN-0001:G05-B","event":"trace_completed","at":"2026-10-10T04:48:40.979Z","startedAt":"2026-10-10T04:48:40.590Z","durationMs":389,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G05-B","event":"trace_started","at":"2026-10-10T07:42:22.245Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G05 Boundary；C6 §27 / API §2.4 请求幂等（REQUEST_DUPLICATE）","goldenCase":"G05","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G05-B","event":"trace_completed","at":"2026-10-10T07:42:22.626Z","startedAt":"2026-10-10T07:42:22.245Z","durationMs":381,"result":"PASS","pass":true}

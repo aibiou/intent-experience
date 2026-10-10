@@ -17,7 +17,7 @@
     "lifecycleAfterReturn": "RETURNED",
     "currentBranchIdAfterReturn": null,
     "adopt1Ok": true,
-    "adopt1PolicyVersion": "policy_v2.2.0",
+    "adopt1PolicyVersion": "policy_v2.3.0",
     "adopt1ContentPresentsAdoptedContent": true,
     "branchAdoptedAfterAdopt1": true,
     "branchLifecycleAfterAdopt1": "RETURNED",
@@ -45,7 +45,7 @@
   ],
   "evidence": {
     "trace": "traces/G3-GOLDEN-0001:G10-B.jsonl",
-    "traceSha256": "8ceeeecadd7f71b7b3ed2812e32798e544730af627dfab4b9c14fe712b8e2efd",
+    "traceSha256": "1af132bbb063d85db042e25ff6447fc75bdcd03c1aec3d0691bf320dc3d4f854",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },

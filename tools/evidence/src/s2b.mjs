@@ -77,9 +77,9 @@ const EVALUATOR_SEPARATION =
   '执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。';
 
 const INVARIANTS = [
-  'S2b 范围边界（S2B-SEMANTIC-FREEZE-01 §2/§3/§4）：DEEPEN / SIMPLIFY / REFRAME 为顶层语义动作（14 §8 恒等映射，policy_v2.0.0 变更 1，经 policy_v2.1.0 / policy_v2.2.0 延续）；创作域顶层补丁操作 deepen / simplify / reframe（与 add / remove / modify 同级，非 modify 子型——变更 3）；优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER（变更 4）',
-  '非创作会话保护（policy_v2.0.0 变更 5，经 policy_v2.1.0 / policy_v2.2.0 延续）：DEEPEN / SIMPLIFY / REFRAME 在无活跃创作对象时按升级规则处理——INVALID_ACTION 升级，不静默执行未定义语义（C3 纪律，model on F-2/F-3 创作会话路由保护）；拒绝先于任何写入（失败不消耗版本号，OBL-01 纪律）',
-  'SEARCH 能力纪律（policy_v2.0.0 变更 2/6，经 policy_v2.1.0 / policy_v2.2.0 延续；14 §7）：内部能力动作，不入 SemanticAction 域；只读——不改变体验、不触发产品动作、不产生事件；无外部网络出口（确定性规则检索，不调用任何提供方）；作用面限当前体验内容 / 创作对象 / 会话内上下文（D-03 选项 A；跨会话记忆检索属 F-5 记忆域 L5，不经 SEARCH 动作）',
+  'S2b 范围边界（S2B-SEMANTIC-FREEZE-01 §2/§3/§4）：DEEPEN / SIMPLIFY / REFRAME 为顶层语义动作（14 §8 恒等映射，policy_v2.0.0 变更 1，经 policy_v2.1.0 / policy_v2.2.0 / policy_v2.3.0 延续——S4 为纯增量）；创作域顶层补丁操作 deepen / simplify / reframe（与 add / remove / modify 同级，非 modify 子型——变更 3）；优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER（变更 4；S4 经 policy_v2.3.0 在 DIRECT_ANSWER 之后扩展 CONTINUE > REPEAT——S2b 行为面零变化）',
+  '非创作会话保护（policy_v2.0.0 变更 5，经 policy_v2.1.0 / policy_v2.2.0 / policy_v2.3.0 延续——S4 为纯增量）：DEEPEN / SIMPLIFY / REFRAME 在无活跃创作对象时按升级规则处理——INVALID_ACTION 升级，不静默执行未定义语义（C3 纪律，model on F-2/F-3 创作会话路由保护）；拒绝先于任何写入（失败不消耗版本号，OBL-01 纪律）',
+  'SEARCH 能力纪律（policy_v2.0.0 变更 2/6，经 policy_v2.1.0 / policy_v2.2.0 / policy_v2.3.0 延续——S4 为纯增量；14 §7）：内部能力动作，不入 SemanticAction 域；只读——不改变体验、不触发产品动作、不产生事件；无外部网络出口（确定性规则检索，不调用任何提供方）；作用面限当前体验内容 / 创作对象 / 会话内上下文（D-03 选项 A；跨会话记忆检索属 F-5 记忆域 L5，不经 SEARCH 动作）',
   'VERIFY 附列裁决区选项 A：VERIFY 不启用为语义动作——VERIFY 类输入按既有 WHY / DIRECT_ANSWER 解释层处理，SEARCH 能力在这些路径内被调用（14 §8 路由纪律）',
   'First Experience 呈现路径（S2B-SEMANTIC-FREEZE-01 §4 变更 3；D-04 选项 A）：六阶段呈现（Curiosity → Understanding → Simulation → Branch → Creation → Completion）为已有体验阶段轴的呈现补全——E2 §7 冻结面不变，13 号状态机阶段轴不变（Branch 为 Simulation 阶段的分支探索呈现面——轴外分支记录 F-4 D-02）；只读呈现层——不产生事件、不改变任何状态；视觉样式不在冻结范围（E2 §5）',
   '方向性补丁合成模式（D-01 选项 A；08 §11 局部变更纪律）：结构保持（不重新生成整个作品）、版本单调 +1（S1-12 不变式）、user_changes 权威登记方向性条目（change.direction 标识操作方向——08 §11 不重新生成整个作品）；目标经 TARGET_SYNONYMS 确定性派生（默认 creation 级方向性修改）',
@@ -294,7 +294,7 @@ async function directionalFlow(runtime, events, traces, params) {
   const pass =
     submission.ok &&
     submission.header.policy_decision.selected_action === action &&
-    submission.header.policy_decision.policy_version === 'policy_v2.2.0' &&
+    submission.header.policy_decision.policy_version === 'policy_v2.3.0' &&
     submission.header.policy_decision.reason === 'creation_modification' &&
     submission.header.state_version === 7 &&
     `${submission.header.state.status}/${submission.header.state.stage}` === 'ACTIVE/CREATION' &&
@@ -310,7 +310,7 @@ async function directionalFlow(runtime, events, traces, params) {
     patchApplied[0].properties.creation_version === 2 &&
     createTransitions.length === 2 &&
     decisionTrace?.semantic_action === action &&
-    decisionTrace?.policy?.policy_version === 'policy_v2.2.0' &&
+    decisionTrace?.policy?.policy_version === 'policy_v2.3.0' &&
     decisionTrace?.reason?.primary === 'explicit_user_direction' &&
     decisionTrace?.execution?.llm_used === false &&
     finalState.ok &&
@@ -366,7 +366,7 @@ async function caseDirectionalDeepen(trace) {
   });
   const expected = {
     classification: 'DEEPEN（"深入"词表；目标经 TARGET_SYNONYMS 由"关卡"派生为 level）',
-    policy: 'DEEPEN → DEEPEN（policy_v2.2.0；14 §8 恒等映射）',
+    policy: 'DEEPEN → DEEPEN（policy_v2.2.0 冻结；policy_v2.3.0 延续——S4 纯增量；14 §8 恒等映射）',
     flow: 'WHY → CREATE → DEEPEN（创作会话内顶层补丁操作）',
     content: 'synthetic/deepen/v1 语料逐字节',
     headerState: 'ACTIVE/CREATION（迁移提交时视图，状态版本 7）',
@@ -389,7 +389,7 @@ async function caseDirectionalSimplify(trace) {
   });
   const expected = {
     classification: 'SIMPLIFY（"简单一点"词表；目标经 TARGET_SYNONYMS 由"难度"派生为 difficulty）',
-    policy: 'SIMPLIFY → SIMPLIFY（policy_v2.2.0；14 §8 恒等映射）',
+    policy: 'SIMPLIFY → SIMPLIFY（policy_v2.2.0 冻结；policy_v2.3.0 延续——S4 纯增量；14 §8 恒等映射）',
     flow: 'WHY → CREATE → SIMPLIFY（创作会话内顶层补丁操作）',
     content: 'synthetic/simplify/v1 语料逐字节',
     headerState: 'ACTIVE/CREATION（迁移提交时视图，状态版本 7）',
@@ -412,7 +412,7 @@ async function caseDirectionalReframe(trace) {
   });
   const expected = {
     classification: 'REFRAME（"换角度"词表；目标经 TARGET_SYNONYMS 由"难度"派生为 difficulty）',
-    policy: 'REFRAME → REFRAME（policy_v2.2.0；14 §8 恒等映射）',
+    policy: 'REFRAME → REFRAME（policy_v2.2.0 冻结；policy_v2.3.0 延续——S4 纯增量；14 §8 恒等映射）',
     flow: 'WHY → CREATE → REFRAME（创作会话内顶层补丁操作）',
     content: 'synthetic/reframe/v1 语料逐字节',
     headerState: 'ACTIVE/CREATION（迁移提交时视图，状态版本 7）',
@@ -656,7 +656,7 @@ async function caseSearchCapability(trace) {
     verifyRouting.every((route) => route.matches) &&
     submission.ok &&
     submission.header.policy_decision.selected_action === 'EXPLAIN' &&
-    submission.header.policy_decision.policy_version === 'policy_v2.2.0' &&
+    submission.header.policy_decision.policy_version === 'policy_v2.3.0' &&
     contentOf(streamEvents) === why.chunks.join('') &&
     stateAfter.ok &&
     stateAfter.state.stateVersion === 4 &&
@@ -673,7 +673,7 @@ async function caseSearchCapability(trace) {
   const expected = {
     searchCapability: '纯函数只读检索——read_only 恒真；三面（experience_content / creation_object / session_context，D-03 选项 A）；2 字窗口相关性判定；非活跃创作对象面跳过',
     verifyRouting: 'VERIFY 类输入按既有 WHY / DIRECT_ANSWER 解释层路由（附列裁决区选项 A——VERIFY 不启用为语义动作；无 VERIFY 语义动作产生）',
-    whyRound: 'VERIFY 类输入"这个为什么是这样"经 WHY 路径端到端执行——EXPLAIN（policy_v2.2.0）、内容逐字节等于 why 语料、WAITING/UNDERSTANDING v4；生成上下文内 SEARCH 能力被调用（buildGenerationContext——两条生成路径），零创作补丁 / 零记忆事件 / 零方向性事件（只读，不触发产品动作）',
+    whyRound: 'VERIFY 类输入"这个为什么是这样"经 WHY 路径端到端执行——EXPLAIN（policy_v2.2.0 冻结；policy_v2.3.0 延续——S4 纯增量）、内容逐字节等于 why 语料、WAITING/UNDERSTANDING v4；生成上下文内 SEARCH 能力被调用（buildGenerationContext——两条生成路径），零创作补丁 / 零记忆事件 / 零方向性事件（只读，不触发产品动作）',
     readOnlyInvariant: '直接调用检索能力——事件汇零增量、状态版本零增量（只读不变式）',
     staticBoundary: 'search.ts 已提交源字节：无运行时 import（纯函数模块）、无 fetch/undici/node:http/node:https/URL 模式（无外部网络出口）；runtime.ts 经 buildGenerationContext 集成（两条生成路径均携带 search_context）',
   };
@@ -1081,8 +1081,9 @@ async function main() {
   log(`git state: HEAD=${git.commit} (workTreeClean=${git.workTreeClean})`);
 
   // Golden regression binding (E5 §3)：S2b 证据运行前，G3-GOLDEN-0001
-  // 须已在 policy_v2.2.0 / state_machine_v1.5.0 通过（48/48——
-  // S3a 迭代后基线：G11/G12 案例组并入，断言同步 policy_v2.2.0）——
+  // 须已在 policy_v2.3.0 / state_machine_v1.5.0 通过（48/48——
+  // S4 迭代后基线：S4 REPEAT/CONTINUE 语义新增（policy_v2.3.0
+  // 纯增量），黄金断言同步 policy_v2.3.0）——
   // 本运行的回归基线绑定（失败为 FATAL）。
   const goldenSummaryPath = path.join(repoRoot, 'artifacts', 'evidence', 'runs', 'G3-GOLDEN-0001', 'summary.json');
   const goldenSummary = JSON.parse(await readFile(goldenSummaryPath, 'utf8'));
@@ -1094,11 +1095,11 @@ async function main() {
     goldenSummary.executedCases === 48 &&
     goldenSummary.allExecutedCasesPass === true &&
     goldenSummary.allAssertionsPass === true &&
-    goldenMetadata.policy?.version?.includes('policy_v2.2.0') &&
+    goldenMetadata.policy?.version?.includes('policy_v2.3.0') &&
     goldenMetadata.stateMachine?.version === 'state_machine_v1.5.0';
   log(`golden regression binding: G3-GOLDEN-0001 exitCode=${goldenSummary.exitCode} cases=${goldenSummary.executedCases}/${goldenSummary.cases?.length ?? goldenSummary.executedCases} allPass=${goldenSummary.allExecutedCasesPass} policy=${goldenMetadata.policy?.version} stateMachine=${goldenMetadata.stateMachine?.version}`);
   if (!goldenRegressionOk) {
-    fatal('golden regression binding failed: G3-GOLDEN-0001 须在 policy_v2.2.0 / state_machine_v1.5.0 通过（48/48）后方可运行 S2B-0001');
+    fatal('golden regression binding failed: G3-GOLDEN-0001 须在 policy_v2.3.0 / state_machine_v1.5.0 通过（48/48）后方可运行 S2B-0001');
   }
 
   // Prepare run directories. A previous attempt's run directory is archived
@@ -1271,7 +1272,7 @@ async function main() {
         ],
         evidenceCases: caseResults.map((entry) => `${RUN_ID}:${entry.caseId}=${entry.result}`),
         assertions: assertions.map((entry) => `${entry.id}=${entry.passed ? 'PASSED' : 'FAILED'}`),
-        goldenRegression: `G3-GOLDEN-0001 PASSED（48/48 案例；policy_v2.2.0 / state_machine_v1.5.0——S3a 迭代后回归基线；本运行前置绑定验证 exitCode=${goldenSummary.exitCode}）`,
+        goldenRegression: `G3-GOLDEN-0001 PASSED（48/48 案例；policy_v2.3.0 / state_machine_v1.5.0——S4 迭代后回归基线；本运行前置绑定验证 exitCode=${goldenSummary.exitCode}）`,
       },
     },
     environmentLicense: { id: 'E5-SCOPED-LICENSE-01', version: '1.0.0', decision: 'PD-17', status: 'superseded-by-implementation-authorization' },
@@ -1298,14 +1299,14 @@ async function main() {
         'L2 阶段机（§14/§15）',
         'Forbidden Transitions（§23）',
         '创作域子状态机：补丁操作域扩展 {add, remove, modify, deepen, simplify, reframe}（S2b 变更 1——轴外承载纪律不变，F-2 D-02；每次合法补丁提交版本 +1，S1-12）',
-        'SEARCH 能力状态纪律：无状态只读能力调用，不产生体验状态迁移、不产生创作域补丁（state_machine 无 SEARCH 迁移行——能力纪律经 policy_v2.2.0 §6 承载，policy_v2.0.0 变更 2 引入并经 policy_v2.1.0 / policy_v2.2.0 延续，S2b 变更 2）',
+        'SEARCH 能力状态纪律：无状态只读能力调用，不产生体验状态迁移、不产生创作域补丁（state_machine 无 SEARCH 迁移行——能力纪律经 policy_v2.2.0 §6 承载，policy_v2.0.0 变更 2 引入并经 policy_v2.1.0 / policy_v2.2.0 / policy_v2.3.0 延续——S4 为纯增量，S2b 变更 2）',
         'First Experience 呈现路径：六阶段呈现迁移为已有体验阶段轴的呈现补全（E2 §6；13 号状态机阶段轴不变——S2b 变更 3）',
       ],
       source: 'SRC-05 / 13',
     },
     policy: {
       contract: 'C1',
-      version: 'policy_v2.2.0',
+      version: 'policy_v2.3.0',
       changes: [
         '变更 1：SemanticAction 域扩展——启用 DEEPEN / SIMPLIFY / REFRAME（14 §8 恒等映射）；SEARCH 不入 SemanticAction 域（内部能力动作，14 §7）；VERIFY 不启用（附列裁决区选项 A）',
         '变更 2：PolicyAction 域——确认 SEARCH 为内部策略动作（14 §7 taxonomy 既有，无新增）；VERIFY 类输入按既有解释层路径处理，SEARCH 能力在这些路径内被调用（14 §8 路由纪律）',
@@ -1314,7 +1315,7 @@ async function main() {
         '变更 5：非创作会话保护——DEEPEN / SIMPLIFY / REFRAME 输入在无创作对象时按升级规则处理（C3 纪律，model on F-2/F-3 创作会话路由保护）',
         '变更 6：SEARCH 能力纪律——只读、不改变体验、不触发产品动作；无外部网络出口；检索范围限当前体验内容 / 创作对象 / 会话内上下文（D-03 选项 A）',
       ],
-      carriedForward: '变更 1–6 为 S2b 引入变更（policy_v2.0.0 历史记录在录，行为经现行版本延续不变）；现行 policy_v2.2.0 另含 S2 分支回流变更 1–5（ADOPT_BRANCH 第五分支操作显式回流——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A，经 S2A-F4 迭代实施登记）与 S3a 变更 1–4（长期记忆启用 / 优先级链纪律 / 记忆记录属性扩展 / 单一写入者——S3A-SEMANTIC-FREEZE-01 v1.0.0，经 S3a 迭代实施登记），与本运行 S2b 义务正交',
+      carriedForward: '变更 1–6 为 S2b 引入变更（policy_v2.0.0 历史记录在录，行为经现行版本延续不变）；现行 policy_v2.3.0 另含 S2 分支回流变更 1–5（ADOPT_BRANCH 第五分支操作显式回流——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A，经 S2A-F4 迭代实施登记）、S3a 变更 1–4（长期记忆启用 / 优先级链纪律 / 记忆记录属性扩展 / 单一写入者——S3A-SEMANTIC-FREEZE-01 v1.0.0，经 S3a 迭代实施登记）与 S4 变更 1–5（REPEAT/CONTINUE 策略动作版本化——S4A-SEMANTIC-FREEZE-01 v1.0.0 D-1 选项 A，经 S4 迭代实施登记；优先级层插入全部既有层之后——S2b 行为面零变化），与本运行 S2b 义务正交',
       priorityChain: 'STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER',
       source: 'SRC-06 / 14',
     },
@@ -1450,7 +1451,7 @@ async function main() {
   const cReframe = caseResults.find((entry) => entry.caseId === 'DIRECTIONAL-REFRAME');
   assert(
     'A6',
-    'DIRECTIONAL 正常路径：DEEPEN / SIMPLIFY / REFRAME 创作会话内顶层补丁操作——分类正确（词表识别）、policy_v2.2.0 恒等映射、reason=creation_modification、头状态 ACTIVE/CREATION v7、流内容逐字节等于各方向性语料、<action>_requested ×1、creation_patch_applied ×1（operation/target/change={direction}/creation_version=2）、CREATE 迁移 ×2、决策追踪 semantic_action + explicit_user_direction + llm_used=false、终态 WAITING/CREATION v8 + lastSemanticAction、创作版本 2 + user_changes 权威登记 + 结构逐字段保持',
+    'DIRECTIONAL 正常路径：DEEPEN / SIMPLIFY / REFRAME 创作会话内顶层补丁操作——分类正确（词表识别）、policy_v2.3.0 恒等映射（policy_v2.2.0 冻结）、reason=creation_modification、头状态 ACTIVE/CREATION v7、流内容逐字节等于各方向性语料、<action>_requested ×1、creation_patch_applied ×1（operation/target/change={direction}/creation_version=2）、CREATE 迁移 ×2、决策追踪 semantic_action + explicit_user_direction + llm_used=false、终态 WAITING/CREATION v8 + lastSemanticAction、创作版本 2 + user_changes 权威登记 + 结构逐字段保持',
     cDeepen?.pass === true && cSimplify?.pass === true && cReframe?.pass === true,
     { deepen: cDeepen?.pass, simplify: cSimplify?.pass, reframe: cReframe?.pass },
   );
@@ -1494,7 +1495,7 @@ async function main() {
   // A11: 黄金回归绑定（E5 §3）。
   assert(
     'A11',
-    '黄金回归绑定：G3-GOLDEN-0001 在 policy_v2.2.0 / state_machine_v1.5.0 通过（48/48 案例、全部断言、退出码 0——S3a 迭代后基线）——本运行动态证据的回归基线（S2b 案例已纳入 G3-GOLDEN-0001 回归基准，freeze §5.3）',
+    '黄金回归绑定：G3-GOLDEN-0001 在 policy_v2.3.0 / state_machine_v1.5.0 通过（48/48 案例、全部断言、退出码 0——S4 迭代后基线）——本运行动态证据的回归基线（S2b 案例已纳入 G3-GOLDEN-0001 回归基准，freeze §5.3）',
     goldenRegressionOk,
     {
       goldenExitCode: goldenSummary.exitCode,
@@ -1590,7 +1591,7 @@ async function main() {
 
 ## 本运行覆盖（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 §5.2 案例面）
 
-- 案例面 1 正常路径（DIRECTIONAL-DEEPEN / SIMPLIFY / REFRAME）：创作会话内顶层补丁操作——词表分类、policy_v2.2.0 恒等映射、reason=creation_modification、头状态 ACTIVE/CREATION v7、流内容逐字节等于方向性语料、<action>_requested ×1、creation_patch_applied ×1（operation / target 经 TARGET_SYNONYMS 派生 / change={direction} / creation_version=2）、决策追踪 explicit_user_direction + llm_used=false、终态 WAITING/CREATION v8、创作版本 2 + user_changes 权威登记 + 结构逐字段保持（08 §11 局部变更纪律：不重新生成整个作品）
+- 案例面 1 正常路径（DIRECTIONAL-DEEPEN / SIMPLIFY / REFRAME）：创作会话内顶层补丁操作——词表分类、policy_v2.3.0 恒等映射、reason=creation_modification、头状态 ACTIVE/CREATION v7、流内容逐字节等于方向性语料、<action>_requested ×1、creation_patch_applied ×1（operation / target 经 TARGET_SYNONYMS 派生 / change={direction} / creation_version=2）、决策追踪 explicit_user_direction + llm_used=false、终态 WAITING/CREATION v8、创作版本 2 + user_changes 权威登记 + 结构逐字段保持（08 §11 局部变更纪律：不重新生成整个作品）
 - 案例面 2 非创作会话升级（ESCALATION-NEG）：三动作在无创作对象时 INVALID_ACTION 升级（policy_v2.0.0 变更 5；C3 纪律）——状态版本 / 视图零增量、零方向性事件、零补丁事件（拒绝先于任何写入——OBL-01）
 - 案例面 3 SEARCH 内部能力（SEARCH-CAPABILITY）：三面只读检索（read_only 恒真 / 相关性判定 / 非活跃创作对象面跳过）；VERIFY 类输入经既有 WHY / DIRECT_ANSWER 解释层路由（附列裁决区选项 A——VERIFY 不启用）；WHY 路径端到端无副作用；只读不变式；静态边界（纯函数模块 / 无外部网络出口 / 双生成路径集成）
 - 案例面 4 First Experience 呈现（FIRST-EXPERIENCE）：入口 / 六阶段 / 完成 / 退出 / 中断流程模型（E2 §5/§6/§7 冻结面）；视图→呈现阶段映射（含 BRANCH Simulation 呈现面区分）；默认查询；生命周期游走（v2→v4→v6〔BRANCH〕→v8→v10→v11——STOP 完成路径消耗 +1 版本；瞬态 ENTERING/CURIOSITY 与非分支 SIMULATION 面由纯映射覆盖；STOP 完成路径登记创作 active=false）

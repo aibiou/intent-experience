@@ -20,6 +20,7 @@
     "s2a-f4": "node src/s2a-f4.mjs",
     "s2a-f5": "node src/s2a-f5.mjs",
     "s2b": "node src/s2b.mjs",
+    "s4a-f1": "node src/s4a-f1.mjs",
     "s3-api": "node src/s3-api.mjs",
     "obl02": "node src/obl02.mjs"
   }

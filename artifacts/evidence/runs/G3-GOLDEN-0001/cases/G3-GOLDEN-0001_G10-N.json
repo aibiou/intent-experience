@@ -6,7 +6,7 @@
   "inputFault": "无（正常路径——\"如果采用分支一的结论呢\"命中 ADOPT_BRANCH 词表 + 可解析序号 1）",
   "expected": {
     "classification": "WHAT_IF（\"如果\"标记；ADOPT_BRANCH 输入经 WHAT_IF 语义动作声明路由）",
-    "policy": "WHAT_IF → SIMULATE（policy_v2.2.0；S1 §14 映射不变；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决生效——policy_v2.2.0 变更 1–5）",
+    "policy": "WHAT_IF → SIMULATE（policy_v2.2.0 冻结；policy_v2.3.0 延续——S4 纯增量；S1 §14 映射不变；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决生效——policy_v2.2.0 变更 1–5）",
     "flow": "WHAT_IF 轮 1（自动 CREATE 分支 1）→ 轮 2（累积）→ ADOPT_BRANCH 分支 1（确定性系统回合）",
     "branchModel": "分支 1：lifecycle ACTIVE 不变；adopted false→true（附加标记——非生命周期状态，生命周期契约不增第四态）；version=2（采用不累积模拟轮次）；currentBranchId 保持分支 1（主线当前上下文不变）",
     "adoptedEvent": "simulation_adopted ×1（properties：branch_id=分支 1 / source_round=1 / adopted_content=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact——采用结果仍标记为模拟来源，E8-G2-CC07）",
@@ -18,7 +18,7 @@
   "actual": {
     "classification": "WHAT_IF",
     "policyAction": "SIMULATE",
-    "policyVersion": "policy_v2.2.0",
+    "policyVersion": "policy_v2.3.0",
     "policyReason": "simulation_branch_operation",
     "stateVersion": 7,
     "headerState": "ACTIVE/SIMULATION",
@@ -44,7 +44,7 @@
     ],
     "decisionTraceReason": "explicit_user_direction",
     "decisionTraceLlmUsed": false,
-    "decisionTracePolicyVersion": "policy_v2.2.0",
+    "decisionTracePolicyVersion": "policy_v2.3.0",
     "finalState": "WAITING/SIMULATION v8"
   },
   "invariants": [
@@ -59,7 +59,7 @@
   ],
   "evidence": {
     "trace": "traces/G3-GOLDEN-0001:G10-N.jsonl",
-    "traceSha256": "cbbe9e908a415abdbc2e8595815662db0f78fdac7905197e20ad24a735ff0380",
+    "traceSha256": "eba414f9706d551dfb547d77f3532b645669e41fa698801f705e2a35b31f1e9b",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },

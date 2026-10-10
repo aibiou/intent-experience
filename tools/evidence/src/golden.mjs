@@ -5,8 +5,10 @@
 // 四维度 + Expected / Observed / Evidence Location / Evaluator。
 // 本运行执行 12 黄金案例 × 4 维度 = 48 案例：S1 已实现黄金子集
 //   （G11 长期记忆 / G12 跨会话分支——S3a 新增，S3-SCOPE-PROPOSAL-01
-//   v1.0.0 RULED §4 动态证据计划；策略版本 policy_v2.2.0——S3a 语义
-//   启用，F1–F4 语义经 policy_v2.2.0 延续不变）
+//   v1.0.0 RULED §4 动态证据计划；策略版本 policy_v2.3.0——S3a 语义
+//   启用，F1–F4 语义经 policy_v2.2.0 延续不变；S4 REPEAT/CONTINUE
+//   语义经 policy_v2.3.0 新增——S4A-SEMANTIC-FREEZE-01 v1.0.0 D-1
+//   选项 A，优先级层插入全部既有层之后，黄金案例输入面零变化）
 // （G01 Direct Answer / G02 Why / G03 What If 基础单次模拟形态 /
 // G05 Change / G06 Stop）+ P2 关闭切片最小实现（G04 Creation /
 // G07 Correction / G08 Memory Boundary——PD-21，产品负责人
@@ -1352,7 +1354,7 @@ async function caseG04Normal(trace) {
   const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
   const expected = {
     classification: 'CREATE（"做成"模式；PD-21 关闭切片）',
-    policy: 'CREATE → CREATE（policy_v2.2.0）',
+    policy: 'CREATE → CREATE（policy_v2.2.0 冻结；policy_v2.3.0 延续——S4 纯增量）',
     stream: 'submission → chunks → done → state_updated',
     content: createFixture.chunks.join(''),
     headerState: 'ACTIVE/CREATION（迁移提交时视图）',
@@ -1385,7 +1387,7 @@ async function caseG04Normal(trace) {
     classification.semanticAction === 'CREATE' &&
     create.ok &&
     actual.policyAction === 'CREATE' &&
-    actual.policyVersion === 'policy_v2.2.0' &&
+    actual.policyVersion === 'policy_v2.3.0' &&
     actual.stateVersion === 5 &&
     actual.headerState === 'ACTIVE/CREATION' &&
     createEvents[0].type === 'submission' &&
@@ -1398,7 +1400,7 @@ async function caseG04Normal(trace) {
     actual.whyRequestedEvents === 1 &&
     actual.stateTransitionedCreate &&
     actual.decisionTraceSemanticAction === 'CREATE' &&
-    actual.decisionTracePolicyVersion === 'policy_v2.2.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v2.3.0' &&
     actual.decisionTraceReason === 'explicit_user_direction' &&
     finalState.ok &&
     finalState.state.stateVersion === 6 &&
@@ -1692,7 +1694,7 @@ async function caseG07Normal(trace) {
   const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
   const expected = {
     classification: 'CORRECTION（"不是"模式；PD-21 关闭切片）',
-    policy: 'CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v2.2.0）',
+    policy: 'CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v2.2.0 冻结；policy_v2.3.0 延续——S4 纯增量）',
     stream: 'submission → chunks → done → state_updated',
     content: correctionFixture.chunks.join(''),
     headerState: 'ACTIVE/UNDERSTANDING（迁移提交时视图；阶段保持）',
@@ -1726,7 +1728,7 @@ async function caseG07Normal(trace) {
     classification.semanticAction === 'CORRECTION' &&
     correct.ok &&
     actual.selectedAction === 'EXPLAIN' &&
-    actual.policyVersion === 'policy_v2.2.0' &&
+    actual.policyVersion === 'policy_v2.3.0' &&
     actual.stateVersion === 5 &&
     actual.headerState === 'ACTIVE/UNDERSTANDING' &&
     correctEvents[0].type === 'submission' &&
@@ -1740,7 +1742,7 @@ async function caseG07Normal(trace) {
     actual.interrupted.filter((reason) => reason === 'correction').length === 1 &&
     actual.stateTransitionedCorrection &&
     actual.decisionTraceSemanticAction === 'CORRECTION' &&
-    actual.decisionTracePolicyVersion === 'policy_v2.2.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v2.3.0' &&
     actual.decisionTraceReason === 'reassess' &&
     finalState.ok &&
     finalState.state.stateVersion === 6 &&
@@ -2424,7 +2426,7 @@ async function caseG09Normal(trace) {
     JSON.stringify(creationAfter.creation.userChanges[0].patch) === JSON.stringify(expectedUserChangePatch);
   const expected = {
     classification: 'DEEPEN（"深入"词表；目标经 TARGET_SYNONYMS 由"关卡"派生为 level）',
-    policy: 'DEEPEN → DEEPEN（policy_v2.2.0；14 §8 恒等映射）',
+    policy: 'DEEPEN → DEEPEN（policy_v2.2.0 冻结；policy_v2.3.0 延续——S4 纯增量；14 §8 恒等映射）',
     flow: 'WHY → CREATE → DEEPEN（创作会话内顶层补丁操作）',
     content: deepenFixture.chunks.join(''),
     headerState: 'ACTIVE/CREATION（迁移提交时视图）',
@@ -2464,7 +2466,7 @@ async function caseG09Normal(trace) {
     classification.semanticAction === 'DEEPEN' &&
     deepen.ok &&
     actual.policyAction === 'DEEPEN' &&
-    actual.policyVersion === 'policy_v2.2.0' &&
+    actual.policyVersion === 'policy_v2.3.0' &&
     actual.policyReason === 'creation_modification' &&
     actual.stateVersion === 7 &&
     actual.headerState === 'ACTIVE/CREATION' &&
@@ -2480,7 +2482,7 @@ async function caseG09Normal(trace) {
     actual.patchCreationVersion === 2 &&
     actual.createTransitions === 2 &&
     actual.decisionTraceSemanticAction === 'DEEPEN' &&
-    actual.decisionTracePolicyVersion === 'policy_v2.2.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v2.3.0' &&
     actual.decisionTraceReason === 'explicit_user_direction' &&
     finalState.ok &&
     finalState.state.stateVersion === 8 &&
@@ -2745,7 +2747,7 @@ async function caseG10Normal(trace) {
   const branch = simulation.ok ? simulation.simulation.branches[0] : null;
   const expected = {
     classification: 'WHAT_IF（"如果"标记；ADOPT_BRANCH 输入经 WHAT_IF 语义动作声明路由）',
-    policy: 'WHAT_IF → SIMULATE（policy_v2.2.0；S1 §14 映射不变；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决生效——policy_v2.2.0 变更 1–5）',
+    policy: 'WHAT_IF → SIMULATE（policy_v2.2.0 冻结；policy_v2.3.0 延续——S4 纯增量；S1 §14 映射不变；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决生效——policy_v2.2.0 变更 1–5）',
     flow: 'WHAT_IF 轮 1（自动 CREATE 分支 1）→ 轮 2（累积）→ ADOPT_BRANCH 分支 1（确定性系统回合）',
     branchModel: '分支 1：lifecycle ACTIVE 不变；adopted false→true（附加标记——非生命周期状态，生命周期契约不增第四态）；version=2（采用不累积模拟轮次）；currentBranchId 保持分支 1（主线当前上下文不变）',
     adoptedEvent: 'simulation_adopted ×1（properties：branch_id=分支 1 / source_round=1 / adopted_content=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact——采用结果仍标记为模拟来源，E8-G2-CC07）',
@@ -2787,7 +2789,7 @@ async function caseG10Normal(trace) {
     r2.ok &&
     adopt.ok &&
     actual.policyAction === 'SIMULATE' &&
-    actual.policyVersion === 'policy_v2.2.0' &&
+    actual.policyVersion === 'policy_v2.3.0' &&
     actual.policyReason === 'simulation_branch_operation' &&
     actual.stateVersion === 7 &&
     actual.headerState === 'ACTIVE/SIMULATION' &&
@@ -2809,7 +2811,7 @@ async function caseG10Normal(trace) {
     actual.simulationRecordedEvents[1] === 2 &&
     actual.decisionTraceReason === 'explicit_user_direction' &&
     actual.decisionTraceLlmUsed === false &&
-    actual.decisionTracePolicyVersion === 'policy_v2.2.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v2.3.0' &&
     finalState.ok &&
     finalState.state.stateVersion === 8 &&
     finalState.state.status === 'WAITING' &&
@@ -2978,7 +2980,7 @@ async function caseG10Boundary(trace) {
     actual.lifecycleAfterReturn === 'RETURNED' &&
     snapAfterReturn.simulation.currentBranchId === null &&
     adopt1.submission.ok &&
-    actual.adopt1PolicyVersion === 'policy_v2.2.0' &&
+    actual.adopt1PolicyVersion === 'policy_v2.3.0' &&
     actual.adopt1ContentPresentsAdoptedContent &&
     snapAfterAdopt1.ok &&
     actual.branchAdoptedAfterAdopt1 === true &&
@@ -3108,7 +3110,7 @@ async function caseG10FailureRecovery(trace) {
     actual.stateVersionAfterStale === 4 &&
     retry.ok &&
     actual.retryPolicyReason === 'simulation_branch_operation' &&
-    actual.retryPolicyVersion === 'policy_v2.2.0' &&
+    actual.retryPolicyVersion === 'policy_v2.3.0' &&
     actual.retryContentPresentsAdoptedContent &&
     simAdopted.length === 1 &&
     simAdopted[0].properties.source_round === 1 &&
@@ -3473,7 +3475,7 @@ async function caseG12Normal(trace) {
     adopt.ok === true &&
     actual.adoptSelectedAction === 'SIMULATE' &&
     actual.adoptReason === 'simulation_branch_operation' &&
-    actual.adoptPolicyVersion === 'policy_v2.2.0' &&
+    actual.adoptPolicyVersion === 'policy_v2.3.0' &&
     actual.adoptContentPresentsAdoptedContent &&
     simulationAfterAdopt.ok === true &&
     simulationAfterAdopt.simulation.currentBranchId === null &&
@@ -3764,7 +3766,7 @@ async function caseG12FailureRecovery(trace) {
     actual.branchAdoptedAfterStale === false &&
     retry.ok === true &&
     actual.retryPolicyReason === 'simulation_branch_operation' &&
-    actual.retryPolicyVersion === 'policy_v2.2.0' &&
+    actual.retryPolicyVersion === 'policy_v2.3.0' &&
     actual.retryContentPresentsAdoptedContent &&
     simAdopted.length === 1 &&
     simAdopted[0].properties.source_round === 1 &&
@@ -4613,7 +4615,7 @@ async function main() {
       .filter((entry) => entry.path.startsWith('P3-S1'))
       .map((entry) => ({ source: `docs/product/reference/${entry.path}`, sha256: entry.computed, archiveIntegrity: entry.match ? 'VERIFIED vs SHA256SUMS' : 'MISMATCH' })),
     stateMachine: { version: 'state_machine_v1.5.0', source: 'SRC-05 / 13', closureSlice: 'CREATION 阶段 + CREATE/CORRECTION 触发（PD-21 关闭切片最小形态）+ 完整 WHAT_IF 分支语义（S2a F-4，state_machine_v1.4.0）+ S2b 变更 1–3（state_machine_v1.5.0：方向性操作 DEEPEN/SIMPLIFY/REFRAME 文档化——冻结迁移表无结构变更）' },
-    policy: { version: 'policy_v2.2.0（S2b 版本化变更 + S2 分支回流版本化变更）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）+ 完整 WHAT_IF 分支语义（S2a F-4，policy_v1.4.0：多轮模拟持久化 + 轴外分支子状态机）+ Minimal Memory 语义（S2a F-5，policy_v1.5.0：轴外记忆子状态机 + L5 信号注入 + Runtime 单一写入者）+ S2b 方向性操作语义（policy_v2.0.0：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 14 §8 恒等映射 + 冻结优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER + 创作域顶层补丁操作承载）+ S2 分支回流语义（policy_v2.2.0：ADOPT_BRANCH 第五分支操作显式回流——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A；词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH；adopted 附加标记幂等、生命周期契约不变；simulation_adopted 事件 C6 §14 派生；采用结果作新一轮模拟上下文呈现，主线当前上下文不变，默认不回流语义不变——显式回流为用户指示例外通道）；SEARCH 仍表外（PD-06，内部能力动作 14 §7）' },
+    policy: { version: 'policy_v2.3.0（S4 REPEAT/CONTINUE 版本化变更 + S2b 版本化变更 + S2 分支回流版本化变更）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）+ 完整 WHAT_IF 分支语义（S2a F-4，policy_v1.4.0：多轮模拟持久化 + 轴外分支子状态机）+ Minimal Memory 语义（S2a F-5，policy_v1.5.0：轴外记忆子状态机 + L5 信号注入 + Runtime 单一写入者）+ S2b 方向性操作语义（policy_v2.0.0：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 14 §8 恒等映射 + 冻结优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER + 创作域顶层补丁操作承载）+ S2 分支回流语义（policy_v2.2.0：ADOPT_BRANCH 第五分支操作显式回流——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A；词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH；adopted 附加标记幂等、生命周期契约不变；simulation_adopted 事件 C6 §14 派生；采用结果作新一轮模拟上下文呈现，主线当前上下文不变，默认不回流语义不变——显式回流为用户指示例外通道）+ S4 REPEAT/CONTINUE 语义（policy_v2.3.0：REPEAT/CONTINUE 策略动作版本化——S4A-SEMANTIC-FREEZE-01 v1.0.0 D-1 选项 A；C3 G-1 空缺版本化关闭；CONTINUE 幂等确认回合 / REPEAT 呈现层重放上一完成轮响应；优先级链扩展 … > DIRECT_ANSWER > CONTINUE > REPEAT > UNKNOWN；state_version 不变——纯呈现 / 确认语义，不登记状态变更事件；词表 CONTINUE=/继续当前体验/继续/往下进行/接着来/、REPEAT=/重复上一/重复上一条/再说一遍/重新表达/再表达一次/）；SEARCH 仍表外（PD-06，内部能力动作 14 §7）' },
     api: { version: 'api_v1.0.0', source: 'SRC-07 / 16' },
     event: { version: 'analytics_v1.0.0', source: 'SRC-08 / 17' },
     evaluation: { contract: 'C7', version: 'evaluation_v1.0.0', note: 'G5 16 项评测包已执行并双签署（P3-S1-G5-WORKSHEET-01 v1.7.0）；G3 逐项判定属本运行后的独立评测范畴' },

@@ -230,9 +230,9 @@
     "creationActiveAfterWalk": false
   },
   "invariants": [
-    "S2b 范围边界（S2B-SEMANTIC-FREEZE-01 §2/§3/§4）：DEEPEN / SIMPLIFY / REFRAME 为顶层语义动作（14 §8 恒等映射，policy_v2.0.0 变更 1，经 policy_v2.1.0 / policy_v2.2.0 延续）；创作域顶层补丁操作 deepen / simplify / reframe（与 add / remove / modify 同级，非 modify 子型——变更 3）；优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER（变更 4）",
-    "非创作会话保护（policy_v2.0.0 变更 5，经 policy_v2.1.0 / policy_v2.2.0 延续）：DEEPEN / SIMPLIFY / REFRAME 在无活跃创作对象时按升级规则处理——INVALID_ACTION 升级，不静默执行未定义语义（C3 纪律，model on F-2/F-3 创作会话路由保护）；拒绝先于任何写入（失败不消耗版本号，OBL-01 纪律）",
-    "SEARCH 能力纪律（policy_v2.0.0 变更 2/6，经 policy_v2.1.0 / policy_v2.2.0 延续；14 §7）：内部能力动作，不入 SemanticAction 域；只读——不改变体验、不触发产品动作、不产生事件；无外部网络出口（确定性规则检索，不调用任何提供方）；作用面限当前体验内容 / 创作对象 / 会话内上下文（D-03 选项 A；跨会话记忆检索属 F-5 记忆域 L5，不经 SEARCH 动作）",
+    "S2b 范围边界（S2B-SEMANTIC-FREEZE-01 §2/§3/§4）：DEEPEN / SIMPLIFY / REFRAME 为顶层语义动作（14 §8 恒等映射，policy_v2.0.0 变更 1，经 policy_v2.1.0 / policy_v2.2.0 / policy_v2.3.0 延续——S4 为纯增量）；创作域顶层补丁操作 deepen / simplify / reframe（与 add / remove / modify 同级，非 modify 子型——变更 3）；优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER（变更 4；S4 经 policy_v2.3.0 在 DIRECT_ANSWER 之后扩展 CONTINUE > REPEAT——S2b 行为面零变化）",
+    "非创作会话保护（policy_v2.0.0 变更 5，经 policy_v2.1.0 / policy_v2.2.0 / policy_v2.3.0 延续——S4 为纯增量）：DEEPEN / SIMPLIFY / REFRAME 在无活跃创作对象时按升级规则处理——INVALID_ACTION 升级，不静默执行未定义语义（C3 纪律，model on F-2/F-3 创作会话路由保护）；拒绝先于任何写入（失败不消耗版本号，OBL-01 纪律）",
+    "SEARCH 能力纪律（policy_v2.0.0 变更 2/6，经 policy_v2.1.0 / policy_v2.2.0 / policy_v2.3.0 延续——S4 为纯增量；14 §7）：内部能力动作，不入 SemanticAction 域；只读——不改变体验、不触发产品动作、不产生事件；无外部网络出口（确定性规则检索，不调用任何提供方）；作用面限当前体验内容 / 创作对象 / 会话内上下文（D-03 选项 A；跨会话记忆检索属 F-5 记忆域 L5，不经 SEARCH 动作）",
     "VERIFY 附列裁决区选项 A：VERIFY 不启用为语义动作——VERIFY 类输入按既有 WHY / DIRECT_ANSWER 解释层处理，SEARCH 能力在这些路径内被调用（14 §8 路由纪律）",
     "First Experience 呈现路径（S2B-SEMANTIC-FREEZE-01 §4 变更 3；D-04 选项 A）：六阶段呈现（Curiosity → Understanding → Simulation → Branch → Creation → Completion）为已有体验阶段轴的呈现补全——E2 §7 冻结面不变，13 号状态机阶段轴不变（Branch 为 Simulation 阶段的分支探索呈现面——轴外分支记录 F-4 D-02）；只读呈现层——不产生事件、不改变任何状态；视觉样式不在冻结范围（E2 §5）",
     "方向性补丁合成模式（D-01 选项 A；08 §11 局部变更纪律）：结构保持（不重新生成整个作品）、版本单调 +1（S1-12 不变式）、user_changes 权威登记方向性条目（change.direction 标识操作方向——08 §11 不重新生成整个作品）；目标经 TARGET_SYNONYMS 确定性派生（默认 creation 级方向性修改）",
@@ -246,7 +246,7 @@
   ],
   "evidence": {
     "trace": "traces/S2B-0001:FIRST-EXPERIENCE.jsonl",
-    "traceSha256": "c4e5d455e52886bb671d20eda3317b473f17e520a179b3c228ed426db7380880",
+    "traceSha256": "e18588811bdb19a22f9436eab55553534b09d95fbaca6e6eebd4440be30dca9a",
     "form": "in-process",
     "servers": []
   },

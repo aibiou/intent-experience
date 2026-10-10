@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G12-N","event":"trace_started","at":"2026-10-10T07:39:50.774Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G12 跨会话分支（S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划）；S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.1（持久化范围）/ §1.4（跨会话操作路径三前提）/ §1.5（endSession 语义）；policy_v2.2.0 变更 3","goldenCase":"G12","dimension":"NORMAL"}
+{"caseId":"G3-GOLDEN-0001:G12-N","event":"trace_completed","at":"2026-10-10T07:39:52.182Z","startedAt":"2026-10-10T07:39:50.774Z","durationMs":1408,"result":"FAIL","pass":false}
