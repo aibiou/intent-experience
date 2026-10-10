@@ -15,6 +15,7 @@ interface ProviderConfig {
   id: string;
   provider: string;
   model: string;
+  endpoint: string;
   createdAt: string;
   updatedAt: string;
   enabled: boolean;
@@ -25,6 +26,7 @@ interface ProviderConfig {
 interface ProviderProfile {
   provider: string;
   default_model: string;
+  default_endpoint?: string;
 }
 
 interface ConfigStatus {
@@ -36,6 +38,14 @@ interface ConfigStatus {
 const defaultConfirmStatement = (provider: string) =>
   `我已确认提供方 ${provider} 的数据处理条款（DPA）与已签署隐私六要素一致：存储位置中国大陆（cn）/ 阿里云 / 云存储；加密为静态 + 传输两层机制、密钥分离；API key 仅以密文持久化，明文仅运行期内存持有，不进日志与证据产物。`;
 
+function endpointHost(endpoint: string): string {
+  try {
+    return new URL(endpoint).host;
+  } catch {
+    return endpoint;
+  }
+}
+
 export default function ConfigPage() {
   const [configs, setConfigs] = useState<ProviderConfig[]>([]);
   const [profiles, setProfiles] = useState<ProviderProfile[]>([]);
@@ -46,11 +56,13 @@ export default function ConfigPage() {
 
   const [provider, setProvider] = useState('');
   const [model, setModel] = useState('');
+  const [endpoint, setEndpoint] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [creating, setCreating] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editModel, setEditModel] = useState('');
+  const [editEndpoint, setEditEndpoint] = useState('');
   const [editApiKey, setEditApiKey] = useState('');
 
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -78,6 +90,7 @@ export default function ConfigPage() {
       if (profilesData.providers.length > 0 && provider === '') {
         setProvider(profilesData.providers[0].provider);
         setModel(profilesData.providers[0].default_model ?? '');
+        setEndpoint(profilesData.providers[0].default_endpoint ?? '');
       }
       if (statusResponse.ok) {
         setStatus((await statusResponse.json()) as ConfigStatus);
@@ -113,14 +126,19 @@ export default function ConfigPage() {
   }, []);
 
   const create = useCallback(async () => {
-    if (!provider || !model.trim() || !apiKey.trim() || creating) return;
+    if (!provider.trim() || !model.trim() || !endpoint.trim() || !apiKey.trim() || creating) return;
     setCreating(true);
     setError(null);
     try {
       const response = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, model: model.trim(), api_key: apiKey }),
+        body: JSON.stringify({
+          provider: provider.trim(),
+          model: model.trim(),
+          endpoint: endpoint.trim(),
+          api_key: apiKey,
+        }),
       });
       if (!response.ok) {
         await handleApiError(response, '新增配置失败');
@@ -140,6 +158,7 @@ export default function ConfigPage() {
       try {
         const body: Record<string, string> = {};
         if (editModel.trim().length > 0) body.model = editModel.trim();
+        if (editEndpoint.trim().length > 0) body.endpoint = editEndpoint.trim();
         if (editApiKey.length > 0) body.api_key = editApiKey;
         const response = await fetch(`/api/config/${id}`, {
           method: 'PUT',
@@ -246,7 +265,14 @@ export default function ConfigPage() {
   const startEdit = (config: ProviderConfig) => {
     setEditingId(config.id);
     setEditModel(config.model);
+    setEditEndpoint(config.endpoint);
     setEditApiKey('');
+  };
+
+  const applyPreset = (profile: ProviderProfile) => {
+    setProvider(profile.provider);
+    setModel(profile.default_model ?? '');
+    setEndpoint(profile.default_endpoint ?? '');
   };
 
   return (
@@ -264,9 +290,10 @@ export default function ConfigPage() {
       </header>
 
       <p className="config-intro">
-        API key 由你在页面添加，仅以密文持久化（AES-256-GCM 静态加密，加密密钥经环境变量
-        注入、与密文分离）；明文只在运行期内存中，不进日志、不进证据产物、不进 git。
-        可以配置多个不同提供商的对应模型，启用前须完成隐私再确认。
+        任何 OpenAI 兼容提供方都可以直接配置：填写提供方名称、端点（chat/completions
+        URL）、模型名与 API key——无需登记。API key 仅以密文持久化（AES-256-GCM
+        静态加密，加密密钥经环境变量注入、与密文分离）；明文只在运行期内存中，不进日志、
+        不进证据产物、不进 git。启用前须完成隐私再确认。
       </p>
 
       {encryptionKeyMissing && (
@@ -289,26 +316,41 @@ export default function ConfigPage() {
 
       <section className="config-card">
         <h2 className="config-card-title">添加提供方配置</h2>
+        {profiles.length > 0 && (
+          <div className="config-presets">
+            <span className="config-preset-label">预设（自动填充）：</span>
+            {profiles.map((profile) => (
+              <button
+                key={profile.provider}
+                type="button"
+                className="config-button config-button-quiet"
+                onClick={() => applyPreset(profile)}
+              >
+                {profile.provider}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="config-form">
           <div className="config-field">
-            <label htmlFor="config-provider">提供方</label>
-            <select
+            <label htmlFor="config-provider">提供方（自定义名称，如 my-provider）</label>
+            <input
               id="config-provider"
-              className="config-select"
+              className="config-input"
               value={provider}
-              onChange={(event) => {
-                const next = event.target.value;
-                setProvider(next);
-                const profile = profiles.find((item) => item.provider === next);
-                setModel(profile?.default_model ?? '');
-              }}
-            >
-              {profiles.map((profile) => (
-                <option key={profile.provider} value={profile.provider}>
-                  {profile.provider}
-                </option>
-              ))}
-            </select>
+              onChange={(event) => setProvider(event.target.value)}
+              placeholder="任意名称——用于标识与隐私确认记录"
+            />
+          </div>
+          <div className="config-field">
+            <label htmlFor="config-endpoint">端点（OpenAI 兼容 chat/completions URL）</label>
+            <input
+              id="config-endpoint"
+              className="config-input"
+              value={endpoint}
+              onChange={(event) => setEndpoint(event.target.value)}
+              placeholder="https://api.example.com/v1/chat/completions"
+            />
           </div>
           <div className="config-field">
             <label htmlFor="config-model">模型</label>
@@ -335,7 +377,13 @@ export default function ConfigPage() {
             type="button"
             className="config-button config-button-primary"
             onClick={() => void create()}
-            disabled={creating || !provider || model.trim().length === 0 || apiKey.trim().length === 0}
+            disabled={
+              creating ||
+              provider.trim().length === 0 ||
+              model.trim().length === 0 ||
+              endpoint.trim().length === 0 ||
+              apiKey.trim().length === 0
+            }
           >
             {creating ? '保存中…' : '保存'}
           </button>
@@ -374,6 +422,15 @@ export default function ConfigPage() {
                       />
                     </div>
                     <div className="config-field">
+                      <label htmlFor={`edit-endpoint-${config.id}`}>端点</label>
+                      <input
+                        id={`edit-endpoint-${config.id}`}
+                        className="config-input"
+                        value={editEndpoint}
+                        onChange={(event) => setEditEndpoint(event.target.value)}
+                      />
+                    </div>
+                    <div className="config-field">
                       <label htmlFor={`edit-key-${config.id}`}>API key（留空保持不变）</label>
                       <input
                         id={`edit-key-${config.id}`}
@@ -388,7 +445,12 @@ export default function ConfigPage() {
                         type="button"
                         className="config-button config-button-primary"
                         onClick={() => void saveEdit(config.id)}
-                        disabled={busyId === config.id || (editModel.trim().length === 0 && editApiKey.length === 0)}
+                        disabled={
+                          busyId === config.id ||
+                          (editModel.trim().length === 0 &&
+                            editEndpoint.trim().length === 0 &&
+                            editApiKey.length === 0)
+                        }
                       >
                         保存
                       </button>
@@ -406,6 +468,9 @@ export default function ConfigPage() {
                     <div className="config-item-head">
                       <span className="config-provider">{config.provider}</span>
                       <span className="config-model">{config.model}</span>
+                      <span className="config-endpoint" title={config.endpoint}>
+                        {endpointHost(config.endpoint)}
+                      </span>
                       <span className="config-badges">
                         {config.enabled ? (
                           <span className="badge badge-enabled">已启用</span>
@@ -517,8 +582,8 @@ export default function ConfigPage() {
       </section>
 
       <p className="config-footer">
-        提供方选择经已登记提供方规则族（model-agnostic——产品不写死任何提供方）；
-        新增提供方经各自构造规则版本化冻结后方可登记启用。
+        任何 OpenAI 兼容提供方均可自定义配置（model-agnostic——产品不写死任何提供方，
+        亦无准入登记）；预设仅自动填充表单。协议不兼容的提供方属后续构造规则切片。
       </p>
     </main>
   );

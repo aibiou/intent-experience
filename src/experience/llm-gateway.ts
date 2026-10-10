@@ -78,20 +78,27 @@ export class EvidenceFaultLlmGateway implements LlmGateway {
 let proposalCounter = 0;
 
 /**
- * 提供方接入（S5；S5A-SEMANTIC-FREEZE-01 v1.0.0）。
+ * 提供方接入（S5；S5A-SEMANTIC-FREEZE-01 v1.0.0；S5B-SEMANTIC-FREEZE-01
+ * v1.1.0 修订——产品负责人指令 2026-10-10：取消提供方准入登记）。
  *
  * model-agnostic 架构：LlmGateway 接口即提供方抽象层——产品运行时
  * 只依赖接口，不依赖任何提供方实现；提供方身份（provider / model /
- * 参数）经配置注入（环境变量——S5 形态）。产品代码不写死任何提供方。
+ * 参数）经配置注入（环境变量——S5 形态；页面持久化配置——S5B 形态）。
+ * 产品代码不写死任何提供方。
  *
- * 提供方规则按提供方版本化冻结（S5A-SEMANTIC-FREEZE-01 §1 D-2）：
- * 本版本登记首个验证提供方 dashscope profile v1——仅用于路径验证与
- * 证据执行，非产品默认、非产品写死；新增提供方经各自构造规则版本化
- * 冻结后方可启用（未登记值经 loadProviderGatewayConfig 拒绝启动）。
+ * 提供方配置双形态（S5B-SEMANTIC-FREEZE-01 v1.1.0）：
+ * - 预设（PROVIDER_PROFILES）：已验证提供方的构造默认值（端点 / 默认
+ *   模型 / 温度 / 系统提示词）——仅作表单预设与缺省回退，非准入清单，
+ *   非产品写死；环境变量形态（S5A）仍经此解析。
+ * - 自定义（页面配置）：任何 OpenAI 兼容提供方由用户直接配置
+ *   （端点 + 模型 + API key），无需登记——产品经 ProviderLlmGateway
+ *   统一构造（OpenAI 兼容协议：/chat/completions + Bearer 鉴权 +
+ *   choices[0].message.content 解析）。
  *
  * 隐私纪律（D-5）：提供方启用前须经产品负责人 + 安全负责人隐私再
- * 确认——用户可选集 = 已确认集。API key 仅运行期环境变量注入：
- * 绝不写死、绝不落盘、不进日志、错误信息不得包含 key。
+ * 确认——用户可选集 = 已确认集。API key 仅运行期注入（环境变量或
+ * 页面持久化密文解密）：绝不写死、绝不落盘、不进日志、错误信息
+ * 不得包含 key。
  */
 export interface ProviderLlmConfig {
   provider: string;
@@ -102,14 +109,20 @@ export interface ProviderLlmConfig {
   systemPrompt: string;
 }
 
+/** 自定义提供方缺省值（预设未覆盖时——S5B-SEMANTIC-FREEZE-01 v1.1.0）。 */
+export const DEFAULT_PROVIDER_TEMPERATURE = 0.7;
+export const DEFAULT_PROVIDER_SYSTEM_PROMPT =
+  '你是个人体验引擎的回应生成器。依据提供的上下文，生成对用户的回应内容。';
+
+/** 已验证提供方预设（S5B v1.1.0 起：预设非准入——自定义配置无需登记）。 */
 export const PROVIDER_PROFILES: Readonly<
   Record<string, { endpoint: string; defaultModel: string; temperature: number; systemPrompt: string }>
 > = {
   dashscope: {
     endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
     defaultModel: 'qwen-plus',
-    temperature: 0.7,
-    systemPrompt: '你是个人体验引擎的回应生成器。依据提供的上下文，生成对用户的回应内容。',
+    temperature: DEFAULT_PROVIDER_TEMPERATURE,
+    systemPrompt: DEFAULT_PROVIDER_SYSTEM_PROMPT,
   },
 };
 

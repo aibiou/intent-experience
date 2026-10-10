@@ -8,7 +8,9 @@ import {
  * GET /api/config — 配置列表（S5B D-4——读操作永不返回
  * key 任何形态，仅 hasKey 标记）。
  * POST /api/config — 新增提供方配置（provider / model /
- * api_key——key 仅以密文持久化，AES-256-GCM 密钥分离）。
+ * endpoint / api_key——任何 chat-completions 兼容提供方自定义配置，
+ * S5B-SEMANTIC-FREEZE-01 v1.1.0；key 仅以密文持久化，
+ * AES-256-GCM 密钥分离）。
  */
 export async function GET(): Promise<Response> {
   try {
@@ -26,7 +28,7 @@ export async function POST(req: Request): Promise<Response> {
   } catch {
     return Response.json({ code: 'INVALID_REQUEST', message: 'body must be valid JSON' }, { status: 400 });
   }
-  const body = parsed as { provider?: unknown; model?: unknown; api_key?: unknown };
+  const body = parsed as { provider?: unknown; model?: unknown; endpoint?: unknown; api_key?: unknown };
   if (typeof body.provider !== 'string' || body.provider.length === 0) {
     return Response.json({ code: 'INVALID_REQUEST', message: 'provider is required' }, { status: 400 });
   }
@@ -36,10 +38,14 @@ export async function POST(req: Request): Promise<Response> {
   if (typeof body.api_key !== 'string' || body.api_key.length === 0) {
     return Response.json({ code: 'INVALID_REQUEST', message: 'api_key is required' }, { status: 400 });
   }
+  if (body.endpoint !== undefined && typeof body.endpoint !== 'string') {
+    return Response.json({ code: 'INVALID_REQUEST', message: 'endpoint must be a string when provided' }, { status: 400 });
+  }
   try {
     const config = await createProviderConfig({
       provider: body.provider,
       model: body.model,
+      ...(typeof body.endpoint === 'string' ? { endpoint: body.endpoint } : {}),
       apiKey: body.api_key,
     });
     return Response.json({ config }, { status: 201 });

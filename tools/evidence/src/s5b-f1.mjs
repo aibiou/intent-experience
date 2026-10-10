@@ -1,7 +1,8 @@
 // S5B-F1-0001 — S5B 页面配置面动态证据执行器
 // （S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0 裁决选项 A——产品负责人
 //   指令 2026-10-10 全项 A，standing authorization 路径执行；依据
-//   S5B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施）
+//   S5B-SEMANTIC-FREEZE-01 v1.1.0 冻结文本实施——含 CR-34 修订：
+//   取消提供方准入登记，chat-completions 兼容提供方自定义配置）
 //
 // 覆盖（S5B 动态证据计划）：
 // - 配置 CRUD 四维度（正常 / 负 / 边界 / 故障恢复）
@@ -11,7 +12,8 @@
 // - D-5 隐私再确认（通用模板 PRIVACY-RECONFIRM-GENERIC/V1——提供方
 //   名称于签署时填写，不写死任何提供方；未确认不得启用）
 // - 读操作不泄漏 key（仅 hasKey 标记）
-// - 提供方准入（仅已登记提供方——model-agnostic 规则族）
+// - 自定义端点（CR-34——任何 chat-completions 兼容提供方可自定义
+//   配置：端点必填 + URL 校验；预设仅作缺省回退——model-agnostic）
 //
 // 治理约束（授权 §5 持续约束，ADR-0002 §3/§5，E5 §2）：
 // - 仅合成数据；无真实 LLM 提供方调用（不进入 ProviderLlmGateway
@@ -89,7 +91,7 @@ const INVARIANTS = [
   '密钥分离：加密密钥经环境变量 EXPERIENCE_CONFIG_ENCRYPTION_KEY 注入（32 字节 hex），不随密文同处存储；缺失或非法时拒绝持久化（CONFIG_ENCRYPTION_KEY_MISSING / _INVALID——不静默降级）',
   'D-3 多记录模型：每提供方一条配置（provider / model / key 密文引用），可多条并存；同时至多一条启用（单激活）',
   'D-5 隐私再确认：确认记录经通用模板 PRIVACY-RECONFIRM-GENERIC/V1 签署（提供方名称于签署时填写，产品代码不写死任何提供方）；确认人 = 产品负责人 + 安全负责人双重身份；未确认提供方的配置不得启用（PROVIDER_NOT_CONFIRMED）',
-  '提供方准入：仅已登记提供方（PROVIDER_PROFILES——S5A-SEMANTIC-FREEZE-01 §1 D-2 规则族）可创建 / 确认 / 启用——未登记值拒绝（PROVIDER_NOT_REGISTERED）',
+  '自定义配置（CR-34——产品负责人指令 2026-10-10：取消提供方准入登记）：任何 chat-completions 兼容提供方可自定义配置（端点 + 模型 + API key），无需登记；自定义提供方必须显式提供端点（CONFIG_ENDPOINT_REQUIRED）；端点必须为合法 http(s) URL（CONFIG_ENDPOINT_INVALID）；PROVIDER_PROFILES 降级为预设（缺省端点 / 温度 / 系统提示词回退——S5B-SEMANTIC-FREEZE-01 v1.1.0）',
   '读操作纪律（D-4）：list / 查询永不返回 key 明文或密文——仅 hasKey 标记存在',
   '运行时优先级（server-runtime）：证据注入缝（EXPERIENCE_LLM_GATEWAY_SEAM=1）> 页面持久化配置（已启用）> 环境变量 LLM 模式（EXPERIENCE_LLM_MODE=provider）> 合成默认；持久化配置经 PersistedConfigLlmGateway 每次调用解析——启用 / 禁用 / 删除即时生效（单进程内存缓存，无需重启）',
   'SEAM-INERT 不变式：无任何配置时委托网关委托 SyntheticLlmGateway——与 S1–S4 默认形态行为完全一致（零行为变化）',
@@ -207,6 +209,7 @@ async function caseCreateNormal(trace, ctx) {
     providerConfirmed: false,
     provider: 'dashscope',
     model: 'qwen-plus',
+    endpointResolvedFromPreset: PROVIDER_PROFILES.dashscope.endpoint,
     ciphertextAtRest: true,
     plaintextAtRest: false,
     summaryExposesNoKeyMaterial: true,
@@ -217,6 +220,7 @@ async function caseCreateNormal(trace, ctx) {
     providerConfirmed: summary.providerConfirmed,
     provider: summary.provider,
     model: summary.model,
+    endpoint: summary.endpoint,
     ciphertextShapeOk,
     plaintextAtRest,
     summaryFields: Object.keys(summary).sort(),
@@ -228,32 +232,61 @@ async function caseCreateNormal(trace, ctx) {
     actual.providerConfirmed === expected.providerConfirmed &&
     actual.provider === expected.provider &&
     actual.model === expected.model &&
+    actual.endpoint === expected.endpointResolvedFromPreset &&
     actual.ciphertextShapeOk === expected.ciphertextAtRest &&
     actual.plaintextAtRest === expected.plaintextAtRest &&
     !actual.summaryFields.includes('keyCiphertext') &&
     actual.recordCount === 1;
-  await trace.emit('case-fact', { summaryFields: actual.summaryFields, ciphertextShapeOk, plaintextAtRest });
+  await trace.emit('case-fact', { summaryFields: actual.summaryFields, ciphertextShapeOk, plaintextAtRest, endpoint: actual.endpoint });
   return { expected, actual, pass };
 }
 
-// C2 未登记提供方拒绝（NEGATIVE）
-async function caseCreateUnregistered(trace, ctx) {
+// C2 自定义端点规则（NEGATIVE——CR-34：取消准入登记后，任何
+// chat-completions 兼容提供方可自定义配置；自定义提供方的
+// 端点为必填且须为合法 http(s) URL；预设提供方缺省回退）
+async function caseCreateCustomEndpoint(trace, ctx) {
   applyCaseEnv(ctx);
   const store = await ctx.freshModule();
-  const first = await expectError(() =>
-    store.createProviderConfig({ provider: 'openai', model: 'gpt-4o', apiKey: TEST_API_KEY }),
-  );
-  const second = await expectError(() =>
+  // 自定义提供方 + 未提供端点且无预设 → 端点必填拒绝
+  const noEndpoint = await expectError(() =>
     store.createProviderConfig({ provider: 'my-custom-provider', model: 'm1', apiKey: TEST_API_KEY }),
   );
+  // 自定义提供方 + 非法端点（非 URL）→ 端点校验拒绝
+  const badEndpoint = await expectError(() =>
+    store.createProviderConfig({ provider: 'my-custom-provider', model: 'm1', apiKey: TEST_API_KEY, endpoint: 'not-a-url' }),
+  );
+  // 自定义提供方 + 合法端点 → 创建成功（取消准入——无需登记）
+  const created = await store.createProviderConfig({
+    provider: 'my-custom-provider',
+    model: 'm1',
+    apiKey: TEST_API_KEY,
+    endpoint: 'https://api.example.com/v1/chat/completions',
+  });
+  // 预设提供方不填端点 → 预设缺省端点回退（向后兼容）
+  const preset = await store.createProviderConfig({ provider: 'dashscope', model: 'qwen-plus', apiKey: TEST_API_KEY });
   const listed = await store.listProviderConfigs();
-  const expected = { code: 'PROVIDER_NOT_REGISTERED', storeRemainsEmpty: true };
-  const actual = { firstCode: first.code, secondCode: second.code, recordCount: listed.length };
+  const expected = {
+    customWithoutEndpoint: 'CONFIG_ENDPOINT_REQUIRED',
+    customWithInvalidEndpoint: 'CONFIG_ENDPOINT_INVALID',
+    customWithValidEndpointCreated: true,
+    presetEndpointFallback: PROVIDER_PROFILES.dashscope.endpoint,
+    storeHasTwoRecords: true,
+  };
+  const actual = {
+    noEndpointCode: noEndpoint.code,
+    badEndpointCode: badEndpoint.code,
+    createdProvider: created.provider,
+    createdEndpoint: created.endpoint,
+    presetEndpoint: preset.endpoint,
+    recordCount: listed.length,
+  };
   const pass =
-    first.threw && first.code === 'PROVIDER_NOT_REGISTERED' &&
-    second.threw && second.code === 'PROVIDER_NOT_REGISTERED' &&
-    listed.length === 0;
-  await trace.emit('case-fact', { firstCode: first.code, secondCode: second.code, recordCount: listed.length });
+    noEndpoint.threw && noEndpoint.code === 'CONFIG_ENDPOINT_REQUIRED' &&
+    badEndpoint.threw && badEndpoint.code === 'CONFIG_ENDPOINT_INVALID' &&
+    created.endpoint === 'https://api.example.com/v1/chat/completions' &&
+    preset.endpoint === PROVIDER_PROFILES.dashscope.endpoint &&
+    listed.length === 2;
+  await trace.emit('case-fact', { noEndpointCode: noEndpoint.code, badEndpointCode: badEndpoint.code, createdEndpoint: created.endpoint, presetEndpoint: preset.endpoint, recordCount: listed.length });
   return { expected, actual, pass };
 }
 
@@ -633,6 +666,9 @@ async function caseRuntimePriority(trace, ctx) {
   const persistedActive = store.hasEnabledPersistedConfigSync();
   const delegationInput = await store.getEnabledProviderConfig();
   const profileResolvable = Boolean(PROVIDER_PROFILES[delegationInput?.provider ?? '']);
+  // CR-34 v1.1.0：委托输入契约含已解析端点（记录端点优先、
+  // 预设缺省回退——本案例记录未显式填端点 → 预设端点回退）
+  const presetEndpoint = PROVIDER_PROFILES[delegationInput?.provider ?? '']?.endpoint;
   // 静态：resolveServerGateway 函数体内优先级字节序
   const serverRuntimeSource = await readFile(path.join(repoRoot, 'src/experience/server-runtime.ts'), 'utf8');
   const fnStart = serverRuntimeSource.indexOf('function resolveServerGateway');
@@ -651,8 +687,9 @@ async function caseRuntimePriority(trace, ctx) {
     iSeam < iPersisted && iPersisted < iEnv && iEnv < iFallback;
   const expected = {
     persistedActiveDetected: true,
-    delegationInputContract: { provider: 'dashscope', model: 'qwen-plus', apiKeyPresent: true },
+    delegationInputContract: { provider: 'dashscope', model: 'qwen-plus', apiKeyPresent: true, endpointResolved: true },
     profileResolvableFromRegistry: true,
+    delegationEndpointFromPreset: presetEndpoint,
     priorityByteOrder: 'seam < persisted < env < synthetic-fallback',
   };
   const actual = {
@@ -660,6 +697,7 @@ async function caseRuntimePriority(trace, ctx) {
     delegationProvider: delegationInput?.provider ?? null,
     delegationModel: delegationInput?.model ?? null,
     delegationApiKeyPresent: typeof delegationInput?.apiKey === 'string' && delegationInput.apiKey.length > 0,
+    delegationEndpoint: delegationInput?.endpoint ?? null,
     profileResolvable,
     priorityOrderOk,
     priorityIndexes: { seam: iSeam, persisted: iPersisted, env: iEnv, fallback: iFallback },
@@ -669,9 +707,10 @@ async function caseRuntimePriority(trace, ctx) {
     actual.delegationProvider === 'dashscope' &&
     actual.delegationModel === 'qwen-plus' &&
     actual.delegationApiKeyPresent === true &&
+    actual.delegationEndpoint === presetEndpoint &&
     profileResolvable === true &&
     priorityOrderOk;
-  await trace.emit('case-fact', { persistedActive, priorityOrderOk, priorityIndexes: actual.priorityIndexes });
+  await trace.emit('case-fact', { persistedActive, priorityOrderOk, delegationEndpoint: actual.delegationEndpoint, priorityIndexes: actual.priorityIndexes });
   return { expected, actual, pass };
 }
 
@@ -726,14 +765,14 @@ const CASE_REGISTRY = [
     run: caseCreateNormal,
   },
   {
-    caseId: 'CREATE-UNREGISTERED',
-    scope: 'S5B D-2（NEGATIVE）：未登记提供方创建拒绝——提供方准入规则族',
-    precondition: 'PROVIDER_PROFILES 为唯一登记源',
-    inputFault: '未登记提供方标识（openai / my-custom-provider）',
-    sourceClause: 'S5A-SEMANTIC-FREEZE-01 §1 D-2；config-store.ts PROVIDER_NOT_REGISTERED',
+    caseId: 'CREATE-CUSTOM-ENDPOINT',
+    scope: 'S5B v1.1.0 / CR-34（NEGATIVE）：自定义端点规则——自定义提供方未提供端点拒绝 / 非法端点拒绝 / 合法端点创建成功（无需登记）/ 预设端点缺省回退',
+    precondition: '提供方准入已取消（CR-34——任何 chat-completions 兼容提供方可自定义配置）；PROVIDER_PROFILES 为预设源（缺省回退）',
+    inputFault: '自定义提供方未提供端点 / 非法端点字符串（非 http(s) URL）',
+    sourceClause: 'S5B-SEMANTIC-FREEZE-01 v1.1.0 §2 D-1；config-store.ts CONFIG_ENDPOINT_REQUIRED / CONFIG_ENDPOINT_INVALID / resolveEndpoint',
     form: 'in-process',
     servers: [],
-    run: caseCreateUnregistered,
+    run: caseCreateCustomEndpoint,
   },
   {
     caseId: 'CREATE-MISSING-FIELDS',
@@ -837,8 +876,8 @@ const CASE_REGISTRY = [
   },
   {
     caseId: 'PROVIDER-REGISTRY',
-    scope: 'S5B D-1/D-2（NORMAL）：提供方规则族即登记源——model-agnostic（用户经页面选择已登记提供方，产品代码不写死提供方分支）',
-    precondition: 'PROVIDER_PROFILES 为唯一登记源',
+    scope: 'S5B D-1/D-2（NORMAL）：提供方预设族即缺省回退源——model-agnostic（用户经页面选择预设或直接自定义任何兼容提供方，产品代码不写死提供方分支）',
+    precondition: 'PROVIDER_PROFILES 为预设源（非准入——CR-34 取消登记制）',
     inputFault: '未登记提供方查询默认模型',
     sourceClause: 'llm-gateway.ts PROVIDER_PROFILES；config-store.ts registeredProviders / providerDefaultModel',
     form: 'in-process',
@@ -1175,8 +1214,8 @@ async function runWith(pre) {
   const versionMatrix = {
     ...(await buildVersionMatrix({ repoRoot, runId: RUN_ID, executor: 's5b-f1' })),
     runId: RUN_ID,
-    obligation: 'S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0 裁决选项 A（产品负责人指令 2026-10-10 全项 A，standing authorization）：页面配置面——提供方配置持久化（API key 页面添加、AES-256-GCM 静态加密）+ D-5 隐私再确认 + 运行期委托网关（启用 / 禁用即时生效）',
-    authorization: { id: 'S5B-CONFIG-SURFACE-PROPOSAL-01', version: '1.0.0', issued: '2026-10-10', note: '产品负责人指令 2026-10-10 全项 A 作为裁决输入（standing authorization——持续推进产品完成，需要签署和授权的已允许）；S5B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施' },
+    obligation: 'S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0 裁决选项 A（产品负责人指令 2026-10-10 全项 A，standing authorization）：页面配置面——提供方配置持久化（API key 页面添加、AES-256-GCM 静态加密）+ D-5 隐私再确认 + 运行期委托网关（启用 / 禁用即时生效）；CR-34 修订（产品负责人指令 2026-10-10）：取消提供方准入登记——任何 chat-completions 兼容提供方自定义配置（端点 + 模型 + API key），PROVIDER_PROFILES 降级为预设（缺省回退）',
+    authorization: { id: 'S5B-CONFIG-SURFACE-PROPOSAL-01', version: '1.0.0', issued: '2026-10-10', note: '产品负责人指令 2026-10-10 全项 A 作为裁决输入（standing authorization——持续推进产品完成，需要签署和授权的已允许）；S5B-SEMANTIC-FREEZE-01 v1.1.0 冻结文本实施（v1.1.0 修订——CR-34：取消提供方准入登记，自定义端点规则 CONFIG_ENDPOINT_REQUIRED / CONFIG_ENDPOINT_INVALID 生效）' },
     obligationTraceability: {
       'S5B 页面配置面（提供方配置持久化 + 隐私再确认 + 运行期委托）': {
         decision: 'S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0 RULED（产品负责人指令 2026-10-10，全项 A）',
@@ -1187,11 +1226,11 @@ async function runWith(pre) {
           'D-5': '选项 A——隐私再确认通用模板（PRIVACY-RECONFIRM-GENERIC/V1——提供方名称于签署时填写，不写死任何提供方；未确认不得启用）',
         },
         implementationFiles: [
-          'src/experience/config-store.ts（AES-256-GCM 静态加密 + 密钥分离 + 原子写 + 多记录模型 + 通用确认模板 + 提供方准入 + 单激活）',
-          'src/experience/server-runtime.ts（PersistedConfigLlmGateway 委托网关——优先级：证据注入缝 > 页面持久化配置 > 环境变量 > 合成默认；每次调用解析，启用 / 禁用 / 删除即时生效无需重启）',
-          'src/experience/llm-gateway.ts（PROVIDER_PROFILES 已登记提供方规则族——model-agnostic 唯一登记源）',
-          'app/api/config/**（配置面 API——CRUD + confirm / enable / disable / profiles / status）',
-          'app/config/page.tsx（配置管理 UI——页内启用确认流）',
+          'src/experience/config-store.ts（AES-256-GCM 静态加密 + 密钥分离 + 原子写 + 多记录模型 + 通用确认模板 + 自定义端点解析（记录端点优先 + 预设缺省回退）+ 单激活）',
+          'src/experience/server-runtime.ts（PersistedConfigLlmGateway 委托网关——按持久化配置值直构造提供方网关（端点 / 温度 / 系统提示词）；优先级：证据注入缝 > 页面持久化配置 > 环境变量 > 合成默认；每次调用解析，启用 / 禁用 / 删除即时生效无需重启）',
+          'src/experience/llm-gateway.ts（PROVIDER_PROFILES 提供方预设族——缺省端点 / 温度 / 系统提示词回退，model-agnostic；DEFAULT_PROVIDER_TEMPERATURE / DEFAULT_PROVIDER_SYSTEM_PROMPT 通用缺省常量）',
+          'app/api/config/**（配置面 API——CRUD（含端点字段）+ confirm / enable / disable / profiles / status）',
+          'app/config/page.tsx（配置管理 UI——提供方 / 端点 / 模型 / key 自定义输入 + 预设自动填充按钮 + 页内启用确认流）',
         ],
         evidenceCases: caseResults.map((entry) => `${RUN_ID}:${entry.caseId}=${entry.result}`),
         assertions: assertions.map((entry) => `${entry.id}=${entry.passed ? 'PASSED' : 'FAILED'}`),
@@ -1312,7 +1351,7 @@ async function runWith(pre) {
   // Review package (staged for the independent evaluator).
   const reviewReadme = `# ${RUN_ID} — 独立评测人审阅包（staged，待审阅与否决）
 
-运行：${RUN_ID}（S5B 动态证据——页面配置面：提供方配置持久化 + D-5 隐私再确认 + 运行期委托网关；S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0 裁决选项 A，产品负责人指令 2026-10-10 全项 A）
+运行：${RUN_ID}（S5B 动态证据——页面配置面：提供方配置持久化 + D-5 隐私再确认 + 运行期委托网关；S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0 裁决选项 A，产品负责人指令 2026-10-10 全项 A；含 CR-34 v1.1.0 修订——取消提供方准入登记，chat-completions 兼容提供方自定义配置）
 日期：${new Date().toISOString()}
 执行器：工程负责人角色（代理，Codex）；独立评测负责人：用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）
 
@@ -1331,8 +1370,8 @@ async function runWith(pre) {
 
 ## 本运行覆盖（S5B 动态证据计划——四维度）
 
-- 正常路径（6）：CREATE-NORMAL（密文落盘 / 摘要无 key）/ CONFIRM-GENERIC-TEMPLATE（通用模板签署）/ ENABLE-DECRYPT-SINGLE-ACTIVE（解密回环 + 单激活）/ DISABLE-FALLBACK（禁用即时回退）/ RUNTIME-PRIORITY（优先级字节序 + 委托输入契约）/ PROVIDER-REGISTRY（model-agnostic 规则族登记源）
-- 负路径（3）：CREATE-UNREGISTERED（未登记提供方拒绝）/ CREATE-MISSING-FIELDS（必填字段缺失）/ ENABLE-BEFORE-CONFIRM（未确认不得启用）
+- 正常路径（6）：CREATE-NORMAL（密文落盘 / 摘要无 key / 预设端点回退）/ CONFIRM-GENERIC-TEMPLATE（通用模板签署）/ ENABLE-DECRYPT-SINGLE-ACTIVE（解密回环 + 单激活）/ DISABLE-FALLBACK（禁用即时回退）/ RUNTIME-PRIORITY（优先级字节序 + 委托输入契约含已解析端点）/ PROVIDER-REGISTRY（model-agnostic 预设族缺省回退源）
+- 负路径（3）：CREATE-CUSTOM-ENDPOINT（自定义端点必填 / 非法端点拒绝——CR-34 取消准入后自定义提供方端点规则）/ CREATE-MISSING-FIELDS（必填字段缺失）/ ENABLE-BEFORE-CONFIRM（未确认不得启用）
 - 边界（2）：KEY-SEPARATION（加密密钥缺失 / 非法 / 长度不足拒绝 + 合法恢复）/ READ-NO-KEY-LEAK（读操作零 key 泄漏扫描）
 - 故障恢复（2）：DELETE-CORRUPT-NOTFOUND（删除 404 + 存储损坏拒绝不静默回退）/ CIPHERTEXT-TAMPER（密文篡改认证失败 + 畸形引用拒绝）
 
@@ -1340,7 +1379,7 @@ async function runWith(pre) {
 
 - A5：API key 明文零落盘（扫描 ${needleScans.length} 个持久化 / 证据文件，0 命中）
 - A6：运行期加密密钥（环境变量注入）零出现于任何文件（0 命中——密钥分离独立验证）
-- A7：配置面源码无提供方字面量（model-agnostic——提供方身份仅经 PROVIDER_PROFILES 登记）
+- A7：配置面源码无提供方字面量（model-agnostic——提供方身份仅经 PROVIDER_PROFILES 预设登记；自定义提供方由用户页面输入）
 - A8：D-5 通用模板 PRIVACY-RECONFIRM-GENERIC/V1（提供方名称于签署时填写，不写死任何提供方）
 - A9：运行时优先级字节序（证据注入缝 > 页面持久化配置 > 环境变量 > 合成默认）
 

@@ -1,17 +1,17 @@
-# S5B 语义冻结文本（S5B-SEMANTIC-FREEZE-01 v1.0.0）
+# S5B 语义冻结文本（S5B-SEMANTIC-FREEZE-01 v1.1.0）
 
-**状态：** FROZEN——产品负责人（用户本人，PD-15）2026-10-10 裁决（D-1…D-6 全项 A，经 S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0 裁决）
+**状态：** FROZEN——产品负责人（用户本人，PD-15）2026-10-10 裁决（D-1…D-6 全项 A，经 S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0 裁决；v1.1.0 修订经产品负责人指令 2026-10-10——CR-34：取消提供方准入登记）
 **编号：** S5B-SEMANTIC-FREEZE-01
-**版本：** 1.0.0（2026-10-10：产品负责人裁决 D-1…D-6 全项 A——配置面切片语义定义版本化冻结）
+**版本：** 1.1.0（2026-10-10：产品负责人指令 2026-10-10——取消提供方准入登记：任何 chat-completions 兼容提供方均可由用户自定义配置（端点 + 模型 + API key），无需登记；PROVIDER_PROFILES 降级为预设（缺省端点 / 温度 / 系统提示词回退）；自定义提供方端点必填（CONFIG_ENDPOINT_REQUIRED）且须为合法 http(s) URL（CONFIG_ENDPOINT_INVALID）；v1.0.0 其余语义（D-2 加密存储 / D-5 隐私再确认 / 范围边界）不变）
 **起草：** 工程负责人角色（代理，Codex 履行，PD-15 委托）
-**关联：** S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0（RULED——裁决输入：产品负责人指令 2026-10-10）/ S5-SCOPE-PROPOSAL-01 v1.0.0（RULED——D-1…D-7 全项 A）/ S5A-SEMANTIC-FREEZE-01 v1.1.0（提供方规则族 PROVIDER_PROFILES——D-2 构造规则按提供方版本化冻结；D-5 隐私再确认逐提供方通用机制）/ P3-S1-PRIVACY-SIX-01 v0.4.2（隐私六要素——要素 2：区域=中国大陆（cn）/ 服务商=阿里云 / 介质=云存储；要素 4：静态 + 传输两层加密、密钥分离）/ policy_v2.3.0（不变）/ state_machine_v1.5.0（不变）/ C6 事件契约（不变）/ ADR-0002 §3（合成数据硬边界——本切片不解除；真实提供方调用属 S5A-F1-0001 证据执行）
+**关联：** S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0（RULED——裁决输入：产品负责人指令 2026-10-10）/ S5-SCOPE-PROPOSAL-01 v1.0.0（RULED——D-1…D-7 全项 A）/ S5A-SEMANTIC-FREEZE-01 v1.1.0（提供方规则族 PROVIDER_PROFILES——D-2 构造规则按提供方版本化冻结；D-5 隐私再确认逐提供方通用机制；v1.1.0 起 PROVIDER_PROFILES 于本切片仅作预设——CR-34）/ P3-S1-PRIVACY-SIX-01 v0.4.2（隐私六要素——要素 2：区域=中国大陆（cn）/ 服务商=阿里云 / 介质=云存储；要素 4：静态 + 传输两层加密、密钥分离）/ policy_v2.3.0（不变）/ state_machine_v1.5.0（不变）/ C6 事件契约（不变）/ ADR-0002 §3（合成数据硬边界——本切片不解除；真实提供方调用属 S5A-F1-0001 证据执行）
 **记录日期：** 2026-10-10
 
 ## 1. 语义定义（D-1…D-6 裁决原文——版本化冻结）
 
 ### D-1：配置面形态
 
-- **页面表单 + 环境变量双形态**：用户经页面（`/config`）添加 / 编辑 / 删除提供方配置（provider / model / key）；环境变量形态保留（证据 / 测试环境优先——证据注入缝仍为最高优先级）。
+- **页面表单 + 环境变量双形态**：用户经页面（`/config`）添加 / 编辑 / 删除提供方配置（provider / model / endpoint / key——v1.1.0：任何 chat-completions 兼容提供方均可自定义，填写提供方名称、端点（chat/completions URL）、模型名与 API key，无需登记）；环境变量形态保留（证据 / 测试环境优先——证据注入缝仍为最高优先级）。
 - **运行时配置解析优先级**：证据注入缝（`EXPERIENCE_LLM_GATEWAY_SEAM=1`）> 页面持久化配置（已启用配置）> 环境变量 LLM 模式（`EXPERIENCE_LLM_MODE=provider`）> 合成默认。
 - **即时生效**：页面持久化配置经 `PersistedConfigLlmGateway` 委托网关每次调用解析——启用 / 禁用 / 删除经配置面即时生效（单进程内存缓存，无需重启）。
 - **SEAM-INERT 不变式**：无任何配置时委托网关委托 `SyntheticLlmGateway`——与 S1–S4 默认形态行为完全一致（零行为变化）。
@@ -28,12 +28,12 @@
 
 - 每提供方一条配置（provider 标识 / model 名 / key 密文引用），可多条并存（用户可配置多个不同提供商的对应模型）。
 - 同时至多一条启用（单激活）——启用新配置自动关闭既有启用配置。
-- 启用配置 = 运行时使用该配置的 provider 规则（`PROVIDER_PROFILES`）与 key 构造 `ProviderLlmGateway`。
+- 启用配置 = 运行时使用该配置的已解析端点（记录端点优先、预设缺省回退——v1.1.0：`PROVIDER_PROFILES` 仅作预设）与 key 构造 `ProviderLlmGateway`（chat-completions 兼容协议形态：`/chat/completions` + Bearer 鉴权）。
 - 未启用配置不影响运行时。
 
 ### D-4：暴露面（HTTP 路由）
 
-- 配置管理路由：`/api/config`（列表 / 新增）、`/api/config/[id]`（查询 / 更新 / 删除）、`/api/config/[id]/confirm`（隐私再确认签署）、`/api/config/[id]/enable`、`/api/config/[id]/disable`、`/api/config/profiles`（已登记提供方规则族）、`/api/config/status`（运行模式状态——合成演示 / 已启用提供方，不含 key 任何形态）。
+- 配置管理路由：`/api/config`（列表 / 新增）、`/api/config/[id]`（查询 / 更新 / 删除）、`/api/config/[id]/confirm`（隐私再确认签署）、`/api/config/[id]/enable`、`/api/config/[id]/disable`、`/api/config/profiles`（提供方预设族——缺省端点 / 模型自动填充，非准入清单——v1.1.0）、`/api/config/status`（运行模式状态——合成演示 / 已启用提供方，不含 key 任何形态）。
 - 访问控制：个人使用形态（本机访问——V1 默认）；多用户形态须另行版本化决策。
 
 ### D-5：隐私再确认界面化
@@ -50,16 +50,16 @@
 ## 2. 范围边界
 
 - 策略语义（policy_v2.3.0）/ 状态机（state_machine_v1.5.0）/ 事件契约（C6）不变——本切片为暴露层 + 机制层扩展，无状态机迁移、无交互事件。
-- **提供方准入**：仅已登记提供方（`PROVIDER_PROFILES`——S5A-SEMANTIC-FREEZE-01 §1 D-2 规则族）可创建 / 确认 / 启用——未登记值拒绝（`PROVIDER_NOT_REGISTERED`）；新增提供方仍走「提案 → 裁决 → 冻结 → 证据」链。
+- **自定义配置（v1.1.0——CR-34：取消提供方准入登记）**：任何 chat-completions 兼容提供方均可自定义配置（端点 + 模型 + API key），无需登记——`PROVIDER_PROFILES` 降级为预设（缺省端点 / 温度 / 系统提示词回退），非准入清单；自定义提供方必须显式提供端点（`CONFIG_ENDPOINT_REQUIRED`），端点须为合法 http(s) URL（`CONFIG_ENDPOINT_INVALID`）；D-5 隐私再确认纪律不变（未确认配置不得启用——选择自由以隐私确认为边界）。
 - 本切片不接触真实 LLM 提供方网络路径（ADR-0002 §3 合成数据硬边界持续生效——真实调用属 S5A-F1-0001 证据执行，须用户添加真实 key 并首次签署 D-5 后执行）。
 
 ## 3. 不变式
 
-- SEAM-INERT（无配置即合成默认，零行为变化）；密钥分离；明文零落盘；单激活；确认前置；model-agnostic（产品代码不写死任何提供方——提供方身份仅经 `PROVIDER_PROFILES` 登记，用户经页面选择）。
+- SEAM-INERT（无配置即合成默认，零行为变化）；密钥分离；明文零落盘；单激活；确认前置；model-agnostic（产品代码不写死任何提供方——预设仅经 `PROVIDER_PROFILES` 登记作缺省回退，任何兼容提供方由用户页面自定义输入——v1.1.0）。
 
 ## 4. 动态证据计划
 
-- S5B-F1-0001：配置 CRUD × 四维度（正常 / 负向 / 边界 / 故障恢复）+ 加密存储静态核验（密文非明文落盘）+ 运行时优先级（静态字节序 + 动态委托输入契约）+ 启用确认流（未确认不得启用）+ key 不泄漏（读操作 / 落盘文件 / 证据产物扫描）+ 提供方准入（未登记拒绝）。
+- S5B-F1-0001：配置 CRUD × 四维度（正常 / 负向 / 边界 / 故障恢复）+ 加密存储静态核验（密文非明文落盘）+ 运行时优先级（静态字节序 + 动态委托输入契约含已解析端点）+ 启用确认流（未确认不得启用）+ key 不泄漏（读操作 / 落盘文件 / 证据产物扫描）+ 自定义端点规则（v1.1.0——未提供端点拒绝 / 非法端点拒绝 / 合法端点创建成功 / 预设端点缺省回退）。
 
 ## 5. 明确非结论
 
@@ -69,4 +69,5 @@
 
 - 起草：工程负责人角色（代理，Codex），2026-10-10。
 - 产品负责人裁决：**D-1…D-6 全项 A，2026-10-10**——裁决输入：产品负责人指令 2026-10-10（API key 用户自己在页面添加；可能配置多个不同提供商的对应模型；D-5 隐私再确认不写死 DashScope——逐提供方通用机制），经 standing authorization 2026-10-10（「持续推进产品，完成，需要我签署和授权的，允许」）路径执行。
+- v1.1.0 修订（2026-10-10）：产品负责人指令「抛开登记的准入点，按照 OpenAI 兼容的方式进行提供商自定义配置」——取消提供方准入登记，任何 chat-completions 兼容提供方自定义配置（CR-34）；D-1 / D-3 / D-4 / §2 / §3 / §4 随动修订；隐私纪律（D-2 / D-5）与范围边界（策略 / 状态机 / 事件契约不变）不受影响。
 - 独立评测人（角色 5，用户本人，PD-15）：（待评测执行——S5B G5 评测链另行 staged）

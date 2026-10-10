@@ -698,6 +698,29 @@ a:hover {
   font-size: 13px;
 }
 
+.config-endpoint {
+  color: var(--ink-soft);
+  font-size: 12px;
+  opacity: 0.75;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.config-preset-label {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
 .config-badges {
   display: inline-flex;
   gap: 6px;

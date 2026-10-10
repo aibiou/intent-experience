@@ -14,14 +14,18 @@
  *   云存储；本机开发形态为本地 data/ 目录（.gitignore 排除，
  *   绝不提交）。
  * - D-3 多记录配置模型：每提供方一条配置（provider / model /
- *   key 密文引用），可多条并存；单条启用（用户经页面选择）。
+ *   endpoint / key 密文引用），可多条并存；单条启用（用户经
+ *   页面选择）。
  * - D-5 隐私再确认：确认记录经通用模板签署（模板
  *   PRIVACY-RECONFIRM-GENERIC/V1——提供方名称于签署时填写，
  *   不写死任何提供方——S5A-SEMANTIC-FREEZE-01 v1.1.0）；
  *   确认人 = 产品负责人 + 安全负责人双重身份；未确认提供方
  *   的配置不得启用。
- * - 提供方准入：仅已登记提供方（S5A-SEMANTIC-FREEZE-01 §1
- *   D-2 提供方规则族）可创建 / 启用配置——未登记值拒绝。
+ * - 提供方配置双形态（S5B-SEMANTIC-FREEZE-01 v1.1.0——产品
+ *   负责人指令 2026-10-10：取消提供方准入登记）：任何
+ *   chat-completions 兼容提供方由用户自定义配置（端点 +
+ *   模型 + API key），无需登记；PROVIDER_PROFILES 仅作预设
+ *   （缺省端点 / 温度 / 系统提示词回退），非准入清单。
  *
  * 治理约束：读操作（list / 查询）永不返回 key 明文或密文——
  * 仅 hasKey 标记；密文解密仅服务于运行期网关构造。
@@ -32,13 +36,19 @@ import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { join } from 'node:path';
-import { PROVIDER_PROFILES } from './llm-gateway';
+import {
+  DEFAULT_PROVIDER_SYSTEM_PROMPT,
+  DEFAULT_PROVIDER_TEMPERATURE,
+  PROVIDER_PROFILES,
+} from './llm-gateway';
 
 /** 配置记录（key 仅存密文引用——内存与持久化形态均不含明文）。 */
 export interface ProviderConfigRecord {
   id: string;
   provider: string;
   model: string;
+  /** chat-completions 兼容端点（用户自定义——预设提供方缺省回退）。 */
+  endpoint: string;
   /** AES-256-GCM 密文引用：base64(iv).base64(ciphertext).base64(tag)。 */
   keyCiphertext: string;
   createdAt: string;
@@ -52,6 +62,7 @@ export interface ProviderConfigSummary {
   id: string;
   provider: string;
   model: string;
+  endpoint: string;
   createdAt: string;
   updatedAt: string;
   enabled: boolean;
@@ -76,8 +87,10 @@ export type ConfigStoreErrorCode =
   | 'CONFIG_CIPHERTEXT_INVALID'
   | 'CONFIG_DECRYPT_FAILED'
   | 'CONFIG_NOT_FOUND'
-  | 'PROVIDER_NOT_REGISTERED'
+  | 'PROVIDER_REQUIRED'
   | 'PROVIDER_NOT_CONFIRMED'
+  | 'CONFIG_ENDPOINT_REQUIRED'
+  | 'CONFIG_ENDPOINT_INVALID'
   | 'MODEL_REQUIRED'
   | 'API_KEY_REQUIRED';
 
@@ -239,6 +252,7 @@ function summarize(record: ProviderConfigRecord, isConfirmed: boolean): Provider
     id: record.id,
     provider: record.provider,
     model: record.model,
+    endpoint: record.endpoint,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     enabled: record.enabledAt !== null,
@@ -251,10 +265,25 @@ function summarize(record: ProviderConfigRecord, isConfirmed: boolean): Provider
 // 运行期网关注入（S5B——server-runtime 委托网关消费；解密仅此一处）
 // ---------------------------------------------------------------------------
 
+/** 端点解析（S5B v1.1.0——记录端点优先，预设缺省回退；均无则拒绝）。 */
+function resolveEndpoint(record: ProviderConfigRecord): string {
+  const endpoint = record.endpoint ?? PROVIDER_PROFILES[record.provider]?.endpoint;
+  if (typeof endpoint !== 'string' || endpoint.length === 0) {
+    throw new ConfigStoreError(
+      'CONFIG_ENDPOINT_REQUIRED',
+      `provider '${record.provider}' has no endpoint — custom providers require a chat-completions-compatible endpoint (S5B-SEMANTIC-FREEZE-01 v1.1.0)`,
+    );
+  }
+  return endpoint;
+}
+
 /** 运行期内部：已启用配置（含解密 key——仅供网关构造，永不外泄）。 */
 export interface EnabledProviderConfig {
   provider: string;
   model: string;
+  endpoint: string;
+  temperature: number;
+  systemPrompt: string;
   apiKey: string;
 }
 
@@ -262,7 +291,15 @@ export async function getEnabledProviderConfig(): Promise<EnabledProviderConfig 
   const store = await loadStore();
   const enabled = store.records.find((record) => record.enabledAt !== null);
   if (!enabled) return null;
-  return { provider: enabled.provider, model: enabled.model, apiKey: decryptApiKey(enabled.keyCiphertext) };
+  const profile = PROVIDER_PROFILES[enabled.provider];
+  return {
+    provider: enabled.provider,
+    model: enabled.model,
+    endpoint: resolveEndpoint(enabled),
+    temperature: profile?.temperature ?? DEFAULT_PROVIDER_TEMPERATURE,
+    systemPrompt: profile?.systemPrompt ?? DEFAULT_PROVIDER_SYSTEM_PROMPT,
+    apiKey: decryptApiKey(enabled.keyCiphertext),
+  };
 }
 
 /**
@@ -287,13 +324,18 @@ export function hasEnabledPersistedConfigSync(): boolean {
 // 配置面 API（S5B D-4——读操作永不返回 key 任何形态）
 // ---------------------------------------------------------------------------
 
-/** 已登记提供方规则族（S5A-SEMANTIC-FREEZE-01 §1 D-2——model-agnostic）。 */
+/** 已验证提供方预设（S5B v1.1.0——预设非准入：自定义配置无需登记）。 */
 export function registeredProviders(): string[] {
   return Object.keys(PROVIDER_PROFILES);
 }
 
 export function providerDefaultModel(provider: string): string | undefined {
   return PROVIDER_PROFILES[provider]?.defaultModel;
+}
+
+/** 预设缺省端点（表单自动填充——S5B v1.1.0）。 */
+export function providerPresetEndpoint(provider: string): string | undefined {
+  return PROVIDER_PROFILES[provider]?.endpoint;
 }
 
 export async function listProviderConfigs(): Promise<ProviderConfigSummary[]> {
@@ -315,16 +357,38 @@ async function requireRecord(id: string): Promise<{ record: ProviderConfigRecord
   return { record, store };
 }
 
+/** 端点校验（chat-completions 兼容——http(s) URL；S5B-SEMANTIC-FREEZE-01 v1.1.0）。 */
+function validateEndpoint(endpoint: string): string {
+  const trimmed = endpoint.trim();
+  if (trimmed.length === 0) {
+    throw new ConfigStoreError(
+      'CONFIG_ENDPOINT_REQUIRED',
+      'chat-completions-compatible endpoint URL is required for custom providers (preset providers fill it automatically)',
+    );
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('protocol');
+    }
+  } catch {
+    throw new ConfigStoreError(
+      'CONFIG_ENDPOINT_INVALID',
+      `endpoint must be a valid http(s) URL (chat-completions compatible endpoint), got: ${trimmed}`,
+    );
+  }
+  return trimmed;
+}
+
 export async function createProviderConfig(input: {
   provider: string;
   model: string;
   apiKey: string;
+  endpoint?: string;
 }): Promise<ProviderConfigSummary> {
-  if (!PROVIDER_PROFILES[input.provider]) {
-    throw new ConfigStoreError(
-      'PROVIDER_NOT_REGISTERED',
-      `provider '${input.provider}' is not registered — new providers are enabled only after their construction rules are version-frozen (S5A-SEMANTIC-FREEZE-01 §1 D-2)`,
-    );
+  const provider = input.provider.trim();
+  if (provider.length === 0) {
+    throw new ConfigStoreError('PROVIDER_REQUIRED', 'provider name is required');
   }
   const model = input.model.trim();
   if (model.length === 0) {
@@ -333,12 +397,19 @@ export async function createProviderConfig(input: {
   if (typeof input.apiKey !== 'string' || input.apiKey.length === 0) {
     throw new ConfigStoreError('API_KEY_REQUIRED', 'API key is required — it is persisted only as AES-256-GCM ciphertext');
   }
+  // 端点解析：用户自定义端点优先；未提供时回退预设缺省（S5B v1.1.0）。
+  const endpoint = validateEndpoint(
+    typeof input.endpoint === 'string' && input.endpoint.trim().length > 0
+      ? input.endpoint
+      : (PROVIDER_PROFILES[provider]?.endpoint ?? ''),
+  );
   const store = await loadStore();
   const now = new Date().toISOString();
   const record: ProviderConfigRecord = {
     id: newId(),
-    provider: input.provider,
+    provider,
     model,
+    endpoint,
     keyCiphertext: encryptApiKey(input.apiKey),
     createdAt: now,
     updatedAt: now,
@@ -352,7 +423,7 @@ export async function createProviderConfig(input: {
 
 export async function updateProviderConfig(
   id: string,
-  input: { model?: string; apiKey?: string },
+  input: { model?: string; apiKey?: string; endpoint?: string },
 ): Promise<ProviderConfigSummary> {
   const { record, store } = await requireRecord(id);
   const model = input.model?.trim();
@@ -363,6 +434,9 @@ export async function updateProviderConfig(
     throw new ConfigStoreError('API_KEY_REQUIRED', 'API key must be a non-empty string when provided');
   }
   record.model = model ?? record.model;
+  if (typeof input.endpoint === 'string') {
+    record.endpoint = validateEndpoint(input.endpoint);
+  }
   if (input.apiKey) {
     record.keyCiphertext = encryptApiKey(input.apiKey);
   }
@@ -384,9 +458,6 @@ export async function confirmProviderPrivacy(
   statement: string,
 ): Promise<PrivacyConfirmationRecord> {
   const { record } = await requireRecord(id);
-  if (!PROVIDER_PROFILES[record.provider]) {
-    throw new ConfigStoreError('PROVIDER_NOT_REGISTERED', `provider '${record.provider}' is not registered`);
-  }
   const data = await loadConfirmations();
   const confirmation: PrivacyConfirmationRecord = {
     provider: record.provider,
@@ -403,9 +474,6 @@ export async function confirmProviderPrivacy(
 
 export async function enableProviderConfig(id: string): Promise<ProviderConfigSummary> {
   const { record, store } = await requireRecord(id);
-  if (!PROVIDER_PROFILES[record.provider]) {
-    throw new ConfigStoreError('PROVIDER_NOT_REGISTERED', `provider '${record.provider}' is not registered`);
-  }
   const confirmed = confirmedProviders((await loadConfirmations()).confirmations);
   if (!confirmed.has(record.provider)) {
     throw new ConfigStoreError(
