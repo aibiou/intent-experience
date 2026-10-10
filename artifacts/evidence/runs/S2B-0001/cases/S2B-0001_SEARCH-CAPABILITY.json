@@ -143,7 +143,7 @@
   ],
   "evidence": {
     "trace": "traces/S2B-0001:SEARCH-CAPABILITY.jsonl",
-    "traceSha256": "7aeb7fbad8766d3ab8afcd7e378f010817a4f2ee0435a5da0d171b2636b32173",
+    "traceSha256": "3e099d794440ecae72d96b8c7d3eae848a2d61f71918977f779844a17bd08aa9",
     "form": "in-process",
     "servers": []
   },
