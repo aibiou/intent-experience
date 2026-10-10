@@ -51,7 +51,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:STAGE-PRESERVED.jsonl",
-    "traceSha256": "8dfe55bd49468f546753117e58aa5a4f67b4021e1f0f5e5fd3f5b7ae574900ae",
+    "traceSha256": "a68ae7cbe9edf16673f48b029ad3bb0c397a6c7d7fb9239816b83da413a6bc37",
     "form": "inprocess",
     "servers": []
   },

@@ -57,7 +57,7 @@
           "recordId": "memory_synthetic_0001",
           "topic": "为什么",
           "intentSignal": "turns=1;actions=WHY",
-          "interestSignal": 0.9,
+          "interestSignal": 0.8999999975230907,
           "lifecycle": "IN_USE",
           "memoryClass": "short_term"
         }
@@ -66,7 +66,7 @@
         "recordId": "memory_synthetic_0001",
         "topic": "为什么",
         "lifecycle": "IN_USE",
-        "lastRecalledAt": "2026-10-10T04:43:11.047Z"
+        "lastRecalledAt": "2026-10-10T05:22:29.082Z"
       }
     },
     "readOnly": {
@@ -97,7 +97,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F5-0001:CROSS-SESSION.jsonl",
-    "traceSha256": "b51e18f928b40537d1fb43569e2db266b95b465cfe375c546493ae4047bb4274",
+    "traceSha256": "87a2c1f42a9c2c0bf9f2046878baf4259988c246f5008d797976b569038027d7",
     "form": "inprocess",
     "servers": []
   },

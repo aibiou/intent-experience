@@ -108,7 +108,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F4-0001:BRANCH-ADOPT.jsonl",
-    "traceSha256": "38895e6541cc69e119879f9676c402418cbaef3c13f5fb95c68e4a101dc37711",
+    "traceSha256": "d6b8c83db92098ee77b3bec40a224943db88c498cd206bca829437c7ce02db7c",
     "form": "inprocess",
     "servers": []
   },

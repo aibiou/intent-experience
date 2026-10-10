@@ -108,7 +108,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F5-0001:LONGTERM-GATED.jsonl",
-    "traceSha256": "109c50f764d0cfd2af424f4d56fe9ddd80acdd5acfe7d4f8a7c59b83f3e2cb70",
+    "traceSha256": "2d685fbdf5479bedaecf2e9bf5411ba71d9e855be86bfde671cb89e416c50310",
     "form": "inprocess",
     "servers": []
   },

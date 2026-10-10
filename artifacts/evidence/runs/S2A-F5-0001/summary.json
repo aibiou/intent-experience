@@ -1,9 +1,9 @@
 {
   "runId": "S2A-F5-0001",
   "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）+ S3 回归扩展（S3A-SEMANTIC-FREEZE-01 v1.0.0 长期记忆启用 + S3B-SEMANTIC-FREEZE-01 v1.0.0 跨会话分支持久化——S2 时代负向不变式经 CR-28 全项 A 裁决取代）",
-  "startedAt": "2026-10-10T04:43:07.041Z",
-  "finishedAt": "2026-10-10T04:43:16.947Z",
-  "durationMs": 9905,
+  "startedAt": "2026-10-10T05:22:26.152Z",
+  "finishedAt": "2026-10-10T05:22:35.161Z",
+  "durationMs": 9008,
   "cases": [
     {
       "caseId": "CROSS-SESSION",
@@ -207,11 +207,11 @@
     },
     {
       "id": "A18",
-      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + F-5 记忆语义专项 memorySemantics + obligationTraceability：F-5 → 案例 / 断言映射；policy 版本 policy_v2.2.0——S3a 语义启用）",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + F-5 记忆语义专项 memorySemantics + obligationTraceability：F-5 → 案例 / 断言映射；policy 版本 policy_v2.2.0——S3a 语义启用；state_machine 版本 state_machine_v1.5.0（现行——S2B-SEMANTIC-FREEZE-01 §4 变更 1–3；轴外记忆子状态机契约化冻结于 state_machine_v1.4.0 §4 变更 1，延续不变）；黄金回归基线 G3-GOLDEN-0001 48/48 案例）",
       "passed": true,
       "detail": {
         "policyVersion": "policy_v2.2.0",
-        "stateMachineVersion": "state_machine_v1.4.0",
+        "stateMachineVersion": "state_machine_v1.5.0",
         "frozenDecisionCount": 5,
         "implementationFileCount": 10,
         "missingSections": []

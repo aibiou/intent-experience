@@ -78,7 +78,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F5-0001:BRANCH-PERSISTENCE.jsonl",
-    "traceSha256": "d6bff9a10d74f28128763d8fbda12b7a2c43943851883a18262bc84f323ba1b7",
+    "traceSha256": "9e91aab11cf1ff1cf6ca2ed42a48a41e84297930525790b1aca2ccc82430808f",
     "form": "inprocess",
     "servers": []
   },

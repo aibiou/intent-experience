@@ -1,9 +1,9 @@
 {
   "runId": "S2A-F4-0001",
   "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)/§6：F-4——WHAT_IF 完整分支语义（S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：多轮模拟持久化 + 四元分离事件登记 + 轴外分支子状态机 + 分支生命周期四操作最小集 + simulation_recorded 事件词表；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——policy_v2.2.0 变更 1–5，本运行扩展 BRANCH-ADOPT 案例组）",
-  "startedAt": "2026-10-10T04:43:24.174Z",
-  "finishedAt": "2026-10-10T04:43:41.690Z",
-  "durationMs": 17515,
+  "startedAt": "2026-10-10T05:23:26.083Z",
+  "finishedAt": "2026-10-10T05:23:43.072Z",
+  "durationMs": 16989,
   "cases": [
     {
       "caseId": "MULTI-ROUND",

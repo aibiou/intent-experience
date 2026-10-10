@@ -80,7 +80,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F5-0001:SINGLE-WRITER.jsonl",
-    "traceSha256": "59b8137ccca088e8f277b7796d9ed5ae0652af0efc63af06ed52aface79343ca",
+    "traceSha256": "4f47f821f1076caaa7c493024f4025b4051fce45b53958a00c0172ca65cb4b6a",
     "form": "inprocess",
     "servers": []
   },

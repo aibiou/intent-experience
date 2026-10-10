@@ -1,0 +1,2 @@
+{"caseId":"S2A-F4-0001:STOP-PRIORITY","event":"trace_started","at":"2026-10-10T04:43:34.915Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §1 元素 7 / §5（S2A-F4-STOP-PRIORITY 案例大纲）；P-01（STOP 永远优先）；PD-12（同层解释顺序 WHY > WHAT_IF）；G03-NEG / G03-B 黄金案例同族；C5（semantic_action 声明校验）","servers":[]}
+{"caseId":"S2A-F4-0001:STOP-PRIORITY","event":"trace_completed","at":"2026-10-10T04:43:34.916Z","startedAt":"2026-10-10T04:43:34.915Z","durationMs":1,"result":"PASS","pass":true}

@@ -1,2 +1,2 @@
-{"caseId":"S2A-F4-0001:NO-NEW-EXPERIENCE","event":"trace_started","at":"2026-10-10T04:43:30.291Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §1 元素 5 / §5（S2A-F4-NO-NEW-EXPERIENCE 案例大纲）；G03-N 黄金不变式（不创建新 Session / Experience）","servers":[]}
-{"caseId":"S2A-F4-0001:NO-NEW-EXPERIENCE","event":"trace_completed","at":"2026-10-10T04:43:31.733Z","startedAt":"2026-10-10T04:43:30.291Z","durationMs":1442,"result":"PASS","pass":true}
+{"caseId":"S2A-F4-0001:NO-NEW-EXPERIENCE","event":"trace_started","at":"2026-10-10T05:23:31.414Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §1 元素 5 / §5（S2A-F4-NO-NEW-EXPERIENCE 案例大纲）；G03-N 黄金不变式（不创建新 Session / Experience）","servers":[]}
+{"caseId":"S2A-F4-0001:NO-NEW-EXPERIENCE","event":"trace_completed","at":"2026-10-10T05:23:32.848Z","startedAt":"2026-10-10T05:23:31.414Z","durationMs":1434,"result":"PASS","pass":true}

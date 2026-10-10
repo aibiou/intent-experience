@@ -20,7 +20,7 @@
           "recordId": "memory_synthetic_0001",
           "topic": "为什么",
           "intentSignal": "turns=1;actions=WHY",
-          "interestSignal": 0.8999999987615454,
+          "interestSignal": 0.8999999975230907,
           "lifecycle": "IN_USE",
           "memoryClass": "short_term"
         }
@@ -60,7 +60,7 @@
   ],
   "evidence": {
     "trace": "traces/S2A-F5-0001:CURRENT-INTENT-OVERRIDE.jsonl",
-    "traceSha256": "479e315a6cbb6522f9f7eada38af0bdb550dbb19a134502f756a1b3962a81b78",
+    "traceSha256": "e58ed694d135bbcfbd4d2e229aff10590cbc597c583d2ee8e07448912a8901f0",
     "form": "inprocess",
     "servers": []
   },
