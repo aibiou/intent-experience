@@ -698,6 +698,23 @@ a:hover {
   font-size: 13px;
 }
 
+.config-model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-model-row .config-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-field-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
 .config-endpoint {
   color: var(--ink-soft);
   font-size: 12px;
