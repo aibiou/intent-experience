@@ -546,6 +546,21 @@ export async function cloneConfigForModality(
       'model name is required',
     );
   }
+  // 幂等（产品负责人指令 2026-10-11：对应模型要选中——
+  // 同一提供方 + 模态 + 模型已存在时直接返回既有记录，
+  // 重复点选不产生重复配置）。
+  const existing = store.records.find(
+    (candidate) =>
+      candidate.provider === record.provider &&
+      candidate.modality === modality &&
+      candidate.model === model,
+  );
+  if (existing) {
+    const confirmed = confirmedProviders(
+      (await loadConfirmations()).confirmations,
+    );
+    return summarize(existing, confirmed.has(existing.provider));
+  }
   const now = new Date().toISOString();
   const clone: ProviderConfigRecord = {
     id: newId(),
