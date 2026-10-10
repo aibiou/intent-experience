@@ -720,7 +720,34 @@ a:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+}
+
+.config-model-groups {
   margin-top: 10px;
+}
+
+.config-model-group {
+  margin-top: 8px;
+}
+
+.config-model-group-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 4px;
+}
+
+.config-button-active {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+
+.config-model-active-tag {
+  margin-left: 4px;
+  font-size: 11px;
+  color: var(--accent);
 }
 
 .config-endpoint {

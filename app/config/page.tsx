@@ -46,6 +46,71 @@ function endpointHost(endpoint: string): string {
   }
 }
 
+/** 模型类别识别（呈现层——按模型名关键词：image/img → 图像，video/vid → 视频，其余为文本）。 */
+function categorizeModels(models: string[]): Array<{ label: string; items: string[] }> {
+  const groups = [
+    { label: '文本模型', items: [] as string[] },
+    { label: '图像模型', items: [] as string[] },
+    { label: '视频模型', items: [] as string[] },
+  ];
+  for (const entry of models) {
+    const lower = entry.toLowerCase();
+    if (lower.includes('image') || lower.includes('img')) {
+      groups[1].items.push(entry);
+    } else if (lower.includes('video') || lower.includes('vid')) {
+      groups[2].items.push(entry);
+    } else {
+      groups[0].items.push(entry);
+    }
+  }
+  return groups.filter((group) => group.items.length > 0);
+}
+
+/** 已存配置的模型列表（按类别分组呈现——当前启用模型标记「当前」）。 */
+function ModelGroups({
+  models,
+  activeModel,
+  onSelect,
+}: {
+  models: string[];
+  activeModel: string;
+  onSelect: (model: string) => void;
+}) {
+  const groups = categorizeModels(models);
+  return (
+    <div className="config-model-groups">
+      <span className="config-preset-label">该提供方模型（点击选用）：</span>
+      {groups.map((group) => (
+        <div key={group.label} className="config-model-group">
+          <span className="config-model-group-label">
+            {group.label}（{group.items.length}）
+          </span>
+          <div className="config-model-list">
+            {group.items.map((entry) => (
+              <button
+                key={entry}
+                type="button"
+                className={`config-button config-button-quiet${
+                  entry === activeModel ? ' config-button-active' : ''
+                }`}
+                onClick={() => onSelect(entry)}
+              >
+                {entry}
+                {entry === activeModel && (
+                  <span className="config-model-active-tag">当前</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <p className="config-field-hint">
+        类别按模型名识别（image / video 关键词，其余归为文本）。
+      </p>
+    </div>
+  );
+}
+
 export default function ConfigPage() {
   const [configs, setConfigs] = useState<ProviderConfig[]>([]);
   const [profiles, setProfiles] = useState<ProviderProfile[]>([]);
@@ -636,24 +701,14 @@ export default function ConfigPage() {
                       <p className="config-item-note">当前回应由该配置的模型生成。</p>
                     )}
                     {configModels[config.id] && (
-                      <div className="config-model-list">
-                        <span className="config-preset-label">
-                          该提供方模型（点击选用）：
-                        </span>
-                        {configModels[config.id].map((entry) => (
-                          <button
-                            key={entry}
-                            type="button"
-                            className="config-button config-button-quiet"
-                            onClick={() => {
-                              startEdit(config);
-                              setEditModel(entry);
-                            }}
-                          >
-                            {entry}
-                          </button>
-                        ))}
-                      </div>
+                      <ModelGroups
+                        models={configModels[config.id]}
+                        activeModel={config.model}
+                        onSelect={(entry) => {
+                          startEdit(config);
+                          setEditModel(entry);
+                        }}
+                      />
                     )}
                     {confirmingId === config.id ? (
                       <div className="confirm-panel">
