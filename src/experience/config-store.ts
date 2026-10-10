@@ -42,6 +42,28 @@ import {
   PROVIDER_PROFILES,
 } from './llm-gateway';
 
+export type ProviderModality = 'text' | 'voice' | 'image' | 'video';
+
+export const PROVIDER_MODALITIES: readonly ProviderModality[] = [
+  'text',
+  'voice',
+  'image',
+  'video',
+];
+
+export const MODALITY_LABELS: Record<ProviderModality, string> = {
+  text: '文本',
+  voice: '语音',
+  image: '图像',
+  video: '视频',
+};
+
+function normalizeModality(value: unknown): ProviderModality {
+  return value === 'voice' || value === 'image' || value === 'video'
+    ? value
+    : 'text';
+}
+
 /** 配置记录（key 仅存密文引用——内存与持久化形态均不含明文）。 */
 export interface ProviderConfigRecord {
   id: string;
@@ -49,6 +71,10 @@ export interface ProviderConfigRecord {
   model: string;
   /** chat-completions 兼容端点（用户自定义——预设提供方缺省回退）。 */
   endpoint: string;
+  /** 生成模态（文本 / 语音 / 图像 / 视频——产品负责人
+   * 指令 2026-10-10：模型按模态分类，每模态至多一条
+   * 启用）。默认 text（既有记录迁移）。 */
+  modality: ProviderModality;
   /** AES-256-GCM 密文引用：base64(iv).base64(ciphertext).base64(tag)。 */
   keyCiphertext: string;
   createdAt: string;
@@ -63,6 +89,7 @@ export interface ProviderConfigSummary {
   provider: string;
   model: string;
   endpoint: string;
+  modality: ProviderModality;
   createdAt: string;
   updatedAt: string;
   enabled: boolean;
@@ -189,6 +216,10 @@ async function loadStore(): Promise<StoreData> {
   try {
     const parsed = JSON.parse(await readFile(storePath(), 'utf8')) as StoreData;
     if (!Array.isArray(parsed.records)) throw new Error('records must be an array');
+    // 既有记录迁移：未带模态字段的记录按文本模型处理（零行为变化）。
+    for (const record of parsed.records) {
+      if (!record.modality) record.modality = 'text';
+    }
     storeCache = parsed;
     return parsed;
   } catch (error) {
@@ -253,6 +284,7 @@ function summarize(record: ProviderConfigRecord, isConfirmed: boolean): Provider
     provider: record.provider,
     model: record.model,
     endpoint: record.endpoint,
+    modality: record.modality,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     enabled: record.enabledAt !== null,
@@ -282,24 +314,51 @@ export interface EnabledProviderConfig {
   provider: string;
   model: string;
   endpoint: string;
+  modality: ProviderModality;
   temperature: number;
   systemPrompt: string;
   apiKey: string;
 }
 
-export async function getEnabledProviderConfig(): Promise<EnabledProviderConfig | null> {
-  const store = await loadStore();
-  const enabled = store.records.find((record) => record.enabledAt !== null);
-  if (!enabled) return null;
-  const profile = PROVIDER_PROFILES[enabled.provider];
+function toEnabledConfig(record: ProviderConfigRecord): EnabledProviderConfig {
+  const profile = PROVIDER_PROFILES[record.provider];
   return {
-    provider: enabled.provider,
-    model: enabled.model,
-    endpoint: resolveEndpoint(enabled),
+    provider: record.provider,
+    model: record.model,
+    endpoint: resolveEndpoint(record),
+    modality: record.modality,
     temperature: profile?.temperature ?? DEFAULT_PROVIDER_TEMPERATURE,
     systemPrompt: profile?.systemPrompt ?? DEFAULT_PROVIDER_SYSTEM_PROMPT,
-    apiKey: decryptApiKey(enabled.keyCiphertext),
+    apiKey: decryptApiKey(record.keyCiphertext),
   };
+}
+
+/**
+ * 运行期内部：按模态加载已启用配置（含解密 key——仅供
+ * 生成网关构造，key 任何形态不外泄）。文本模态即对话
+ * 模型（S5B 委托网关消费路径——行为零变化）。
+ */
+export async function getEnabledProviderConfigForModality(
+  modality: ProviderModality,
+): Promise<EnabledProviderConfig | null> {
+  const store = await loadStore();
+  const enabled = store.records.find(
+    (record) => record.modality === modality && record.enabledAt !== null,
+  );
+  if (!enabled) return null;
+  return toEnabledConfig(enabled);
+}
+
+export async function getEnabledProviderConfig(): Promise<EnabledProviderConfig | null> {
+  const store = await loadStore();
+  // 文本模态（S5B 委托网关——对话模型路径仅消费
+  // 文本模态的启用记录；生成模态经
+  // getEnabledProviderConfigForModality 解析）。
+  const enabled = store.records.find(
+    (record) => record.modality === 'text' && record.enabledAt !== null,
+  );
+  if (!enabled) return null;
+  return toEnabledConfig(enabled);
 }
 
 /** 运行期内部：按 id 加载配置（含解密 key——仅供模型识别等运行期用途，
@@ -308,15 +367,7 @@ export async function getProviderConfigById(id: string): Promise<EnabledProvider
   const store = await loadStore();
   const record = store.records.find((candidate) => candidate.id === id);
   if (!record) return null;
-  const profile = PROVIDER_PROFILES[record.provider];
-  return {
-    provider: record.provider,
-    model: record.model,
-    endpoint: resolveEndpoint(record),
-    temperature: profile?.temperature ?? DEFAULT_PROVIDER_TEMPERATURE,
-    systemPrompt: profile?.systemPrompt ?? DEFAULT_PROVIDER_SYSTEM_PROMPT,
-    apiKey: decryptApiKey(record.keyCiphertext),
-  };
+  return toEnabledConfig(record);
 }
 
 /**
@@ -328,7 +379,11 @@ export function hasEnabledPersistedConfigSync(): boolean {
   try {
     if (!existsSync(storePath())) return false;
     const parsed = JSON.parse(readFileSync(storePath(), 'utf8')) as StoreData;
-    return Array.isArray(parsed.records) && parsed.records.some((record) => record.enabledAt !== null);
+    // 仅文本模态（对话模型路径）——生成模态的启用
+    // 不改变对话网关解析（合成 / 环境变量形态不变）。
+    return Array.isArray(parsed.records) && parsed.records.some(
+      (record) => (record.modality ?? 'text') === 'text' && record.enabledAt !== null,
+    );
   } catch (error) {
     throw new ConfigStoreError(
       'CONFIG_STORE_CORRUPT',
@@ -402,6 +457,7 @@ export async function createProviderConfig(input: {
   model: string;
   apiKey: string;
   endpoint?: string;
+  modality?: ProviderModality;
 }): Promise<ProviderConfigSummary> {
   const provider = input.provider.trim();
   if (provider.length === 0) {
@@ -411,6 +467,7 @@ export async function createProviderConfig(input: {
   if (model.length === 0) {
     throw new ConfigStoreError('MODEL_REQUIRED', 'model name is required');
   }
+  const modality = normalizeModality(input.modality);
   if (typeof input.apiKey !== 'string' || input.apiKey.length === 0) {
     throw new ConfigStoreError('API_KEY_REQUIRED', 'API key is required — it is persisted only as AES-256-GCM ciphertext');
   }
@@ -427,6 +484,7 @@ export async function createProviderConfig(input: {
     provider,
     model,
     endpoint,
+    modality,
     keyCiphertext: encryptApiKey(input.apiKey),
     createdAt: now,
     updatedAt: now,
@@ -469,6 +527,45 @@ export async function deleteProviderConfig(id: string): Promise<void> {
   await persistStore(store);
 }
 
+/**
+ * 按模态克隆（产品负责人指令 2026-10-10：一次
+ * 配置、多模态选用——复制源记录的端点与 key
+ * 密文引用（不经明文——克隆路径不接触明文），
+ * 仅模态与模型不同）。
+ */
+export async function cloneConfigForModality(
+  id: string,
+  input: { modality: ProviderModality; model: string },
+): Promise<ProviderConfigSummary> {
+  const { record, store } = await requireRecord(id);
+  const modality = normalizeModality(input.modality);
+  const model = input.model.trim();
+  if (model.length === 0) {
+    throw new ConfigStoreError(
+      'MODEL_REQUIRED',
+      'model name is required',
+    );
+  }
+  const now = new Date().toISOString();
+  const clone: ProviderConfigRecord = {
+    id: newId(),
+    provider: record.provider,
+    model,
+    endpoint: record.endpoint,
+    modality,
+    keyCiphertext: record.keyCiphertext,
+    createdAt: now,
+    updatedAt: now,
+    enabledAt: null,
+  };
+  store.records.push(clone);
+  await persistStore(store);
+  const confirmed = confirmedProviders(
+    (await loadConfirmations()).confirmations,
+  );
+  return summarize(clone, confirmed.has(clone.provider));
+}
+
 /** D-5 隐私再确认（通用模板——提供方名称于签署时填写，不写死任何提供方）。 */
 export async function confirmProviderPrivacy(
   id: string,
@@ -498,8 +595,16 @@ export async function enableProviderConfig(id: string): Promise<ProviderConfigSu
       `provider '${record.provider}' requires privacy re-confirmation before enabling (S5A-SEMANTIC-FREEZE-01 v1.1.0 D-5: unconfirmed providers cannot be enabled)`,
     );
   }
+  // 按模态单条启用（D-3 修订——产品负责人指令 2026-10-10：
+  // 模型按模态分类，每模态至多一条启用；其他模态的
+  // 启用状态不受影响）。
   for (const candidate of store.records) {
-    candidate.enabledAt = candidate.id === record.id ? new Date().toISOString() : null;
+    candidate.enabledAt =
+      candidate.modality !== record.modality
+        ? candidate.enabledAt
+        : candidate.id === record.id
+          ? new Date().toISOString()
+          : null;
   }
   record.updatedAt = new Date().toISOString();
   await persistStore(store);

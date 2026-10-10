@@ -36,6 +36,12 @@ import { loadChunkFixture, type ChunkFixture, type ChunkResolution } from './chu
 import { createExperienceStream, type StreamEvent } from './stream';
 import { classifyInput } from './classifier';
 import { getServerRuntime } from './server-runtime';
+import { recognizeGenerationIntent, type GenerationModality } from './generation-intent';
+import {
+  GENERATION_CALLS,
+  GenerationError,
+} from './generation-gateway';
+import { getEnabledProviderConfigForModality } from './config-store';
 import type { ExperienceRuntime, RuntimeError, SubmissionResult } from './runtime';
 import type { AuditSink } from './audit';
 
@@ -81,6 +87,66 @@ function ndjsonResponse(stream: AsyncGenerator<unknown>): HandlerResult {
     },
   });
   return { status: 200, headers: NDJSON_HEADERS, body };
+}
+
+/**
+ * 生成编排（产品负责人指令 2026-10-10：问答过程中识别
+ * 生成意图，自动调用相应模态模型）。
+ *
+ * 编排层——不触碰策略语义（policy_v2.3.0 不变）：对话
+ * 事件原样透传；流末（done 之后）经确定性规则识别的
+ * 生成意图触发对应模态模型调用，产物以 generation 事件
+ * 随同一 NDJSON 流呈现。
+ *
+ * 事件形态：
+ * - started：生成开始（呈现层占位）
+ * - completed：{ url } 或 { dataUri }（远程 / 内联产物）
+ * - unconfigured：该模态尚无启用模型（引导去配置）
+ * - failed：提供方调用失败（错误信息不含 key）
+ */
+async function* withGeneration(
+  source: AsyncGenerator<unknown>,
+  intent: { modality: GenerationModality; prompt: string },
+  signal?: AbortSignal,
+): AsyncGenerator<unknown> {
+  let ended = false;
+  for await (const event of source) {
+    yield event;
+    if ((event as { type?: string }).type === 'done') ended = true;
+  }
+  // 流末（done 之后）触发生成——对话回应先完整呈现。
+  if (!ended || signal?.aborted) return;
+    const at = new Date().toISOString();
+    yield { type: 'generation', status: 'started', modality: intent.modality, prompt: intent.prompt, at };
+    try {
+      const config = await getEnabledProviderConfigForModality(intent.modality);
+      if (!config) {
+        yield {
+          type: 'generation',
+          status: 'unconfigured',
+          modality: intent.modality,
+          message: `尚未启用${intent.modality === 'image' ? '图像' : intent.modality === 'video' ? '视频' : '语音'}模型——到模型配置添加并启用后，再说一次即可生成。`,
+          at: new Date().toISOString(),
+        };
+        return;
+      }
+      const artifact = await GENERATION_CALLS[intent.modality](config, intent.prompt);
+      yield {
+        type: 'generation',
+        status: 'completed',
+        modality: intent.modality,
+        ...(artifact.url !== undefined ? { url: artifact.url } : {}),
+        ...(artifact.dataUri !== undefined ? { dataUri: artifact.dataUri } : {}),
+        mime: artifact.mime,
+        at: new Date().toISOString(),
+      };
+    } catch (error) {
+      const message =
+        error instanceof GenerationError
+          ? error.message
+          : `generation failed (modality=${intent.modality})`;
+      yield { type: 'generation', status: 'failed', modality: intent.modality, message, at: new Date().toISOString() };
+    }
 }
 
 /** 运行时错误 → JSON 错误响应（与 Route Handler 错误形态一致）。 */
@@ -135,7 +201,19 @@ async function handleExecutionForm(
   // 会话绑定放宽仅限分支操作路径——运行时内校验）。
   if (experienceId !== null && stateVersion !== null) {
     const classification = classifyInput(userInput);
-    const semanticAction = declaredAction ?? (classification.semanticAction === 'UNKNOWN' ? null : classification.semanticAction);
+    const generation = recognizeGenerationIntent(userInput);
+    // 生成意图确定性路由（暴露层——与记忆操作同一
+    // 纪律）：语义动作词表未命中且生成意图命中时，
+    // 确定性路由为 CREATE（创作族——「画 / 生成 /
+    // 制作」是创作表达；不发明新语义动作，
+    // policy_v2.3.0 词汇表不变）。
+    const semanticAction =
+      declaredAction ??
+      (classification.semanticAction !== 'UNKNOWN'
+        ? classification.semanticAction
+        : generation !== null
+          ? 'CREATE'
+          : null);
     if (semanticAction === null) {
       return jsonResponse(400, {
         error: 'INVALID_ACTION',
@@ -154,7 +232,11 @@ async function handleExecutionForm(
     if (!submission.ok) {
       return runtimeErrorResponse(submission.error);
     }
-    return ndjsonResponse(submission.stream);
+    return ndjsonResponse(
+      generation
+        ? withGeneration(submission.stream, generation, input.signal)
+        : submission.stream,
+    );
   }
 
   // 新体验流程：意图解析（分类权威——分支操作词 / 记忆操作 /
@@ -195,7 +277,14 @@ async function handleExecutionForm(
     return { status: 200, headers: NDJSON_HEADERS, body: streamBody };
   }
 
-  // 升级拒绝（UNKNOWN——未知情况升级而非由系统决定）。
+  // 生成意图（确定性规则识别——运行时意图解析
+  // 已将分类未命中的生成输入确定性路由为 CREATE
+  // 创作体验——与 WHAT_IF 首轮自动 CREATE 同一
+  // 先例，不发明语义动作）。
+  const generation = recognizeGenerationIntent(userInput);
+
+  // 升级拒绝（UNKNOWN——未知情况升级而非由系统
+  // 决定）。
   if (resolution.action === 'escalate') {
     return jsonResponse(400, {
       error: 'INVALID_ACTION',
@@ -213,11 +302,12 @@ async function handleExecutionForm(
   if (!started.ok) {
     return runtimeErrorResponse(started.error);
   }
-  const semanticAction = declaredAction ?? resolution.semanticAction;
+  const routedSemanticAction =
+    declaredAction ?? resolution.semanticAction;
   const submission: SubmissionResult = await runtime.submitExperienceEvent({
     experienceId: started.experienceId,
     sessionId,
-    semanticAction,
+    semanticAction: routedSemanticAction,
     rawInput: userInput,
     expectedStateVersion: started.stateVersion,
     requestId: `${requestId}#event`,
@@ -226,7 +316,11 @@ async function handleExecutionForm(
   if (!submission.ok) {
     return runtimeErrorResponse(submission.error);
   }
-  return ndjsonResponse(submission.stream);
+  return ndjsonResponse(
+    generation
+      ? withGeneration(submission.stream, generation, input.signal)
+      : submission.stream,
+  );
 }
 
 export async function handleExperienceStreamRequest(

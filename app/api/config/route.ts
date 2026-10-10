@@ -28,7 +28,13 @@ export async function POST(req: Request): Promise<Response> {
   } catch {
     return Response.json({ code: 'INVALID_REQUEST', message: 'body must be valid JSON' }, { status: 400 });
   }
-  const body = parsed as { provider?: unknown; model?: unknown; endpoint?: unknown; api_key?: unknown };
+  const body = parsed as {
+    provider?: unknown;
+    model?: unknown;
+    endpoint?: unknown;
+    api_key?: unknown;
+    modality?: unknown;
+  };
   if (typeof body.provider !== 'string' || body.provider.length === 0) {
     return Response.json({ code: 'INVALID_REQUEST', message: 'provider is required' }, { status: 400 });
   }
@@ -41,11 +47,21 @@ export async function POST(req: Request): Promise<Response> {
   if (body.endpoint !== undefined && typeof body.endpoint !== 'string') {
     return Response.json({ code: 'INVALID_REQUEST', message: 'endpoint must be a string when provided' }, { status: 400 });
   }
+  if (
+    body.modality !== undefined &&
+    body.modality !== 'text' &&
+    body.modality !== 'voice' &&
+    body.modality !== 'image' &&
+    body.modality !== 'video'
+  ) {
+    return Response.json({ code: 'INVALID_REQUEST', message: 'modality must be text | voice | image | video' }, { status: 400 });
+  }
   try {
     const config = await createProviderConfig({
       provider: body.provider,
       model: body.model,
       ...(typeof body.endpoint === 'string' ? { endpoint: body.endpoint } : {}),
+      ...(body.modality !== undefined ? { modality: body.modality } : {}),
       apiKey: body.api_key,
     });
     return Response.json({ config }, { status: 201 });
