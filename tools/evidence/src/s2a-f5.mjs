@@ -2,6 +2,18 @@
 // （P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6 授权范围：F-5——Minimal Memory，
 //   依据 S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施）
 //
+// S3 回归扩展（S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划——
+//   CR-28 全项 A 裁决 2026-10-10）：S2 时代负向不变式经裁决取代——
+//   ① SESSION-SCOPED-NEG（分支状态随会话结束失效）由 S3B-SEMANTIC-
+//   FREEZE-01 v1.0.0 D-2 选项 A（分支记录全量跨会话持久化）取代，
+//   案例改写为 BRANCH-PERSISTENCE；② LONGTERM-DISABLED（长期记忆
+//   写入路径不存在）由 S3A-SEMANTIC-FREEZE-01 v1.0.0 D-1 选项 A
+//   （长期记忆按 07 §5 A/B 类经显式表达保存）取代，案例改写为
+//   LONGTERM-GATED；新增案例组：LT-EXPLICIT-A / LT-REMEMBER-B /
+//   LT-BARE-NEG / LT-CANDIDATE-C / LT-GATE-NEG / CROSS-SESSION-BRANCH。
+//   S2 时代已提交运行产物按 ADR-0002 §5 保持冻结不改写；本执行器
+//   断言当前冻结语义（policy_v2.2.0）。
+//
 // 治理约束（授权 §5 持续约束，ADR-0002 §3/§5）：
 // - 仅合成数据；无真实 LLM 提供方调用；无真实用户数据；
 // - 失败结果如实登记（运行目录按 RUN_ID 归档，绝不覆盖既有证据）；
@@ -79,17 +91,20 @@ const EVALUATOR_SEPARATION =
 
 const INVARIANTS = [
   'F-5 范围边界（S2A-F5-SEMANTIC-FREEZE-01 §1/§2 D-01…D-05 全项选项 A）：不新增语义动作（DEEPEN / SIMPLIFY / REFRAME / SEARCH 仍属 S2b 保留禁用，授权 §5.7）；既有语义动作映射不变（policy_v1.5.0 §3 变更 1）；分类优先级层不变（STOP > CHANGE_DIRECTION > CORRECTION > CREATE > WHY > WHAT_IF > DIRECT_ANSWER——记忆操作识别仅在全部既有层未命中后调用，仅认领会成为 UNKNOWN 的输入，不改变优先级层）',
-  '记忆域范围（policy_v1.5.0 §3 变更 2①）：仅短期记忆——跨会话主题 / 意图信号 + 用户显式纠正 / 撤回记录；长期记忆 / 偏好画像禁用，写入路径不存在（负向不变式）',
+  '记忆域范围（policy_v2.2.0 变更 1——S3A-SEMANTIC-FREEZE-01 v1.0.0；取代 S2 时代"长期记忆禁用"负向不变式——CR-28 D-1 选项 A）：短期记忆——跨会话主题 / 意图信号 + 用户显式纠正 / 撤回记录；长期记忆——07 §5 A 类明确表达的长期偏好 / B 类用户明确要求记住（须携带明确偏好内容——裸记住请求不识别为记忆写入）经显式表达保存（source=explicit，confidence=1.0）；C 类多次稳定出现仅产生 candidate_long_term_preference 候选标记（candidateLongTerm=true——候选 ≠ 已保存，V1 不允许仅凭行为自动升级为永久用户画像）；长期记忆永远不是最高优先级（L6，位于短期记忆之后）',
   '六类数据状态区分纪律（07 §2–§6 + §8 类型层）：记忆记录（Short-term Memory，跨会话持久——D-01 选项 A）不得与 Current State / Session State（会话结束即失效——负向不变式）混淆；类型维度（Fact / Inference / Preference）与状态维度分离',
   '信号措辞纪律（07 §4）：记忆为"最近产生过较高兴趣"信号 ≠ "用户喜欢 X"偏好——记录承载主题 / 意图信号，不承载偏好画像',
   '生命周期五阶段契约化（D-02 选项 A；state_machine_v1.4.0 §4 变更 1）：REMEMBERED（记住，创建即进入）→ IN_USE（暂时使用，经 RECALL）→ DECAYING（逐渐失效，时间衰减驱动）→ EXPIRED（到期，自动）；用户操作 CORRECT（被用户纠正：内容更正 + 纠正留痕，→REMEMBERED）与 WITHDRAW（被用户撤回：→EXPIRED + 撤回留痕 + 删除审计）；记忆域事件词表 memory_recorded / memory_corrected / memory_withdrawn / memory_expired（domain=memory，C6 §7 已预留层；衰减为内部置信度更新，不逐点发事件；检索为只读，不发事件——D-02 选项 A）',
   '写入侧过滤（07 §7 不默认长期记住清单，D-05 选项 A）：临时情绪 / 一次性兴趣 / 一次性任务 / 当前环境 / 单次拒绝 / 推测人格不得写入（命中即不记录、不发事件）',
-  '作用面纪律（D-03 选项 A）：记忆仅作为 Context Builder 的 L5 相关短期记忆信号注入（07 §21 优先级链；07 §20 检索纪律——以当前意图为检索键，只取相关记录，不全量塞入）；L2 Current Intent 覆盖 L5（07 §12 不变式）；记忆检索为只读操作，不改变体验、不触发任何产品动作（07 §22——不启动新体验、不自动续行、不修改创作状态）；L6 长期记忆层在 S2 不存在（负向不变式）',
+  '作用面纪律（D-03 选项 A；S3A-SEMANTIC-FREEZE-01 §1.9——L6 启用）：记忆仅作为 Context Builder 的 L5/L6 相关记忆信号注入（07 §21 优先级链；07 §20 检索纪律——以当前意图为检索键，只取相关记录，不全量塞入）；L2 Current Intent 覆盖 L5/L6（07 §12 不变式——长期记忆启用不改变覆盖关系，记忆仅注入上下文，不替用户决定当前意图）；记忆检索为只读操作，不改变体验、不触发任何产品动作（07 §22——不启动新体验、不自动续行、不修改创作状态）；系统不主动画像（07 §5——仅 A/B 类经显式表达保存）',
   '保留与删除（D-04 选项 A；隐私六要素 P3-S1-PRIVACY-SIX-01 要素 1/5）：默认 6 个月保留期自记录最后更新时间起算（活跃记忆不因持续使用而意外过期）；到期自动删除并登记删除审计记录（删除时间 / 记录范围 / 验证信息——删除可验证）；时间衰减采纳 07 §11 示例形态为规范参数（指数衰减：Day 0 = 0.90 → Day 3 ≈ 0.63；k = ln(0.9/0.63)/3 ≈ 0.1189/天）；兴趣衰减至阈值驱动迁移（IN_USE 且 < 0.50 → DECAYING；DECAYING 且 < 0.10 → EXPIRED）；用户再次主动探索时 interest 重新获得证据（再探索 +0.15，上限 1.0——07 §11 纪律）',
   '写入经 Runtime 单一写入者（D-05 选项 A；授权 §5.8；GS-06 / CC02 H01/H05）：记忆写入仅经 Runtime 内部写入方法；模型输出不得直接写记忆（Validator 拒绝 state_update 类提案）；用户纠正 / 撤回作为用户动作经确定性规则词表识别（WITHDRAW > CORRECT 优先级——撤回为用户主权更强信号，GS-04），经 Runtime 单一写入者执行并留痕（memory_corrected / memory_withdrawn）',
   '轴外记忆子状态机（state_machine_v1.4.0 §4 变更 1）：记忆记录为体验状态轴之外的持久对象（五分量：record_id / 内容分量（主题 + 意图信号）/ 生命周期状态 / 创建与更新时间戳 / 来源与置信度分量）；体验阶段轴不变（记忆操作不新增体验轴触发器——记忆操作经 resolveIntent 路由，不创建新 Session / Experience）',
   '版本不变式（policy_v1.5.0 §3 变更 5；S1-12 单调版本化）：记忆记录操作不改变体验状态版本链——单调版本化仅约束体验状态；记忆域经自身记录与事件日志留痕',
-  '07 §10 映射冻结：OBSERVED/CANDIDATE → REMEMBERED（创建）；ACTIVE → IN_USE；DECAYING → DECAYING；EXPIRED → EXPIRED；显式 EXPLICIT 路径 S2 不存在（长期记忆禁用）',
+  '07 §10 映射冻结：OBSERVED/CANDIDATE → REMEMBERED（创建）；ACTIVE → IN_USE；DECAYING → DECAYING；EXPIRED → EXPIRED；显式 EXPLICIT 路径 S3a 启用（source=explicit——长期记忆 A/B 类经显式表达保存，S3A-SEMANTIC-FREEZE-01 §1.1；取代 S2 时代"显式路径不存在（长期记忆禁用）"负向不变式）',
+  '分支记录跨会话持久化（S3B-SEMANTIC-FREEZE-01 v1.0.0——取代 S2 时代"分支状态随会话结束失效"负向不变式，CR-28 D-2 选项 A）：持久化范围 = 分支记录全部分量（id / 内容 / 生命周期 / adopted / version / rounds / 模拟轮内容）；主线上下文 currentBranchId 会话级不变式——会话结束清空（endSession 仅清当前分支指针，分支记录与模拟历史不删），不跨会话自动恢复激活分支；恢复为只读加载，不登记新事件；跨会话分支操作路径（S3B §1.4）——三前提齐备（WHAT_IF 分类 + 分支操作词识别；输入会话 SESSION_ACTIVE；宿主会话 SESSION_ENDED）方可放宽会话绑定，且放宽仅限分支操作路径（内容轮保持严格会话绑定）；COMPLETED 体验的分支记录可操作（分支操作为轴外对象操作，体验轴保持终态）',
+  '长期记忆写入门槛（S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1/§1.6——存储层强制）：recordMemory 以 memoryClass=\'long_term\' 写入须 source=\'explicit\'（否则 {recorded: false, reason: \'long_term_requires_explicit\'}）；长期记忆记录 confidence=1.0；记忆类别与生命周期正交（长期记忆记录同走五阶段生命周期——用户主权不因记忆类别而削弱）',
+  '识别词表纪律（S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.2——零黄金回归面）：长期记忆显式表达识别仅在全部既有优先级层（STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER）与记忆操作词表（WITHDRAW > CORRECT）未命中后调用（仅认领会成为 UNKNOWN 的输入）；B 类须记住标记（请记住 / 帮我记住 / 要记住 / 记住）与偏好内容（我喜欢 / 我喜爱 / 我长期需要 / 我一直 / 以后都用）双命中——裸记住请求"记住这个"保持 UNKNOWN 升级纪律（黄金 G08-NEG 不变式）',
   'P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action；PD-12 同层解释顺序 WHY > WHAT_IF',
   '事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）',
   '工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）',
@@ -734,23 +749,29 @@ async function caseCorrectWithdraw(trace) {
   return { expected, actual, pass };
 }
 
-// --- SESSION-SCOPED-NEG：Current State / Session State 会话结束失效（负向） ---
-async function caseSessionScopedNeg(trace) {
+// --- BRANCH-PERSISTENCE：分支记录跨会话持久化（S3B §1.1/§1.4/§1.5；
+//     取代 S2 时代 SESSION-SCOPED-NEG 负向不变式——CR-28 D-2 选项 A） ---
+async function caseBranchPersistence(trace) {
   const { runtime, events } = createCaseRuntime();
 
   // 会话 A：WHY 探索 + WHAT_IF 轮（建立模拟分支状态）→ STOP 完成。
-  const chain = await setupChain(runtime, 'f5ssn', '为什么');
-  const why = await submitRound(runtime, chain, 'WHY', '量子计算为什么这么难？', `req-s2a-f5ssn-why-${shortId()}`);
-  const whatIf = await submitRound(runtime, chain, 'WHAT_IF', '如果摩擦力为零会怎样', `req-s2a-f5ssn-whatif-${shortId()}`);
+  const chain = await setupChain(runtime, 'f5bp', '为什么');
+  const why = await submitRound(runtime, chain, 'WHY', '量子计算为什么这么难？', `req-s2a-f5bp-why-${shortId()}`);
+  const whatIf = await submitRound(runtime, chain, 'WHAT_IF', '如果摩擦力为零会怎样', `req-s2a-f5bp-whatif-${shortId()}`);
   const simulationBeforeStop = runtime.getSimulation(chain.exp.experienceId);
-  const stop = await submitRound(runtime, chain, 'STOP', '好了', `req-s2a-f5ssn-stop-${shortId()}`);
+  const stop = await submitRound(runtime, chain, 'STOP', '好了', `req-s2a-f5bp-stop-${shortId()}`);
 
-  // 会话结束：模拟分支状态失效（F-4 D-04 选项 A——事件为不可变权威事实）。
+  // 会话结束（S3B §1.5——endSession 仅清当前分支指针）：
+  // 分支记录全量持久（currentBranchId 会话级清空为 null——
+  // 不跨会话自动恢复激活分支；分支记录与模拟历史不删）。
   const simulationAfterStop = runtime.getSimulation(chain.exp.experienceId);
   // 对照：短期记忆跨会话存活（07 §4——F-5 D-01 选项 A）。
   const memoryAfterStop = memorySnapshotOf(runtime);
 
-  // 已结束会话上的旧体验操作 → 拒绝（Session State 会话结束即失效——07 §3）。
+  // 已结束会话上的旧体验内容操作 → 拒绝（Session State 会话结束
+  // 即失效——07 §3；跨会话放宽仅限分支操作路径——S3B §1.4）。
+  // 版本不变式在拒绝后立即取证（后续跨会话采用为合法提交、
+  // 恰好 +1——拒绝本身不消耗版本号）。
   const endedState = runtime.getExperienceState(chain.exp.experienceId).state;
   const rejected = await runtime.submitExperienceEvent({
     experienceId: chain.exp.experienceId,
@@ -758,16 +779,47 @@ async function caseSessionScopedNeg(trace) {
     semanticAction: 'WHY',
     rawInput: '为什么',
     expectedStateVersion: endedState.stateVersion,
-    requestId: `req-s2a-f5ssn-rejected-${shortId()}`,
+    requestId: `req-s2a-f5bp-rejected-${shortId()}`,
+  });
+  const stateAfterRejection = runtime.getExperienceState(chain.exp.experienceId).state.stateVersion;
+
+  // 会话 B（新会话，经 setupChain 建立自身体验 → SESSION_ACTIVE）：
+  // 对已结束会话 A 的体验执行跨会话分支操作（S3B §1.4 三前提——
+  // WHAT_IF 分类 + 分支操作词识别；输入会话 SESSION_ACTIVE；宿主
+  // 会话 SESSION_ENDED）→ ADOPT_BRANCH 成功（分支标记 adopted）。
+  const chainB = await setupChain(runtime, 'f5bp-b', '为什么');
+  const adoptVersion = runtime.getExperienceState(chain.exp.experienceId).state.stateVersion;
+  const adopt = await runtime.submitExperienceEvent({
+    experienceId: chain.exp.experienceId,
+    sessionId: chainB.session.sessionId,
+    semanticAction: 'WHAT_IF',
+    rawInput: '如果采用分支一',
+    expectedStateVersion: adoptVersion,
+    requestId: `req-s2a-f5bp-adopt-${shortId()}`,
+  });
+  const simulationAfterAdopt = runtime.getSimulation(chain.exp.experienceId);
+
+  // 跨会话内容轮（非分支操作——WHY 分类）→ 拒绝（放宽范围仅限
+  // 分支操作路径——S3B §1.4；体验 / 会话不匹配）。
+  const afterAdoptVersion = runtime.getExperienceState(chain.exp.experienceId).state.stateVersion;
+  const contentRejected = await runtime.submitExperienceEvent({
+    experienceId: chain.exp.experienceId,
+    sessionId: chainB.session.sessionId,
+    semanticAction: 'WHY',
+    rawInput: '为什么采用分支一',
+    expectedStateVersion: afterAdoptVersion,
+    requestId: `req-s2a-f5bp-content-rej-${shortId()}`,
   });
 
   const simulationRecorded = eventsOf(events, 'simulation_recorded');
 
   const expected = {
-    chain: '会话 A：WHY → WHAT_IF（模拟分支状态建立）→ STOP 完成 → 会话结束',
-    sessionScoped: '模拟分支状态随会话结束失效（getSimulation 拒绝——F-4 D-04 选项 A）；已结束会话上的旧体验操作拒绝（INVALID_STATE_TRANSITION——07 §3 Session State 纪律）',
-    contrast: '短期记忆跨会话存活（getMemory 可查——07 §4；D-01 选项 A）：同一会话内，Session State 与 Current State 会话结束即失效，Short-term Memory 不失效',
-    events: 'simulation_recorded ×1（仅 WHAT_IF 轮——模拟域事件为会话内事实登记）',
+    chain: '会话 A：WHY → WHAT_IF（模拟分支状态建立）→ STOP 完成 → 会话结束（endSession：currentBranchId 清空，分支记录 / 模拟历史全量持久）',
+    persistence: 'STOP 后 getSimulation 成功（分支记录跨会话持久——S3B §1.1）：currentBranchId === null（会话级指针清空——不跨会话自动恢复激活分支），分支记录 ×1（生命周期 / 轮次 / 模拟轮内容全量保留）',
+    crossSession: '会话 B（SESSION_ACTIVE）对已结束会话 A 的体验执行"如果采用分支一"（WHAT_IF + ADOPT_BRANCH 词表识别）→ 提交成功（分支标记 adopted=true——显式回流）；跨会话内容轮（WHY——非分支操作）→ 拒绝（experience/session mismatch——放宽仅限分支操作路径，S3B §1.4）',
+    endedSessionRejection: '已结束会话上的旧体验内容操作拒绝（INVALID_STATE_TRANSITION——07 §3 Session State 纪律）',
+    contrast: '短期记忆跨会话存活（getMemory 可查——07 §4；D-01 选项 A）：Session State / Current State 会话级失效而 Short-term Memory 与分支记录（轴外持久对象）跨会话持久',
+    events: 'simulation_recorded ×1（仅 WHAT_IF 轮——模拟域事件为事实登记；分支操作为确定性系统回合，事件留痕于提交流）',
   };
   const actual = {
     flow: {
@@ -779,7 +831,12 @@ async function caseSessionScopedNeg(trace) {
         ? { ok: true, branches: simulationBeforeStop.simulation.branches.length }
         : { ok: false, code: simulationBeforeStop.error.code },
       simulationAfterStop: simulationAfterStop.ok
-        ? { ok: true }
+        ? {
+            ok: true,
+            currentBranchId: simulationAfterStop.simulation.currentBranchId,
+            branches: simulationAfterStop.simulation.branches.length,
+            branchRounds: simulationAfterStop.simulation.branches[0]?.rounds.length ?? 0,
+          }
         : { ok: false, code: simulationAfterStop.error.code },
     },
     memoryContrast: {
@@ -791,7 +848,17 @@ async function caseSessionScopedNeg(trace) {
     endedSessionRejection: {
       ok: rejected.ok,
       errorCode: rejected.ok ? null : rejected.error.code,
-      stateVersionUnchanged: runtime.getExperienceState(chain.exp.experienceId).state.stateVersion === endedState.stateVersion,
+      stateVersionUnchanged: stateAfterRejection === endedState.stateVersion,
+    },
+    crossSessionAdopt: {
+      ok: adopt.ok,
+      selectedAction: adopt.ok ? adopt.header.policy_decision.selected_action : adopt.error.code,
+      branchAdopted: simulationAfterAdopt.ok ? simulationAfterAdopt.simulation.branches[0]?.adopted : null,
+      branchLifecycle: simulationAfterAdopt.ok ? simulationAfterAdopt.simulation.branches[0]?.lifecycle : null,
+    },
+    crossSessionContentRejection: {
+      ok: contentRejected.ok,
+      errorCode: contentRejected.ok ? null : contentRejected.error.code,
     },
     events: {
       simulationRecorded: simulationRecorded.length,
@@ -804,79 +871,459 @@ async function caseSessionScopedNeg(trace) {
     stop.submission.ok &&
     simulationBeforeStop.ok === true &&
     simulationBeforeStop.simulation.branches.length === 1 &&
-    simulationAfterStop.ok === false &&
+    simulationAfterStop.ok === true &&
+    simulationAfterStop.simulation.currentBranchId === null &&
+    simulationAfterStop.simulation.branches.length === 1 &&
+    simulationAfterStop.simulation.branches[0].rounds.length === 1 &&
     memoryAfterStop.records.length === 1 &&
     memoryAfterStop.records[0].topic === '为什么' &&
     memoryAfterStop.records[0].lifecycle === 'REMEMBERED' &&
     rejected.ok === false &&
     rejected.error.code === 'INVALID_STATE_TRANSITION' &&
-    runtime.getExperienceState(chain.exp.experienceId).state.stateVersion === endedState.stateVersion &&
+    stateAfterRejection === endedState.stateVersion &&
+    adopt.ok === true &&
+    adopt.header.policy_decision.selected_action === 'SIMULATE' &&
+    simulationAfterAdopt.ok === true &&
+    simulationAfterAdopt.simulation.branches[0].adopted === true &&
+    contentRejected.ok === false &&
     simulationRecorded.length === 1;
   return { expected, actual, pass };
 }
 
-// --- LONGTERM-DISABLED：长期记忆（偏好画像）写入路径不存在（负向） ---
-async function caseLongtermDisabled(trace) {
+// --- LONGTERM-GATED：长期记忆写入路径启用（S3A §1.1/§1.2/§1.6；
+//     取代 S2 时代 LONGTERM-DISABLED 负向不变式——CR-28 D-1 选项 A） ---
+async function caseLongtermGated(trace) {
   // 静态边界：读取已提交产品源码字节（不做代码推断——只验证事实）。
   const source = await readFile(path.join(repoRoot, 'src', 'experience', 'memory.ts'), 'utf8');
   const lifecycleExportMatch = source.match(/^export type MemoryLifecycle = .+;$/m);
   const sourceExportMatch = source.match(/^export type MemorySource = .+;$/m);
+  const classExportMatch = source.match(/^export type MemoryClass = .+;$/m);
   const staticFindings = {
     longTermIdentifiers: /EXPLICIT|LONG_TERM|long_term|preference[_ -]?profile/i.test(source),
     lifecycleExport: lifecycleExportMatch?.[0] ?? null,
     sourceExport: sourceExportMatch?.[0] ?? null,
+    classExport: classExportMatch?.[0] ?? null,
   };
 
-  // 动态：全流程后全部记录来源 / 生命周期仅在允许集合内。
+  // 动态：全流程后全部记录来源 / 生命周期 / 记忆类别仅在
+  // 允许集合内；长期记忆记录经显式表达路径（source=explicit）。
   const { runtime, events } = createCaseRuntime();
-  // 会话 A：WHY "为什么" → STOP → 记录 1（session_observation）。
-  const chainA = await setupChain(runtime, 'f5ltd-a', '为什么');
-  await submitRound(runtime, chainA, 'WHY', '量子计算为什么这么难？', `req-s2a-f5ltd-a-why-${shortId()}`);
-  await submitRound(runtime, chainA, 'STOP', '好了', `req-s2a-f5ltd-a-stop-${shortId()}`);
-  // 会话 B：WHY "为什么光速不变" → STOP → 记录 2（session_observation）。
-  const chainB = await setupChain(runtime, 'f5ltd-b', '为什么光速不变');
-  await submitRound(runtime, chainB, 'WHY', '光速为什么不变？', `req-s2a-f5ltd-b-why-${shortId()}`);
-  await submitRound(runtime, chainB, 'STOP', '好了', `req-s2a-f5ltd-b-stop-${shortId()}`);
+  // 会话 A：WHY "为什么" → STOP → 短期记录 1（session_observation）。
+  const chainA = await setupChain(runtime, 'f5ltg-a', '为什么');
+  await submitRound(runtime, chainA, 'WHY', '量子计算为什么这么难？', `req-s2a-f5ltg-a-why-${shortId()}`);
+  await submitRound(runtime, chainA, 'STOP', '好了', `req-s2a-f5ltg-a-stop-${shortId()}`);
+  // 会话 B：WHY "为什么光速不变" → STOP → 短期记录 2（session_observation）。
+  const chainB = await setupChain(runtime, 'f5ltg-b', '为什么光速不变');
+  await submitRound(runtime, chainB, 'WHY', '光速为什么不变？', `req-s2a-f5ltg-b-why-${shortId()}`);
+  await submitRound(runtime, chainB, 'STOP', '好了', `req-s2a-f5ltg-b-stop-${shortId()}`);
   // 会话 C：显式纠正 → 记录 2 来源更新为 user_correction。
   const sessionC = await runtime.startSession();
   await runtime.resolveIntent({
     sessionId: sessionC.session.sessionId,
     rawInput: '记忆纠正：光速恒定',
-    requestId: `req-s2a-f5ltd-c-correct-${shortId()}`,
+    requestId: `req-s2a-f5ltg-c-correct-${shortId()}`,
+  });
+  // 会话 D：A 类显式长期偏好表达（"我喜欢古典音乐"——
+  // 07 §5 A 类：明确表达的长期偏好——识别仅在全部优先级层
+  // 与记忆操作词表未命中后触发，action='memory_operation'）。
+  const sessionD = await runtime.startSession();
+  const resolutionD = await runtime.resolveIntent({
+    sessionId: sessionD.session.sessionId,
+    rawInput: '我喜欢古典音乐',
+    requestId: `req-s2a-f5ltg-d-explicit-${shortId()}`,
+  });
+  // 会话 E：B 类记住请求（"请记住我一直用深色模式"——记住
+  // 标记 + 偏好内容双命中——裸记住请求不识别为记忆写入）。
+  const sessionE = await runtime.startSession();
+  const resolutionE = await runtime.resolveIntent({
+    sessionId: sessionE.session.sessionId,
+    rawInput: '请记住我一直用深色模式',
+    requestId: `req-s2a-f5ltg-e-remember-${shortId()}`,
+  });
+  // 会话 F：裸记住请求（负向——保持 UNKNOWN 升级纪律，
+  // 黄金 G08-NEG 不变式；不产生记忆写入）。
+  const sessionF = await runtime.startSession();
+  const resolutionF = await runtime.resolveIntent({
+    sessionId: sessionF.session.sessionId,
+    rawInput: '记住这个',
+    requestId: `req-s2a-f5ltg-f-bare-${shortId()}`,
   });
 
   const snapshot = memorySnapshotOf(runtime);
+  const longTermRecords = snapshot.records.filter((record) => record.memoryClass === 'long_term');
+  const memoryRecordedEvents = eventsOf(events, 'memory_recorded');
   const dynamicFindings = {
     recordCount: snapshot.records.length,
     sources: [...new Set(snapshot.records.map((record) => record.source))].sort(),
     lifecycles: [...new Set(snapshot.records.map((record) => record.lifecycle))].sort(),
+    memoryClasses: [...new Set(snapshot.records.map((record) => record.memoryClass))].sort(),
     records: snapshot.records.map((record) => ({
       topic: record.topic,
       source: record.source,
       lifecycle: record.lifecycle,
+      memoryClass: record.memoryClass,
+      candidateLongTerm: record.candidateLongTerm,
+      confidence: record.confidence,
       corrections: record.corrections,
     })),
+    resolutionD: {
+      ok: resolutionD.ok,
+      action: resolutionD.ok ? resolutionD.action : resolutionD.error.code,
+      memoryOperation: resolutionD.ok && resolutionD.memoryOperation ? resolutionD.memoryOperation.kind : null,
+    },
+    resolutionE: {
+      ok: resolutionE.ok,
+      action: resolutionE.ok ? resolutionE.action : resolutionE.error.code,
+      memoryOperation: resolutionE.ok && resolutionE.memoryOperation ? resolutionE.memoryOperation.kind : null,
+    },
+    resolutionF: {
+      ok: resolutionF.ok,
+      action: resolutionF.ok ? resolutionF.action : resolutionF.error.code,
+      semanticAction: resolutionF.ok ? resolutionF.semanticAction : null,
+    },
   };
 
   const expected = {
-    static: 'src/experience/memory.ts 不含长期记忆 / 偏好画像标识符（EXPLICIT / LONG_TERM / long_term / preference profile）；MemoryLifecycle 联合恰为四态；MemorySource 联合恰为 session_observation | user_correction',
-    dynamic: '全流程后全部记录 source ∈ {session_observation, user_correction}，lifecycle ∈ {REMEMBERED, IN_USE, DECAYING, EXPIRED}——长期记忆（偏好画像）写入路径不存在（负向不变式）',
+    static: 'src/experience/memory.ts 含长期记忆标识符（EXPLICIT / LONG_TERM / long_term——S3A 启用，取代 S2 时代"不存在"负向不变式）；MemoryLifecycle 联合恰为四态（不变）；MemorySource 联合恰为 session_observation | user_correction | explicit（三态——显式路径启用）；MemoryClass 联合恰为 short_term | long_term',
+    dynamic: '全流程后记录 source ∈ {session_observation, user_correction, explicit}，lifecycle ∈ 四态集合，memoryClass ∈ {short_term, long_term}；A/B 类显式表达经 resolveIntent 路由为 memory_operation（record_long_term——source=explicit，confidence=1.0）；裸记住请求保持 UNKNOWN 升级（无记忆写入）',
   };
   const actual = { staticFindings, dynamicFindings };
   const pass =
-    staticFindings.longTermIdentifiers === false &&
+    staticFindings.longTermIdentifiers === true &&
     staticFindings.lifecycleExport === "export type MemoryLifecycle = 'REMEMBERED' | 'IN_USE' | 'DECAYING' | 'EXPIRED';" &&
-    staticFindings.sourceExport === "export type MemorySource = 'session_observation' | 'user_correction';" &&
-    dynamicFindings.recordCount === 2 &&
-    jsonEquals(dynamicFindings.sources, ['session_observation', 'user_correction']) &&
+    staticFindings.sourceExport === "export type MemorySource = 'session_observation' | 'user_correction' | 'explicit';" &&
+    staticFindings.classExport === "export type MemoryClass = 'short_term' | 'long_term';" &&
+    dynamicFindings.recordCount === 4 &&
+    jsonEquals(dynamicFindings.sources, ['explicit', 'session_observation', 'user_correction']) &&
+    jsonEquals(dynamicFindings.memoryClasses, ['long_term', 'short_term']) &&
     dynamicFindings.lifecycles.every((lifecycle) => ['REMEMBERED', 'IN_USE', 'DECAYING', 'EXPIRED'].includes(lifecycle)) &&
     dynamicFindings.records.every((record) =>
-      record.source === 'session_observation' || record.source === 'user_correction',
+      record.source === 'session_observation' || record.source === 'user_correction' || record.source === 'explicit',
     ) &&
     dynamicFindings.records.every((record) =>
       ['REMEMBERED', 'IN_USE', 'DECAYING', 'EXPIRED'].includes(record.lifecycle),
     ) &&
-    dynamicFindings.records.some((record) => record.topic === '光速恒定' && record.corrections === 1 && record.source === 'user_correction');
+    dynamicFindings.records.some((record) => record.topic === '光速恒定' && record.corrections === 1 && record.source === 'user_correction') &&
+    dynamicFindings.resolutionD.ok === true &&
+    dynamicFindings.resolutionD.action === 'memory_operation' &&
+    dynamicFindings.resolutionD.memoryOperation === 'record_long_term' &&
+    dynamicFindings.resolutionE.ok === true &&
+    dynamicFindings.resolutionE.action === 'memory_operation' &&
+    dynamicFindings.resolutionE.memoryOperation === 'record_long_term' &&
+    dynamicFindings.resolutionF.ok === true &&
+    dynamicFindings.resolutionF.action === 'escalate' &&
+    longTermRecords.length === 2 &&
+    longTermRecords.every((record) => record.source === 'explicit' && record.confidence === 1) &&
+    longTermRecords.some((record) => record.topic === '我喜欢古典音乐') &&
+    longTermRecords.some((record) => record.topic === '我一直用深色模式') &&
+    memoryRecordedEvents.length === 4 &&
+    memoryRecordedEvents.filter((event) => event.properties.memory_class === 'long_term').length === 2;
+  return { expected, actual, pass };
+}
+
+// --- LT-EXPLICIT-A：A 类显式长期偏好表达（S3A §1.1） ---
+async function caseLongtermExplicitA(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const session = await runtime.startSession();
+  const resolution = await runtime.resolveIntent({
+    sessionId: session.session.sessionId,
+    rawInput: '我喜欢古典音乐',
+    requestId: `req-s2a-f5lta-${shortId()}`,
+  });
+  const snapshot = memorySnapshotOf(runtime);
+  const memoryRecorded = eventsOf(events, 'memory_recorded');
+  const record = snapshot.records[0] ?? null;
+  const event = memoryRecorded[0] ?? null;
+
+  const expected = {
+    classification: 'A 类显式表达（07 §5：明确表达的长期偏好——"我喜欢…"偏好词直接命中）→ UNKNOWN + longTermMemory 识别（全部优先级层与记忆操作词表未命中后）→ resolveIntent action=memory_operation',
+    write: 'record_long_term 执行：记录 memoryClass=long_term，source=explicit，confidence=1.0，lifecycle=REMEMBERED，candidateLongTerm=false；memory_recorded 事件 properties 含 memory_class=long_term / source=explicit / confidence=1 / recognition_path=explicit_preference（事件属性扩展——S3A §1.8，C6 §14 属性扩展不新增事件名）',
+    scope: '记忆操作不创建新体验（零 session_started / experience_started——记忆操作经 resolveIntent 路由，不触发产品动作）',
+  };
+  const actual = {
+    resolution: {
+      ok: resolution.ok,
+      action: resolution.ok ? resolution.action : resolution.error.code,
+      memoryOperation: resolution.ok && resolution.memoryOperation
+        ? { kind: resolution.memoryOperation.kind, executed: resolution.memoryOperation.executed, memoryClass: resolution.memoryOperation.memoryClass ?? null }
+        : null,
+    },
+    record: record
+      ? {
+          topic: record.topic,
+          memoryClass: record.memoryClass,
+          source: record.source,
+          confidence: record.confidence,
+          lifecycle: record.lifecycle,
+          candidateLongTerm: record.candidateLongTerm,
+        }
+      : null,
+    event: event
+      ? {
+          type: event.type,
+          memory_class: event.properties.memory_class ?? null,
+          source: event.properties.source ?? null,
+          confidence: event.properties.confidence ?? null,
+          recognition_path: event.properties.recognition_path ?? null,
+        }
+      : null,
+    sessionStarted: eventsOf(events, 'session_started').length,
+    experienceStarted: eventsOf(events, 'experience_started').length,
+  };
+  const pass =
+    resolution.ok === true &&
+    resolution.action === 'memory_operation' &&
+    resolution.memoryOperation?.kind === 'record_long_term' &&
+    resolution.memoryOperation?.executed === true &&
+    resolution.memoryOperation?.memoryClass === 'long_term' &&
+    record !== null &&
+    record.topic === '我喜欢古典音乐' &&
+    record.memoryClass === 'long_term' &&
+    record.source === 'explicit' &&
+    record.confidence === 1 &&
+    record.lifecycle === 'REMEMBERED' &&
+    record.candidateLongTerm === false &&
+    event !== null &&
+    event.properties.memory_class === 'long_term' &&
+    event.properties.source === 'explicit' &&
+    event.properties.confidence === 1 &&
+    event.properties.recognition_path === 'explicit_preference' &&
+    eventsOf(events, 'session_started').length === 1 &&
+    eventsOf(events, 'experience_started').length === 0;
+  return { expected, actual, pass };
+}
+
+// --- LT-REMEMBER-B：B 类记住请求（记住标记 + 偏好内容——S3A §1.2） ---
+async function caseLongtermRememberB(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const session = await runtime.startSession();
+  const resolution = await runtime.resolveIntent({
+    sessionId: session.session.sessionId,
+    rawInput: '请记住我一直用深色模式',
+    requestId: `req-s2a-f5ltb-${shortId()}`,
+  });
+  const snapshot = memorySnapshotOf(runtime);
+  const memoryRecorded = eventsOf(events, 'memory_recorded');
+  const record = snapshot.records[0] ?? null;
+  const event = memoryRecorded[0] ?? null;
+
+  const expected = {
+    classification: 'B 类记住请求（07 §5：用户明确要求记住——记住标记"请记住" + 偏好内容"我一直用深色模式"双命中）→ UNKNOWN + longTermMemory 识别 → resolveIntent action=memory_operation',
+    write: 'record_long_term 执行：记录 memoryClass=long_term，source=explicit，confidence=1.0（用户明确要求记住即显式表达）；memory_recorded 事件 properties.recognition_path=remember_request',
+  };
+  const actual = {
+    resolution: {
+      ok: resolution.ok,
+      action: resolution.ok ? resolution.action : resolution.error.code,
+      memoryOperation: resolution.ok && resolution.memoryOperation
+        ? { kind: resolution.memoryOperation.kind, executed: resolution.memoryOperation.executed }
+        : null,
+    },
+    record: record
+      ? { topic: record.topic, memoryClass: record.memoryClass, source: record.source, confidence: record.confidence }
+      : null,
+    event: event ? { recognition_path: event.properties.recognition_path ?? null } : null,
+  };
+  const pass =
+    resolution.ok === true &&
+    resolution.action === 'memory_operation' &&
+    resolution.memoryOperation?.kind === 'record_long_term' &&
+    record !== null &&
+    record.topic === '我一直用深色模式' &&
+    record.memoryClass === 'long_term' &&
+    record.source === 'explicit' &&
+    record.confidence === 1 &&
+    event !== null &&
+    event.properties.recognition_path === 'remember_request';
+  return { expected, actual, pass };
+}
+
+// --- LT-BARE-NEG：裸记住请求不识别为记忆写入（负向——S3A §1.2） ---
+async function caseLongtermBareNeg(trace) {
+  const { runtime, events } = createCaseRuntime();
+  // 裸记住请求（无偏好内容）——保持 UNKNOWN 升级纪律。
+  const sessionBare = await runtime.startSession();
+  const resolutionBare = await runtime.resolveIntent({
+    sessionId: sessionBare.session.sessionId,
+    rawInput: '记住这个',
+    requestId: `req-s2a-f5ltn-bare-${shortId()}`,
+  });
+  // 记住标记命中但余下内容非偏好表达（"记住这个想法"）——
+  // 双命中纪律：标记 + 偏好内容缺一不可。
+  const sessionIdea = await runtime.startSession();
+  const resolutionIdea = await runtime.resolveIntent({
+    sessionId: sessionIdea.session.sessionId,
+    rawInput: '记住这个想法',
+    requestId: `req-s2a-f5ltn-idea-${shortId()}`,
+  });
+  const snapshot = memorySnapshotOf(runtime);
+  const memoryRecorded = eventsOf(events, 'memory_recorded');
+  // 分类器级静态事实（已提交源码行为——进程内直接调用）。
+  const classificationBare = classifyInput('记住这个');
+  const classificationIdea = classifyInput('记住这个想法');
+  const classificationPrefer = classifyInput('记住我喜欢古典音乐');
+
+  const expected = {
+    negative: '裸记住请求"记住这个"（无偏好内容）→ UNKNOWN 升级（黄金 G08-NEG 不变式——未知情况升级而非由系统决定）；"记住这个想法"（标记命中但余下内容非偏好表达）→ 同样不识别（B 类双命中纪律：记住标记与偏好内容缺一不可）',
+    write: '零记忆写入（快照 records=0，零 memory_recorded 事件——不创建任何记录）',
+  };
+  const actual = {
+    bare: {
+      ok: resolutionBare.ok,
+      action: resolutionBare.ok ? resolutionBare.action : resolutionBare.error.code,
+      classifierSemanticAction: classificationBare.semanticAction,
+      classifierLongTermMemory: classificationBare.longTermMemory ?? null,
+    },
+    idea: {
+      ok: resolutionIdea.ok,
+      action: resolutionIdea.ok ? resolutionIdea.action : resolutionIdea.error.code,
+      classifierSemanticAction: classificationIdea.semanticAction,
+      classifierLongTermMemory: classificationIdea.longTermMemory ?? null,
+    },
+    preferControl: {
+      classifierSemanticAction: classificationPrefer.semanticAction,
+      classifierLongTermMemory: classificationPrefer.longTermMemory ?? null,
+    },
+    recordCount: snapshot.records.length,
+    memoryRecorded: memoryRecorded.length,
+  };
+  const pass =
+    resolutionBare.ok === true &&
+    resolutionBare.action === 'escalate' &&
+    classificationBare.semanticAction === 'UNKNOWN' &&
+    classificationBare.longTermMemory === undefined &&
+    resolutionIdea.ok === true &&
+    resolutionIdea.action === 'escalate' &&
+    classificationIdea.semanticAction === 'UNKNOWN' &&
+    classificationIdea.longTermMemory === undefined &&
+    classificationPrefer.semanticAction === 'UNKNOWN' &&
+    classificationPrefer.longTermMemory !== undefined &&
+    classificationPrefer.longTermMemory.topic === '我喜欢古典音乐' &&
+    snapshot.records.length === 0 &&
+    memoryRecorded.length === 0;
+  return { expected, actual, pass };
+}
+
+// --- LT-CANDIDATE-C：C 类再探索候选标记（S3A §1.3——候选 ≠ 已保存） ---
+async function caseLongtermCandidateC(trace) {
+  const { runtime, events } = createCaseRuntime();
+  // 会话 A：WHY "为什么" → STOP → 短期记录（candidateLongTerm=false）。
+  const chainA = await setupChain(runtime, 'f5ltc-a', '为什么');
+  await submitRound(runtime, chainA, 'WHY', '量子计算为什么这么难？', `req-s2a-f5ltc-a-why-${shortId()}`);
+  await submitRound(runtime, chainA, 'STOP', '好了', `req-s2a-f5ltc-a-stop-${shortId()}`);
+  const snapshotAfterA = memorySnapshotOf(runtime);
+  // 会话 B：同主题 WHY "为什么" → STOP → 再探索（同一主题
+  // 活跃记录存在 → 再探索而非新记录：interest +0.15，
+  // candidateLongTerm=true——C 类多次稳定出现仅候选标记，
+  // 记录保持 short_term，不自动升级为长期记忆）。
+  const chainB = await setupChain(runtime, 'f5ltc-b', '为什么');
+  await submitRound(runtime, chainB, 'WHY', '量子计算为什么这么快？', `req-s2a-f5ltc-b-why-${shortId()}`);
+  await submitRound(runtime, chainB, 'STOP', '好了', `req-s2a-f5ltc-b-stop-${shortId()}`);
+  const snapshotAfterB = memorySnapshotOf(runtime);
+  const memoryRecorded = eventsOf(events, 'memory_recorded');
+
+  const expected = {
+    firstExploration: '会话 A STOP：短期记录 ×1（memoryClass=short_term，candidateLongTerm=false，interestSignal=0.90 锚点）',
+    reexploration: '会话 B 同主题 STOP：再探索（recorded=true, reexploration=true——不产生新记录；interestSignal=1.05 上限 1.0；candidateLongTerm=true——C 类候选标记）；记录保持 short_term（V1 不允许仅凭行为自动升级为永久用户画像——07 §5）',
+    events: 'memory_recorded ×2（再探索轮次 reexploration=true 属性留痕）',
+  };
+  const actual = {
+    afterA: {
+      recordCount: snapshotAfterA.records.length,
+      record: snapshotAfterA.records[0]
+        ? { memoryClass: snapshotAfterA.records[0].memoryClass, candidateLongTerm: snapshotAfterA.records[0].candidateLongTerm, interestSignal: snapshotAfterA.records[0].interestSignal }
+        : null,
+    },
+    afterB: {
+      recordCount: snapshotAfterB.records.length,
+      record: snapshotAfterB.records[0]
+        ? { memoryClass: snapshotAfterB.records[0].memoryClass, candidateLongTerm: snapshotAfterB.records[0].candidateLongTerm, interestSignal: snapshotAfterB.records[0].interestSignal }
+        : null,
+    },
+    memoryRecorded: {
+      total: memoryRecorded.length,
+      reexplorationFlags: memoryRecorded.map((event) => event.properties.reexploration ?? false),
+    },
+  };
+  const pass =
+    snapshotAfterA.records.length === 1 &&
+    snapshotAfterA.records[0].memoryClass === 'short_term' &&
+    snapshotAfterA.records[0].candidateLongTerm === false &&
+    snapshotAfterA.records[0].interestSignal === 0.9 &&
+    snapshotAfterB.records.length === 1 &&
+    snapshotAfterB.records[0].memoryClass === 'short_term' &&
+    snapshotAfterB.records[0].candidateLongTerm === true &&
+    snapshotAfterB.records[0].interestSignal === 1 &&
+    memoryRecorded.length === 2 &&
+    memoryRecorded[0].properties.reexploration === false &&
+    memoryRecorded[1].properties.reexploration === true;
+  return { expected, actual, pass };
+}
+
+// --- LT-GATE-NEG：长期记忆存储层门槛（负向——S3A §1.6） ---
+async function caseLongtermGateNeg(trace) {
+  // 存储层直接写入（进程内形态——轴外持久对象模型纪律）：
+  // memoryClass='long_term' 须 source='explicit'（存储层强制
+  // 07 §5 门槛——非显式来源的长期记忆写入拒绝）。
+  const store = new MemoryStore();
+  const now = '2026-01-01T00:00:00.000Z';
+  const gated = store.recordMemory({
+    sessionId: 'session_synthetic_f5_ltg',
+    topic: '显式表达缺失的长期偏好',
+    intentSignal: 'turns=1;actions=WHY',
+    source: 'session_observation',
+    memoryClass: 'long_term',
+    now,
+  });
+  const corrected = store.recordMemory({
+    sessionId: 'session_synthetic_f5_ltg',
+    topic: '显式表达缺失的长期偏好',
+    intentSignal: 'turns=1;actions=WHY',
+    source: 'user_correction',
+    memoryClass: 'long_term',
+    now,
+  });
+  // 正向对照：显式来源长期记忆写入成功。
+  const allowed = store.recordMemory({
+    sessionId: 'session_synthetic_f5_ltg',
+    topic: '我喜欢古典音乐',
+    intentSignal: 'turns=1;actions=EXPLICIT',
+    source: 'explicit',
+    memoryClass: 'long_term',
+    now,
+  });
+  // 短期记忆经非显式来源写入不受影响（既有语义不变）。
+  const shortTerm = store.recordMemory({
+    sessionId: 'session_synthetic_f5_ltg',
+    topic: '量子计算',
+    intentSignal: 'turns=1;actions=WHY',
+    source: 'session_observation',
+    now,
+  });
+  const snapshot = store.getSnapshot();
+
+  const expected = {
+    gate: '存储层门槛：memoryClass=long_term 且 source ≠ explicit（session_observation / user_correction）→ recorded=false, reason=long_term_requires_explicit（07 §5 门槛——长期记忆仅经显式表达路径保存）',
+    control: '正向对照：source=explicit + memoryClass=long_term → 写入成功（confidence=1.0）；短期记忆（memoryClass 缺省 short_term）经 session_observation 写入不受门槛影响（既有语义不变）',
+  };
+  const actual = {
+    gated: { recorded: gated.recorded, reason: gated.recorded ? null : gated.reason },
+    corrected: { recorded: corrected.recorded, reason: corrected.recorded ? null : corrected.reason },
+    allowed: { recorded: allowed.recorded, confidence: allowed.record ? allowed.record.confidence : null },
+    shortTerm: { recorded: shortTerm.recorded, memoryClass: shortTerm.record ? shortTerm.record.memoryClass : null },
+    recordCount: snapshot.records.length,
+  };
+  const pass =
+    gated.recorded === false &&
+    gated.reason === 'long_term_requires_explicit' &&
+    corrected.recorded === false &&
+    corrected.reason === 'long_term_requires_explicit' &&
+    allowed.recorded === true &&
+    allowed.record.confidence === 1 &&
+    shortTerm.recorded === true &&
+    shortTerm.record.memoryClass === 'short_term' &&
+    snapshot.records.length === 2 &&
+    snapshot.records.every((record) => record.source === 'explicit' || record.source === 'session_observation');
   return { expected, actual, pass };
 }
 
@@ -1208,24 +1655,24 @@ const CASE_REGISTRY = [
     run: caseCorrectWithdraw,
   },
   {
-    caseId: 'SESSION-SCOPED-NEG',
+    caseId: 'BRANCH-PERSISTENCE',
     form: 'inprocess',
     servers: [],
-    sourceClause: 'S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §1 元素 4（Current State / Session State 会话结束即失效——负向不变式）；授权 §2(4)；07 §2.1（Current State）/ §3（Session State）/ §4（Short-term Memory 对照）；S2A-F4-SEMANTIC-FREEZE-01 §2 D-04 选项 A（模拟分支状态会话结束失效）',
-    scope: '负向对照：会话 A WHY + WHAT_IF 轮（模拟分支状态建立）→ STOP 完成 → 模拟分支状态随会话结束失效（getSimulation 拒绝）→ 已结束会话上的旧体验操作拒绝（INVALID_STATE_TRANSITION）；对照：短期记忆跨会话存活（getMemory 可查）——同一会话内 Session State / Current State 会话结束即失效，Short-term Memory 不失效（六类数据状态区分纪律）',
-    precondition: 'WHY 意图链已建立；WHAT_IF 轮已完成（模拟分支 ACTIVE）',
-    inputFault: '洁净 WHY / WHAT_IF / STOP 输入 + 已结束会话上的旧体验操作（负向）',
-    run: caseSessionScopedNeg,
+    sourceClause: 'S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.1/§1.4/§1.5（分支记录全量跨会话持久化——CR-28 D-2 选项 A；取代 S2 时代 SESSION-SCOPED-NEG 负向不变式——S2A-F5-SEMANTIC-FREEZE-01 §1 元素 4 经裁决取代）；07 §2.1（Current State）/ §3（Session State）/ §4（Short-term Memory 对照）；S2A-F4-SEMANTIC-FREEZE-01 §2 D-04 选项 A（历史文本——本案例验证其经 S3B 取代后的当前冻结语义）',
+    scope: '分支记录跨会话持久化：会话 A WHY + WHAT_IF 轮（模拟分支状态建立）→ STOP 完成 → 会话结束（endSession：currentBranchId 会话级清空为 null——不跨会话自动恢复激活分支；分支记录 / 模拟历史全量持久——getSimulation 成功，分支 ×1 轮次 ×1）→ 已结束会话上的旧体验内容操作拒绝（INVALID_STATE_TRANSITION——07 §3）；会话 B（新会话 SESSION_ACTIVE）对已结束会话 A 的体验执行"如果采用分支一"（WHAT_IF + ADOPT_BRANCH 词表识别——S3B §1.4 三前提）→ 提交成功（分支标记 adopted=true——显式回流）；跨会话内容轮（WHY——非分支操作）→ 拒绝（放宽仅限分支操作路径）；对照：短期记忆跨会话存活（六类数据状态区分纪律——Session State / Current State 会话级失效，轴外持久对象跨会话持久）',
+    precondition: 'WHY 意图链已建立；WHAT_IF 轮已完成（模拟分支 ACTIVE）；会话 B 经 setupChain 建立自身体验（SESSION_ACTIVE）',
+    inputFault: '洁净 WHY / WHAT_IF / STOP 输入 + 已结束会话上的旧体验操作（负向）+ 跨会话分支操作词输入 + 跨会话内容轮输入（负向）',
+    run: caseBranchPersistence,
   },
   {
-    caseId: 'LONGTERM-DISABLED',
+    caseId: 'LONGTERM-GATED',
     form: 'inprocess',
     servers: [],
-    sourceClause: 'S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §1 元素 5（长期记忆 S2 不启用——负向不变式）；PD-23（S2-SCOPE-PROPOSAL-01 §5 裁决）；授权 §2(4)（仅短期记忆持久化 + 用户显式纠正 / 撤回记录）；07 §5（Long-term Memory）/ §8（Fact / Inference / Preference 类型层）',
-    scope: '长期记忆（偏好画像）写入路径不存在（负向）：静态——src/experience/memory.ts 不含长期记忆 / 偏好画像标识符（EXPLICIT / LONG_TERM / long_term / preference profile），MemoryLifecycle 联合恰为四态，MemorySource 联合恰为 session_observation | user_correction；动态——全流程（两主题 WHY→STOP 登记 + 一次显式纠正）后全部记录 source ∈ {session_observation, user_correction}，lifecycle ∈ {REMEMBERED, IN_USE, DECAYING, EXPIRED}',
+    sourceClause: 'S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1/§1.2/§1.6（长期记忆启用——CR-28 D-1 选项 A；取代 S2 时代 LONGTERM-DISABLED 负向不变式——S2A-F5-SEMANTIC-FREEZE-01 §1 元素 5 经裁决取代）；PD-23（S2 范围裁决——历史文本）；07 §5（Long-term Memory 门槛 A/B/C 类）/ §8（Fact / Inference / Preference 类型层）；policy_v2.2.0 变更 1',
+    scope: '长期记忆写入路径启用（门槛化）：静态——src/experience/memory.ts 含长期记忆标识符（EXPLICIT / LONG_TERM / long_term——S3A 启用），MemoryLifecycle 联合恰为四态（不变），MemorySource 联合恰为 session_observation | user_correction | explicit（三态——显式路径启用），MemoryClass 联合恰为 short_term | long_term；动态——全流程（两主题 WHY→STOP 短期登记 + 一次显式纠正 + A 类"我喜欢古典音乐" + B 类"请记住我一直用深色模式" + 裸记住请求负向）后记录 source ∈ 三态集合、lifecycle ∈ 四态集合、memoryClass ∈ {short_term, long_term}；A/B 类经 resolveIntent 路由为 memory_operation（record_long_term——source=explicit，confidence=1.0）；裸记住请求保持 UNKNOWN 升级（零写入）',
     precondition: '已提交产品源码字节（静态断言读取事实，不做代码推断）；运行时全流程',
-    inputFault: '洁净 WHY / STOP / 记忆纠正输入',
-    run: caseLongtermDisabled,
+    inputFault: '洁净 WHY / STOP / 记忆纠正 / A 类显式表达 / B 类记住请求 / 裸记住请求（负向）输入',
+    run: caseLongtermGated,
   },
   {
     caseId: 'CURRENT-INTENT-OVERRIDE',
@@ -1266,6 +1713,56 @@ const CASE_REGISTRY = [
     precondition: '直接 MemoryStore（存储层）+ WHY 意图链（运行时级）',
     inputFault: '六类标记输入（存储层直接操作）+ "为什么一次性兴趣"（运行时级——WHY 层先命中，验证过滤发生在写入侧而非分类侧）',
     run: caseWriteFilter,
+  },
+  {
+    caseId: 'LT-EXPLICIT-A',
+    form: 'inprocess',
+    servers: [],
+    sourceClause: 'S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1（A 类门槛）/ §1.8（事件属性扩展——C6 §14 属性扩展不新增事件名）；07 §5（A 类：明确表达的长期偏好）；policy_v2.2.0 变更 1/3',
+    scope: 'A 类显式长期偏好表达：会话内 "我喜欢古典音乐"（偏好词直接命中——全部优先级层与记忆操作词表未命中后识别为 UNKNOWN + longTermMemory）→ resolveIntent action=memory_operation → record_long_term 执行（memoryClass=long_term，source=explicit，confidence=1.0，lifecycle=REMEMBERED，candidateLongTerm=false）；memory_recorded 事件 properties 含 memory_class / source / confidence / recognition_path=explicit_preference；记忆操作不创建新体验（零 session_started / experience_started）',
+    precondition: '新会话（SESSION_IDLE——记忆操作经 resolveIntent 路由，不要求体验轴）',
+    inputFault: '"我喜欢古典音乐"（A 类显式表达——洁净输入，无更高优先级层碰撞）',
+    run: caseLongtermExplicitA,
+  },
+  {
+    caseId: 'LT-REMEMBER-B',
+    form: 'inprocess',
+    servers: [],
+    sourceClause: 'S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1（B 类门槛——记住标记 + 偏好内容双命中）/ §1.2（识别词表纪律）；07 §5（B 类：用户明确要求记住）；policy_v2.2.0 变更 1',
+    scope: 'B 类记住请求：会话内 "请记住我一直用深色模式"（记住标记"请记住" + 偏好内容"我一直用深色模式"双命中）→ UNKNOWN + longTermMemory 识别 → record_long_term（memoryClass=long_term，source=explicit，confidence=1.0——用户明确要求记住即显式表达）；memory_recorded 事件 properties.recognition_path=remember_request',
+    precondition: '新会话（SESSION_IDLE）',
+    inputFault: '"请记住我一直用深色模式"（B 类——记住标记与偏好内容双命中洁净输入）',
+    run: caseLongtermRememberB,
+  },
+  {
+    caseId: 'LT-BARE-NEG',
+    form: 'inprocess',
+    servers: [],
+    sourceClause: 'S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.2（B 类双命中纪律——裸记住请求不识别为记忆写入）；黄金 G08-NEG 不变式（"记住这个"对抗语料——零黄金回归面纪律）；授权 §5.7（未知情况升级而非由系统决定）',
+    scope: '裸记住请求负向：运行时级——"记住这个" → resolveIntent action=escalate（UNKNOWN 升级）；"记住这个想法"（标记命中但余下内容非偏好表达）→ 同样升级（B 类双命中：标记与偏好内容缺一不可）；分类器级——classifyInput("记住这个"/"记住这个想法") 返回 {semanticAction: UNKNOWN} 且无 longTermMemory 字段，对照 classifyInput("记住我喜欢古典音乐") 识别为 longTermMemory（topic="我喜欢古典音乐"）；零记忆写入（快照 records=0，零 memory_recorded 事件）',
+    precondition: '新会话 ×2（负向输入各一）；分类器进程内直接调用（静态事实取证）',
+    inputFault: '"记住这个"（黄金 G08-NEG 对抗语料）+"记住这个想法"（标记无偏好内容负向）',
+    run: caseLongtermBareNeg,
+  },
+  {
+    caseId: 'LT-CANDIDATE-C',
+    form: 'inprocess',
+    servers: [],
+    sourceClause: 'S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1（C 类——多次稳定出现仅 candidate_long_term_preference 候选标记，候选 ≠ 已保存；V1 不允许仅凭行为自动升级为永久用户画像）；07 §5（C 类）/ §11（再探索兴趣证据 +0.15 上限 1.0）',
+    scope: 'C 类再探索候选标记：会话 A WHY "为什么" → STOP → 短期记录 ×1（short_term，candidateLongTerm=false，interestSignal=0.90 锚点）；会话 B 同主题 WHY "为什么" → STOP → 再探索（同一主题活跃记录存在 → 再探索而非新记录：records 仍 ×1，interestSignal=1.05→上限 1.0，candidateLongTerm=true——C 类候选标记）；记录保持 short_term（不自动升级为 long_term——行为永不自动升级为永久用户画像）；memory_recorded ×2（再探索轮次 properties.reexploration=true 留痕）',
+    precondition: '会话 A 记忆登记存在（同主题活跃记录）',
+    inputFault: '洁净 WHY / STOP 输入 ×2（同主题再探索）',
+    run: caseLongtermCandidateC,
+  },
+  {
+    caseId: 'LT-GATE-NEG',
+    form: 'inprocess',
+    servers: [],
+    sourceClause: 'S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.1/§1.6（存储层门槛——recordMemory 以 memoryClass=long_term 写入须 source=explicit，否则拒绝）；07 §5（显式表达门槛——存储层强制）',
+    scope: '长期记忆存储层门槛（负向）：直接 MemoryStore 写入——memoryClass=long_term 且 source=session_observation → recorded=false, reason=long_term_requires_explicit；source=user_correction → 同样拒绝；正向对照——source=explicit + memoryClass=long_term → 写入成功（confidence=1.0）；短期记忆（memoryClass 缺省）经 session_observation 写入不受门槛影响（既有语义不变）；存储 records=2（仅显式长期 + 短期）',
+    precondition: '直接 MemoryStore（进程内形态——轴外持久对象模型纪律）',
+    inputFault: '存储层直接写入（memoryClass / source 组合矩阵——含两负向一正向一不变式对照）',
+    run: caseLongtermGateNeg,
   },
 ];
 
@@ -1413,22 +1910,22 @@ async function main() {
     { correctWithdraw: cCorrectWithdraw?.pass },
   );
 
-  // A4: SESSION-SCOPED-NEG.
-  const cSessionScoped = caseResults.find((entry) => entry.caseId === 'SESSION-SCOPED-NEG');
+  // A4: BRANCH-PERSISTENCE.
+  const cBranchPersistence = caseResults.find((entry) => entry.caseId === 'BRANCH-PERSISTENCE');
   assert(
     'A4',
-    'SESSION-SCOPED-NEG：Current State / Session State 会话结束即失效（负向）——WHAT_IF 轮建立的模拟分支状态随会话结束失效（getSimulation 拒绝——F-4 D-04 选项 A）；已结束会话上的旧体验操作拒绝（INVALID_STATE_TRANSITION——07 §3）；对照：短期记忆跨会话存活（getMemory 可查，主题"为什么"，REMEMBERED——07 §4；D-01 选项 A）——六类数据状态区分纪律：同一会话内 Session State / Current State 失效而 Short-term Memory 不失效；simulation_recorded ×1（仅 WHAT_IF 轮）',
-    cSessionScoped?.pass === true,
-    { sessionScopedNeg: cSessionScoped?.pass },
+    'BRANCH-PERSISTENCE：分支记录跨会话持久化（S3B §1.1/§1.4/§1.5——取代 S2 时代 SESSION-SCOPED-NEG 负向不变式，CR-28 D-2 选项 A）——WHAT_IF 轮建立的模拟分支状态在 STOP 会话结束后全量持久（getSimulation 成功：currentBranchId===null——会话级指针清空不跨会话自动恢复，分支记录 ×1 轮次 ×1）；已结束会话上的旧体验内容操作拒绝（INVALID_STATE_TRANSITION——07 §3）；会话 B（SESSION_ACTIVE）对已结束会话 A 的体验"如果采用分支一"→ ADOPT_BRANCH 成功（分支标记 adopted=true——S3B §1.4 三前提）；跨会话内容轮（WHY——非分支操作）→ 拒绝（放宽仅限分支操作路径）；对照：短期记忆跨会话存活（getMemory 可查，主题"为什么"，REMEMBERED——07 §4）——六类数据状态区分纪律：Session State / Current State 会话级失效而 Short-term Memory 与轴外分支记录跨会话持久；simulation_recorded ×1（仅 WHAT_IF 轮）',
+    cBranchPersistence?.pass === true,
+    { branchPersistence: cBranchPersistence?.pass },
   );
 
-  // A5: LONGTERM-DISABLED.
-  const cLongterm = caseResults.find((entry) => entry.caseId === 'LONGTERM-DISABLED');
+  // A5: LONGTERM-GATED.
+  const cLongtermGated = caseResults.find((entry) => entry.caseId === 'LONGTERM-GATED');
   assert(
     'A5',
-    'LONGTERM-DISABLED：长期记忆（偏好画像）写入路径不存在（负向）——静态：src/experience/memory.ts 不含 EXPLICIT / LONG_TERM / long_term / preference profile 标识符，MemoryLifecycle 联合恰为四态（REMEMBERED / IN_USE / DECAYING / EXPIRED），MemorySource 联合恰为 session_observation | user_correction；动态：全流程（两主题 WHY→STOP 登记 + 一次显式纠正）后全部记录 source ∈ {session_observation, user_correction}，lifecycle ∈ 四态集合——长期记忆写入路径不存在（PD-23；授权 §2(4)）',
-    cLongterm?.pass === true,
-    { longtermDisabled: cLongterm?.pass },
+    'LONGTERM-GATED：长期记忆写入路径启用（S3A §1.1/§1.2/§1.6——取代 S2 时代 LONGTERM-DISABLED 负向不变式，CR-28 D-1 选项 A）——静态：src/experience/memory.ts 含 EXPLICIT / LONG_TERM / long_term 标识符（启用），MemoryLifecycle 联合恰为四态（REMEMBERED / IN_USE / DECAYING / EXPIRED——不变），MemorySource 联合恰为 session_observation | user_correction | explicit（三态——显式路径启用），MemoryClass 联合恰为 short_term | long_term；动态：全流程（两主题 WHY→STOP 短期登记 + 一次显式纠正 + A 类"我喜欢古典音乐" + B 类"请记住我一直用深色模式" + 裸记住请求负向）后记录 source ∈ 三态集合、lifecycle ∈ 四态集合、memoryClass ∈ {short_term, long_term}；A/B 类经 resolveIntent 路由为 memory_operation（record_long_term——source=explicit，confidence=1.0）；裸记住请求保持 UNKNOWN 升级（零写入——黄金 G08-NEG 不变式）',
+    cLongtermGated?.pass === true,
+    { longtermGated: cLongtermGated?.pass },
   );
 
   // A6: CURRENT-INTENT-OVERRIDE.
@@ -1467,7 +1964,52 @@ async function main() {
     { writeFilter: cWriteFilter?.pass },
   );
 
-  // A10: case record completeness (E5 §4 12 fields).
+  // A10: LT-EXPLICIT-A.
+  const cLtExplicitA = caseResults.find((entry) => entry.caseId === 'LT-EXPLICIT-A');
+  assert(
+    'A10',
+    'LT-EXPLICIT-A：A 类显式长期偏好表达（S3A §1.1）——"我喜欢古典音乐"（偏好词直接命中，全部优先级层与记忆操作词表未命中后识别）→ resolveIntent action=memory_operation，memoryOperation.kind=record_long_term，executed=true，memoryClass=long_term；记录 topic="我喜欢古典音乐"，source=explicit，confidence=1.0，lifecycle=REMEMBERED，candidateLongTerm=false；memory_recorded 事件 properties：memory_class=long_term / source=explicit / confidence=1 / recognition_path=explicit_preference（事件属性扩展——C6 §14 不新增事件名）；记忆操作不创建新体验（session_started=1，experience_started=0）',
+    cLtExplicitA?.pass === true,
+    { ltExplicitA: cLtExplicitA?.pass },
+  );
+
+  // A11: LT-REMEMBER-B.
+  const cLtRememberB = caseResults.find((entry) => entry.caseId === 'LT-REMEMBER-B');
+  assert(
+    'A11',
+    'LT-REMEMBER-B：B 类记住请求（S3A §1.1/§1.2——记住标记 + 偏好内容双命中）——"请记住我一直用深色模式" → resolveIntent action=memory_operation，record_long_term；记录 topic="我一直用深色模式"，memoryClass=long_term，source=explicit，confidence=1.0（用户明确要求记住即显式表达）；memory_recorded 事件 properties.recognition_path=remember_request',
+    cLtRememberB?.pass === true,
+    { ltRememberB: cLtRememberB?.pass },
+  );
+
+  // A12: LT-BARE-NEG.
+  const cLtBareNeg = caseResults.find((entry) => entry.caseId === 'LT-BARE-NEG');
+  assert(
+    'A12',
+    'LT-BARE-NEG：裸记住请求不识别为记忆写入（负向——S3A §1.2 双命中纪律）——"记住这个"（黄金 G08-NEG 对抗语料）→ resolveIntent action=escalate（UNKNOWN 升级）；"记住这个想法"（标记命中但余下内容非偏好表达）→ 同样升级；分类器级：classifyInput 两者均返回 {semanticAction: UNKNOWN} 且无 longTermMemory 字段，对照 "记住我喜欢古典音乐" 识别为 longTermMemory（topic="我喜欢古典音乐"）；零记忆写入（快照 records=0，零 memory_recorded 事件）',
+    cLtBareNeg?.pass === true,
+    { ltBareNeg: cLtBareNeg?.pass },
+  );
+
+  // A13: LT-CANDIDATE-C.
+  const cLtCandidateC = caseResults.find((entry) => entry.caseId === 'LT-CANDIDATE-C');
+  assert(
+    'A13',
+    'LT-CANDIDATE-C：C 类再探索候选标记（S3A §1.1——候选 ≠ 已保存；V1 不允许仅凭行为自动升级为永久用户画像）——会话 A WHY→STOP：短期记录 ×1（short_term，candidateLongTerm=false，interestSignal=0.90 锚点）；会话 B 同主题 WHY→STOP：再探索而非新记录（records 仍 ×1，interestSignal=1.05→上限 1.0，candidateLongTerm=true——C 类候选标记）；记录保持 short_term（不自动升级为 long_term）；memory_recorded ×2（再探索轮次 properties.reexploration=true 留痕）',
+    cLtCandidateC?.pass === true,
+    { ltCandidateC: cLtCandidateC?.pass },
+  );
+
+  // A14: LT-GATE-NEG.
+  const cLtGateNeg = caseResults.find((entry) => entry.caseId === 'LT-GATE-NEG');
+  assert(
+    'A14',
+    'LT-GATE-NEG：长期记忆存储层门槛（负向——S3A §1.1/§1.6）——直接 MemoryStore 写入：memoryClass=long_term 且 source=session_observation → recorded=false, reason=long_term_requires_explicit；source=user_correction → 同样拒绝；正向对照：source=explicit + memoryClass=long_term → 写入成功（confidence=1.0）；短期记忆（memoryClass 缺省）经 session_observation 写入不受门槛影响（既有语义不变）；存储 records=2',
+    cLtGateNeg?.pass === true,
+    { ltGateNeg: cLtGateNeg?.pass },
+  );
+
+  // A15: case record completeness (E5 §4 12 fields).
   const recordFiles = (await readdir(casesDir)).filter((name) => name.endsWith('.json'));
   const recordCheck =
     recordFiles.length === CASE_REGISTRY.length &&
@@ -1478,13 +2020,13 @@ async function main() {
       }),
     )).every((valid) => valid);
   assert(
-    'A10',
+    'A15',
     `全部 ${CASE_REGISTRY.length} 案例记录齐备且 12 字段完整（E5 §4；${CASE_REGISTRY.length} 执行；PD-19 延期义务已履行——F-5 关闭切片执行，无 DEFERRED 登记）`,
     recordCheck,
     { recordFiles: recordFiles.length, expected: CASE_REGISTRY.length, allCasesPass },
   );
 
-  // A11: trace files complete and non-empty.
+  // A16: trace files complete and non-empty.
   const traceFiles = (await readdir(tracesDir)).filter((name) => name.endsWith('.jsonl'));
   const traceCheck =
     traceFiles.length === CASE_REGISTRY.length &&
@@ -1492,15 +2034,15 @@ async function main() {
       traceFiles.map(async (name) => (await stat(path.join(tracesDir, name))).size > 0),
     )).every((nonEmpty) => nonEmpty);
   assert(
-    'A11',
+    'A16',
     `全部 ${CASE_REGISTRY.length} 案例轨迹文件齐备且非空`,
     traceCheck,
     { traceFiles: traceFiles.length },
   );
 
-  // A12-PREFLIGHT: preflight / integrity (informational; failures are FATAL above).
+  // A17-PREFLIGHT: preflight / integrity (informational; failures are FATAL above).
   assert(
-    'A12-PREFLIGHT',
+    'A17-PREFLIGHT',
     '预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配（失败为 FATAL，不计入断言池）',
     typecheck.code === 0 && build.code === 0 && referenceCheck.failed.length === 0 && fingerprintCheck.allMatch,
     { typecheckExitCode: typecheck.code, buildExitCode: build.code, referenceVerified: `${referenceCheck.verified}/${referenceCheck.total}`, fingerprintsAllMatch: fingerprintCheck.allMatch },
@@ -1528,6 +2070,8 @@ async function main() {
     'app/api/experience/start/route.ts',
     'app/api/experience/[experienceId]/state/route.ts',
     'app/api/experience/[experienceId]/event/route.ts',
+    'app/api/memory/route.ts',
+    'app/api/experience/[experienceId]/simulation/route.ts',
     'src/experience/policy.ts',
     'src/experience/chunks.ts',
     'src/experience/stream.ts',
@@ -1547,6 +2091,9 @@ async function main() {
     'src/experience/memory.ts',
     'src/experience/runtime.ts',
     'src/experience/server-runtime.ts',
+    'src/experience/http.ts',
+    'app/api/memory/route.ts',
+    'app/api/experience/[experienceId]/simulation/route.ts',
     'src/experience/fixtures/direct-answer.ts',
     'src/experience/fixtures/why.ts',
     'src/experience/fixtures/change-direction.ts',
@@ -1566,30 +2113,33 @@ async function main() {
 
   const versionMatrix = {
     runId: RUN_ID,
-    obligation: 'P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）',
-    authorization: { id: 'P3-S2-IMPL-AUTH-01', version: '1.2.0', issued: '2026-10-09', note: '产品负责人签署生效（AUTHORIZED）；F-5 语义冻结文本于首个动态证据运行（S2A-F5-0001）前完成版本化冻结 + C1/C2/C3 Steward 确认（G1 式纪律）' },
+    obligation: 'P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）+ S3 回归扩展（S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划——S3A-SEMANTIC-FREEZE-01 v1.0.0 长期记忆启用 + S3B-SEMANTIC-FREEZE-01 v1.0.0 跨会话分支持久化；S2 时代负向不变式经 CR-28 全项 A 裁决取代）',
+    authorization: { id: 'P3-S2-IMPL-AUTH-01', version: '1.2.0', issued: '2026-10-09', note: '产品负责人签署生效（AUTHORIZED）；F-5 语义冻结文本于首个动态证据运行（S2A-F5-0001）前完成版本化冻结 + C1/C2/C3 Steward 确认（G1 式纪律）；S3 回归扩展依据 CR-28 裁决（2026-10-10 产品负责人确认全项 A——standing authorization 覆盖实施路径）' },
     obligationTraceability: {
       'F-5 (Minimal Memory)': {
         semanticFreeze: 'docs/product/p3-s1/s2a-f5-semantic-freeze-staged.md（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 FROZEN，2026-10-09 产品负责人签署——D-01…D-05 全项选项 A）',
         frozenDecisions: {
-          'D-01': '选项 A（切片内本地持久化记忆记录存储——轴外持久对象，model on F-2 创作对象 / F-4 分支记录纪律；进程内形态；生产形态存储治理按隐私六要素已批准方向执行，属生产部署治理、不属本切片实施范围）',
+          'D-01': '选项 A（切片内本地持久化记忆记录存储——轴外持久对象，model on F-2 创作对象 / F-4 分支记录纪律；进程内形态；生产形态存储治理按隐私六要素已批准方向执行，属生产部署治理、不属本切片实施范围；S3a 增量——长期记忆按 07 §5 A/B 类经显式表达保存（source=explicit，confidence=1.0），C 类仅 candidate_long_term_preference 候选标记——候选 ≠ 已保存，V1 不允许仅凭行为自动升级为永久用户画像；S3A-SEMANTIC-FREEZE-01 v1.0.0）',
           'D-02': '选项 A（五阶段生命周期契约化 + 轴外记忆子状态机 + 四事件词表——状态 {REMEMBERED, IN_USE, DECAYING, EXPIRED}；操作 {CREATE, RECALL, DECAY, EXPIRE, CORRECT, WITHDRAW}；事件词表 memory_recorded / memory_corrected / memory_withdrawn / memory_expired，domain=memory，C6 §7 已预留层；07 §10 映射冻结：OBSERVED/CANDIDATE→REMEMBERED，ACTIVE→IN_USE，DECAYING→DECAYING，EXPIRED→EXPIRED，显式 EXPLICIT 路径 S2 不存在）',
-          'D-03': '选项 A（L5 信号注入 + Current Intent 覆盖不变 + 检索只读——07 §21 优先级链；07 §20 检索纪律：以当前意图为检索键，只取相关记录；07 §12 覆盖不变式；07 §22 检索不改变体验、不触发产品动作；L6 长期记忆层 S2 不存在）',
+          'D-03': '选项 A（L5 信号注入 + Current Intent 覆盖不变 + 检索只读——07 §21 优先级链；07 §20 检索纪律：以当前意图为检索键，只取相关记录；07 §12 覆盖不变式；07 §22 检索不改变体验、不触发产品动作；L6 长期记忆层 S3a 启用——长期记忆经显式表达保存后作为 L6 信号注入，覆盖关系不变——记忆仅注入上下文，不替用户决定当前意图）',
           'D-04': '选项 A（最后更新起算 6 个月 + 到期自动删除 + 删除审计 + 示例参数规范化——指数衰减 Day 0 = 0.90 → Day 3 ≈ 0.63，k = ln(0.9/0.63)/3；IN_USE 且 < 0.50 → DECAYING；DECAYING 且 < 0.10 → EXPIRED；删除审计含删除时间 / 记录范围 / 验证信息——隐私要素 1/5）',
           'D-05': '选项 A（运行时内部写入 API + 用户动作路由——记忆写入仅经 Runtime 内部写入方法；模型 state_update 拒绝（GS-06 / CC02 H05）；用户纠正 / 撤回经确定性规则词表识别（WITHDRAW > CORRECT）经 Runtime 单一写入者执行并留痕；写入侧执行 07 §7 不默认长期记住清单过滤）',
         },
         implementationFiles: [
-          'src/experience/memory.ts（新增：记忆记录存储——五分量记录模型 / 四态生命周期状态机 / 六操作 / 07 §7 写入过滤 / 记忆操作识别词表 / 检索相关性判定 / 规范衰减参数）',
-          'src/experience/runtime.ts（L5 Context Builder 集成：buildLlmContext 注入 memory_signals + 懒到期 memory_expired 登记；STOP 完成路径记忆登记（memory_recorded，先于 session_ended）；UNKNOWN + memoryIntent 路由 executeMemoryOperation（withdraw / correct）；getMemory API）',
-          'src/experience/classifier.ts（记忆操作识别接入——分类优先级层全部未命中后调用，仅认领会成为 UNKNOWN 的输入）',
+          'src/experience/memory.ts（新增：记忆记录存储——五分量记录模型 / 四态生命周期状态机 / 六操作 / 07 §7 写入过滤 / 记忆操作识别词表 / 长期记忆显式表达识别（A/B 类双命中纪律）/ 检索相关性判定 / 规范衰减参数；S3a 增量——MemoryClass 二态 / MemorySource 三态 / long_term 写入门槛 source=explicit）',
+          'src/experience/runtime.ts（L5 Context Builder 集成：buildLlmContext 注入 memory_signals + 懒到期 memory_expired 登记；STOP 完成路径记忆登记（memory_recorded，先于 session_ended）；UNKNOWN + memoryIntent 路由 executeMemoryOperation（withdraw / correct）；UNKNOWN + longTermMemory 路由 executeLongTermMemoryWrite（record_long_term——S3a）；跨会话分支操作三前提校验 + executeBranchOperation（S3b D-2）；getMemory / getSimulation API）',
+          'src/experience/classifier.ts（记忆操作识别接入——分类优先级层全部未命中后调用，仅认领会成为 UNKNOWN 的输入；S3a 增量——recognizeLongTermMemoryExpression 接入同纪律）',
           'src/experience/events.ts（memory 域事件词表常量：MEMORY_RECORDED_EVENT / MEMORY_CORRECTED_EVENT / MEMORY_WITHDRAWN_EVENT / MEMORY_EXPIRED_EVENT——C6 §14 <domain>_<past_participle>）',
-          'src/experience/policy.ts（POLICY_VERSION=policy_v1.5.0 + §3 变更 1–5 文档注释）',
+          'src/experience/policy.ts（POLICY_VERSION=policy_v2.2.0——S3a 变更 1–4 经 policy_v2.2.0 生效，F1–F4 语义延续不变）',
           'src/experience/state-machine.ts（state_machine_v1.4.0 轴外记忆子状态机契约文档注释——07 §10 映射冻结）',
-          'tools/evidence/src/golden.mjs（policy_v1.5.0 断言同步；G08-B 静态不存在证明→存在证明改写——PD-07 经授权 §2(4) 取代性扩展）',
+          'tools/evidence/src/golden.mjs（policy_v2.2.0 断言同步；G08-B 静态不存在证明→存在证明改写——PD-07 经授权 §2(4) 取代性扩展；S3a 增量——G11/G12 案例组）',
+          'src/experience/http.ts（S3b 增量——执行形态暴露层：request_id + session_id + user_input 三要素请求经同一运行时实例执行真实运行路径；S1 fixture 形态向后兼容；StreamRequestInput.runtime 注入缝）',
+          'app/api/memory/route.ts（新增——GET /api/memory 只读观测路由：记忆域快照查询）',
+          'app/api/experience/[experienceId]/simulation/route.ts（新增——GET /api/experience/{id}/simulation 只读观测路由：模拟域快照查询——分支记录全量分量 + 模拟历史 + current_branch_id）',
         ],
         evidenceCases: caseResults.map((entry) => `${RUN_ID}:${entry.caseId}=${entry.result}`),
         assertions: assertions.map((entry) => `${entry.id}=${entry.passed ? 'PASSED' : 'FAILED'}`),
-        goldenRegression: 'G3-GOLDEN-0001 PASSED（32/32 案例；断言已同步 policy_v1.5.0）',
+        goldenRegression: 'G3-GOLDEN-0001 PASSED（40/40 案例；断言已同步 policy_v2.2.0——S3a 实施后黄金回归零碰撞：G08-NEG"记住这个"对抗语料保持升级）',
       },
     },
     environmentLicense: { id: 'E5-SCOPED-LICENSE-01', version: '1.0.0', decision: 'PD-17', status: 'superseded-by-implementation-authorization' },
@@ -1625,7 +2175,7 @@ async function main() {
     },
     policy: {
       contract: 'C3',
-      version: 'policy_v1.5.0',
+      version: 'policy_v2.2.0',
       frozenMappingsImplemented: {
         DIRECT_ANSWER: 'ANSWER',
         WHY: 'EXPLAIN',
@@ -1635,9 +2185,9 @@ async function main() {
         CREATE: 'CREATE（PD-21 关闭切片启用；F-2 起承载完整 G04 创作语义；F-3 起创作会话内 MODIFY 别名输入经路由保护回创作解释；SIMULATION → CREATION 衔接 13 §15.5 不变）',
         CORRECTION: 'EXPLAIN（G07 完整语义 F-3 起完整化：定位目标 / 局部修改 / 重生成 / 历史版本化；MODIFY 用户面别名 + RESTORE 恢复子型；策略映射不变）',
       },
-      frozenMapAuthority: 'S1 规范 §14 Policy Rules（acceptance-mapping §A/C 批准范围）+ S2A-F5-SEMANTIC-FREEZE-01 §3 变更文本（policy_v1.5.0——F-5 不新增语义动作，映射不变）',
+      frozenMapAuthority: 'S1 规范 §14 Policy Rules（acceptance-mapping §A/C 批准范围）+ S2A-F5-SEMANTIC-FREEZE-01 §3 变更文本（policy_v1.5.0——F-5 不新增语义动作，映射不变）+ S3A/S3B-SEMANTIC-FREEZE-01 §3 变更文本（policy_v2.2.0——S3a/S3b 语义启用，映射不变）',
       semanticGapRegister: 'docs/product/baseline/c3-semantic-gap-register-v1.md（G-1…G-7 已登记，未由编码者补写；冻结点之外一律拒绝并升级）',
-      memorySemantics: 'S2A-F5-SEMANTIC-FREEZE-01 §3 变更 1–5（policy_v1.5.0）：① 语义动作映射不变；② 新增 Minimal Memory 策略章节（记忆域范围 / 六类数据状态区分纪律 / 信号措辞纪律 / 写入侧过滤 / 作用面纪律 / 单一写入者）；③ Context Builder 集成（优先级链 L0–L6 转写，L5 检索以当前意图为键，L6 层 S2 不存在）；④ 保留与删除（默认 6 个月——最后更新起算，到期自动删除 + 删除审计记录）；⑤ 版本不变式（记忆记录操作不改变体验状态版本链）',
+      memorySemantics: 'S2A-F5-SEMANTIC-FREEZE-01 §3 变更 1–5（policy_v1.5.0）：① 语义动作映射不变；② 新增 Minimal Memory 策略章节（记忆域范围 / 六类数据状态区分纪律 / 信号措辞纪律 / 写入侧过滤 / 作用面纪律 / 单一写入者）；③ Context Builder 集成（优先级链 L0–L6 转写，L5 检索以当前意图为键）；④ 保留与删除（默认 6 个月——最后更新起算，到期自动删除 + 删除审计记录）；⑤ 版本不变式（记忆记录操作不改变体验状态版本链）；S3A-SEMANTIC-FREEZE-01 §3 变更 1–4（policy_v2.2.0）：① 长期记忆启用（07 §5 A/B 类经显式表达保存——source=explicit，confidence=1.0；C 类仅 candidate_long_term_preference 候选标记——候选 ≠ 已保存，V1 不允许仅凭行为自动升级为永久用户画像）；② 优先级链与保留删除纪律（长期记忆永远不是最高优先级——L6 位于短期记忆之后；默认保留 6 个月——复用 MEMORY_RETENTION_MS=180 天；到期自动删除 + 删除审计——用户主权不因记忆类别而削弱）；③ 记忆记录与事件属性扩展（MemoryRecord 增 memoryClass / candidateLongTerm；MemorySource 增 explicit；memory_recorded properties 增 memory_class / source / confidence / recognition_path——C6 §14 属性扩展不新增事件名）；④ 写入经 Runtime 单一写入者（存储层门槛：memoryClass=long_term 须 source=explicit——long_term_requires_explicit 拒绝）；S3B-SEMANTIC-FREEZE-01 §3 变更 3–4（policy_v2.2.0）：③ 分支记录全量跨会话持久化（持久化范围 = 分支记录全部分量；currentBranchId 会话级不变式——会话结束清空，不跨会话自动恢复激活分支；恢复为只读加载，不登记新事件）；④ 跨会话分支操作路径（三前提：WHAT_IF 分类 + 分支操作词识别 / 输入会话 SESSION_ACTIVE / 宿主会话 SESSION_ENDED——放宽仅限分支操作路径，内容轮保持严格会话绑定；COMPLETED 体验的分支记录可操作——分支操作为轴外对象操作，体验轴保持终态）',
     },
     api: {
       contract: 'C5',
@@ -1649,8 +2199,10 @@ async function main() {
         'GET /api/experience/{id}/state',
         'POST /api/experience/{id}/event',
         'POST /api/experience/{id}/stream',
+        'GET /api/memory',
+        'GET /api/experience/{id}/simulation',
       ],
-      note: 'F-5 不新增 API 路由——记忆域操作经既有 resolveIntent 路由（UNKNOWN + memoryIntent）；记忆快照经进程内 getMemory API（E5 取证入口，非 HTTP 路由）',
+      note: 'S3b（D-3 选项 A——纯暴露层）：既有端点语义动作经用户输入负载承载（request_id + session_id + user_input 三要素——同一 getServerRuntime 单例，不改变任何运行时语义）；记忆域操作经既有 resolveIntent 路由（UNKNOWN + memoryIntent / longTermMemory）；新增两条只读观测路由（Query 与 Command 分离——GET /api/memory 记忆域快照 / GET /api/experience/{id}/simulation 模拟域快照——只读，不改变任何状态）',
     },
     decisionTrace: {
       contract: 'C6',
@@ -1676,7 +2228,7 @@ async function main() {
   await writeFile(path.join(runDir, 'run-metadata.json'), `${JSON.stringify(versionMatrix, null, 2)}\n`, 'utf8');
   log('run-metadata.json written (E5 §3 version matrix, S2a F-5 memory-semantics form)');
 
-  // A13: run-metadata completeness (E5 §3).
+  // A18: run-metadata completeness (E5 §3).
   const missingSections = [];
   for (const section of [
     'runId',
@@ -1701,17 +2253,19 @@ async function main() {
     }
   }
   assert(
-    'A13',
-    'run-metadata 完整（E5 §3 版本矩阵全部字段 + F-5 记忆语义专项 memorySemantics + obligationTraceability：F-5 → 案例 / 断言映射）',
+    'A18',
+    'run-metadata 完整（E5 §3 版本矩阵全部字段 + F-5 记忆语义专项 memorySemantics + obligationTraceability：F-5 → 案例 / 断言映射；policy 版本 policy_v2.2.0——S3a 语义启用）',
     missingSections.length === 0 &&
-    versionMatrix.policy.version === 'policy_v1.5.0' &&
+    versionMatrix.policy.version === 'policy_v2.2.0' &&
     versionMatrix.stateMachine.version === 'state_machine_v1.4.0' &&
     Object.keys(versionMatrix.obligationTraceability['F-5 (Minimal Memory)'].frozenDecisions).length === 5 &&
-    versionMatrix.obligationTraceability['F-5 (Minimal Memory)'].goldenRegression.includes('policy_v1.5.0') &&
-    versionMatrix.obligationTraceability['F-5 (Minimal Memory)'].implementationFiles.length === 7 &&
+    versionMatrix.obligationTraceability['F-5 (Minimal Memory)'].goldenRegression.includes('policy_v2.2.0') &&
+    versionMatrix.obligationTraceability['F-5 (Minimal Memory)'].implementationFiles.length === 10 &&
     versionMatrix.policy.memorySemantics !== undefined &&
     versionMatrix.runtimeFiles.count === runtimeFiles.length &&
-    versionMatrix.runtimeFiles.sha256['src/experience/memory.ts'] !== undefined,
+    versionMatrix.runtimeFiles.sha256['src/experience/memory.ts'] !== undefined &&
+    versionMatrix.runtimeFiles.sha256['app/api/memory/route.ts'] !== undefined &&
+    versionMatrix.runtimeFiles.sha256['app/api/experience/[experienceId]/simulation/route.ts'] !== undefined,
     { policyVersion: versionMatrix.policy.version, stateMachineVersion: versionMatrix.stateMachine.version, frozenDecisionCount: Object.keys(versionMatrix.obligationTraceability['F-5 (Minimal Memory)'].frozenDecisions).length, implementationFileCount: versionMatrix.obligationTraceability['F-5 (Minimal Memory)'].implementationFiles.length, missingSections },
   );
 
@@ -1719,7 +2273,7 @@ async function main() {
   const allPassedFirst = allCasesPass && assertions.every((entry) => entry.passed);
   const summary = {
     runId: RUN_ID,
-    obligation: 'P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）',
+    obligation: 'P3-S2-IMPL-AUTH-01 v1.2.0 §2(4)/§6：F-5——Minimal Memory（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）+ S3 回归扩展（S3A-SEMANTIC-FREEZE-01 v1.0.0 长期记忆启用 + S3B-SEMANTIC-FREEZE-01 v1.0.0 跨会话分支持久化——S2 时代负向不变式经 CR-28 全项 A 裁决取代）',
     startedAt,
     finishedAt: new Date().toISOString(),
     durationMs: Date.now() - startedAtMs,
@@ -1739,7 +2293,7 @@ async function main() {
   const sumsPath = path.join(runDir, 'SHA256SUMS');
   await writeSha256Sums(runDir);
   const verifyResult = await verifySha256Sums(sumsPath, runDir);
-  assert('A16', '证据清单 SHA256SUMS 已产出且独立重算全部一致', verifyResult.failed.length === 0, { verified: verifyResult.verified, failed: verifyResult.failed });
+  assert('A19', '证据清单 SHA256SUMS 已产出且独立重算全部一致', verifyResult.failed.length === 0, { verified: verifyResult.verified, failed: verifyResult.failed });
 
   // Final pass: refresh summary with A16 included, then regenerate the
   // manifest so SHA256SUMS covers the final summary.json (G3-E-3).
@@ -1762,7 +2316,7 @@ async function main() {
   // Review package (staged for the independent evaluator).
   const reviewReadme = `# ${RUN_ID} — 独立评测人审阅包（staged，待审阅与否决）
 
-运行：${RUN_ID}（S2a F-5 迭代：Minimal Memory——轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者）
+运行：${RUN_ID}（S2a F-5 迭代：Minimal Memory——轴外记忆记录存储 + 四态生命周期 + 记忆域事件词表 + L5 Context Builder 信号注入 + 写入侧 07 §7 过滤 + Runtime 单一写入者；S3 回归扩展：长期记忆启用（S3A）+ 跨会话分支持久化（S3B）——S2 时代负向不变式经 CR-28 全项 A 裁决取代）
 日期：${new Date().toISOString()}
 执行器：工程负责人角色（代理，Codex）；独立评测负责人：用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）
 
@@ -1779,13 +2333,18 @@ async function main() {
 3. run-metadata.json —— E5 §3 版本矩阵（含 obligationTraceability：F-5 → 案例 / 断言映射；frozenDecisions：D-01…D-05 裁决文本引用；memorySemantics：policy_v1.5.0 记忆语义规范注册）
 4. SHA256SUMS —— 证据包清单（可独立重算验证；G3-E-3：最终摘要写入后重新生成）
 
-## 本运行覆盖（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本）
+## 本运行覆盖（S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 冻结文本 + S3A/S3B-SEMANTIC-FREEZE-01 v1.0.0——S3 回归扩展）
 
 - 跨会话持久化（CROSS-SESSION）：会话 A WHY → STOP → 记忆登记（主题 = 起源意图输入，意图信号 = 会话动作摘要）；会话 B 同主题 WHY → 生成上下文注入 memory_signals ×1（RECALL 经检索触发：REMEMBERED→IN_USE）；记忆记录跨会话归属不变；会话 B 零 memory 域事件（检索只读）
 - 生命周期迁移（LIFECYCLE）：CREATE → RECALL → DECAY(Day 5) → 保持 DECAYING(Day 14) → EXPIRE(Day 19，decay_threshold)；保留期路径 Day 179 未到期 → Day 180 整 EXPIRE（retention_expired）；Day 0 = 0.90 / Day 3 ≈ 0.63 锚点（k = ln(0.9/0.63)/3）；删除审计（删除时间 / 记录范围 / 验证信息）
 - 纠正 / 撤回（CORRECT-WITHDRAW）："记忆纠正：量子计算原理" → 主题更正 + corrections=1 + user_correction + 置信度 0.95 + 回到 REMEMBERED（memory_corrected 留痕）；"别再给我这个" → EXPIRED + 删除审计 reason=withdrawn（memory_withdrawn 留痕）；重复撤回幂等（no_memory_target / MEMORY_EXPIRED）；记忆操作不创建新体验
-- 会话作用域负向（SESSION-SCOPED-NEG）：模拟分支状态随会话结束失效（getSimulation 拒绝）；已结束会话操作拒绝（INVALID_STATE_TRANSITION）；对照：短期记忆跨会话存活（六类数据状态区分纪律）
-- 长期记忆禁用负向（LONGTERM-DISABLED）：静态——源码不含长期记忆 / 偏好画像标识符，四态 / 双来源联合恰定；动态——全流程后记录 source / lifecycle 仅在允许集合内
+- 分支记录跨会话持久化（BRANCH-PERSISTENCE——取代 S2 时代 SESSION-SCOPED-NEG 负向不变式，CR-28 D-2 选项 A）：STOP 会话结束后 getSimulation 成功（currentBranchId===null——会话级指针清空，分支记录 / 模拟历史全量持久）；已结束会话内容操作拒绝（INVALID_STATE_TRANSITION）；会话 B（SESSION_ACTIVE）跨会话 ADOPT_BRANCH 成功（分支标记 adopted=true——S3B §1.4 三前提）；跨会话内容轮拒绝（放宽仅限分支操作路径）；对照：短期记忆跨会话存活（六类数据状态区分纪律）
+- 长期记忆写入路径启用（LONGTERM-GATED——取代 S2 时代 LONGTERM-DISABLED 负向不变式，CR-28 D-1 选项 A）：静态——源码含长期记忆标识符，MemoryLifecycle 四态 / MemorySource 三态（增 explicit）/ MemoryClass 二态联合恰定；动态——全流程后记录 source / lifecycle / memoryClass 仅在允许集合内；A/B 类显式表达经 resolveIntent 路由为 record_long_term（source=explicit，confidence=1.0）；裸记住请求保持 UNKNOWN 升级（零写入）
+- A 类显式长期偏好表达（LT-EXPLICIT-A）："我喜欢古典音乐" → memory_operation / record_long_term；事件属性扩展（memory_class / source / confidence / recognition_path=explicit_preference——C6 §14 不新增事件名）；记忆操作不创建新体验
+- B 类记住请求（LT-REMEMBER-B）："请记住我一直用深色模式"（记住标记 + 偏好内容双命中）→ record_long_term（recognition_path=remember_request）
+- 裸记住请求负向（LT-BARE-NEG）："记住这个"（黄金 G08-NEG 对抗语料）/"记住这个想法"（标记无偏好内容）→ UNKNOWN 升级；分类器级无 longTermMemory 字段；零写入
+- C 类再探索候选标记（LT-CANDIDATE-C）：同主题再探索——records 不增、interest +0.15 上限 1.0、candidateLongTerm=true；记录保持 short_term（不自动升级为永久用户画像——07 §5）
+- 长期记忆存储层门槛负向（LT-GATE-NEG）：memoryClass=long_term 且 source ≠ explicit → long_term_requires_explicit 拒绝；显式来源正向对照；短期记忆写入不受影响
 - Current Intent 覆盖（CURRENT-INTENT-OVERRIDE）：同主题 WHY——memory_signals ×1 注入但提交行为与无记忆时完全一致（EXPLAIN，why 语料逐字节，WAITING/UNDERSTANDING v4——07 §12）；WHAT_IF 无交集 → memory_signals ×0（07 §20 过滤）
 - 检索只读负向（RETRIEVAL-READONLY）：零 memory 域事件；零自动启动；state_transitioned 恰为 WHY 流自身两次；连续 getMemory() 快照逐字节一致（07 §22）
 - 单一写入者（SINGLE-WRITER）：越权提案（state_update_proposal 含 memory_record）→ POLICY_REJECTED（llm_state_mutation_forbidden）→ llm_output_rejected + state_write_rejected 留痕；快照 records=0；版本不变（GS-06 / CC02 H01/H05）
