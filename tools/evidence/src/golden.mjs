@@ -1,9 +1,9 @@
 // G3-GOLDEN-0001 — P2 G3 黄金案例回归套件执行器（OBL-03 / PD-19）。
 //
-// 语料定义（P2 Exit Gate & Sign-off §8）：P2 核心产品验收 G01–G09，
+// 语料定义（P2 Exit Gate & Sign-off §8）：P2 核心产品验收 G01–G10，
 // 每个黄金案例至少具备 Normal / Negative / Boundary / Failure-Recovery
 // 四维度 + Expected / Observed / Evidence Location / Evaluator。
-// 本运行执行 9 黄金案例 × 4 维度 = 36 案例：S1 已实现黄金子集
+// 本运行执行 10 黄金案例 × 4 维度 = 40 案例：S1 已实现黄金子集
 // （G01 Direct Answer / G02 Why / G03 What If 基础单次模拟形态 /
 // G05 Change / G06 Stop）+ P2 关闭切片最小实现（G04 Creation /
 // G07 Correction / G08 Memory Boundary——PD-21，产品负责人
@@ -13,6 +13,9 @@
 // G09 Directional Operations（S2b；S2B-SEMANTIC-FREEZE-01 D-01 选项 A：
 // DEEPEN / SIMPLIFY / REFRAME 顶层语义动作——policy_v2.0.0，创作域顶层
 // 补丁操作承载；S2b 授权 P3-S2B-IMPL-AUTH-01 v1.0.0 产品负责人签署）。
+// G10 Branch Reflow（S2；S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A：
+// ADOPT_BRANCH 第五分支操作显式回流——policy_v2.1.0 变更 1–5，
+// 确定性系统回合 + simulation_adopted 事件 + 新一轮模拟上下文呈现）。
 //
 // 跨迭代回归基准：案例期望冻结自 F2-GS-0001 行为基线；本运行绑定
 // git HEAD，运行时代码行为漂移即案例失败（回归基线见 run-metadata
@@ -1346,7 +1349,7 @@ async function caseG04Normal(trace) {
   const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
   const expected = {
     classification: 'CREATE（"做成"模式；PD-21 关闭切片）',
-    policy: 'CREATE → CREATE（policy_v2.0.0）',
+    policy: 'CREATE → CREATE（policy_v2.1.0）',
     stream: 'submission → chunks → done → state_updated',
     content: createFixture.chunks.join(''),
     headerState: 'ACTIVE/CREATION（迁移提交时视图）',
@@ -1379,7 +1382,7 @@ async function caseG04Normal(trace) {
     classification.semanticAction === 'CREATE' &&
     create.ok &&
     actual.policyAction === 'CREATE' &&
-    actual.policyVersion === 'policy_v2.0.0' &&
+    actual.policyVersion === 'policy_v2.1.0' &&
     actual.stateVersion === 5 &&
     actual.headerState === 'ACTIVE/CREATION' &&
     createEvents[0].type === 'submission' &&
@@ -1392,7 +1395,7 @@ async function caseG04Normal(trace) {
     actual.whyRequestedEvents === 1 &&
     actual.stateTransitionedCreate &&
     actual.decisionTraceSemanticAction === 'CREATE' &&
-    actual.decisionTracePolicyVersion === 'policy_v2.0.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v2.1.0' &&
     actual.decisionTraceReason === 'explicit_user_direction' &&
     finalState.ok &&
     finalState.state.stateVersion === 6 &&
@@ -1686,7 +1689,7 @@ async function caseG07Normal(trace) {
   const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
   const expected = {
     classification: 'CORRECTION（"不是"模式；PD-21 关闭切片）',
-    policy: 'CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v2.0.0）',
+    policy: 'CORRECTION → EXPLAIN（重评估落到合法 Policy Action；policy_v2.1.0）',
     stream: 'submission → chunks → done → state_updated',
     content: correctionFixture.chunks.join(''),
     headerState: 'ACTIVE/UNDERSTANDING（迁移提交时视图；阶段保持）',
@@ -1720,7 +1723,7 @@ async function caseG07Normal(trace) {
     classification.semanticAction === 'CORRECTION' &&
     correct.ok &&
     actual.selectedAction === 'EXPLAIN' &&
-    actual.policyVersion === 'policy_v2.0.0' &&
+    actual.policyVersion === 'policy_v2.1.0' &&
     actual.stateVersion === 5 &&
     actual.headerState === 'ACTIVE/UNDERSTANDING' &&
     correctEvents[0].type === 'submission' &&
@@ -1734,7 +1737,7 @@ async function caseG07Normal(trace) {
     actual.interrupted.filter((reason) => reason === 'correction').length === 1 &&
     actual.stateTransitionedCorrection &&
     actual.decisionTraceSemanticAction === 'CORRECTION' &&
-    actual.decisionTracePolicyVersion === 'policy_v2.0.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v2.1.0' &&
     actual.decisionTraceReason === 'reassess' &&
     finalState.ok &&
     finalState.state.stateVersion === 6 &&
@@ -2418,7 +2421,7 @@ async function caseG09Normal(trace) {
     JSON.stringify(creationAfter.creation.userChanges[0].patch) === JSON.stringify(expectedUserChangePatch);
   const expected = {
     classification: 'DEEPEN（"深入"词表；目标经 TARGET_SYNONYMS 由"关卡"派生为 level）',
-    policy: 'DEEPEN → DEEPEN（policy_v2.0.0；14 §8 恒等映射）',
+    policy: 'DEEPEN → DEEPEN（policy_v2.1.0；14 §8 恒等映射）',
     flow: 'WHY → CREATE → DEEPEN（创作会话内顶层补丁操作）',
     content: deepenFixture.chunks.join(''),
     headerState: 'ACTIVE/CREATION（迁移提交时视图）',
@@ -2458,7 +2461,7 @@ async function caseG09Normal(trace) {
     classification.semanticAction === 'DEEPEN' &&
     deepen.ok &&
     actual.policyAction === 'DEEPEN' &&
-    actual.policyVersion === 'policy_v2.0.0' &&
+    actual.policyVersion === 'policy_v2.1.0' &&
     actual.policyReason === 'creation_modification' &&
     actual.stateVersion === 7 &&
     actual.headerState === 'ACTIVE/CREATION' &&
@@ -2474,7 +2477,7 @@ async function caseG09Normal(trace) {
     actual.patchCreationVersion === 2 &&
     actual.createTransitions === 2 &&
     actual.decisionTraceSemanticAction === 'DEEPEN' &&
-    actual.decisionTracePolicyVersion === 'policy_v2.0.0' &&
+    actual.decisionTracePolicyVersion === 'policy_v2.1.0' &&
     actual.decisionTraceReason === 'explicit_user_direction' &&
     finalState.ok &&
     finalState.state.stateVersion === 8 &&
@@ -2681,7 +2684,446 @@ async function caseG09FailureRecovery(trace) {
   return { expected, actual, pass };
 }
 
-// 案例注册表（执行的 36 案例；PD-21 关闭切片：G04/G07/G08 最小实现 + S2b G09 方向性操作，无 DEFERRED 登记）
+// ---------------------------------------------------------------------------
+// 黄金案例（G10 Branch Reflow——S2；S2-BRANCH-REFLOW-DEF-01
+// v1.0.0 选项 A：第五分支操作 ADOPT_BRANCH 显式回流，
+// policy_v2.1.0 变更 1–5）
+// ---------------------------------------------------------------------------
+
+// --- G10-N：正常路径（WHAT_IF 模拟会话内 ADOPT_BRANCH 显式回流） --
+async function caseG10Normal(trace) {
+  const { runtime, events, traces } = createCaseRuntime();
+  const classification = classifyInput('如果采用分支一的结论呢');
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '如果摩擦力为零会怎样' });
+  // 模拟轮 1：WHAT_IF 首轮自动 CREATE 分支 1（D-03 选项 A）。
+  const r1 = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHAT_IF',
+    rawInput: '如果摩擦力为零会怎样',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g10n-1',
+  });
+  if (!r1.ok) {
+    return { expected: { setup: '模拟轮 1 提交应被接受' }, actual: { setupError: r1.error.code }, pass: false };
+  }
+  await consume(r1.stream);
+  // 模拟轮 2：累积至分支 1。
+  const stateAfterR1 = runtime.getExperienceState(exp.experienceId);
+  const r2 = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHAT_IF',
+    rawInput: '假如速度再高一点会怎样',
+    expectedStateVersion: stateAfterR1.state.stateVersion,
+    requestId: 'req-g10n-2',
+  });
+  if (!r2.ok) {
+    return { expected: { setup: '模拟轮 2 提交应被接受' }, actual: { setupError: r2.error.code }, pass: false };
+  }
+  await consume(r2.stream);
+  // ADOPT_BRANCH：显式采用分支 1 结论（确定性系统回合——
+  // 无 LLM 提案，llm_used=false）。
+  const stateAfterR2 = runtime.getExperienceState(exp.experienceId);
+  const adopt = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHAT_IF',
+    rawInput: '如果采用分支一的结论呢',
+    expectedStateVersion: stateAfterR2.state.stateVersion,
+    requestId: 'req-g10n-3',
+  });
+  const adoptEvents = adopt.ok ? await consume(adopt.stream) : [];
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const simulation = runtime.getSimulation(exp.experienceId);
+  const simAdopted = eventsOf(events, 'simulation_adopted');
+  const simRecorded = eventsOf(events, 'simulation_recorded');
+  const adoptTrace = traces.find((entry) => entry.reason?.secondary?.includes('ADOPT_BRANCH'));
+  const branch = simulation.ok ? simulation.simulation.branches[0] : null;
+  const expected = {
+    classification: 'WHAT_IF（"如果"标记；ADOPT_BRANCH 输入经 WHAT_IF 语义动作声明路由）',
+    policy: 'WHAT_IF → SIMULATE（policy_v2.1.0；S1 §14 映射不变；ADOPT_BRANCH 显式回流经 S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决生效——policy_v2.1.0 变更 1–5）',
+    flow: 'WHAT_IF 轮 1（自动 CREATE 分支 1）→ 轮 2（累积）→ ADOPT_BRANCH 分支 1（确定性系统回合）',
+    branchModel: '分支 1：lifecycle ACTIVE 不变；adopted false→true（附加标记——非生命周期状态，生命周期契约不增第四态）；version=2（采用不累积模拟轮次）；currentBranchId 保持分支 1（主线当前上下文不变）',
+    adoptedEvent: 'simulation_adopted ×1（properties：branch_id=分支 1 / source_round=1 / adopted_content=分支最新模拟轮模拟内容 / separation_invariant=simulation_result_is_not_fact——采用结果仍标记为模拟来源，E8-G2-CC07）',
+    contentPresentation: '采用轮结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文（模拟来源、非事实——separation_invariant 随文标注；采纳内容经独立 CREATE 提交方纳入作品）',
+    headerState: 'ACTIVE/SIMULATION（迁移提交时视图——生成在途，13 §15.3；RESPONSE_COMPLETED 结算后 WAITING/SIMULATION）',
+    stateVersion: '7（迁移提交时视图——13 §15.3；RESPONSE_COMPLETED 结算后定居 v8——启动 v2 + 轮 1 两次提交 + 轮 2 两次提交 + 采用两次提交，每次合法提交恰好 +1，S1-12）',
+    deterministicTurn: '决策追踪 llm_used=false，reasonPrimary=explicit_user_direction（确定性系统回合——同分支操作纪律）',
+  };
+  const actual = {
+    classification: classification.semanticAction,
+    policyAction: adopt.ok ? adopt.header.policy_decision.selected_action : adopt.error.code,
+    policyVersion: adopt.ok ? adopt.header.policy_decision.policy_version : null,
+    policyReason: adopt.ok ? adopt.header.policy_decision.reason : null,
+    stateVersion: adopt.ok ? adopt.header.state_version : null,
+    headerState: adopt.ok ? `${adopt.header.state.status}/${adopt.header.state.stage}` : 'ERROR',
+    adoptContentPresentsAdoptedContent: contentOf(adoptEvents).includes(simulate.chunks.join('')),
+    simulationPresent: simulation.ok,
+    branchCount: simulation.ok ? simulation.simulation.branches.length : null,
+    branchAdopted: branch?.adopted ?? null,
+    branchLifecycle: branch?.lifecycle ?? null,
+    branchVersion: branch?.version ?? null,
+    branchRounds: branch?.rounds.length ?? null,
+    currentBranchIdUnchanged: simulation.ok ? simulation.simulation.currentBranchId === branch?.branchId : null,
+    simulationAdoptedEvents: simAdopted.map((event) => ({
+      branch_id: event.properties.branch_id,
+      source_round: event.properties.source_round,
+      adopted_content_matches_latest_round: event.properties.adopted_content === simulate.chunks.join(''),
+      separation_invariant: event.properties.separation_invariant,
+    })),
+    simulationRecordedEvents: simRecorded.map((event) => event.properties.round),
+    decisionTraceReason: adoptTrace?.reason?.primary ?? null,
+    decisionTraceLlmUsed: adoptTrace?.execution?.llm_used ?? null,
+    decisionTracePolicyVersion: adoptTrace?.policy?.policy_version ?? null,
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+  };
+  const pass =
+    classification.semanticAction === 'WHAT_IF' &&
+    r1.ok &&
+    r2.ok &&
+    adopt.ok &&
+    actual.policyAction === 'SIMULATE' &&
+    actual.policyVersion === 'policy_v2.1.0' &&
+    actual.policyReason === 'simulation_branch_operation' &&
+    actual.stateVersion === 7 &&
+    actual.headerState === 'ACTIVE/SIMULATION' &&
+    actual.adoptContentPresentsAdoptedContent &&
+    simulation.ok &&
+    actual.branchCount === 1 &&
+    actual.branchAdopted === true &&
+    actual.branchLifecycle === 'ACTIVE' &&
+    actual.branchVersion === 2 &&
+    actual.branchRounds === 2 &&
+    actual.currentBranchIdUnchanged === true &&
+    simAdopted.length === 1 &&
+    simAdopted[0].properties.branch_id === branch.branchId &&
+    simAdopted[0].properties.source_round === 1 &&
+    simAdopted[0].properties.adopted_content === simulate.chunks.join('') &&
+    simAdopted[0].properties.separation_invariant === 'simulation_result_is_not_fact' &&
+    actual.simulationRecordedEvents.length === 2 &&
+    actual.simulationRecordedEvents[0] === 1 &&
+    actual.simulationRecordedEvents[1] === 2 &&
+    actual.decisionTraceReason === 'explicit_user_direction' &&
+    actual.decisionTraceLlmUsed === false &&
+    actual.decisionTracePolicyVersion === 'policy_v2.1.0' &&
+    finalState.ok &&
+    finalState.state.stateVersion === 8 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'SIMULATION';
+  return { expected, actual, pass };
+}
+
+// --- G10-NEG：负向（词表边界——未命中作用域的"采用"走通用
+// SIMULATE 路径；不存在序号拒绝） --------------------------
+async function caseG10Negative(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const classificationMiss = classifyInput('如果采用这个结论呢');
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '如果摩擦力为零会怎样' });
+  // 模拟轮 1：CREATE 分支 1。
+  const r1 = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHAT_IF',
+    rawInput: '如果摩擦力为零会怎样',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g10neg-1',
+  });
+  if (!r1.ok) {
+    return { expected: { setup: '模拟轮 1 提交应被接受' }, actual: { setupError: r1.error.code }, pass: false };
+  }
+  await consume(r1.stream);
+  // 负向核心 1：未命中分支作用域词表的"采用"输入 → 不识别
+  // 为分支操作（走通用 SIMULATE 执行路径——词表边界纪律）：
+  // 通用模拟轮登记 simulation_recorded（非 simulation_adopted），
+  // 分支 1 累积（version=2），adopted 保持 false。
+  const stateAfterR1 = runtime.getExperienceState(exp.experienceId);
+  const miss = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHAT_IF',
+    rawInput: '如果采用这个结论呢',
+    expectedStateVersion: stateAfterR1.state.stateVersion,
+    requestId: 'req-g10neg-2',
+  });
+  const missEvents = miss.ok ? await consume(miss.stream) : [];
+  // 负向核心 2：采用不存在的分支序号（分支九）→
+  // INVALID_STATE_TRANSITION（拒绝先于任何写入，不消耗
+  // 版本号——OBL-01 同族纪律）。
+  const stateAfterMiss = runtime.getExperienceState(exp.experienceId);
+  const versionBeforeNegative = stateAfterMiss.state.stateVersion;
+  const nine = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHAT_IF',
+    rawInput: '如果采用分支九的结论呢',
+    expectedStateVersion: versionBeforeNegative,
+    requestId: 'req-g10neg-3',
+  });
+  const versionAfterNegative = runtime.getExperienceState(exp.experienceId).state.stateVersion;
+  const simulation = runtime.getSimulation(exp.experienceId);
+  const simAdopted = eventsOf(events, 'simulation_adopted');
+  const simRecorded = eventsOf(events, 'simulation_recorded');
+  const expected = {
+    classification: 'WHAT_IF（"如果"标记——"采用"词表经 WHAT_IF 声明路由）',
+    wordTableBoundary: '未命中分支作用域词表 → 不识别为分支操作（走通用 SIMULATE 执行路径——词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH 均须作用域 + 可解析序号）',
+    missRound: '通用模拟轮：simulation_recorded ×1（非 simulation_adopted），内容逐字节等于 simulate 语料，分支 1 累积（version=2，adopted 保持 false）',
+    negative: '采用不存在分支序号（分支九）→ INVALID_STATE_TRANSITION（拒绝先于任何写入，不消耗版本号——OBL-01）',
+  };
+  const actual = {
+    classification: classificationMiss.semanticAction,
+    missAccepted: miss.ok,
+    missPolicyAction: miss.ok ? miss.header.policy_decision.selected_action : miss.error.code,
+    missPolicyReason: miss.ok ? miss.header.policy_decision.reason : null,
+    missContentMatchesFixture: contentOf(missEvents) === simulate.chunks.join(''),
+    negativeResult: nine.ok ? 'OK（缺陷！）' : nine.error.code,
+    versionBeforeNegative,
+    versionAfterNegative,
+    simulationAdoptedEvents: simAdopted.length,
+    simulationRecordedRounds: simRecorded.map((event) => event.properties.round),
+    branchAdopted: simulation.ok ? simulation.simulation.branches[0]?.adopted ?? null : null,
+    branchVersion: simulation.ok ? simulation.simulation.branches[0]?.version ?? null : null,
+  };
+  const pass =
+    classificationMiss.semanticAction === 'WHAT_IF' &&
+    r1.ok &&
+    miss.ok &&
+    actual.missPolicyAction === 'SIMULATE' &&
+    actual.missPolicyReason === 'semantic_action' &&
+    actual.missContentMatchesFixture &&
+    !nine.ok &&
+    nine.error.code === 'INVALID_STATE_TRANSITION' &&
+    versionAfterNegative === versionBeforeNegative &&
+    simAdopted.length === 0 &&
+    actual.simulationRecordedRounds.length === 2 &&
+    actual.simulationRecordedRounds[0] === 1 &&
+    actual.simulationRecordedRounds[1] === 2 &&
+    actual.branchAdopted === false &&
+    actual.branchVersion === 2;
+  return { expected, actual, pass };
+}
+
+// --- G10-B：边界（RETURNED 分支采用——生命周期不变；幂等；
+// 无激活分支上下文时主线当前上下文保持 null） --------------
+async function caseG10Boundary(trace) {
+  const { runtime, events, traces } = createCaseRuntime();
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '如果摩擦力为零会怎样' });
+  async function submit(rawInput, requestId) {
+    const state = runtime.getExperienceState(exp.experienceId).state;
+    const submission = await runtime.submitExperienceEvent({
+      experienceId: exp.experienceId,
+      sessionId: session.sessionId,
+      semanticAction: 'WHAT_IF',
+      rawInput,
+      expectedStateVersion: state.stateVersion,
+      requestId,
+    });
+    const stream = submission.ok ? await consume(submission.stream) : [];
+    return { submission, stream };
+  }
+  // 轮 1 / 轮 2：CREATE 分支 1 并累积。
+  const r1 = await submit('如果摩擦力为零会怎样', 'req-g10b-1');
+  const r2 = await submit('假如速度再高一点会怎样', 'req-g10b-2');
+  // RETURN：分支 1 生命周期 RETURNED，当前激活分支清空。
+  const ret = await submit('如果返回主线呢', 'req-g10b-3');
+  const snapAfterReturn = runtime.getSimulation(exp.experienceId);
+  // 采用分支 1（RETURNED 分支——生命周期 RETURNED 不变；
+  // 无激活分支上下文时采用仍合法——采用面向分支记录本身，
+  // 主线当前上下文不变：currentBranchId 保持 null）。
+  const adopt1 = await submit('如果采用分支一的结论呢', 'req-g10b-4');
+  const snapAfterAdopt1 = runtime.getSimulation(exp.experienceId);
+  // 幂等边界：重复采用——adopted 保持 true（幂等标记），
+  // 生命周期 / version / 轮次 / 当前上下文均不变。
+  const adopt2 = await submit('如果采用分支一的结论呢', 'req-g10b-5');
+  const snapAfterAdopt2 = runtime.getSimulation(exp.experienceId);
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const simAdopted = eventsOf(events, 'simulation_adopted');
+  const branchAfterAdopt2 = snapAfterAdopt2.ok ? snapAfterAdopt2.simulation.branches[0] : null;
+  const expected = {
+    flow: 'WHAT_IF 轮 1/2（分支 1 累积）→ RETURN（分支 1 RETURNED，currentBranchId=null）→ ADOPT_BRANCH 分支 1（RETURNED 生命周期不变，adopted 附加，currentBranchId 保持 null——主线当前上下文不变）→ ADOPT_BRANCH 分支 1（幂等——adopted 保持 true，version / 轮次 / 当前上下文均不变）',
+    lifecycleInvariant: '生命周期契约不变——ACTIVE / RETURNED / ABANDONED 三态；adopted 为附加属性而非生命周期状态（采用不迁移生命周期）',
+    mainlineContext: 'currentBranchId：分支 1 → null（RETURN）→ null（采用不变）→ null（幂等采用不变）——主线当前上下文不因采用而改变',
+    idempotence: '重复采用幂等——adopted true→true，分支 version=2、轮次=2 均不变',
+    stateVersion: '12（启动 v2 + 轮 1/2 + RETURN + 采用 ×2——每次合法提交恰好 +1，S1-12）',
+  };
+  const actual = {
+    roundsOk: r1.submission.ok && r2.submission.ok,
+    returnOk: ret.submission.ok,
+    lifecycleAfterReturn: snapAfterReturn.ok ? snapAfterReturn.simulation.branches[0]?.lifecycle ?? null : null,
+    currentBranchIdAfterReturn: snapAfterReturn.ok ? snapAfterReturn.simulation.currentBranchId : 'invalid',
+    adopt1Ok: adopt1.submission.ok,
+    adopt1PolicyVersion: adopt1.submission.ok ? adopt1.submission.header.policy_decision.policy_version : null,
+    adopt1ContentPresentsAdoptedContent: contentOf(adopt1.stream).includes(simulate.chunks.join('')),
+    branchAdoptedAfterAdopt1: snapAfterAdopt1.ok ? snapAfterAdopt1.simulation.branches[0]?.adopted ?? null : null,
+    branchLifecycleAfterAdopt1: snapAfterAdopt1.ok ? snapAfterAdopt1.simulation.branches[0]?.lifecycle ?? null : null,
+    branchVersionAfterAdopt1: snapAfterAdopt1.ok ? snapAfterAdopt1.simulation.branches[0]?.version ?? null : null,
+    branchRoundsAfterAdopt1: snapAfterAdopt1.ok ? snapAfterAdopt1.simulation.branches[0]?.rounds.length ?? null : null,
+    currentBranchIdAfterAdopt1: snapAfterAdopt1.ok ? snapAfterAdopt1.simulation.currentBranchId : 'invalid',
+    adopt2Ok: adopt2.submission.ok,
+    branchAdoptedAfterAdopt2: branchAfterAdopt2?.adopted ?? null,
+    branchLifecycleAfterAdopt2: branchAfterAdopt2?.lifecycle ?? null,
+    branchVersionAfterAdopt2: branchAfterAdopt2?.version ?? null,
+    branchRoundsAfterAdopt2: branchAfterAdopt2?.rounds.length ?? null,
+    currentBranchIdAfterAdopt2: snapAfterAdopt2.ok ? snapAfterAdopt2.simulation.currentBranchId : 'invalid',
+    simulationAdoptedEvents: simAdopted.length,
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+  };
+  const pass =
+    actual.roundsOk &&
+    ret.submission.ok &&
+    snapAfterReturn.ok &&
+    actual.lifecycleAfterReturn === 'RETURNED' &&
+    snapAfterReturn.simulation.currentBranchId === null &&
+    adopt1.submission.ok &&
+    actual.adopt1PolicyVersion === 'policy_v2.1.0' &&
+    actual.adopt1ContentPresentsAdoptedContent &&
+    snapAfterAdopt1.ok &&
+    actual.branchAdoptedAfterAdopt1 === true &&
+    actual.branchLifecycleAfterAdopt1 === 'RETURNED' &&
+    actual.branchVersionAfterAdopt1 === 2 &&
+    actual.branchRoundsAfterAdopt1 === 2 &&
+    snapAfterAdopt1.simulation.currentBranchId === null &&
+    adopt2.submission.ok &&
+    snapAfterAdopt2.ok &&
+    actual.branchAdoptedAfterAdopt2 === true &&
+    actual.branchLifecycleAfterAdopt2 === 'RETURNED' &&
+    actual.branchVersionAfterAdopt2 === 2 &&
+    actual.branchRoundsAfterAdopt2 === 2 &&
+    snapAfterAdopt2.simulation.currentBranchId === null &&
+    simAdopted.length === 2 &&
+    simAdopted.every(
+      (event) =>
+        event.properties.branch_id === branchAfterAdopt2.branchId &&
+        event.properties.source_round === 1 &&
+        event.properties.adopted_content === simulate.chunks.join('') &&
+        event.properties.separation_invariant === 'simulation_result_is_not_fact',
+    ) &&
+    finalState.ok &&
+    finalState.state.stateVersion === 12 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'SIMULATION';
+  return { expected, actual, pass };
+}
+
+// --- G10-FR：故障恢复（陈旧版本采用拒绝 → 当前版本重试成功
+// → 独立 CREATE 提交纳入作品——创作版本化纪律不变） -------
+async function caseG10FailureRecovery(trace) {
+  const { runtime, events } = createCaseRuntime();
+  const { session, intent, exp } = await setupChain(runtime, { rawInput: '如果摩擦力为零会怎样' });
+  // 模拟轮 1：CREATE 分支 1。
+  const r1 = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHAT_IF',
+    rawInput: '如果摩擦力为零会怎样',
+    expectedStateVersion: exp.stateVersion,
+    requestId: 'req-g10fr-1',
+  });
+  if (!r1.ok) {
+    return { expected: { setup: '模拟轮 1 提交应被接受' }, actual: { setupError: r1.error.code }, pass: false };
+  }
+  await consume(r1.stream);
+  // 故障注入：陈旧 expected_state_version（3 vs 4）采用提交 →
+  // STATE_VERSION_CONFLICT（retryable=false）——不覆盖、不
+  // 消耗版本（S1-12 同族；OBL-01 失败写入纪律）。
+  const stale = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHAT_IF',
+    rawInput: '如果采用分支一的结论呢',
+    expectedStateVersion: 3,
+    requestId: 'req-g10fr-2',
+  });
+  const stateAfterStale = runtime.getExperienceState(exp.experienceId);
+  const conflictEvents = eventsOf(events, 'state_version_conflict');
+  // 恢复：携带当前版本重试采用成功（simulation_adopted ×1）。
+  const retry = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'WHAT_IF',
+    rawInput: '如果采用分支一的结论呢',
+    expectedStateVersion: stateAfterStale.state.stateVersion,
+    requestId: 'req-g10fr-3',
+  });
+  const retryEvents = retry.ok ? await consume(retry.stream) : [];
+  // 创作版本化纪律不变：采用内容经独立 CREATE 提交纳入
+  // 作品——CREATE 衔接（13 §15.5）建立创作会话（creation
+  // v1）；采用内容不自动写入作品（零 user_changes——无
+  // 自动补丁，创作版本化纪律不变）。
+  const stateAfterRetry = runtime.getExperienceState(exp.experienceId);
+  const create = await runtime.submitExperienceEvent({
+    experienceId: exp.experienceId,
+    sessionId: session.sessionId,
+    semanticAction: 'CREATE',
+    rawInput: '做成一个小游戏',
+    expectedStateVersion: stateAfterRetry.state.stateVersion,
+    requestId: 'req-g10fr-4',
+  });
+  const createEvents = create.ok ? await consume(create.stream) : [];
+  const finalState = runtime.getExperienceState(exp.experienceId);
+  const creation = runtime.getCreation(exp.experienceId);
+  const simAdopted = eventsOf(events, 'simulation_adopted');
+  const expected = {
+    failure: '陈旧 expected_state_version=3 → STATE_VERSION_CONFLICT（retryable=false——不覆盖、不消耗版本，S1-12 同族）',
+    noSideEffects: '冲突拒绝后体验状态版本不变（失败写入不消耗版本号——OBL-01 纪律）',
+    recovery: '携带当前版本重试采用成功（simulation_adopted ×1——采用结果仍标记为模拟来源）',
+    creationDiscipline: '采用内容经独立 CREATE 提交纳入作品（13 §15.5 衔接；创作 v1；零 user_changes——采用不自动写入作品，创作版本化纪律不变）',
+    content: '采用轮结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文；CREATE 轮内容逐字节等于 create 语料',
+  };
+  const actual = {
+    staleResult: stale.ok ? 'OK（缺陷！）' : stale.error.code,
+    staleRetryable: stale.ok ? null : stale.error.retryable,
+    conflictEvents: conflictEvents.length,
+    conflictExpectedVersion: conflictEvents[0]?.properties.expected_state_version ?? null,
+    conflictCurrentVersion: conflictEvents[0]?.properties.current_state_version ?? null,
+    stateVersionAfterStale: stateAfterStale.state.stateVersion,
+    retryAccepted: retry.ok,
+    retryPolicyReason: retry.ok ? retry.header.policy_decision.reason : null,
+    retryPolicyVersion: retry.ok ? retry.header.policy_decision.policy_version : null,
+    retryContentPresentsAdoptedContent: contentOf(retryEvents).includes(simulate.chunks.join('')),
+    simulationAdoptedEvents: simAdopted.map((event) => ({
+      branch_id: event.properties.branch_id,
+      source_round: event.properties.source_round,
+      separation_invariant: event.properties.separation_invariant,
+    })),
+    createAccepted: create.ok,
+    createContentMatchesFixture: contentOf(createEvents) === createFixture.chunks.join(''),
+    finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
+    creationVersion: creation.ok ? creation.creation.version : null,
+    creationActive: creation.ok ? creation.active : null,
+    creationPhase: creation.ok ? creation.creation.phase : null,
+    userChangesLength: creation.ok ? creation.creation.userChanges.length : null,
+  };
+  const pass =
+    r1.ok &&
+    !stale.ok &&
+    stale.error.code === 'STATE_VERSION_CONFLICT' &&
+    stale.error.retryable === false &&
+    actual.conflictEvents === 1 &&
+    actual.conflictExpectedVersion === 3 &&
+    actual.conflictCurrentVersion === 4 &&
+    actual.stateVersionAfterStale === 4 &&
+    retry.ok &&
+    actual.retryPolicyReason === 'simulation_branch_operation' &&
+    actual.retryPolicyVersion === 'policy_v2.1.0' &&
+    actual.retryContentPresentsAdoptedContent &&
+    simAdopted.length === 1 &&
+    simAdopted[0].properties.source_round === 1 &&
+    simAdopted[0].properties.separation_invariant === 'simulation_result_is_not_fact' &&
+    create.ok &&
+    actual.createContentMatchesFixture &&
+    finalState.ok &&
+    finalState.state.stateVersion === 8 &&
+    finalState.state.status === 'WAITING' &&
+    finalState.state.stage === 'CREATION' &&
+    actual.creationVersion === 1 &&
+    actual.creationActive === true &&
+    actual.creationPhase === 'USER_FEEDBACK' &&
+    actual.userChangesLength === 0;
+  return { expected, actual, pass };
+}
+
+// 案例注册表（执行的 40 案例；PD-21 关闭切片：G04/G07/G08 最小实现 + S2b G09 方向性操作 + S2 G10 分支回流，无 DEFERRED 登记）
 // ---------------------------------------------------------------------------
 const CASE_REGISTRY = [
   // G01 Direct Answer
@@ -3091,6 +3533,50 @@ const CASE_REGISTRY = [
     inputFault: '陈旧 expectedCreationVersion=999 → STATE_VERSION_CONFLICT（不覆盖、不消耗版本）→ 当前版本重试 REFRAME 成功',
     run: caseG09FailureRecovery,
   },
+  {
+    caseId: 'G10-N',
+    goldenCase: 'G10',
+    dimension: 'NORMAL',
+    form: 'in-process',
+    sourceClause: 'S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A（policy_v2.1.0 变更 1–5）：ADOPT_BRANCH 显式回流——第五分支操作',
+    scope: 'P2 G3 黄金套件——S2 新增黄金案例（分支结论显式回流：确定性系统回合 + simulation_adopted 事件 + 新一轮模拟上下文呈现）',
+    precondition: 'WHY → WHAT_IF 轮 1（自动 CREATE 分支 1）→ 轮 2（累积）',
+    inputFault: '无（正常路径——"如果采用分支一的结论呢"命中 ADOPT_BRANCH 词表 + 可解析序号 1）',
+    run: caseG10Normal,
+  },
+  {
+    caseId: 'G10-NEG',
+    goldenCase: 'G10',
+    dimension: 'NEGATIVE',
+    form: 'in-process',
+    sourceClause: 'S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 词表边界（优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH，均须分支作用域 + 可解析序号，否则通用 SIMULATE 执行路径）；OBL-01 失败写入不消耗版本号',
+    scope: 'P2 G3 黄金套件——S2 新增黄金案例负向（未命中作用域词表的"采用"走通用模拟；不存在序号拒绝）',
+    precondition: 'WHY → WHAT_IF 轮 1（自动 CREATE 分支 1）',
+    inputFault: '① "如果采用这个结论呢"（未命中分支作用域词表）→ 通用 SIMULATE；② "如果采用分支九的结论呢"（不存在序号）→ INVALID_STATE_TRANSITION（不消耗版本号）',
+    run: caseG10Negative,
+  },
+  {
+    caseId: 'G10-B',
+    goldenCase: 'G10',
+    dimension: 'BOUNDARY',
+    form: 'in-process',
+    sourceClause: 'S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A：adopted 附加属性幂等、生命周期契约不变（ACTIVE/RETURNED/ABANDONED 三态）、主线当前上下文不因采用而改变',
+    scope: 'P2 G3 黄金套件——S2 新增黄金案例边界（RETURNED 分支采用 + 幂等重采用 + 无激活分支上下文时主线当前上下文保持 null）',
+    precondition: 'WHY → WHAT_IF 轮 1/2（分支 1 累积）→ RETURN（分支 1 RETURNED，currentBranchId=null）',
+    inputFault: 'RETURNED 分支采用（生命周期 RETURNED 不变）→ 重复采用（幂等——adopted 保持 true，version/轮次/当前上下文均不变）',
+    run: caseG10Boundary,
+  },
+  {
+    caseId: 'G10-FR',
+    goldenCase: 'G10',
+    dimension: 'FAILURE_RECOVERY',
+    form: 'in-process',
+    sourceClause: 'S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A；S1-12 陈旧版本写入拒绝；创作版本化纪律不变（采用内容经独立 CREATE 提交纳入作品，不自动写入）',
+    scope: 'P2 G3 黄金套件——S2 新增黄金案例故障恢复（陈旧 expected_state_version 采用拒绝 → 当前版本重试成功 → CREATE 衔接纳入作品）',
+    precondition: 'WHY → WHAT_IF 轮 1（自动 CREATE 分支 1）',
+    inputFault: '陈旧 expected_state_version=3 → STATE_VERSION_CONFLICT（retryable=false）→ 当前版本重试采用成功 → CREATE 衔接（创作 v1，零 user_changes）',
+    run: caseG10FailureRecovery,
+  },
 ];
 
 
@@ -3276,15 +3762,15 @@ async function main() {
     { traceFiles: traceFiles.length, expected: CASE_REGISTRY.length },
   );
 
-  // A5: golden dimension coverage — each golden case (G01–G09) has all four dimensions.
-  const goldenCases = ['G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08', 'G09'];
+  // A5: golden dimension coverage — each golden case (G01–G10) has all four dimensions.
+  const goldenCases = ['G01', 'G02', 'G03', 'G04', 'G05', 'G06', 'G07', 'G08', 'G09', 'G10'];
   const dimensionCoverage = goldenCases.map((goldenCase) => {
     const dims = executedResults.filter((entry) => entry.goldenCase === goldenCase).map((entry) => entry.dimension);
     return { goldenCase, dimensions: dims, complete: GOLDEN_DIMENSIONS.every((dim) => dims.includes(dim)) };
   });
   assert(
     'A5',
-    '黄金维度覆盖：G01–G09 各具备 NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度（P2 Exit Gate §8；G04/G07/G08 为 PD-21 关闭切片最小实现；G09 为 S2b 新增黄金案例）',
+    '黄金维度覆盖：G01–G10 各具备 NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度（P2 Exit Gate §8；G04/G07/G08 为 PD-21 关闭切片最小实现；G09 为 S2b 新增黄金案例；G10 为 S2 分支回流新增黄金案例——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A）',
     dimensionCoverage.every((entry) => entry.complete),
     { dimensionCoverage },
   );
@@ -3361,7 +3847,7 @@ async function main() {
     obligation: 'P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）',
     authorization: 'P3-S1-IMPL-AUTH-01 v1.3.0 §2（动态证据执行）；E5-SCOPED-LICENSE-01（PD-17 / CR-15 选项 A）',
     goldenCorpus: {
-      definition: 'P2 核心产品验收 G01–G09；每案例至少 Normal/Negative/Boundary/Failure-Recovery 四维度 + Expected/Observed/Evidence/Evaluator（P2 Exit Gate §8；G09 为 S2b 方向性操作）',
+      definition: 'P2 核心产品验收 G01–G10；每案例至少 Normal/Negative/Boundary/Failure-Recovery 四维度 + Expected/Observed/Evidence/Evaluator（P2 Exit Gate §8；G09 为 S2b 方向性操作；G10 为 S2 分支回流操作——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A）',
       s1Covered: {
         goldenCases,
         caseIds: CASE_REGISTRY.map((definition) => definition.caseId),
@@ -3387,7 +3873,7 @@ async function main() {
       .filter((entry) => entry.path.startsWith('P3-S1'))
       .map((entry) => ({ source: `docs/product/reference/${entry.path}`, sha256: entry.computed, archiveIntegrity: entry.match ? 'VERIFIED vs SHA256SUMS' : 'MISMATCH' })),
     stateMachine: { version: 'state_machine_v1.5.0', source: 'SRC-05 / 13', closureSlice: 'CREATION 阶段 + CREATE/CORRECTION 触发（PD-21 关闭切片最小形态）+ 完整 WHAT_IF 分支语义（S2a F-4，state_machine_v1.4.0）+ S2b 变更 1–3（state_machine_v1.5.0：方向性操作 DEEPEN/SIMPLIFY/REFRAME 文档化——冻结迁移表无结构变更）' },
-    policy: { version: 'policy_v2.0.0（S2b 版本化变更）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）+ 完整 WHAT_IF 分支语义（S2a F-4，policy_v1.4.0：多轮模拟持久化 + 轴外分支子状态机）+ Minimal Memory 语义（S2a F-5，policy_v1.5.0：轴外记忆子状态机 + L5 信号注入 + Runtime 单一写入者）+ S2b 方向性操作语义（policy_v2.0.0：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 14 §8 恒等映射 + 冻结优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER + 创作域顶层补丁操作承载）；SEARCH 仍表外（PD-06，内部能力动作 14 §7）' },
+    policy: { version: 'policy_v2.1.0（S2b 版本化变更 + S2 分支回流版本化变更）', source: 'SRC-06 / 14', status: 'S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）+ 完整 WHAT_IF 分支语义（S2a F-4，policy_v1.4.0：多轮模拟持久化 + 轴外分支子状态机）+ Minimal Memory 语义（S2a F-5，policy_v1.5.0：轴外记忆子状态机 + L5 信号注入 + Runtime 单一写入者）+ S2b 方向性操作语义（policy_v2.0.0：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 14 §8 恒等映射 + 冻结优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER + 创作域顶层补丁操作承载）+ S2 分支回流语义（policy_v2.1.0：ADOPT_BRANCH 第五分支操作显式回流——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A；词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH；adopted 附加标记幂等、生命周期契约不变；simulation_adopted 事件 C6 §14 派生；采用结果作新一轮模拟上下文呈现，主线当前上下文不变，默认不回流语义不变——显式回流为用户指示例外通道）；SEARCH 仍表外（PD-06，内部能力动作 14 §7）' },
     api: { version: 'api_v1.0.0', source: 'SRC-07 / 16' },
     event: { version: 'analytics_v1.0.0', source: 'SRC-08 / 17' },
     evaluation: { contract: 'C7', version: 'evaluation_v1.0.0', note: 'G5 16 项评测包已执行并双签署（P3-S1-G5-WORKSHEET-01 v1.7.0）；G3 逐项判定属本运行后的独立评测范畴' },
@@ -3505,7 +3991,7 @@ async function main() {
   );
 
   // Re-evaluate allPassed with A10 included; refresh the persisted summary
-  // so it carries every assertion (A1–A10).
+  // so it carries every assertion (A1–A10; 40 cases = 10 golden × 4 dimensions).
   const finalAllPassed = assertions.every((entry) => entry.passed) && allCasesPass;
   const finalExitCode = finalAllPassed ? 0 : 1;
   summary.assertions = assertions.map(({ id, description, passed }) => ({ id, description, passed }));
@@ -3524,7 +4010,7 @@ async function main() {
   // Review README for the independent evaluator (G3 item-by-item ruling aid).
   const reviewReadme = `# G3-GOLDEN-0001 — 独立评测人审阅包（staged，待审阅与否决）
 
-运行：G3-GOLDEN-0001（P2 G3 黄金案例回归套件——OBL-03 / PD-19；9 黄金案例 × 4 维度 = 36 案例执行；PD-21 关闭切片：G04/G07/G08 最小实现 + S2b G09 方向性操作）
+运行：G3-GOLDEN-0001（P2 G3 黄金案例回归套件——OBL-03 / PD-19；10 黄金案例 × 4 维度 = 40 案例执行；PD-21 关闭切片：G04/G07/G08 最小实现 + S2b G09 方向性操作 + S2 G10 分支回流）
 日期：${finishedAt}
 执行器：工程负责人角色（代理）；独立评测负责人：用户本人（角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）
 
@@ -3548,6 +4034,7 @@ async function main() {
 | G07 Correction（PD-21 关闭切片最小实现） | N/NEG/B/FR | 4/4 PASS | 待裁决 | 完整 Correction 语义属 S2（acceptance-mapping §B，PD-05） |
 | G08 Memory Boundary（PD-21 关闭切片最小实现） | N/NEG/B/FR | 4/4 PASS | 待裁决 | 完整持久 Memory 语义属 S2（acceptance-mapping §B，PD-07） |
 | G09 Directional Operations（S2b 方向性操作） | N/NEG/B/FR | 4/4 PASS | 待裁决 | S2b 新增（S2B-SEMANTIC-FREEZE-01 D-01 选项 A；policy_v2.0.0 顶层语义动作 DEEPEN/SIMPLIFY/REFRAME） |
+| G10 Branch Reflow（S2 分支回流操作） | N/NEG/B/FR | 4/4 PASS | 待裁决 | S2 新增（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A；policy_v2.1.0 变更 1–5：ADOPT_BRANCH 显式回流） |
 
 ## 审阅清单（不得只看汇总）
 
@@ -3558,7 +4045,7 @@ async function main() {
 
 ## 语料范围声明
 
-- 已执行（本运行）：G01–G09 九黄金案例四维度共 36 案例，进程内形态（真实 .ts 源字节）；G03 为 S1 基础单次模拟形态（PD-06）；G09 为 S2b 方向性操作（policy_v2.0.0）。
+- 已执行（本运行）：G01–G10 十黄金案例四维度共 40 案例，进程内形态（真实 .ts 源字节）；G03 为 S1 基础单次模拟形态（PD-06）；G09 为 S2b 方向性操作（policy_v2.0.0 引入，经 policy_v2.1.0 延续）；G10 为 S2 分支回流操作（policy_v2.1.0 变更 1–5）。
 - 关闭切片（PD-21）：G04/G07/G08 最小实现（CREATE / CORRECTION 语义动作 + CREATION 阶段 + 当前会话方向信号）；完整 Creation / Correction / 持久 Memory 语义仍属 S2（PD-05/PD-06/PD-07；acceptance-mapping §B）。
 - 形态覆盖：HTTP 形态回归证据见 F2-GS-0001 / F3-EB-0001（本套件为跨迭代回归基准的进程内形态）。
 - 未执行（NOT RUN）：真实 LLM 提供方接入（须另经产品决策与隐私六要素批准）；真实用户数据收集（按 ADR-0002 §3 证据运行仅使用合成数据）。
