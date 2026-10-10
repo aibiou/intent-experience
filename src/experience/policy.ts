@@ -15,10 +15,15 @@
  * - DEEPEN → DEEPEN / SIMPLIFY → SIMPLIFY / REFRAME → REFRAME
  *   （S2b：14 §8 恒等映射；S2B-SEMANTIC-FREEZE-01 v1.0.0 D-01 选项 A
  *   ——顶层语义动作，创作域顶层补丁操作承载）
+ * - CONTINUE → CONTINUE / REPEAT → REPEAT
+ *   （S4：14 §8 映射版本化；S4A-SEMANTIC-FREEZE-01 v1.0.0 D-1 选项 A
+ *   ——C3 G-1 空缺版本化关闭：CONTINUE 幂等确认回合 / REPEAT 呈现层重放）
  *
  * 治理约束：
- * - C3 行为语义空缺（G-1…G-7，见 c3-semantic-gap-register-v1.md）未由编码者补写：
- *   冻结点之外一律拒绝并升级，不在运行时发明语义。
+ * - C3 行为语义空缺（G-1…G-7，见 c3-semantic-gap-register-v1.md）经产品负责人
+ *   版本化决策补齐（G-1 经 S4A-SEMANTIC-FREEZE-01 v1.0.0 关闭——REPEAT/CONTINUE
+ *   纳入冻结表；G-2…G-7 经同冻结文本版本化定义）；冻结点之外一律拒绝并升级，
+ *   不在运行时发明语义。
  * - 范围边界（PD-05/PD-06/PD-07/PD-21）：SEARCH 禁用；不持久化跨会话 Memory；
  *   CREATE / CORRECTION 仅在 P2 关闭切片以最小形态启用，完整语义属 S2；
  *   S2b 起 SEARCH 为内部能力动作启用（D-02 选项 A——14 §7"SEARCH 不是
@@ -37,7 +42,9 @@ export type SemanticAction =
   | 'CORRECTION'
   | 'DEEPEN'
   | 'SIMPLIFY'
-  | 'REFRAME';
+  | 'REFRAME'
+  | 'CONTINUE'
+  | 'REPEAT';
 
 export type PolicyAction =
   | 'ANSWER'
@@ -48,7 +55,9 @@ export type PolicyAction =
   | 'CREATE'
   | 'DEEPEN'
   | 'SIMPLIFY'
-  | 'REFRAME';
+  | 'REFRAME'
+  | 'CONTINUE'
+  | 'REPEAT';
 
 /** 冻结映射表：键为 S1 范围内语义动作，值为对应策略动作（S1 §14）。 */
 const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
@@ -62,6 +71,8 @@ const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
   DEEPEN: 'DEEPEN', // S2b（14 §8 恒等映射；S2B-SEMANTIC-FREEZE-01 D-01 选项 A——顶层语义动作，创作域顶层补丁操作承载）
   SIMPLIFY: 'SIMPLIFY', // S2b（同上——14 §8 恒等映射）
   REFRAME: 'REFRAME', // S2b（同上——14 §8 恒等映射）
+  CONTINUE: 'CONTINUE', // S4（14 §8 映射版本化；S4A-SEMANTIC-FREEZE-01 D-1 选项 A——C3 G-1 空缺版本化关闭：幂等确认回合）
+  REPEAT: 'REPEAT', // S4（同上——呈现层重放上一完成轮响应）
 };
 
 /** S1 策略版本（决策追踪与策略事件记录使用，C6 §18/§22）。 */
@@ -269,7 +280,51 @@ const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
  * （纯增量）；既有分支操作语义（S2A-F4 / S2-BRANCH-REFLOW）
  * 不变（纯增量）。
  */
-export const POLICY_VERSION = 'policy_v2.2.0';
+/**
+ * policy_v2.3.0（S4 版本化变更，2026-10-10 产品负责人
+ * 批准——S4-SCOPE-PROPOSAL-01 v1.0.0 D-1…D-6 全项 A
+ * 裁决语义；语义冻结文本 S4A-SEMANTIC-FREEZE-01
+ * v1.0.0 补写生效——C3 语义空缺 G-1…G-7 版本化决策）：
+ * 变更 1——分类器优先级链扩展（REPEAT / CONTINUE 策略
+ * 动作，S4A §2）：CONTINUE / REPEAT 识别层插入全部既有
+ * 优先级层之后（仅认领全部优先级层未命中的输入——零
+ * 既有输入行为变化；源 14 §8 优先级关系 STOP > CONTINUE
+ * / CHANGE_DIRECTION > CONTINUE 经此实例化）；词表为确定
+ * 性规则（具体词表为实现细节，S4A §3）。
+ * 变更 2——resolvePolicy 冻结表扩展（S4A §1 D-1）：
+ * CONTINUE → CONTINUE（幂等确认回合——维持当前运行时
+ * 状态，state_version 不变，响应 done 事件）；REPEAT →
+ * REPEAT（呈现层重放上一完成轮响应——state_version 不变；
+ * 无上一完成轮时 INVALID_STATE_TRANSITION 拒绝）。
+ * 变更 3——ENTERING 资格表引用一致性注记（S4A §1 D-3）：
+ * 源 14 §15 资格表 START / CHANGE 的合法动作名为
+ * CHANGE_DIRECTION（与 state_machine_v1.5.0 及实现一致；
+ * 不改写归档源字节——C3-SEMANTIC-GAP-REGISTER-01 §3 约束）。
+ * 变更 4——策略内部参数组版本化定义（S4A §1 D-4）：
+ * constraints 取值域 depth ∈ { shallow, medium, deep } /
+ * interaction ∈ { single, multi }（可选字段）；confidence
+ * 阈值语义实例化（「全部优先级层未命中即 UNKNOWN → 升级」
+ * ——授权 §5.7；分类匹配 confidence=1.0 恒满足阈值）；
+ * Simple Scoring 公式规范登记（score = 0.5 × intent_match
+ * + 0.3 × context_relevance + 0.2 × history_signal——规范
+ * 定义，实现分类为确定性词表不依赖该评分）。
+ * 变更 5——内部过程定义与出口条件（S4A §1 D-5）：
+ * REASSESS（内部重新评估——出口：重新分类后返回合法策略
+ * 动作；实现已用 reason=reassess）/ SAFE_WAIT（安全等待
+ * ——出口：等待用户输入或升级）/ MINIMAL_CLARIFICATION
+ * （最小澄清——出口：澄清请求或升级）；内部过程必须返回
+ * 合法策略动作（源 14 §8 注），本身不直接修改
+ * ExperienceState（经 Runtime 单一写入者路径）。
+ * 不变：语义动作映射（DIRECT_ANSWER→ANSWER / WHY→EXPLAIN
+ * / WHAT_IF→SIMULATE / CHANGE_DIRECTION→CHANGE_EXPERIENCE
+ * / STOP→STOP / CREATE→CREATE / CORRECTION→EXPLAIN /
+ * DEEPEN→DEEPEN / SIMPLIFY→SIMPLIFY / REFRAME→REFRAME）；
+ * state_machine_v1.5.0 不变（REPEAT / CONTINUE 为策略动作
+ * 与分类内部语义——不新增体验轴触发器）；无事件契约变更
+ * （C6 不变——REPEAT 不登记状态变更事件；CONTINUE 为幂等
+ * 确认回合）。
+ */
+export const POLICY_VERSION = 'policy_v2.3.0';
 
 export type PolicyResolution =
   | { ok: true; semanticAction: SemanticAction; policyAction: PolicyAction }
@@ -277,8 +332,10 @@ export type PolicyResolution =
 
 /**
  * 解析语义动作到策略动作。
- * 不在冻结表中的动作一律拒绝——包括已知但 S1 禁用的动作（CREATE/SEARCH 等）
- * 与语义未定义的动作（如 REPEAT/CONTINUE 等 G-1 空缺项）。
+ * 不在冻结表中的动作一律拒绝——包括已知但 S1 禁用的动作（SEARCH 等）
+ * 与语义未定义的动作（G-2…G-7 经 S4A-SEMANTIC-FREEZE-01 v1.0.0
+ * 版本化定义后的残余空缺项；REPEAT/CONTINUE 已经版本化纳入冻结表
+ * ——G-1 关闭）。
  */
 export function resolvePolicy(semanticAction: string): PolicyResolution {
   if (Object.prototype.hasOwnProperty.call(FROZEN_POLICY_MAP, semanticAction)) {

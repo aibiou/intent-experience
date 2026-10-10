@@ -145,6 +145,12 @@ const QUESTION_MARKERS: ReadonlyArray<RegExp> = [
   /回答/,
 ];
 
+/** S4（D-1 选项 A；S4A-SEMANTIC-FREEZE-01 v1.0.0 §3 词表）：CONTINUE 策略动作——继续当前体验（幂等确认回合）。 */
+const CONTINUE_PATTERNS: ReadonlyArray<RegExp> = [/继续当前体验/, /继续/, /往下进行/, /接着来/];
+
+/** S4（D-1 选项 A；S4A-SEMANTIC-FREEZE-01 v1.0.0 §3 词表）：REPEAT 策略动作——重复上一响应（呈现层重放）。 */
+const REPEAT_PATTERNS: ReadonlyArray<RegExp> = [/重复上一/, /重复上一条/, /再说一遍/, /重新表达/, /再表达一次/];
+
 /**
  * 分类输入文本。
  * 同一输入重复分类结果恒定（确定性；GS-01 负向案例的证据基础）。
@@ -203,6 +209,17 @@ export function classifyInput(rawInput: string): ClassificationResult {
   }
   if (QUESTION_MARKERS.some((pattern) => pattern.test(rawInput))) {
     return { semanticAction: 'DIRECT_ANSWER' };
+  }
+  // S4（D-1 选项 A；S4A-SEMANTIC-FREEZE-01 v1.0.0 §2 优先级链）：
+  // CONTINUE / REPEAT 策略动作识别——仅在全部既有优先级层
+  // （含 DIRECT_ANSWER / 通用提问标记）未命中后调用（优先级层
+  // 插入全部既有层之后——仅认领全部优先级层未命中的输入；
+  // 零既有输入行为变化——零黄金回归面）。
+  if (CONTINUE_PATTERNS.some((pattern) => pattern.test(rawInput))) {
+    return { semanticAction: 'CONTINUE' };
+  }
+  if (REPEAT_PATTERNS.some((pattern) => pattern.test(rawInput))) {
+    return { semanticAction: 'REPEAT' };
   }
   // S2a F-5（D-05 选项 A）：记忆操作识别——仅在全部既有优先级层
   // 未命中后调用（仅认领会成为 UNKNOWN 的输入；不改变
