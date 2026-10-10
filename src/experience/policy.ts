@@ -221,7 +221,55 @@ const FROZEN_POLICY_MAP: Readonly<Record<SemanticAction, PolicyAction>> = {
  * 通道，非默认行为）；既有语义动作映射不变；不新增
  * 顶层 SemanticAction / PolicyAction（PD-23 §5）。
  */
-export const POLICY_VERSION = 'policy_v2.1.0';
+/**
+ * policy_v2.2.0（S3a 版本化变更，2026-10-10 产品
+ * 负责人批准——S3-SCOPE-PROPOSAL-01 v1.0.0 D-1/D-2
+ * 选项 A 裁决语义；语义冻结文本 S3A-SEMANTIC-FREEZE-01
+ * v1.0.0（长期记忆）/ S3B-SEMANTIC-FREEZE-01 v1.0.0
+ * （跨会话分支持久化）补写生效）：
+ * 变更 1——长期记忆启用与写入门槛（S3A §3 变更 1）：
+ * 记忆域范围由"仅短期记忆（S2 D-05 负向不变式）"扩展
+ * 为短期记忆 + 长期记忆——07 号契约 §5 门槛：A 类明确
+ * 表达的长期偏好 / B 类用户明确要求记住（须携带明确
+ * 偏好内容——"记住 + 偏好表达"形态；裸记住请求不识别
+ * 为记忆写入），经显式表达即保存（source=explicit，
+ * confidence=1.0）；C 类多次稳定出现仅产生
+ * candidate_long_term_preference 候选标记（候选 ≠ 已保
+ * 存——V1 不允许仅凭行为自动升级为永久用户画像）。
+ * 变更 2——优先级链与保留纪律（S3A §3 变更 2）：长期
+ * 记忆永远不是最高优先级（07 §5——位于短期记忆之后，
+ * L6）；默认保留 6 个月后自动删除（PD-23——复用
+ * MEMORY_RETENTION_MS=180 天常量）；写入经 Runtime 单一
+ * 写入者（PD-23）。
+ * 变更 3——记忆记录与事件属性扩展（S3A §3 变更 3）：
+ * MemoryRecord 增 memoryClass（'short_term' | 'long_term'）
+ * / candidateLongTerm（C 类候选标记）；memory_recorded
+ * properties 增 memory_class / source / confidence
+ * （C6 §14 派生——属性扩展不新增事件名）。
+ * 变更 4——跨会话分支持久化（S3B §3 变更 3）：持久化范围
+ * = 分支记录全部分量（id / 内容 / 生命周期 / adopted 标记
+ * / version / rounds / 模拟轮内容）；主线上下文
+ * currentBranchId 会话级不变式（会话结束清空，不跨会话
+ * 自动恢复激活分支）；恢复为只读加载（不登记新事件）；
+ * 跨会话操作路径（新会话显式五操作——前置条件：输入会话
+ * ACTIVE + 宿主会话 ENDED + 目标分支存活；放宽仅限分支
+ * 操作路径，内容轮次会话绑定不变）；会话结束 / 体验完成 /
+ * 方向变更 / 相邻重复 CREATE 取代统一为 endSession 语义
+ * （清空激活指针、保留记录）。
+ * 不变：语义动作映射（DIRECT_ANSWER→ANSWER / WHY→EXPLAIN
+ * / WHAT_IF→SIMULATE / CHANGE_DIRECTION→CHANGE_EXPERIENCE
+ * / STOP→STOP / CREATE→CREATE / CORRECTION→EXPLAIN /
+ * DEEPEN→DEEPEN / SIMPLIFY→SIMPLIFY / REFRAME→REFRAME）；
+ * 优先级层（STOP > CHANGE_DIRECTION > CORRECTION > CREATE
+ * > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF >
+ * DIRECT_ANSWER——长期记忆识别位于全部层之后，不新增
+ * 顶层 SemanticAction / PolicyAction——PD-23 §5）；
+ * state_machine_v1.5.0 不变（记忆域 / 分支域为轴外域——
+ * 不新增体验轴触发器）；既有短期记忆语义（S2A-F5）不变
+ * （纯增量）；既有分支操作语义（S2A-F4 / S2-BRANCH-REFLOW）
+ * 不变（纯增量）。
+ */
+export const POLICY_VERSION = 'policy_v2.2.0';
 
 export type PolicyResolution =
   | { ok: true; semanticAction: SemanticAction; policyAction: PolicyAction }

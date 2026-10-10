@@ -82,6 +82,7 @@ import {
 import {
   MemoryStore,
   extractCorrectedTopic,
+  type LongTermMemoryExpression,
   type MemoryOperationResult,
   type MemoryRecord,
   type MemorySignal,
@@ -367,14 +368,41 @@ export class ExperienceRuntime {
         requestId: input.requestId,
         intentId,
       });
+    return {
+      ok: true,
+      intent,
+      semanticAction: classification.semanticAction,
+      confidence: 1,
+      action: 'memory_operation' as const,
+      events: [received, parsed, ...memoryOperation.events],
+      memoryOperation: memoryOperation.result,
+    };
+    }
+
+    // S3a（D-1 选项 A；S3A-SEMANTIC-FREEZE-01 v1.0.0
+    // §1.2）：UNKNOWN + 长期记忆显式表达标记（A/B 类
+    // ——确定性规则词表识别，仅认领会成为 UNKNOWN 的
+    // 输入）→ 长期记忆经 Runtime 单一写入者执行并留痕
+    // （memory_recorded——properties 增 memory_class /
+    // source / confidence——C6 §14 属性扩展不新增事件
+    // 名）；不新增语义动作（PD-23 §5——长期记忆识别
+    // 不是体验语义动作，分类优先级层不变）。
+    if (classification.semanticAction === 'UNKNOWN' && classification.longTermMemory) {
+      const longTermWrite = await this.executeLongTermMemoryWrite({
+        sessionId: input.sessionId,
+        expression: classification.longTermMemory,
+        rawInput: input.rawInput,
+        requestId: input.requestId,
+        intentId,
+      });
       return {
         ok: true,
         intent,
         semanticAction: classification.semanticAction,
         confidence: 1,
         action: 'memory_operation' as const,
-        events: [received, parsed, ...memoryOperation.events],
-        memoryOperation: memoryOperation.result,
+        events: [received, parsed, ...longTermWrite.events],
+        memoryOperation: longTermWrite.result,
       };
     }
 
@@ -479,6 +507,84 @@ export class ExperienceRuntime {
     });
     return {
       result: { kind: 'correct', executed: true, reason: null, recordId: outcome.record.recordId, lifecycle: outcome.record.lifecycle },
+      events: [event],
+    };
+  }
+
+  // ---------------------------------------------------------------------
+  // S3a 长期记忆显式表达写入（D-1 选项 A——S3A-SEMANTIC-FREEZE-01
+  // v1.0.0 §1.2；07 §5 A/B 类门槛——经 Runtime 单一写入者）
+  // ---------------------------------------------------------------------
+
+  /**
+   * 执行长期记忆显式表达写入（A/B 类——07 §5）。
+   * 写入门槛由存储层强制（memoryClass='long_term' 仅
+   * source='explicit' 可写入——confidence=1.0）；写入侧
+   * 执行 07 §7 不默认长期记住清单过滤（命中 → 不记录）；
+   * 长期记忆记录同生命周期状态机（用户主权不因记忆类别
+   * 而削弱——WITHDRAW / CORRECT 复用既有路径）。
+   */
+  private async executeLongTermMemoryWrite(input: {
+    sessionId: string;
+    expression: LongTermMemoryExpression;
+    rawInput: string;
+    requestId: string;
+    intentId: string;
+  }): Promise<{ result: MemoryOperationResult; events: ExperienceEvent[] }> {
+    const now = new Date().toISOString();
+    const session = this.sessions.get(input.sessionId);
+    const write = this.memories.recordMemory({
+      sessionId: input.sessionId,
+      experienceId: session?.experienceId ?? null,
+      topic: input.expression.topic,
+      intentSignal: input.expression.intentSignal,
+      source: 'explicit',
+      memoryClass: 'long_term',
+      now,
+    });
+    if (!write.recorded) {
+      return {
+        result: {
+          kind: 'record_long_term',
+          executed: false,
+          reason: write.reason,
+          recordId: null,
+          lifecycle: null,
+          memoryClass: null,
+        },
+        events: [],
+      };
+    }
+    const event = await this.recordEvent(MEMORY_RECORDED_EVENT, {
+      identity: { user_id: this.userId, session_id: input.sessionId },
+      context: {
+        experience_id: session?.experienceId ?? null,
+        intent_id: input.intentId,
+        state_version: null,
+        request_id: input.requestId,
+        decision_id: null,
+      },
+      source: { layer: 'memory', component: 'memory-store' },
+      properties: {
+        record_id: write.record.recordId,
+        topic: write.record.topic,
+        intent_signal: write.record.intentSignal,
+        lifecycle: write.record.lifecycle,
+        source: write.record.source,
+        confidence: write.record.confidence,
+        memory_class: write.record.memoryClass,
+        recognition_path: input.expression.kind,
+      },
+    });
+    return {
+      result: {
+        kind: 'record_long_term',
+        executed: true,
+        reason: null,
+        recordId: write.record.recordId,
+        lifecycle: write.record.lifecycle,
+        memoryClass: write.record.memoryClass,
+      },
       events: [event],
     };
   }
@@ -838,17 +944,51 @@ export class ExperienceRuntime {
     if (!experience) {
       return { ok: false, error: runtimeError('INVALID_REQUEST', `unknown experience: ${input.experienceId}`) };
     }
-    if (experience.sessionId !== input.sessionId) {
-      return {
-        ok: false,
-        error: runtimeError('INVALID_REQUEST', 'experience/session mismatch'),
-      };
+    // --- 语义动作：分类权威，客户端声明仅作完整性校验 ------------------
+    // （分类为纯函数——提前至会话绑定校验前计算，供跨会话
+    // 分支操作路径判定（S3a D-2 选项 A）；确定性分类
+    // 恒定（GS-01），后续不重复计算。）
+    const classification = classifyInput(input.rawInput);
+    // S3a（D-2 选项 A；S3B-SEMANTIC-FREEZE-01 v1.0.0
+    // §1.4）——跨会话分支操作识别（纯分类，无状态
+    // 变更）：WHAT_IF 分类输入经分支操作词表识别
+    // （确定性规则词表——与进程内识别完全一致；词表
+    // 优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH）。
+    // 跨会话操作仅在三条件同时满足时放行（① 输入
+    // 会话 SESSION_ACTIVE——上方既有校验；② 宿主会话
+    // 已 SESSION_ENDED——不干扰在途会话；③ 目标分支
+    // 存活——executeBranchOperation 内 validateBranchOperation
+    // 契约不变）。放宽范围仅限分支操作路径——内容轮次
+    // （通用 SIMULATE 模拟轮 / 创作 / 纠正 / STOP）
+    // 保持严格会话绑定（不变式）。
+    const crossSessionBranchOperation =
+      classification.semanticAction === 'WHAT_IF'
+        ? interpretBranchOperation(input.rawInput)
+        : null;
+    const isCrossSession = experience.sessionId !== input.sessionId;
+    if (isCrossSession) {
+      if (!crossSessionBranchOperation) {
+        return {
+          ok: false,
+          error: runtimeError('INVALID_REQUEST', 'experience/session mismatch'),
+        };
+      }
+      const ownerSession = this.sessions.get(experience.sessionId);
+      if (!ownerSession || ownerSession.state !== 'SESSION_ENDED') {
+        return {
+          ok: false,
+          error: runtimeError(
+            'INVALID_STATE_TRANSITION',
+            `cross-session branch operation illegal: owning session ${experience.sessionId} is not ended (cross-session operation requires the owning session to have ended - S3B-SEMANTIC-FREEZE-01)`,
+          ),
+        };
+      }
     }
     const current = this.store.get(input.experienceId);
     if (!current) {
       return { ok: false, error: runtimeError('INTERNAL_ERROR', 'experience state missing') };
     }
-    if (current.status === 'COMPLETED') {
+    if (current.status === 'COMPLETED' && !crossSessionBranchOperation) {
       return {
         ok: false,
         error: runtimeError('INVALID_STATE_TRANSITION', 'experience COMPLETED is terminal; start a new session'),
@@ -865,7 +1005,6 @@ export class ExperienceRuntime {
     }
 
     // --- 语义动作：分类权威，客户端声明仅作完整性校验 ------------------
-    const classification = classifyInput(input.rawInput);
     let semanticAction = classification.semanticAction;
     let creationIntent: CreationInterpretation | null = null;
     let creationCompletionSignal = false;
@@ -1246,9 +1385,13 @@ export class ExperienceRuntime {
       decisionId,
       stateVersion: commit.state.stateVersion,
     });
-    // 模拟域失效（D-04 选项 A——分支状态会话内持久，体验
-    // 完成即失效；事件为不可变权威事实——C6 §5）。
-    this.simulations.invalidate(input.experienceId);
+    // 模拟域会话结束（S3a D-2 选项 A——S3B-SEMANTIC-FREEZE-01
+    // v1.0.0 §1.5：体验完成即会话结束——清空当前激活分支
+    // 指针（currentBranchId 会话级不变式——不跨会话自动
+    // 恢复激活分支）；分支记录与模拟历史跨会话持久
+    // （可枚举、跨会话显式操作）；事件为不可变权威
+    // 事实——C6 §5。
+    this.simulations.endSession(input.experienceId);
 
     // S2a F-5（07 §4；D-01/D-05 选项 A）：体验完成登记
     // 短期记忆——跨会话主题 / 意图信号（"最近产生过较高
@@ -1272,6 +1415,7 @@ export class ExperienceRuntime {
         topic: originIntent.rawInput,
         intentSignal: `turns=${String(sessionIntents.length)};actions=${actions.join('+')}`,
         source: 'session_observation',
+        memoryClass: 'short_term',
         now,
       });
       if (memoryWrite.recorded) {
@@ -1293,6 +1437,8 @@ export class ExperienceRuntime {
               lifecycle: memoryWrite.record.lifecycle,
               source: memoryWrite.record.source,
               confidence: memoryWrite.record.confidence,
+              memory_class: memoryWrite.record.memoryClass,
+              candidate_long_term: memoryWrite.record.candidateLongTerm,
               reexploration: memoryWrite.reexploration,
             },
           }),
@@ -1634,9 +1780,13 @@ export class ExperienceRuntime {
       decisionId,
       stateVersion: commit.state.stateVersion,
     });
-    // 模拟域失效（D-04 选项 A——方向变更后旧方向模拟上下文
-    // 失效；下一方向 WHAT_IF 首轮自动创建新分支——D-03 CREATE）。
-    this.simulations.invalidate(input.experienceId);
+    // 模拟域激活上下文结束（S3a D-2 选项 A——S3B-SEMANTIC-FREEZE-01
+    // v1.0.0 §1.6：方向变更后旧方向激活分支上下文结束
+    // （currentBranch 清空——下一方向 WHAT_IF 首轮自动创建
+    // 新分支——D-03 CREATE）；旧方向分支记录保留（跨会话
+    // 持久——可枚举、RETURNED 分支经 SWITCH 恢复探索的
+    // 纪律不变）。
+    this.simulations.endSession(input.experienceId);
 
     // 8. generation epoch 切换（旧 generation 迟到达提交由此守卫拒绝）。
     this.activeGenerations.set(input.experienceId, generationId);
@@ -1931,9 +2081,12 @@ export class ExperienceRuntime {
         decisionId,
         stateVersion: commit.state.stateVersion,
       });
-      // 模拟域失效（D-04 选项 A——相邻重复 CREATE 取代在途
-      // 创作会话，旧方向模拟上下文同步失效——与创作会话纪律一致）。
-      this.simulations.invalidate(input.experienceId);
+      // 模拟域激活上下文结束（S3a D-2 选项 A——S3B-SEMANTIC-FREEZE-01
+      // v1.0.0 §1.5：相邻重复 CREATE 取代在途创作会话，
+      // 旧方向激活分支指针同步清空（currentBranchId 会话级
+      // 不变式）；分支记录与模拟历史跨会话持久——与创作
+      // 会话纪律一致）。
+      this.simulations.endSession(input.experienceId);
     }
     this.counters.creation += 1;
     const creationId = `creation_${String(this.counters.creation).padStart(4, '0')}`;
@@ -2779,10 +2932,18 @@ export class ExperienceRuntime {
 
     // 3. 状态迁移合法性校验（WHAT_IF_SIMULATE 触发器逐步合法
     //    校验——分支操作轮次保持 SIMULATION 阶段，13 §15.3；
-    //    体验阶段轴不变——D-02 选项 A）。
+    //    体验阶段轴不变——D-02 选项 A。S3a 例外（D-2 选项 A；
+    //    S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.4）：已完成
+    //    （COMPLETED）体验的分支记录仍可跨会话操作——持久
+    //    分支记录的可操作性不因体验完成而终止（分支为体验
+    //    状态轴之外的对象化承载——分支操作不迁移体验轴，
+    //    体验轴保持终态；仅跨会话路径可达——输入会话
+    //    ACTIVE 而宿主会话已 ENDED，同一会话内 COMPLETED
+    //    体验经会话状态校验已拒绝）。
     const steps: ExperienceTrigger[] = ['USER_ACTION', 'WHAT_IF_SIMULATE'];
     let view: ExperienceView = { status: current.status, stage: current.stage };
-    for (const trigger of steps) {
+    const completedExperienceBranchRound = current.status === 'COMPLETED';
+    for (const trigger of completedExperienceBranchRound ? [] : steps) {
       const step = transitionExperience(view, trigger);
       if (!step.ok) {
         await this.writeDecisionTrace({

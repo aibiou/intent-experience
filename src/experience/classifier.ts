@@ -23,11 +23,20 @@
 
 import type { SemanticAction } from './policy';
 import { MODIFY_PATTERNS, RESTORE_PATTERNS } from './correction';
-import { recognizeMemoryOperation } from './memory';
+import {
+  recognizeMemoryOperation,
+  recognizeLongTermMemoryExpression,
+  type LongTermMemoryExpression,
+} from './memory';
 
 export type ClassificationResult =
   | { semanticAction: SemanticAction; correctionIntent?: 'restore' }
-  | { semanticAction: 'UNKNOWN'; memoryIntent?: 'withdraw' | 'correct' };
+  | {
+      semanticAction: 'UNKNOWN';
+      memoryIntent?: 'withdraw' | 'correct';
+      /** S3a（D-1 选项 A）——长期记忆显式表达（A/B 类——07 §5 门槛）。 */
+      longTermMemory?: LongTermMemoryExpression;
+    };
 
 const STOP_PATTERNS: ReadonlyArray<RegExp> = [
   /好了/,
@@ -202,6 +211,15 @@ export function classifyInput(rawInput: string): ClassificationResult {
   const memoryOperation = recognizeMemoryOperation(rawInput);
   if (memoryOperation) {
     return { semanticAction: 'UNKNOWN', memoryIntent: memoryOperation.memoryIntent };
+  }
+  // S3a（D-1 选项 A；S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.2）：长期记忆
+  // 显式表达识别——仅在全部既有优先级层与记忆操作词表未命中后调用
+  // （仅认领会成为 UNKNOWN 的输入；不改变任何优先级层——零黄金回归面。
+  // B 类记住请求须携带明确偏好内容——裸记住请求"记住这个"不识别为
+  // 记忆写入，保持 UNKNOWN 升级纪律——黄金 G08-NEG 不变式）。
+  const longTermMemory = recognizeLongTermMemoryExpression(rawInput);
+  if (longTermMemory) {
+    return { semanticAction: 'UNKNOWN', longTermMemory };
   }
   return { semanticAction: 'UNKNOWN' };
 }

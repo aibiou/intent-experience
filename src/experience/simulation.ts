@@ -6,7 +6,10 @@
  *   四元分离（事实 / 推断 / 假设 / 模拟结果——E8-G2-CC07）；模拟结果
  *   不得表现为事实（事件 schema 互斥注记 + 语料分离格式双重保证）。
  * - 模拟历史会话内持久（D-04 选项 A——07 §3 Session State 纪律；
- *   跨会话分支持久化属 F-5 Minimal Memory 裁决范围，本切片不实施）。
+ *   S3a 增量——S3B-SEMANTIC-FREEZE-01 v1.0.0：分支记录与模拟历史
+ *   跨会话持久（持久化范围 = 全部分量）；当前激活分支指针
+ *   currentBranchId 保持会话级（会话结束清空，不跨会话自动恢复
+ *   激活分支；恢复为只读加载，不登记新事件））。
  * - 多轮模拟阶段迁移保持 SIMULATION（13 §15.3；状态机 WHAT_IF_SIMULATE
  *   规则已覆盖 SIMULATION→SIMULATION——直接转写，本模块不重复定义）。
  *
@@ -23,8 +26,11 @@
  * - 分支模拟结果默认不回流为主线结论（D-02 选项 A 推导：模拟结果不得
  *   表现为事实——回流即把模拟当事实；"采用某分支结论"须产品负责人另案
  *   版本化定义，本版不预先写死）。
- * - 分支状态会话内持久，会话结束失效（D-04 选项 A——与 F-2 D-03 / F-3
- *   同纪律；事件为不可变权威事实——C6 §5，失效仅作用于运行时存储）。
+ * - 分支状态会话内持久（S3a 起跨会话持久——S3B-SEMANTIC-FREEZE-01
+ *   v1.0.0：D-04 会话结束失效语义经 D-2 选项 A 裁决升格为跨会话
+ *   持久化——分支记录全部分量跨会话持久；currentBranchId 会话级
+ *   不变式——会话结束清空激活指针，不跨会话自动恢复激活分支；
+ *   事件为不可变权威事实——C6 §5，失效仅作用于运行时指针）。
  *
  * 第三层（S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效——
  * 显式回流操作 ADOPT_BRANCH）：
@@ -262,10 +268,13 @@ export function deriveSimulationSeparation(content: string): SimulationSeparatio
 
 /**
  * 模拟域存储（model on CreationStore 纪律）：
- * - 模拟历史（第一层）：体验内全部模拟轮次的权威时序记录；
- * - 分支记录（第二层）：轴外分支子状态机，会话内持久；
+ * - 模拟历史（第一层）：体验内全部模拟轮次的权威时序记录
+ *   （S3a 起跨会话持久——S3B-SEMANTIC-FREEZE-01 v1.0.0）；
+ * - 分支记录（第二层）：轴外分支子状态机，会话内持久 + 跨会话持久
+ *   （S3a D-2 选项 A——持久化范围 = 分支记录全部分量）；
  * - 当前激活分支：07 §3 current_branch 标量字段的对象化承载
- *   （D-02 选项 A）——任一时刻至多一个激活分支。
+ *   （D-02 选项 A）——任一时刻至多一个激活分支；指针为会话级
+ *   （S3a——会话结束清空，不跨会话自动恢复激活分支）。
  */
 export class SimulationStore {
   /** 模拟历史（第一层——体验内全部模拟轮次）。 */
@@ -494,10 +503,17 @@ export class SimulationStore {
     };
   }
 
-  /** 会话结束失效（D-04 选项 A——分支状态会话内持久，会话结束失效）。 */
-  invalidate(experienceId: string): void {
-    this.histories.delete(experienceId);
-    this.branches.delete(experienceId);
+  /**
+   * 会话结束（S3a D-2 选项 A——S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.5：
+   * 清空当前激活分支指针（currentBranchId 会话级不变式——会话结束
+   * 清空，不跨会话自动恢复激活分支）；分支记录与模拟历史跨会话
+   * 持久（可枚举——恢复为只读加载，不登记新事件；新会话可经显式
+   * 五操作操作持久分支记录——§1.4 跨会话操作路径）。
+   * 统一应用于四条路径：会话结束（SESSION_ENDED）/ 体验完成（STOP）
+   * / 方向变更（CHANGE_DIRECTION——旧方向激活上下文结束，下一方向
+   * WHAT_IF 首轮自动创建新分支——D-03 CREATE）/ 相邻重复 CREATE 取代。
+   */
+  endSession(experienceId: string): void {
     this.currentBranch.delete(experienceId);
   }
 }
