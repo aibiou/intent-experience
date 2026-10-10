@@ -25,7 +25,7 @@
 - **G3-GOLDEN-0001 再生产物**（`artifacts/evidence/runs/G3-GOLDEN-0001/`）：40/40 案例 PASS（10 黄金案例 × 4 维度——含新增 G10 案例组）、10/10 断言通过、退出码 0；运行于 policy_v2.1.0 / state_machine_v1.5.0；startedAt 2026-10-10T00:38:50.195Z，durationMs 24413。同上词汇纪律。
 - **S2B-0001 重生产物**（`artifacts/evidence/runs/S2B-0001/`）：7/7 案例 PASS、14/14 断言通过、退出码 0；黄金回归绑定验证（G3-GOLDEN-0001 在 policy_v2.1.0 / state_machine_v1.5.0 通过 40/40）通过后执行；startedAt 2026-10-10T00:39:19.732Z，durationMs 9581。同上词汇纪律。
 - **代码绑定：** 三运行 run-metadata 登记 gitHead `76c1605`（workTreeClean=false——实施在裁决后工作树内执行；实施提交 `728b3de` / 执行器提交 `a7077ce` / 证据提交 `0a4be6d` 随后落地，字节经提交哈希可核验）。
-- **G5 16 项评测包（S2 时代）仍 NOT RUN**——属 P3-S2-G5-WORKSHEET-01 v0.1.0 范围（S2-G5-EVAL-DEF-01 v1.0.0 选项 A：复用 16 项框架对 S2 证据执行独立评测，CR-26 STAGED→RULED），待角色 5 独立评测人逐项裁决签署；实现作者不得兼任独立评测人（PD-15）。
+- **G5 16 项评测包（S2 时代）已完成——PASSED（无条件）**——P3-S2-G5-WORKSHEET-01 v0.3.0 角色 5 逐项裁决签署（2026-10-10：16 项 = 12 PASS + 1 N/A（第 9 项）；S2-G5-EVAL-DEF-01 v1.0.0 选项 A：复用 16 项框架对 S2 证据执行独立评测，CR-26 RULED→EVALUATED）；实现作者未兼任独立评测人（PD-15）。
 
 ## 3. 执行尝试记录（ADR-0002 §5：失败如实登记，不重跑至通过为止而不留失败记录）
 
@@ -45,13 +45,13 @@
 ## 5. 明确非结论（不得据此宣告任何产品 Gate）
 
 - 三运行退出码 0 与案例 PASS 只表示各运行中的断言通过（E5 §2）；不设置 G3 / G5 或任何产品 Gate 为 PASS；G3 判定属独立评测人逐项裁决（P2 Exit Gate §8）。
-- 本迭代不产生 S2 时代 G5 评测结论——P3-S2-G5-WORKSHEET-01 v0.1.0（16 项骨架）结论列全部 NOT RUN，待角色 5 独立评测人逐项裁决签署。
+- 本迭代不产生 S2 时代 G5 评测结论——G5 结论由角色 5 独立评测人逐项裁决（P3-S2-G5-WORKSHEET-01——2026-10-10 已签署 v0.3.0：16 项 = 12 PASS + 1 N/A，判定 PASSED（无条件））。
 - adopted 标记与 simulation_adopted 事件为冻结形态（S2-BRANCH-REFLOW-DEF-01 §5 非结论——经产品负责人 2026-10-09 裁决采纳，未修改）。
 - 跨会话分支持久化不属本迭代（属 F-5 Minimal Memory 裁决范围——D-04 选项 A；本迭代分支状态会话内持久、会话结束失效不变）。
 
 ## 6. 后续义务
 
-- **S2 时代 G5 独立评测（角色 5）：NOT RUN**——P3-S2-G5-WORKSHEET-01 v0.1.0（`s2-g5-evaluation-worksheet.md`）待角色 5 独立评测人逐项裁决签署（含本迭代三运行动态证据与 staged 审阅包：`artifacts/evidence/runs/S2A-F4-0001/review/README.md` / `artifacts/evidence/runs/G3-GOLDEN-0001/review/README.md` / `artifacts/evidence/runs/S2B-0001/review/README.md`）；实现作者不得兼任独立评测人。
+- **S2 时代 G5 独立评测（角色 5）：已完成——PASSED（无条件）**——P3-S2-G5-WORKSHEET-01 v0.3.0 角色 5 逐项裁决签署（2026-10-10：16 项 = 12 PASS + 1 N/A（第 9 项）；本迭代三运行动态证据经评测——staged 审阅包：`artifacts/evidence/runs/S2A-F4-0001/review/README.md` / `artifacts/evidence/runs/G3-GOLDEN-0001/review/README.md` / `artifacts/evidence/runs/S2B-0001/review/README.md`）；实现作者未兼任独立评测人；CR-27 IMPLEMENTED→EVALUATED（decision-register v0.26.0）。
 - "采用某分支结论"显式回流操作：**已实施（本迭代——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 裁决补写生效；产品提交 `728b3de`；动态证据 S2A-F4-0001 BRANCH-ADOPT 案例 + 黄金套件 G10 案例组；CR-27 RULED→IMPLEMENTED）**；s2a-f4 / s2a-f5 / s2b / corpus-alignment 迭代记录 §6/§5 后续义务行已同步写回"已实施"。
 - 黄金套件持续扩展：S2 后续批次（如有）经产品负责人另行版本化裁决与授权后纳入 G3-GOLDEN-0001 回归基准。
 - OBL-02（延迟测量）：任何延迟指标宣称前须满足方法第 5 节样本纪律并注明分层（方法 v1.0.0 已经产品负责人按 E3 批准）；本迭代不产生延迟指标宣称。
@@ -60,5 +60,5 @@
 ## 7. 签署
 
 - 执行：工程负责人角色（代理，Codex），2026-10-10。
-- 独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）——**NOT RUN（本迭代运行动态证据 staged 待审阅；审阅包见 §6）**。
+- 独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）——**已完成（2026-10-10：S2 时代 G5 独立评测 PASSED（无条件）——P3-S2-G5-WORKSHEET-01 v0.3.0 角色 5 逐项裁决签署，16 项 = 12 PASS + 1 N/A；本迭代运行动态证据经评测，审阅包见 §6）**。
 - 本记录由执行方起草；独立评测人保留审阅与否决权。
