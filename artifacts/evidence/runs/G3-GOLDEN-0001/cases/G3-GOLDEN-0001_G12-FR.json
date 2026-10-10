@@ -19,7 +19,7 @@
     "branchAdoptedAfterStale": false,
     "retryAccepted": true,
     "retryPolicyReason": "simulation_branch_operation",
-    "retryPolicyVersion": "policy_v2.2.0",
+    "retryPolicyVersion": "policy_v2.3.0",
     "retryContentPresentsAdoptedContent": true,
     "simulationAdoptedEvents": [
       {
@@ -36,7 +36,7 @@
       "waitingForUser": false,
       "candidateId": "candidate_synthetic_0001",
       "lastSemanticAction": "WHAT_IF",
-      "updatedAt": "2026-10-10T04:49:01.927Z",
+      "updatedAt": "2026-10-10T07:42:44.248Z",
       "stateVersion": 6
     }
   },
@@ -52,7 +52,7 @@
   ],
   "evidence": {
     "trace": "traces/G3-GOLDEN-0001:G12-FR.jsonl",
-    "traceSha256": "f85fd40bcef11aded38a9f582412d10dd3024897b92b454a7c9c5beba2e459d2",
+    "traceSha256": "4ec21f5acfee844f656db25868447f437be5255a740502d4691102abc37c8b8e",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },

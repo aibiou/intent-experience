@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G11-NEG","event":"trace_started","at":"2026-10-10T07:39:50.766Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G11 负向；S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.2（B 类双命中纪律——裸记住请求不识别为记忆写入）；黄金 G08-NEG 不变式（\"记住这个\"对抗语料——零回归面纪律）；授权 §5.7（未知情况升级而非由系统决定）","goldenCase":"G11","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G11-NEG","event":"trace_completed","at":"2026-10-10T07:39:50.766Z","startedAt":"2026-10-10T07:39:50.766Z","durationMs":0,"result":"PASS","pass":true}

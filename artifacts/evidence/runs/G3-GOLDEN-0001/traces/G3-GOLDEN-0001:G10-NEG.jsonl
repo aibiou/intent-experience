@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G10-NEG","event":"trace_started","at":"2026-10-10T04:48:53.739Z","form":"in-process","sourceClause":"S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 词表边界（优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH，均须分支作用域 + 可解析序号，否则通用 SIMULATE 执行路径）；OBL-01 失败写入不消耗版本号","goldenCase":"G10","dimension":"NEGATIVE"}
-{"caseId":"G3-GOLDEN-0001:G10-NEG","event":"trace_completed","at":"2026-10-10T04:48:55.153Z","startedAt":"2026-10-10T04:48:53.739Z","durationMs":1414,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G10-NEG","event":"trace_started","at":"2026-10-10T07:42:36.005Z","form":"in-process","sourceClause":"S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 词表边界（优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH，均须分支作用域 + 可解析序号，否则通用 SIMULATE 执行路径）；OBL-01 失败写入不消耗版本号","goldenCase":"G10","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G10-NEG","event":"trace_completed","at":"2026-10-10T07:42:37.446Z","startedAt":"2026-10-10T07:42:36.003Z","durationMs":1443,"result":"PASS","pass":true}

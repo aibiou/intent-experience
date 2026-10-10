@@ -1,0 +1,3 @@
+{"caseId":"S4A-F1-0001:ZERO-REGRESSION","event":"trace_started","at":"2026-10-10T07:53:35.220Z","form":"in-process","sourceClause":"S4A-SEMANTIC-FREEZE-01 v1.0.0 §2 优先级链 + §4 不变式（零回归）；policy_v2.3.0 变更 1–2","servers":[]}
+{"caseId":"S4A-F1-0001:ZERO-REGRESSION","event":"case-fact","at":"2026-10-10T07:53:35.222Z","regressionTotal":42,"mismatches":0,"policyVersion":"policy_v2.3.0"}
+{"caseId":"S4A-F1-0001:ZERO-REGRESSION","event":"trace_completed","at":"2026-10-10T07:53:35.223Z","startedAt":"2026-10-10T07:53:35.220Z","durationMs":3,"result":"PASS","pass":true}

@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G12-NEG","event":"trace_started","at":"2026-10-10T07:39:52.182Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G12 负向；S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.4（放宽范围仅限分支操作路径——内容轮保持严格会话绑定；前提 ③ 宿主会话 SESSION_ENDED——不干扰在途会话）","goldenCase":"G12","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G12-NEG","event":"trace_completed","at":"2026-10-10T07:39:52.881Z","startedAt":"2026-10-10T07:39:52.182Z","durationMs":699,"result":"PASS","pass":true}

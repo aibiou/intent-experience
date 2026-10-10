@@ -38,7 +38,7 @@
         "S2B-0001:PRIORITY-CHAIN=PASS"
       ],
       "assertions": [],
-      "goldenRegression": "G3-GOLDEN-0001 PASSED（48/48 案例；policy_v2.2.0 / state_machine_v1.5.0——S3a 迭代后回归基线；本运行前置绑定验证 exitCode=0）"
+      "goldenRegression": "G3-GOLDEN-0001 PASSED（48/48 案例；policy_v2.3.0 / state_machine_v1.5.0——S4 迭代后回归基线；本运行前置绑定验证 exitCode=0）"
     }
   },
   "environmentLicense": {
@@ -170,14 +170,14 @@
       "L2 阶段机（§14/§15）",
       "Forbidden Transitions（§23）",
       "创作域子状态机：补丁操作域扩展 {add, remove, modify, deepen, simplify, reframe}（S2b 变更 1——轴外承载纪律不变，F-2 D-02；每次合法补丁提交版本 +1，S1-12）",
-      "SEARCH 能力状态纪律：无状态只读能力调用，不产生体验状态迁移、不产生创作域补丁（state_machine 无 SEARCH 迁移行——能力纪律经 policy_v2.2.0 §6 承载，policy_v2.0.0 变更 2 引入并经 policy_v2.1.0 / policy_v2.2.0 延续，S2b 变更 2）",
+      "SEARCH 能力状态纪律：无状态只读能力调用，不产生体验状态迁移、不产生创作域补丁（state_machine 无 SEARCH 迁移行——能力纪律经 policy_v2.2.0 §6 承载，policy_v2.0.0 变更 2 引入并经 policy_v2.1.0 / policy_v2.2.0 / policy_v2.3.0 延续——S4 为纯增量，S2b 变更 2）",
       "First Experience 呈现路径：六阶段呈现迁移为已有体验阶段轴的呈现补全（E2 §6；13 号状态机阶段轴不变——S2b 变更 3）"
     ],
     "source": "SRC-05 / 13"
   },
   "policy": {
     "contract": "C1",
-    "version": "policy_v2.2.0",
+    "version": "policy_v2.3.0",
     "changes": [
       "变更 1：SemanticAction 域扩展——启用 DEEPEN / SIMPLIFY / REFRAME（14 §8 恒等映射）；SEARCH 不入 SemanticAction 域（内部能力动作，14 §7）；VERIFY 不启用（附列裁决区选项 A）",
       "变更 2：PolicyAction 域——确认 SEARCH 为内部策略动作（14 §7 taxonomy 既有，无新增）；VERIFY 类输入按既有解释层路径处理，SEARCH 能力在这些路径内被调用（14 §8 路由纪律）",
@@ -186,7 +186,7 @@
       "变更 5：非创作会话保护——DEEPEN / SIMPLIFY / REFRAME 输入在无创作对象时按升级规则处理（C3 纪律，model on F-2/F-3 创作会话路由保护）",
       "变更 6：SEARCH 能力纪律——只读、不改变体验、不触发产品动作；无外部网络出口；检索范围限当前体验内容 / 创作对象 / 会话内上下文（D-03 选项 A）"
     ],
-    "carriedForward": "变更 1–6 为 S2b 引入变更（policy_v2.0.0 历史记录在录，行为经现行版本延续不变）；现行 policy_v2.2.0 另含 S2 分支回流变更 1–5（ADOPT_BRANCH 第五分支操作显式回流——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A，经 S2A-F4 迭代实施登记）与 S3a 变更 1–4（长期记忆启用 / 优先级链纪律 / 记忆记录属性扩展 / 单一写入者——S3A-SEMANTIC-FREEZE-01 v1.0.0，经 S3a 迭代实施登记），与本运行 S2b 义务正交",
+    "carriedForward": "变更 1–6 为 S2b 引入变更（policy_v2.0.0 历史记录在录，行为经现行版本延续不变）；现行 policy_v2.3.0 另含 S2 分支回流变更 1–5（ADOPT_BRANCH 第五分支操作显式回流——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A，经 S2A-F4 迭代实施登记）、S3a 变更 1–4（长期记忆启用 / 优先级链纪律 / 记忆记录属性扩展 / 单一写入者——S3A-SEMANTIC-FREEZE-01 v1.0.0，经 S3a 迭代实施登记）与 S4 变更 1–5（REPEAT/CONTINUE 策略动作版本化——S4A-SEMANTIC-FREEZE-01 v1.0.0 D-1 选项 A，经 S4 迭代实施登记；优先级层插入全部既有层之后——S2b 行为面零变化），与本运行 S2b 义务正交",
     "priorityChain": "STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER",
     "source": "SRC-06 / 14"
   },
@@ -221,7 +221,7 @@
       "app/api/experience/start/route.ts": "388db9999ca45a25dd9e016c283cd4f3711110e1b98f76a4fa6b106da03a8026",
       "app/api/experience/[experienceId]/state/route.ts": "ac786e52885b91168997c4b6a685f70fd480c24c8c9e5001a7373e4103ffb8ac",
       "app/api/experience/[experienceId]/event/route.ts": "325ff8e6b73c0ef3b140767135b1017a56a41b1d29531f74be1694051d1e14d2",
-      "src/experience/policy.ts": "1557ebb038856e07f982ec80675415b0bee2e9154bb5396c79168824428cb819",
+      "src/experience/policy.ts": "6ba956a53642218d9b0ba6d1f80627704604e8919e70e240cd5ea0117d32108b",
       "src/experience/chunks.ts": "a26f6619842a23e853aae7f7800b94b161756121785e6fe4943a1f7bf01a1755",
       "src/experience/stream.ts": "a2931765e29382e81f755be747a8dbb9097b94d3a42103a9d8ba87c988281010",
       "src/experience/audit.ts": "1da20af50e24cde6e4638a78f22e05ec847fa153c0a4655b86134474291ddf0b",
@@ -229,14 +229,14 @@
       "src/experience/session.ts": "d7a21131bfb848730643ca7808e71a714e4a757e917cf1103f23c549d68589ae",
       "src/experience/state-machine.ts": "e78a54e5cc5ee6d9d9ddfb4520bdc7aaa8c0f37d48530b29e9a5bb2d7f9d9044",
       "src/experience/state-store.ts": "625f747f39f589c8d3d99bf00a61dd58a89c5876e9b21cd2c1f59a346189e863",
-      "src/experience/classifier.ts": "b7522eaf48974971ea57898628abd3f5f967c3da5f3e5ace36c0f91e0a763153",
+      "src/experience/classifier.ts": "6c3309a8e15ad7ece093caedd176aeb1ca3ce547a280a580b4837d30f159bc41",
       "src/experience/validator.ts": "46850fea758853531f6687551b8f96280772c7fe4c019ac76559ec93fdc4646a",
       "src/experience/correction.ts": "72897fcf8b3d8a64ceb9d6600a228cd2c447f772cc79c2aa8e46ab63a9d4674c",
       "src/experience/events.ts": "7c7d399f0dfcf9db3bf89fd6bf3ba7695c52f31181448f21ec3425e08c76f044",
       "src/experience/decision-trace.ts": "6606aa6e01c100b0217bafd7b49810a174e3dd7cda36a15668ebf0b42506f0c8",
       "src/experience/llm-gateway.ts": "858dea8a666c6bed47142f39b32695418e88d564d54096b8373ed80f955a1601",
       "src/experience/creation.ts": "a7fe504b7ffa711ed10820f2d568792819fdefc3e65f0a4af280a2da4da181d4",
-      "src/experience/runtime.ts": "458f6e26078d4d3147e8c435db7f1c89d095248ae875a7d5b855d21e786c69e2",
+      "src/experience/runtime.ts": "5273ac59fa3c9c3f4f8e1de85718e7b674a5e56e3ab9fe3001edb22beb40e26e",
       "src/experience/server-runtime.ts": "b6b3f83166d085e72013661915f2f79398f961081310bd35c5ad4d10412f5700",
       "src/experience/simulation.ts": "bb2ce53c17e30199969331abe23ffc49659d2881344201c5f8d360b52191d1ed",
       "src/experience/memory.ts": "ad15f2a443f195a2aff733eecdf36aefb623f551e60122700aeced36dff39c36",
@@ -251,7 +251,7 @@
       "src/experience/fixtures/deepen.ts": "951909264e3e1fb5fa6918dd7e19aa009d85b572078aa8a412fef556b2d040eb",
       "src/experience/fixtures/simplify.ts": "a4b399d00e61e18949d47774fa48f63e4008c37faf7bb3fcec0557213119694d",
       "src/experience/fixtures/reframe.ts": "9b23a56c9030e18c331c9ff53fef71dd0f3a42f6e00feff2dec5d4fe8a757640",
-      "tools/evidence/src/s2b.mjs": "87b4ca304f22ee2dcdd29fab5c85b6e6938815cddd14a33a271385bdd8324450"
+      "tools/evidence/src/s2b.mjs": "ecacdc836c0e1c28896c389523c0b678179fcf090e5a65e17189aa51c1e1c300"
     }
   },
   "prompt": {
@@ -291,7 +291,7 @@
     "c4RegisteredNote": "§1–§17 全节 SHA-256 范围指纹已登记于 C4-LLM-Contract-v1.0.0.md §18（K-4/K-5，CR-10/CR-11 关闭）"
   },
   "run": {
-    "startedAt": "2026-10-10T04:56:24.766Z",
+    "startedAt": "2026-10-10T07:52:32.725Z",
     "finishedAt": null,
     "command": "npm run s2b (node tools/evidence/src/s2b.mjs, from tools/evidence)",
     "exitCode": null,

@@ -20,7 +20,7 @@
     "stateVersionAfterStale": 4,
     "retryAccepted": true,
     "retryPolicyReason": "simulation_branch_operation",
-    "retryPolicyVersion": "policy_v2.2.0",
+    "retryPolicyVersion": "policy_v2.3.0",
     "retryContentPresentsAdoptedContent": true,
     "simulationAdoptedEvents": [
       {
@@ -49,7 +49,7 @@
   ],
   "evidence": {
     "trace": "traces/G3-GOLDEN-0001:G10-FR.jsonl",
-    "traceSha256": "2d8eb81d1019cd747d6fb8fd57478e0827a58dd9ad6abdb2fe9392b257627321",
+    "traceSha256": "71c2431ec415f8a9284f8988cbeec2acd1e3583b459e9225a5ae29617c5a48a4",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },

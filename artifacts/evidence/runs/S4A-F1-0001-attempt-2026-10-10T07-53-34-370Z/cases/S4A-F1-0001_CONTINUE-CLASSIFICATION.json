@@ -1,0 +1,94 @@
+{
+  "caseIdNamespace": "S4A-F1-0001:CONTINUE-CLASSIFICATION",
+  "sourceClause": "S4A-SEMANTIC-FREEZE-01 v1.0.0 §2 优先级链 + §3 词表；policy_v2.3.0 变更 1",
+  "scope": "S4 G-1（D-1 选项 A）：CONTINUE 策略动作词表分类——S4A §3 词表正常路径 + 优先级碰撞核验（全部既有层先判）",
+  "precondition": "分类器确定性规则（纯函数）",
+  "inputFault": "碰撞输入（含 STOP / CORRECTION / WHY / 提问标记与 CONTINUE 词表标记的输入——逐层裁决验证优先级链）",
+  "expected": {
+    "wordTable": "继续当前体验 / 继续 / 往下进行 / 接着来 → CONTINUE（S4A §3 词表）",
+    "collisions": "STOP > … > DIRECT_ANSWER > CONTINUE——全部既有层先判（碰撞输入经既有层裁决，不落入 CONTINUE）",
+    "deterministic": "同一输入重复分类结果恒定（GS-01）"
+  },
+  "actual": {
+    "baseline": "CONTINUE",
+    "positive": [
+      {
+        "input": "继续当前体验",
+        "semanticAction": "CONTINUE"
+      },
+      {
+        "input": "继续",
+        "semanticAction": "CONTINUE"
+      },
+      {
+        "input": "往下进行",
+        "semanticAction": "CONTINUE"
+      },
+      {
+        "input": "接着来",
+        "semanticAction": "CONTINUE"
+      }
+    ],
+    "collisionResults": [
+      {
+        "input": "停止继续",
+        "expected": "STOP",
+        "layer": "P-01 STOP 永远优先",
+        "actual": "STOP"
+      },
+      {
+        "input": "好了，继续",
+        "expected": "STOP",
+        "layer": "P-01 STOP 永远优先",
+        "actual": "STOP"
+      },
+      {
+        "input": "不对，继续",
+        "expected": "CORRECTION",
+        "layer": "CORRECTION 层先判",
+        "actual": "CORRECTION"
+      },
+      {
+        "input": "为什么继续",
+        "expected": "WHY",
+        "layer": "WHY 层先判",
+        "actual": "WHY"
+      },
+      {
+        "input": "继续吗？",
+        "expected": "DIRECT_ANSWER",
+        "layer": "通用提问标记层先判",
+        "actual": "DIRECT_ANSWER"
+      },
+      {
+        "input": "继续当前体验？",
+        "expected": "DIRECT_ANSWER",
+        "layer": "通用提问标记层先判",
+        "actual": "DIRECT_ANSWER"
+      }
+    ],
+    "deterministic": true
+  },
+  "invariants": [
+    "S4 范围边界（S4A-SEMANTIC-FREEZE-01 v1.0.0 §1/§2）：REPEAT / CONTINUE 为策略动作（14 §8 恒等映射，policy_v2.3.0 变更 1–2——C3 G-1 空缺版本化关闭）；CONTINUE 幂等确认回合（无状态变更，state_version 不变，done 事件）；REPEAT 呈现层重放上一完成轮响应（state_version 不变；内容逐字节等于上一完成轮——呈现层重放，不重新生成）",
+    "优先级链（S4A §2；policy_v2.3.0 变更 1）：STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER > CONTINUE > REPEAT > UNKNOWN（升级）——CONTINUE / REPEAT 识别层插入全部既有优先级层之后，仅认领全部既有层未命中的输入（零既有输入行为变化——零黄金回归面）",
+    "词表（S4A §3）：CONTINUE=/继续当前体验/、/继续/、/往下进行/、/接着来/；REPEAT=/重复上一/、/重复上一条/、/再说一遍/、/重新表达/、/再表达一次/（确定性规则词表——碰撞纪律：同一输入多词表命中时按优先级链裁决）",
+    "状态不变式（S4A §4）：REPEAT / CONTINUE 轮次不登记状态变更事件（纯呈现 / 确认语义——completionCommit=false；失败写入不消耗版本号——OBL-01 纪律；陈旧版本拒绝 STATE_VERSION_CONFLICT 且不覆盖——S1-12 同族）",
+    "REPEAT 前置条件：上一完成轮响应存在（呈现层重放数据源——内容轮次 chunk 数 > 0 方登记；空轮次 STOP / CONTINUE 不覆盖上一内容轮记录）；无上一完成轮时 REPEAT 按 INVALID_STATE_TRANSITION 拒绝（不静默执行未定义语义——C3 纪律）",
+    "交互事件（C6 §14 命名模式）：CONTINUE → continue_requested；REPEAT → repeat_requested（结构校验非封闭枚举）",
+    "决策追踪（C6 §22/§23）：REPEAT / CONTINUE 轮次为确定性系统回合——llm_used=false、user_override=true、reason.primary=explicit_user_direction；state_after.state_version === state_before.state_version（无状态变更留痕）",
+    "P-01 STOP 永远优先；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
+  ],
+  "evidence": {
+    "trace": "traces/S4A-F1-0001:CONTINUE-CLASSIFICATION.jsonl",
+    "traceSha256": "38e08b2e5130e5abf3c7158eeef0d5e1a4fb54b18268f65c2d8a0bfa3c6f7cf8",
+    "form": "in-process",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

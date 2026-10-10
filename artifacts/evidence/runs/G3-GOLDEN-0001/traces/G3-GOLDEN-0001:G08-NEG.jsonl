@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G08-NEG","event":"trace_started","at":"2026-10-10T04:48:48.188Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G08 Negative；授权 §5.7（未知情况升级而非由 LLM 决定）；PD-07；PD-21","goldenCase":"G08","dimension":"NEGATIVE"}
-{"caseId":"G3-GOLDEN-0001:G08-NEG","event":"trace_completed","at":"2026-10-10T04:48:48.564Z","startedAt":"2026-10-10T04:48:48.187Z","durationMs":377,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G08-NEG","event":"trace_started","at":"2026-10-10T07:42:29.954Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G08 Negative；授权 §5.7（未知情况升级而非由 LLM 决定）；PD-07；PD-21","goldenCase":"G08","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G08-NEG","event":"trace_completed","at":"2026-10-10T07:42:30.327Z","startedAt":"2026-10-10T07:42:29.954Z","durationMs":373,"result":"PASS","pass":true}
