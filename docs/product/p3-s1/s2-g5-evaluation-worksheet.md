@@ -1,34 +1,34 @@
 # S2 时代 G5 评测工作表（P3-S2-G5-WORKSHEET-01）
 
-**状态：** STAGED FOR EVALUATOR——待角色 5 独立评测人（用户本人，PD-15）逐项裁决签署
+**状态：** EVALUATED & SIGNED——角色 5 独立评测人（用户本人，PD-15）逐项裁决完成（2026-10-10）：S2 时代 G5 评测判定 PASSED（无条件）
 **编号：** P3-S2-G5-WORKSHEET-01
-**版本：** 0.2.0（2026-10-10：实现方按评测人【S2 G5：评测人四项裁决通知 + 底稿刷新指令】执行 6 处指针修正——仅指针修正，结论列保持全 NOT RUN；v0.1.0 staged 于 2026-10-09）
+**版本：** 0.3.0（2026-10-10：S2 时代 G5 独立评测完成——角色 5 独立评测人（用户本人，PD-15）逐项裁决签署 16 项结论并完成第 16 项签署（四要素齐备，签署日期 2026-10-10）：16 项 = 12 PASS（第 1/2/3/4/5/6/7/8/10/11/12/15 项）+ 1 N/A（第 9 项——签署定稿理由：S2 时代不作任何延迟指标宣称）+ 第 13 项风险评估（评测人选项 A 文字）+ 第 14 项发布建议（评测人选项 A 文字）；S2 时代 G5 评测判定：PASSED（无条件）——无 DEFERRED、无 P0 失败、无 NOT RUN 残余；第 12 项登记册快照封存完成（decision-register v0.25.0 @ git 提交 67d601f——git 提交哈希即快照，文件 SHA256 a842451022580f976497daf37cce81fe0857f15716b86f91f281cbcd420e2156）；本版本按评测人 2026-10-10 逐项确认（「一、pass；二、N/A 附理由；三、A、A、A；四、确认模版」）执行写回——结论为评测人确认原文，实现方仅逐字转录；指针更正 2 处（纯指针更正，不影响结论）：①第 1 项 S2B 文件级哈希计数 42→44（run-metadata.json code.files 实际 44 项——与 EVIDENCE-MANIFEST-01 v1.4.0 登记一致）；②附节 CR-19/CR-20/CR-21 F 标签校正（CR-19=F-2 / CR-20=F-3 / CR-21=F-4——v0.2.0 附节误标为 CR-19 RECORDED（F-1/OBL-01）/ CR-20 IMPLEMENTED（F-2）/ CR-21 IMPLEMENTED（F-3）；F-1/OBL-01 经 CR-18 登记关闭）；v0.2.0 为底稿刷新版（结论列全 NOT RUN），v0.1.0 staged 于 2026-10-09）
 **框架：** 沿用 P3-S1-G5-WORKSHEET-01 16 项结构与执行规则（结论取值 PASS / FAIL / DEFERRED / N/A，默认 NOT RUN；任何 P0 失败、缺项或 NOT RUN 均不得被平均分或建议性报告抵消）
 **角色分离：** 本工作表由实现方（工程负责人角色代理）起草；实现作者不得兼任独立评测人——结论列全部留白 NOT RUN，由角色 5 独立评测人逐项填写并签署
 **评测输入：** 7 运行 staged 审阅包 ×7（`artifacts/evidence/runs/<run>/review/README.md`）+ EVIDENCE-MANIFEST-01 v1.4.0（MANIFEST.json + INDEX.md）+ 各 S2A/S2B SEMANTIC-FREEZE-01 冻结文本 + decision-register 当前版本快照 + acceptance-mapping / XCC-MAP（S2 范围项）
 **关联：** S2-G5-EVAL-DEF-01 v1.0.0（选项 A 裁决——复用 16 项框架）/ P3-S1-G5-WORKSHEET-01 v1.8.0（P2 时代 16 项——PASSED 无条件，2026-10-09）/ OBL-02-LATENCY-METHOD-01 v1.0.0（第 9 项延迟方法）/ EVIDENCE-MANIFEST-01 v1.4.0
-**记录日期：** 2026-10-09
+**记录日期：** 2026-10-09（staged）；2026-10-10（v0.2.0 底稿刷新 / v0.3.0 评测签署）
 
-## 16 项评测表（结论列待角色 5 逐项裁决）
+## 16 项评测表（结论列——角色 5 逐项裁决完成，2026-10-10）
 
 | # | G5 必需项 | S2 证据映射（staged 输入） | 评测问题（沿用 P2 框架问句） | 结论 |
 |---|----------|--------------------------|------------------------------|------|
-| 1 | Version Matrix（版本矩阵） | 7 运行 `run-metadata.json`（E5 §3 矩阵；S2A-F2/F3/F4 含 code.gitHead；S2A-F5 含 runtimeFiles + git 节；S2B 含 42 文件级哈希；G3 含 policyVersions 链 policy_v1.0.0→v2.1.0） | 版本矩阵字段是否完备（合同 / Schema / Policy / Prompt / Model / Corpus / Code / 环境版本及哈希）？产品行为 → 契约版本 → 代码修订的关联是否可追溯？ | NOT RUN |
-| 2 | Test Scope（测试范围） | PD-23 S2 范围裁决（S2a 五义务 / S2b 首批义务）+ S2A-F*-SEMANTIC-FREEZE-01 / S2B-SEMANTIC-FREEZE-01 冻结文本 + acceptance-mapping / XCC-MAP v1.4.0（S2 范围项 EB-10/EB-11） | 适用 / 延期 / 非适用理由是否逐案明确且与范围冻结一致？ | NOT RUN |
-| 3 | Golden Case Result（黄金案例结果） | G3-GOLDEN-0001（40/40 案例、10/10 断言——含 G09 方向性操作四维度案例组与 G10 分支回流案例组 N/NEG/B/FR；语料 fixtureId synthetic/simulate/v2） | 是否创建黄金案例并执行（Expected / Actual / Result / Evidence，关联 acceptance-mapping 与 Case ID），或登记 N/A 并附理由？**S1 时代 N/A 理由（S1 范围未定义黄金套件）在 S2 时代已不成立——适用性待产品负责人裁决** | NOT RUN |
-| 4 | Contract Test Result（契约测试结果） | S2A-F2-0001 创作事件链 / S2A-F3-0001 纠正域事件链（correction_applied / correction_restored）/ S2A-F4-0001 simulation_recorded 四元分离事件登记 / S2A-F5-0001 记忆域事件（memory_recorded / corrected / withdrawn / expired） | 逐案动态记录是否支持跨契约一致性结论（事件链 / 决策追踪 / 版本链跨契约一致）？ | NOT RUN |
-| 5 | Scenario Matrix Result（场景矩阵结果） | S2A-F2-0001 创作场景 10 案例（含全部登记负向）/ S2B-0001 G09 方向性操作案例组 / G3-GOLDEN-0001 40 案例 | 场景矩阵覆盖是否完备？GXC01…GXC08 逐案映射是否确认？ | NOT RUN |
-| 6 | AI Evaluation Result（AI 评测结果） | 合成 fixtures 11 件套（`src/experience/fixtures/`——含 S2 新增 create / correction / deepen / simplify / reframe）；rubric 定义已经产品负责人批准（2026-10-09：合成 fixtures 上的契约一致性评测） | rubric 与责任人是否已于 G5 前批准？批准后逐项输出与评测者理由是否记录？**rubric 对 S2 新增 fixtures 的适用性由评测人确认** | NOT RUN |
-| 7 | Regression Result（回归结果） | S2A-OBL-01-0001（F-1 回归双形态——INPROC-REGRESSION）/ S2A-F4-0001 域回归（10/10 案例、17/17 断言——新增 BRANCH-ADOPT 案例）/ G3-GOLDEN-0001 黄金套件回归基线（40/40——S2B-0001 已绑定新黄金基线） | 正式回归基线重跑是否完成？Change ID / 前后版本 / 受影响案例 / 基线 Run ID 关联是否齐备？ | NOT RUN |
-| 8 | Fault Injection Result（故障注入结果） | S2A-OBL-01-0001 HTTP 形态 LLM 故障 503 补测（进程内 `LlmGateway` 接口注入 + HTTP 形态双覆盖——S1 时代 CR-18 选项 B DEFERRED 项已关闭） | 故障注入逐案评测结论？HTTP 形态 503：评测人是否接受为充分输入？**（S1 时代维持 DEFERRED 的裁决前提已事实变更——S2 时代重新裁决）** | NOT RUN |
-| 9 | Latency Result（延迟结果） | S2 时代 7 运行耗时参考值（8121ms–19855ms）；OBL-02-LATENCY-METHOD-01 v1.0.0（方法已经产品负责人按 E3 批准） | 统计阈值是否已经产品负责人按 E3 批准？测量方法是否定义？**S2 时代是否另行执行延迟测量属产品负责人裁决事项（或登记 N/A 附理由）；任何指标宣称前须满足方法 §5 样本纪律** | NOT RUN |
-| 10 | Agency Result（用户自主权结果） | S2A-F2/F3/F4/F5 停止路径与完成边界案例（STOP 合法终止、生成中常规输入拒绝、版本号不消耗、记忆 WITHDRAW 用户主权） | 逐案评测——用户主权是否零违规（P0 零容忍）？ | NOT RUN |
-| 11 | Known Failures（已知失败） | S2 时代失败尝试归档 41 个目录（ADR-0002 §5 只追加留存——含 S2A-F4-0001-attempt-2026-10-09T17-50-08-431Z 执行器侧过期期望缺陷与 2026-10-10 新增失败尝试 2 个（S2A-F4-0001-attempt-2026-10-10T00-36-33-645Z / G3-GOLDEN-0001-attempt-2026-10-10T00-38-52-586Z——均为执行器侧案例断言缺陷，产品运行时无缺陷））+ 缺陷登记（执行器侧 E-* / 案例侧缺陷全数修复） | G5 汇总是否完整？残余风险关联是否记录？有无隐藏或覆盖失败？ | NOT RUN |
-| 12 | Product Debt（产品债务） | decision-register 当前版本（CR-01…CR-27）+ 按运行版本封存快照（评测人执行项） | 是否按运行版本封存决策登记册快照？未决事项是否列示？ | NOT RUN |
-| 13 | Risk Assessment（风险评估） | —（评测人按已知失败、缺失证据及严重度记录） | 风险与残余风险是否登记？ | NOT RUN |
-| 14 | Release Recommendation（发布建议） | —（评测人基于完整证据给出） | 评测人基于完整证据给出发布建议（产品负责人另行决定；不得由 AI 或实现团队自动发布） | NOT RUN |
-| 15 | Evidence Index（证据索引） | EVIDENCE-MANIFEST-01 v1.4.0（MANIFEST.json + INDEX.md——S2 运行再生产物登记，独立重算零不符）+ `artifacts/evidence/runs/` 只追加布局 | 索引内容评测——案例 / 断言计数、SHA256SUMS 独立重算状态、代码绑定 gitHead、产物提交哈希是否与运行产物一致？ | NOT RUN |
-| 16 | Evaluator Sign-off（评测负责人签署） | G5 隔离声明（2026-10-08 签署生效，独立评测人任命） | 1–15 项完成后填写：独立性声明、版本、结论、遗留问题及签署日期 | NOT RUN |
+| 1 | Version Matrix（版本矩阵） | 7 运行 `run-metadata.json`（E5 §3 矩阵；S2A-F2/F3/F4 含 code.gitHead；S2A-F5 含 runtimeFiles + git 节；S2B 含 44 文件级哈希；G3 含 policyVersions 链 policy_v1.0.0→v2.1.0） | 版本矩阵字段是否完备（合同 / Schema / Policy / Prompt / Model / Corpus / Code / 环境版本及哈希）？产品行为 → 契约版本 → 代码修订的关联是否可追溯？ | PASS（2026-10-10 评测人判定：版本矩阵字段完备——7 运行 run-metadata 齐备（E5 §3：合同 / Schema / Policy / Prompt / Model / Corpus / Code / 环境版本及哈希；S2A-F2/F3/F4 含 code.gitHead；S2A-F5 含 runtimeFiles + git 节；S2B 含 44 文件级哈希——该形态经 S2b 独立评测 2026-10-09 接受；G3 含 policyVersions 链 policy_v1.0.0→v2.1.0）；产品行为 → 契约版本 → 代码修订的关联可追溯） |
+| 2 | Test Scope（测试范围） | PD-23 S2 范围裁决（S2a 五义务 / S2b 首批义务）+ S2A-F*-SEMANTIC-FREEZE-01 / S2B-SEMANTIC-FREEZE-01 冻结文本 + acceptance-mapping / XCC-MAP v1.4.0（S2 范围项 EB-10/EB-11） | 适用 / 延期 / 非适用理由是否逐案明确且与范围冻结一致？ | PASS（2026-10-10 评测人判定：适用 / 延期 / 非适用理由逐案明确且与范围冻结一致——PD-23 S2 范围裁决（S2a 五义务 / S2b 首批义务）+ 各 S2A/S2B SEMANTIC-FREEZE-01 冻结文本 + acceptance-mapping / XCC-MAP v1.4.0（S2 范围项 EB-10/EB-11）齐备） |
+| 3 | Golden Case Result（黄金案例结果） | G3-GOLDEN-0001（40/40 案例、10/10 断言——含 G09 方向性操作四维度案例组与 G10 分支回流案例组 N/NEG/B/FR；语料 fixtureId synthetic/simulate/v2） | 是否创建黄金案例并执行（Expected / Actual / Result / Evidence，关联 acceptance-mapping 与 Case ID），或登记 N/A 并附理由？**S1 时代 N/A 理由（S1 范围未定义黄金套件）在 S2 时代已不成立——适用性待产品负责人裁决** | PASS（2026-10-10 评测人按证据评测——适用性经评测人 2026-10-10 裁决（适用）：G3-GOLDEN-0001 已存在并再生至 40/40 案例、10/10 断言、退出码 0（只表示本运行断言通过，E5 §2）；Expected / Actual / Result / Evidence 关联 acceptance-mapping 与 Case ID 齐备；G09 方向性操作四维度案例组与 G10 分支回流案例组 N/NEG/B/FR 齐备；语料 fixtureId synthetic/simulate/v2；G3 Gate 判定已经角色 5 裁决签署（2026-10-09，P2-G3-WORKSHEET-01 v1.0.0，32/32 运行）） |
+| 4 | Contract Test Result（契约测试结果） | S2A-F2-0001 创作事件链 / S2A-F3-0001 纠正域事件链（correction_applied / correction_restored）/ S2A-F4-0001 simulation_recorded 四元分离事件登记 / S2A-F5-0001 记忆域事件（memory_recorded / corrected / withdrawn / expired） | 逐案动态记录是否支持跨契约一致性结论（事件链 / 决策追踪 / 版本链跨契约一致）？ | PASS（2026-10-10 评测人判定：逐案动态记录支持跨契约一致性结论——创作事件链（S2A-F2-0001）/ 纠正域事件链 correction_applied / correction_restored（S2A-F3-0001）/ simulation_recorded 四元分离事件登记（S2A-F4-0001）/ 记忆域事件 memory_recorded / corrected / withdrawn / expired（S2A-F5-0001）跨契约一致（事件链 / 决策追踪 / 版本链）；simulation_adopted（C6 §14 命名模式派生，properties 含 branch_id / source_round / adopted_content 摘要 / separation_invariant=simulation_result_is_not_fact）事件链一致） |
+| 5 | Scenario Matrix Result（场景矩阵结果） | S2A-F2-0001 创作场景 10 案例（含全部登记负向）/ S2B-0001 G09 方向性操作案例组 / G3-GOLDEN-0001 40 案例 | 场景矩阵覆盖是否完备？GXC01…GXC08 逐案映射是否确认？ | PASS（2026-10-10 评测人判定：场景矩阵覆盖完备——S2A-F2-0001 创作场景 10 案例（含全部登记负向）/ S2B-0001 G09 方向性操作案例组 / G3-GOLDEN-0001 40 案例；GXC01…GXC08 逐案映射经 acceptance-mapping / XCC-MAP v1.4.0 确认） |
+| 6 | AI Evaluation Result（AI 评测结果） | 合成 fixtures 11 件套（`src/experience/fixtures/`——含 S2 新增 create / correction / deepen / simplify / reframe）；rubric 定义已经产品负责人批准（2026-10-09：合成 fixtures 上的契约一致性评测） | rubric 与责任人是否已于 G5 前批准？批准后逐项输出与评测者理由是否记录？**rubric 对 S2 新增 fixtures 的适用性由评测人确认** | PASS（2026-10-10 评测人判定：rubric 与责任人已于 G5 前批准（2026-10-09——合成 fixtures 上的契约一致性评测）；适用性经评测人 2026-10-10 确认（对 S2 新增 fixtures create / correction / deepen / simplify / reframe 适用，维度无需扩展）；逐项输出与评测者理由记录于各运行断言记录（cases/ 记录）） |
+| 7 | Regression Result（回归结果） | S2A-OBL-01-0001（F-1 回归双形态——INPROC-REGRESSION）/ S2A-F4-0001 域回归（10/10 案例、17/17 断言——新增 BRANCH-ADOPT 案例）/ G3-GOLDEN-0001 黄金套件回归基线（40/40——S2B-0001 已绑定新黄金基线） | 正式回归基线重跑是否完成？Change ID / 前后版本 / 受影响案例 / 基线 Run ID 关联是否齐备？ | PASS（2026-10-10 评测人判定：正式回归基线重跑完成——F-1 回归双形态（S2A-OBL-01-0001）/ S2A-F4-0001 域回归 10/10 案例、17/17 断言（新增 BRANCH-ADOPT 案例：正常路径 / 负向不存在序号 / RETURNED 边界幂等 / 陈旧版本故障恢复）/ G3-GOLDEN-0001 黄金套件回归基线 40/40（S2B-0001 已绑定新黄金基线）；Change ID / 前后版本 / 受影响案例 / 基线 Run ID 关联齐备（run-metadata E5 §3 + 迭代记录）） |
+| 8 | Fault Injection Result（故障注入结果） | S2A-OBL-01-0001 HTTP 形态 LLM 故障 503 补测（进程内 `LlmGateway` 接口注入 + HTTP 形态双覆盖——S1 时代 CR-18 选项 B DEFERRED 项已关闭） | 故障注入逐案评测结论？HTTP 形态 503：评测人是否接受为充分输入？**（S1 时代维持 DEFERRED 的裁决前提已事实变更——S2 时代重新裁决）** | PASS（2026-10-10 评测人判定：故障注入逐案评测——HTTP 形态 LLM 故障 503 补测（S2A-OBL-01-0001：进程内 LlmGateway 接口注入 + HTTP 形态双覆盖——LLM_UNAVAILABLE / retryable=true + 恰好一次调用 + 版本完整 + 失败后 STOP 合法 + 有界恢复 + 缝惰性 + 进程内回归）经评测人 2026-10-10 裁决接受为充分输入；CR-18 选项 B 遗留与 P2 债务 D-01 均已关闭；不要求新子系统补测） |
+| 9 | Latency Result（延迟结果） | S2 时代 7 运行耗时参考值（8121ms–19855ms）；OBL-02-LATENCY-METHOD-01 v1.0.0（方法已经产品负责人按 E3 批准） | 统计阈值是否已经产品负责人按 E3 批准？测量方法是否定义？**S2 时代是否另行执行延迟测量属产品负责人裁决事项（或登记 N/A 附理由）；任何指标宣称前须满足方法 §5 样本纪律** | N/A（2026-10-10 评测人裁决签署——签署定稿理由：S2 时代不作任何延迟指标宣称。7 运行耗时参考值（8121–19855ms）已登记为非指标宣称；S2 代码（policy_v2.1.0）任何延迟指标宣称前，须按 OBL-02-LATENCY-METHOD-01 v1.0.0 §5 样本纪律另行测量并注明分层（§6 披露声明），方法分层如需覆盖 S2 新增请求类别（方向性操作/纠正/分支操作/记忆）须先升版批准；不指令 S2 补测。裁决通知拟文全文（含 P2 时代测量 OBL02-LATENCY-0001 对其代码版本持续有效）登记于本工作表"评测人裁决通知登记"节） |
+| 10 | Agency Result（用户自主权结果） | S2A-F2/F3/F4/F5 停止路径与完成边界案例（STOP 合法终止、生成中常规输入拒绝、版本号不消耗、记忆 WITHDRAW 用户主权） | 逐案评测——用户主权是否零违规（P0 零容忍）？ | PASS（2026-10-10 评测人判定：用户主权零违规（P0 零容忍）——停止路径与完成边界案例齐备（S2A-F2/F3/F4/F5）：STOP 合法终止、生成中常规输入拒绝、版本号不消耗、记忆 WITHDRAW 用户主权；逐案评测无 P0 违规登记） |
+| 11 | Known Failures（已知失败） | S2 时代失败尝试归档 41 个目录（ADR-0002 §5 只追加留存——含 S2A-F4-0001-attempt-2026-10-09T17-50-08-431Z 执行器侧过期期望缺陷与 2026-10-10 新增失败尝试 2 个（S2A-F4-0001-attempt-2026-10-10T00-36-33-645Z / G3-GOLDEN-0001-attempt-2026-10-10T00-38-52-586Z——均为执行器侧案例断言缺陷，产品运行时无缺陷））+ 缺陷登记（执行器侧 E-* / 案例侧缺陷全数修复） | G5 汇总是否完整？残余风险关联是否记录？有无隐藏或覆盖失败？ | PASS（2026-10-10 评测人判定：G5 汇总完整——S2 时代失败尝试归档 41 个目录按 ADR-0002 §5 只追加留存（含 2026-10-10 新增失败尝试 2 个：S2A-F4-0001-attempt-2026-10-10T00-36-33-645Z / G3-GOLDEN-0001-attempt-2026-10-10T00-38-52-586Z——均为执行器侧案例断言缺陷，产品运行时无缺陷）；残余风险关联已登记（执行器缺陷登记 G3-E-3 模式——3 个旧归档各 1 项 summary.json 时点性不符，实质内容经交叉核验为真）；无隐藏或覆盖失败） |
+| 12 | Product Debt（产品债务） | decision-register 当前版本（CR-01…CR-27）+ 按运行版本封存快照（评测人执行项） | 是否按运行版本封存决策登记册快照？未决事项是否列示？ | PASS（2026-10-10 评测人判定：按评测时点版本封存决策登记册快照——decision-register v0.25.0（git 提交哈希 67d601f 即快照；文件 SHA256 a842451022580f976497daf37cce81fe0857f15716b86f91f281cbcd420e2156）；未决事项列示——①暴露凭据轮换（用户侧事项——已暴露 GitHub 临时访问令牌建议撤销/轮换，用户确认尚未处理；不属本登记册）；②本工作表自身（G5 评测——经本签署关闭）；无其他未决事项（CR-01…CR-27 状态齐备，F-009-1 已关闭）） |
+| 13 | Risk Assessment（风险评估） | —（评测人按已知失败、缺失证据及严重度记录） | 风险与残余风险是否登记？ | PASS（2026-10-10 评测人判定：风险与残余风险已登记（评测人选项 A 文字，原文）——「残余风险：①执行器侧案例断言缺陷模式已识别并全数修复，产品运行时零缺陷——风险低；②S2 时代无延迟指标宣称（OBL-02 方法纪律持续约束任何未来宣称）；③暴露凭据轮换为用户侧遗留事项，不属产品证据风险。无 P0 失败、无缺项、无 NOT RUN 残余。」） |
+| 14 | Release Recommendation（发布建议） | —（评测人基于完整证据给出） | 评测人基于完整证据给出发布建议（产品负责人另行决定；不得由 AI 或实现团队自动发布） | A=建议 S2 阶段内部验收证据齐备（2026-10-10 评测人裁决——发布建议（评测人选项 A 文字，原文）：「S2 阶段内部验收证据齐备（动态证据 7 运行 + 黄金套件 40/40 + 失败全数如实登记）；是否进入公开发布由产品负责人另行决定——本建议不构成发布批准。」） |
+| 15 | Evidence Index（证据索引） | EVIDENCE-MANIFEST-01 v1.4.0（MANIFEST.json + INDEX.md——S2 运行再生产物登记，独立重算零不符）+ `artifacts/evidence/runs/` 只追加布局 | 索引内容评测——案例 / 断言计数、SHA256SUMS 独立重算状态、代码绑定 gitHead、产物提交哈希是否与运行产物一致？ | PASS（2026-10-10 评测人判定：索引与运行产物一致，可独立重算验证——EVIDENCE-MANIFEST-01 v1.4.0（MANIFEST.json + INDEX.md）：7 运行案例 / 断言计数（S2A-OBL-01-0001 7/7 案例 + 12/12 断言、S2A-F2-0001 10/10 + 16/16、S2A-F3-0001 8/8 + 15/15、S2A-F4-0001 10/10 + 17/17、S2A-F5-0001 9/9 + 14/14、S2B-0001 7/7 + 14/14、G3-GOLDEN-0001 40/40 + 10/10——合计 91/91 案例、98/98 断言）、SHA256SUMS 独立重算（S2 时代 7 运行全部精确通过——S2A-F4-0001 22/22、G3-GOLDEN-0001 82/82、S2B-0001 16/16；3 个旧归档各 1 项 summary.json 时点性不符已登记）、代码绑定 gitHead、产物提交哈希与运行产物一致） |
+| 16 | Evaluator Sign-off（评测负责人签署） | G5 隔离声明（2026-10-08 签署生效，独立评测人任命） | 1–15 项完成后填写：独立性声明、版本、结论、遗留问题及签署日期 | 已签署（2026-10-10：独立性声明、版本、结论、遗留问题及签署日期四要素齐备——见签署区；S2 时代 G5 评测判定：PASSED（无条件）） |
 
 ## 执行规则（沿用 P2 框架）
 
@@ -46,17 +46,27 @@
 - 第 6 项（AI 评测）裁决：rubric 对 S2 新增 fixtures（create / correction / deepen / simplify / reframe）适用性确认——rubric 2026-10-09 已批准，维度无需扩展。
 - 第 8 项（故障注入）裁决：HTTP 形态 503 补测接受为充分输入——S2A-OBL-01-0001 已双形态覆盖，CR-18 选项 B 遗留与 P2 债务 D-01 均已关闭；不要求新子系统补测。
 - 第 9 项（延迟）裁决：登记 N/A 附理由（评测人拟文，签署时复核）：「S2 时代不作任何延迟指标宣称。7 运行耗时参考值已登记（8121–19855ms，非指标宣称）；P2 时代测量 OBL02-LATENCY-0001 对其代码版本持续有效；S2 代码（policy_v2.1.0）任何延迟指标宣称前，须按 OBL-02-LATENCY-METHOD-01 v1.0.0 §5 样本纪律另行测量并注明分层（§6 披露声明）；方法分层如需覆盖 S2 新增请求类别（方向性操作/纠正/分支操作/记忆）须先升版批准。」不指令 S2 补测。
-- 边界：本通知仅为裁决输入——工作表结论列仍留白 NOT RUN，由评测人本人完成 A 组核对（第 1/2/4/5/7/10/11/15 项）与 C 组撰写（第 12/13/14 项）后逐项填写并签署第 16 项；实现作者不得兼任独立评测人。readiness-record 可登记本通知，但不得据此设置任何 Gate PASS、不得预填结论列（E5 §2：退出码 0 与案例 PASS 不设置 Gate）。第 12 项登记册快照为评测人执行项，实现方无需代办（实现方备好当前版本指针 CR-01…CR-27 供核验——见下附节）。
+- 第 9 项理由定稿（2026-10-10 签署时复核）：评测人签署定稿理由为「S2 时代不作任何延迟指标宣称」——裁决通知拟文全文（含 7 运行耗时参考值登记、P2 时代测量 OBL02-LATENCY-0001 对其代码版本持续有效、§5 样本纪律与 §6 分层披露、方法分层升版批准要求）仍登记于本节上条。
+- 边界：本通知仅为裁决输入——工作表结论列仍留白 NOT RUN，由评测人本人完成 A 组核对（第 1/2/4/5/7/10/11/15 项）与 C 组撰写（第 12/13/14 项）后逐项填写并签署第 16 项；实现作者不得兼任独立评测人。readiness-record 可登记本通知，但不得据此设置任何 Gate PASS、不得预填结论列（E5 §2：退出码 0 与案例 PASS 不设置 Gate）。第 12 项登记册快照为评测人执行项，实现方无需代办（实现方备好当前版本指针 CR-01…CR-27 供核验——见下附节）。（2026-10-10：评测人已逐项完成 A 组核对与 C 组撰写并签署第 16 项——结论见 16 项评测表与签署区；本通知作为裁决输入的历史登记保持不变。）
 
 ## 附：第 12 项核验指针（实现方准备，2026-10-10——供评测人第 12 项核验；本附节为参考数据，非评测结论）
 
 - decision-register 当前版本：BASELINE-DECISIONS-01 v0.25.0（2026-10-10：F-009-1 实际更正——CR-16 证据行引用 SRC-06→SRC-08（reference/17），修订说明引用 F-009-1）。
-- 裁决登记范围：CR-01…CR-27 齐备——CR-01…CR-18 已关闭（RESOLVED——P2/S1 时代登记，含 CR-16/CR-17 经 P3-S1-REVIEW-009 非作者复核签署关闭、CR-18 经产品负责人裁决选项 B 关闭）；CR-19 RECORDED（F-1/OBL-01）/ CR-20 IMPLEMENTED（F-2）/ CR-21 IMPLEMENTED（F-3）/ CR-22 EXECUTED（OBL-02 延迟测量执行——G5 第 9 项经角色 5 裁决签署关闭）/ CR-23 IMPLEMENTED（F-5）/ CR-24 IMPLEMENTED→EVALUATED（S2b 语义冻结 + 首批义务 G-1…G-4——S2b 独立评测 PASS，2026-10-09）/ CR-25 IMPLEMENTED（模拟语料尾句对齐）；CR-26 RULED（S2 时代 G5 评测包范围定义——选项 A 复用 16 项框架）；CR-27 IMPLEMENTED（S2 分支回流操作版本化定义——ADOPT_BRANCH 产品实施完成，动态证据已产出）。
-- 未决事项列示：①S2 时代 G5 独立评测（本工作表 16 项——A 组核对（第 1/2/4/5/7/10/11/15 项）/ C 组撰写（第 12/13/14 项）/ 第 16 项签署，待评测人本人完成；评测人四项裁决通知（2026-10-10）已登记为裁决输入）；②F-009-1——已于 decision-register v0.25.0 实际更正（本次关闭）；③暴露凭据轮换（用户侧事项，不属本登记册）。
-- 快照提示：第 12 项"按运行版本封存决策登记册快照"为评测人执行项——本附节仅备当前版本指针供核验，快照封存由评测人本人执行。
+- 裁决登记范围：CR-01…CR-27 齐备——CR-01…CR-18 已关闭（RESOLVED——P2/S1 时代登记，含 CR-16/CR-17 经 P3-S1-REVIEW-009 非作者复核签署关闭、CR-18 经产品负责人裁决选项 B 关闭——其登记 DEFERRED 项（HTTP 形态 LLM 故障 503 补测）经 S2a F-1/OBL-01 履行关闭）；CR-19 IMPLEMENTED（F-2）/ CR-20 IMPLEMENTED（F-3）/ CR-21 IMPLEMENTED（F-4）/ CR-22 EXECUTED（OBL-02 延迟测量执行——G5 第 9 项经角色 5 裁决签署关闭）/ CR-23 IMPLEMENTED（F-5）/ CR-24 IMPLEMENTED→EVALUATED（S2b 语义冻结 + 首批义务 G-1…G-4——S2b 独立评测 PASS，2026-10-09）/ CR-25 IMPLEMENTED（模拟语料尾句对齐）；CR-26 RULED（S2 时代 G5 评测包范围定义——选项 A 复用 16 项框架——经 2026-10-10 G5 评测签署关闭，decision-register v0.26.0 登记 RULED→EVALUATED）；CR-27 IMPLEMENTED（S2 分支回流操作版本化定义——ADOPT_BRANCH 产品实施完成，动态证据已产出——经 2026-10-10 G5 评测覆盖，decision-register v0.26.0 登记 IMPLEMENTED→EVALUATED）。
+- 指针更正（实现方自查，2026-10-10，v0.3.0）：v0.2.0 附节 CR-19/CR-20/CR-21 F 标签误标（误标 CR-19 RECORDED（F-1/OBL-01）/ CR-20 IMPLEMENTED（F-2）/ CR-21 IMPLEMENTED（F-3））——实际登记册 v0.25.0：CR-19 IMPLEMENTED（F-2）/ CR-20 IMPLEMENTED（F-3）/ CR-21 IMPLEMENTED（F-4）；F-1/OBL-01 经 CR-18 登记关闭。纯指针更正，不影响任何结论。
+- 未决事项列示：①S2 时代 G5 独立评测（本工作表 16 项——经 2026-10-10 角色 5 逐项裁决签署关闭：16 项 = 12 PASS + 1 N/A（第 9 项），判定 PASSED（无条件））；②F-009-1——已于 decision-register v0.25.0 实际更正（已关闭）；③暴露凭据轮换（用户侧事项，不属本登记册——已暴露 GitHub 临时访问令牌建议撤销/轮换，用户确认尚未处理）。
+- 快照提示：第 12 项"按运行版本封存决策登记册快照"为评测人执行项——本附节仅备当前版本指针供核验，快照封存已完成（2026-10-10 评测人执行——decision-register v0.25.0 @ git 提交 67d601f：git 提交哈希即快照，文件 SHA256 a842451022580f976497daf37cce81fe0857f15716b86f91f281cbcd420e2156——见第 12 项结论）。
 
 ## 签署区
 
-- 起草：工程负责人角色（代理，Codex），2026-10-09（按 S2-G5-EVAL-DEF-01 v1.0.0 §4 骨架）；v0.2.0 底稿刷新 2026-10-10（实现方按评测人刷新指令执行 6 处指针修正——仅指针修正，结论列保持全 NOT RUN）。
-- 评测人裁决通知登记：2026-10-10（第 3/6/8/9 项四项裁决——作为裁决输入登记于上节；结论列与第 16 项签署仍待评测人本人完成）。
-- 独立评测人（角色 5，用户本人，PD-15；G5 隔离声明 2026-10-08 签署生效）：（待逐项评测——第 1–15 项完成后填写第 16 项：独立性声明、版本、结论、遗留问题及签署日期）
+- 起草：工程负责人角色（代理，Codex），2026-10-09（按 S2-G5-EVAL-DEF-01 v1.0.0 §4 骨架）；v0.2.0 底稿刷新 2026-10-10（实现方按评测人刷新指令执行 6 处指针修正——仅指针修正，结论列保持全 NOT RUN）；v0.3.0 评测写回 2026-10-10（按评测人逐项确认执行——结论为评测人确认原文，实现方仅逐字转录；含指针更正 2 处（见版本行））。
+- 评测人裁决通知登记：2026-10-10（第 3/6/8/9 项四项裁决——作为裁决输入登记于上节；结论列与第 16 项签署已于 2026-10-10 由评测人本人完成——见 16 项评测表与下表）。
+- 独立评测人（角色 5，用户本人，PD-15；G5 隔离声明 2026-10-08 签署生效）：已签署（2026-10-10——第 16 项四要素齐备，见下表）。
+
+| 签署要素 | 内容（角色 5 独立评测人裁决原文） |
+|---|---|
+| 独立性声明 | 角色 5 独立执行，实现作者未兼任独立评测人——本工作表 16 项结论由角色 5 独立评测人（用户本人，PD-15）逐项裁决作出；评测人四项裁决（2026-10-10 通知）为评测人本人作出并已登记；A 组核对（第 1/2/4/5/7/10/11/15 项）与 C 组撰写（第 12/13/14 项）经评测人逐项完成 |
+| 版本 | P3-S2-G5-WORKSHEET-01 v0.3.0 |
+| 结论 | S2 时代 G5 评测：PASSED（无条件）——16 项 = 12 PASS（第 1/2/3/4/5/6/7/8/10/11/12/15 项）+ 1 N/A（第 9 项——签署定稿理由：S2 时代不作任何延迟指标宣称）；第 13 项风险评估（选项 A 文字）与第 14 项发布建议（选项 A 文字）已登记；无 DEFERRED、无 P0 失败、无 NOT RUN 残余 |
+| 遗留问题 | 暴露凭据轮换（用户侧事项——已暴露 GitHub 临时访问令牌建议撤销/轮换，用户确认尚未处理） |
+| 签署日期 | 2026-10-10 |
