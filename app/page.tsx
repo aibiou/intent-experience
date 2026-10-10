@@ -1,20 +1,112 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { HomeScreen, type RecentEntry } from './_components/home-screen';
+import {
+  ExperienceScreen,
+  type SessionState,
+} from './_components/experience-screen';
+
+const RECENTS_KEY = 'intent-experience.recents';
+
+function loadRecents(): RecentEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(RECENTS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as RecentEntry[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecents(recents: RecentEntry[]) {
+  try {
+    window.localStorage.setItem(RECENTS_KEY, JSON.stringify(recents.slice(0, 5)));
+  } catch {
+    // 本地存储不可用时跳过最近探索
+  }
+}
+
 export default function HomePage() {
-  return (
-    <main>
-      <h1>Personal Experience Engine</h1>
-      <p>
-        P3-S1 runtime slice: first-experience streaming API at{' '}
-        <code>POST /api/experience/stream</code>. S2 scope (PD-23, 2026-10-09):
-        full Creation (multi-round branches + persistent creation state), full
-        Correction (MODIFY + RESTORE_PREVIOUS_VERSION), complete WHAT_IF
-        branching (CREATE / SWITCH / ABANDON / RETURN / ADOPT_BRANCH), Minimal
-        Memory (short-term + explicit correction / withdrawal), DEEPEN /
-        SIMPLIFY / REFRAME, SEARCH, First Experience presentation. Long-term
-        memory and cross-session branch persistence: S3 scope
-        (S3-SCOPE-PROPOSAL-01, staged 2026-10-10). Implementation authorized by
-        P3-S1-IMPL-AUTH-01 + S2 implementation authorizations. Default mode:
-        synthetic fixtures (no real LLM provider, no real user data).
-      </p>
-    </main>
-  );
+  const [phase, setPhase] = useState<'home' | 'experience'>('home');
+  const [session, setSession] = useState<SessionState | null>(null);
+  const [initialInput, setInitialInput] = useState<string | undefined>();
+  const [resume, setResume] = useState(false);
+  const [recents, setRecents] = useState<RecentEntry[]>([]);
+  const [mode, setMode] = useState<'synthetic' | 'provider'>('synthetic');
+  const [providerLabel, setProviderLabel] = useState<string | undefined>();
+
+  useEffect(() => {
+    setRecents(loadRecents());
+    fetch('/api/config/status')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setMode(data.mode === 'provider' ? 'provider' : 'synthetic');
+        setProviderLabel(
+          typeof data.provider === 'string' && typeof data.model === 'string'
+            ? `${data.provider} · ${data.model}`
+            : undefined,
+        );
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const start = useCallback(async (input: string) => {
+    try {
+      const response = await fetch('/api/session/start', { method: 'POST' });
+      const data = await response.json();
+      setSession({
+        sessionId: data.session_id,
+        experienceId: null,
+        stateVersion: 0,
+        status: data.state,
+        stage: 'CURIOSITY',
+      });
+      setInitialInput(input);
+      setResume(false);
+      setPhase('experience');
+    } catch {
+      // 启动失败时留在首页
+    }
+  }, []);
+
+  const resumeRecent = useCallback((recent: RecentEntry) => {
+    setSession({
+      sessionId: recent.sessionId,
+      experienceId: recent.experienceId,
+      stateVersion: recent.stateVersion,
+      status: 'ACTIVE',
+      stage: 'CURIOSITY',
+    });
+    setInitialInput(undefined);
+    setResume(true);
+    setPhase('experience');
+  }, []);
+
+  const handleRecent = useCallback((entry: RecentEntry) => {
+    setRecents((prev) => {
+      const next = [entry, ...prev.filter((item) => item.experienceId !== entry.experienceId)].slice(0, 5);
+      saveRecents(next);
+      return next;
+    });
+  }, []);
+
+  if (phase === 'experience' && session) {
+    return (
+      <ExperienceScreen
+        session={session}
+        initialInput={initialInput}
+        resume={resume}
+        mode={mode}
+        providerLabel={providerLabel}
+        onSessionUpdate={setSession}
+        onRecent={handleRecent}
+        onExit={() => setPhase('home')}
+      />
+    );
+  }
+
+  return <HomeScreen recents={recents} onStart={start} onResume={resumeRecent} />;
 }

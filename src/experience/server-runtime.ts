@@ -19,6 +19,13 @@
  *   时拒绝启动并报错（不静默回退合成模式）。无该变量时运行时保持
  *   默认合成网关——行为与 S1–S4 完全一致。证据注入缝（上一条）
  *   优先于 LLM 模式。
+ * - 页面持久化配置（S5B；S5B-CONFIG-SURFACE-PROPOSAL-01 裁决
+ *   选项 A——产品负责人指令 2026-10-10）：运行时配置解析优先级
+ *   为证据注入缝 > 页面持久化配置 > 环境变量 > 合成默认。持久化
+ *   配置经 PersistedConfigLlmGateway 委托网关每次调用解析——用户
+ *   在配置面启用 / 禁用 / 删除提供方配置即时生效（单进程内存缓存，
+ *   无需重启）；无启用配置时委托合成网关，行为与 S1–S4 默认形态
+ *   完全一致（SEAM-INERT 不变式保持）。
  * - EXPERIENCE_GATEWAY_FAULT_MODE：注入网关故障形态——
  *   'unavailable'（默认，每次调用均失败）/ 'fail_once'（首次失败，
  *   后续委托合成网关）
@@ -33,9 +40,14 @@ import { ExperienceRuntime } from './runtime';
 import {
   EvidenceFaultLlmGateway,
   ProviderLlmGateway,
+  PROVIDER_PROFILES,
+  SyntheticLlmGateway,
   loadProviderGatewayConfig,
   type LlmGateway,
+  type LlmProposal,
+  type LlmRequest,
 } from './llm-gateway';
+import { getEnabledProviderConfig, hasEnabledPersistedConfigSync } from './config-store';
 import { allFixtures } from './chunks';
 import { createServerEventSink, serverEventLogPath } from './events';
 import {
@@ -45,21 +57,63 @@ import {
 import { createServerAuditSink, serverAuditLogPath } from './audit';
 
 /**
- * 解析服务端 LLM 网关（OBL-01 注入缝；S5 LLM 模式）。
+ * 解析服务端 LLM 网关（OBL-01 注入缝；S5 LLM 模式；S5B 页面
+ * 持久化配置）。
  * 优先级：EXPERIENCE_LLM_GATEWAY_SEAM === '1'（证据故障注入——
- * 证据 / 测试环境）> EXPERIENCE_LLM_MODE === 'provider'（LLM 模式——
- * S5A-SEMANTIC-FREEZE-01）> 默认合成网关（缝完全惰性——行为与
- * S1–S4 完全一致）。
+ * 证据 / 测试环境）> 页面持久化配置（S5B——用户页面添加的提供方
+ * 配置，单条启用）> EXPERIENCE_LLM_MODE === 'provider'（LLM 模式——
+ * S5A-SEMANTIC-FREEZE-01）> 合成默认网关。
+ *
+ * S5B 委托网关（PersistedConfigLlmGateway）：每次调用解析当前
+ * 启用的持久化配置——启用 / 禁用 / 删除经配置面即时生效；无启用
+ * 配置时委托 SyntheticLlmGateway（与运行时默认构造完全一致——
+ * 行为零变化）。环境变量形态保持 S5A 启动期校验语义（仅当无
+ * 持久化配置时解析——未登记提供方或 API key 缺失拒绝启动并报错，
+ * 不静默回退）。
  */
 function resolveServerGateway(): LlmGateway | undefined {
+  // 证据注入缝（S2a F-1 / OBL-01——证据 / 测试环境最高优先级）。
   if (process.env.EXPERIENCE_LLM_GATEWAY_SEAM !== '1') {
+    // S5B（D-1 选项 A）：页面持久化配置优先于环境变量形态。
+    if (hasEnabledPersistedConfigSync()) {
+      return new PersistedConfigLlmGateway();
+    }
     const providerConfig = loadProviderGatewayConfig();
     if (providerConfig) {
       return new ProviderLlmGateway(providerConfig);
     }
-    return undefined;
+    // 无任何配置时返回委托网关：无启用配置即委托合成网关——
+    // 与 S1–S4 默认形态行为完全一致；用户在配置面启用配置后
+    // 即时生效（无需重启）。
+    return new PersistedConfigLlmGateway();
   }
   return new EvidenceFaultLlmGateway(allFixtures());
+}
+
+/**
+ * S5B 页面持久化配置委托网关（model-agnostic——经 PROVIDER_PROFILES
+ * 已登记提供方规则族构造 ProviderLlmGateway；提供方身份由用户在
+ * 配置面选择，产品代码不写死任何提供方）。
+ */
+class PersistedConfigLlmGateway implements LlmGateway {
+  private synthetic?: SyntheticLlmGateway;
+
+  async propose(request: LlmRequest): Promise<LlmProposal> {
+    const persisted = await getEnabledProviderConfig();
+    if (persisted) {
+      const profile = PROVIDER_PROFILES[persisted.provider];
+      return new ProviderLlmGateway({
+        provider: persisted.provider,
+        endpoint: profile.endpoint,
+        model: persisted.model,
+        temperature: profile.temperature,
+        apiKey: persisted.apiKey,
+        systemPrompt: profile.systemPrompt,
+      }).propose(request);
+    }
+    this.synthetic ??= new SyntheticLlmGateway(allFixtures());
+    return this.synthetic.propose(request);
+  }
 }
 
 let serverRuntime: ExperienceRuntime | undefined;

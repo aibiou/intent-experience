@@ -71,7 +71,7 @@
   ],
   "evidence": {
     "trace": "traces/S2B-0001:ESCALATION-NEG.jsonl",
-    "traceSha256": "acd0c1227ea8b24bdebb751040be0ca80862bd59274cac5a1a9a6f545fa2f8f3",
+    "traceSha256": "a77c07c4f3fc82c0dc7d1fc5d59c1c398703dfef26e0c7e385432c872791bb36",
     "form": "in-process",
     "servers": []
   },

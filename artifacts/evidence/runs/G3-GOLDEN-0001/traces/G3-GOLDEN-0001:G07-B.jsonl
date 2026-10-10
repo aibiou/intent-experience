@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001:G07-B","event":"trace_started","at":"2026-10-10T09:20:41.251Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G07 Boundary；纠正后继续探索（有效上下文保留）；版本链 +1 不变式；PD-21","goldenCase":"G07","dimension":"BOUNDARY"}
-{"caseId":"G3-GOLDEN-0001:G07-B","event":"trace_completed","at":"2026-10-10T09:20:42.362Z","startedAt":"2026-10-10T09:20:41.250Z","durationMs":1112,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001:G07-B","event":"trace_started","at":"2026-10-10T10:11:01.178Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G07 Boundary；纠正后继续探索（有效上下文保留）；版本链 +1 不变式；PD-21","goldenCase":"G07","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G07-B","event":"trace_completed","at":"2026-10-10T10:11:02.295Z","startedAt":"2026-10-10T10:11:01.178Z","durationMs":1117,"result":"PASS","pass":true}

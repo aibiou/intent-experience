@@ -81,7 +81,7 @@
   ],
   "evidence": {
     "trace": "traces/G3-GOLDEN-0001:G09-B.jsonl",
-    "traceSha256": "c425193f30b233d4dcaef630c5234266956f5786f6bce1de4e8eaac5fb450169",
+    "traceSha256": "89ba67b06bdfea913f229c579573b4103c7c55749e4e8a168ad8f436780c73cd",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },
