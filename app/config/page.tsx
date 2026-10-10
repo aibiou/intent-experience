@@ -65,6 +65,11 @@ export default function ConfigPage() {
   const [editEndpoint, setEditEndpoint] = useState('');
   const [editApiKey, setEditApiKey] = useState('');
 
+  const [probedModels, setProbedModels] = useState<string[]>([]);
+  const [probing, setProbing] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showEditApiKey, setShowEditApiKey] = useState(false);
+
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -275,6 +280,48 @@ export default function ConfigPage() {
     setEndpoint(profile.default_endpoint ?? '');
   };
 
+  const probeModels = useCallback(async () => {
+    if (probing || endpoint.trim().length === 0 || apiKey.trim().length === 0) return;
+    setProbing(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/config/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: endpoint.trim(), api_key: apiKey }),
+      });
+      if (!response.ok) {
+        await handleApiError(response, '识别模型失败');
+        return;
+      }
+      const data = (await response.json()) as { models: string[] };
+      setProbedModels(data.models);
+    } finally {
+      setProbing(false);
+    }
+  }, [probing, endpoint, apiKey, handleApiError]);
+
+  const probeEditModels = useCallback(async () => {
+    if (probing || editEndpoint.trim().length === 0 || editApiKey.length === 0) return;
+    setProbing(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/config/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: editEndpoint.trim(), api_key: editApiKey }),
+      });
+      if (!response.ok) {
+        await handleApiError(response, '识别模型失败');
+        return;
+      }
+      const data = (await response.json()) as { models: string[] };
+      setProbedModels(data.models);
+    } finally {
+      setProbing(false);
+    }
+  }, [probing, editEndpoint, editApiKey, handleApiError]);
+
   return (
     <main className="config-page">
       <header className="config-header">
@@ -291,9 +338,9 @@ export default function ConfigPage() {
 
       <p className="config-intro">
         任何 OpenAI 兼容提供方都可以直接配置：填写提供方名称、端点（chat/completions
-        URL）、模型名与 API key——无需登记。API key 仅以密文持久化（AES-256-GCM
-        静态加密，加密密钥经环境变量注入、与密文分离）；明文只在运行期内存中，不进日志、
-        不进证据产物、不进 git。启用前须完成隐私再确认。
+        URL）、模型名与 API key——无需登记；模型名可点击「识别模型」自动获取。API key
+        仅以密文持久化（AES-256-GCM 静态加密，加密密钥经环境变量注入、与密文分离）；
+        明文只在运行期内存中，不进日志、不进证据产物、不进 git。启用前须完成隐私再确认。
       </p>
 
       {encryptionKeyMissing && (
@@ -354,24 +401,62 @@ export default function ConfigPage() {
           </div>
           <div className="config-field">
             <label htmlFor="config-model">模型</label>
-            <input
-              id="config-model"
-              className="config-input"
-              value={model}
-              onChange={(event) => setModel(event.target.value)}
-              placeholder="模型名"
-            />
+            <div className="config-model-row">
+              <input
+                id="config-model"
+                className="config-input"
+                value={model}
+                onChange={(event) => setModel(event.target.value)}
+                placeholder="模型名（可自动识别）"
+                list="config-models"
+              />
+              <datalist id="config-models">
+                {probedModels.map((entry) => (
+                  <option key={entry} value={entry} />
+                ))}
+              </datalist>
+              <button
+                type="button"
+                className="config-button config-button-quiet"
+                onClick={() => void probeModels()}
+                disabled={probing || endpoint.trim().length === 0 || apiKey.trim().length === 0}
+                title={
+                  endpoint.trim().length === 0 || apiKey.trim().length === 0
+                    ? '需先填写端点与 API key'
+                    : '向端点 /models 发起请求（仅发送上方填写的 key）'
+                }
+              >
+                <RefreshIcon size={14} /> 识别模型
+              </button>
+            </div>
+            <p className="config-field-hint">
+              识别将向端点 /models 发起请求（仅发送上方填写的 key）；不支持该接口的提供方可手动填写。
+            </p>
           </div>
           <div className="config-field">
             <label htmlFor="config-api-key">API key</label>
-            <input
-              id="config-api-key"
-              className="config-input"
-              type="password"
-              value={apiKey}
-              onChange={(event) => setApiKey(event.target.value)}
-              placeholder="仅本次输入可见，随后仅以密文保存"
-            />
+            <div className="config-model-row">
+              <input
+                id="config-api-key"
+                className="config-input"
+                type={showApiKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+                placeholder="输入时默认隐藏"
+              />
+              <button
+                type="button"
+                className="config-button config-button-quiet"
+                onClick={() => setShowApiKey((value) => !value)}
+                disabled={apiKey.length === 0}
+                title={showApiKey ? '隐藏 key' : '显示 key'}
+              >
+                {showApiKey ? '隐藏' : '显示'}
+              </button>
+            </div>
+            <p className="config-field-hint">
+              保存后 key 不可再查看（仅以密文持久化——安全设计）；编辑时留空即保持不变。
+            </p>
           </div>
           <button
             type="button"
@@ -414,12 +499,28 @@ export default function ConfigPage() {
                   <div className="config-form config-form-edit">
                     <div className="config-field">
                       <label htmlFor={`edit-model-${config.id}`}>模型</label>
-                      <input
-                        id={`edit-model-${config.id}`}
-                        className="config-input"
-                        value={editModel}
-                        onChange={(event) => setEditModel(event.target.value)}
-                      />
+                      <div className="config-model-row">
+                        <input
+                          id={`edit-model-${config.id}`}
+                          className="config-input"
+                          value={editModel}
+                          onChange={(event) => setEditModel(event.target.value)}
+                          list="config-models"
+                        />
+                        <button
+                          type="button"
+                          className="config-button config-button-quiet"
+                          onClick={() => void probeEditModels()}
+                          disabled={probing || editEndpoint.trim().length === 0 || editApiKey.length === 0}
+                          title={
+                            editApiKey.length === 0
+                              ? '重新输入 API key 后可识别'
+                              : '向端点 /models 发起请求（仅发送重新输入的 key）'
+                          }
+                        >
+                          <RefreshIcon size={14} /> 识别模型
+                        </button>
+                      </div>
                     </div>
                     <div className="config-field">
                       <label htmlFor={`edit-endpoint-${config.id}`}>端点</label>
@@ -432,13 +533,25 @@ export default function ConfigPage() {
                     </div>
                     <div className="config-field">
                       <label htmlFor={`edit-key-${config.id}`}>API key（留空保持不变）</label>
-                      <input
-                        id={`edit-key-${config.id}`}
-                        className="config-input"
-                        type="password"
-                        value={editApiKey}
-                        onChange={(event) => setEditApiKey(event.target.value)}
-                      />
+                      <div className="config-model-row">
+                        <input
+                          id={`edit-key-${config.id}`}
+                          className="config-input"
+                          type={showEditApiKey ? 'text' : 'password'}
+                          value={editApiKey}
+                          onChange={(event) => setEditApiKey(event.target.value)}
+                          placeholder="留空保持不变——已保存的 key 不可查看"
+                        />
+                        <button
+                          type="button"
+                          className="config-button config-button-quiet"
+                          onClick={() => setShowEditApiKey((value) => !value)}
+                          disabled={editApiKey.length === 0}
+                          title={showEditApiKey ? '隐藏 key' : '显示 key'}
+                        >
+                          {showEditApiKey ? '隐藏' : '显示'}
+                        </button>
+                      </div>
                     </div>
                     <div className="config-actions">
                       <button
@@ -472,6 +585,12 @@ export default function ConfigPage() {
                         {endpointHost(config.endpoint)}
                       </span>
                       <span className="config-badges">
+                        <span
+                          className="badge"
+                          title="API key 已以 AES-256-GCM 密文保存——不可查看（安全设计）；编辑时留空保持不变"
+                        >
+                          <KeyIcon size={12} /> key 已保存
+                        </span>
                         {config.enabled ? (
                           <span className="badge badge-enabled">已启用</span>
                         ) : (
