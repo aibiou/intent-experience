@@ -62,6 +62,16 @@ a:hover {
   min-height: 100vh;
 }
 
+/* 体验页定高布局：对话区内部滚动——流式输出增长
+   不撑开整页（输入区 / 快捷区固定于视口底部）。 */
+.experience {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 20px 20px 14px;
+  overflow: hidden;
+}
+
 .wordmark {
   font-size: 12px;
   letter-spacing: 0.35em;
@@ -337,6 +347,11 @@ a:hover {
   flex-direction: column;
   gap: 14px;
   margin-bottom: 20px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .conversation-empty {

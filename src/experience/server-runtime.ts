@@ -113,6 +113,38 @@ class PersistedConfigLlmGateway implements LlmGateway {
     this.synthetic ??= new SyntheticLlmGateway(allFixtures());
     return this.synthetic.propose(request);
   }
+
+  /**
+   * 增量流式能力（S5A-SEMANTIC-FREEZE-01 v1.2.0 / CR-38）：
+   * 随启用配置即时变化——有启用持久化配置时返回真流式
+   * 委托（ProviderLlmGateway.proposeStream——SSE delta
+   * 逐片产出）；无启用配置时返回 undefined（运行期经
+   * 可选方法存在性判定回退静态路径——合成形态行为
+   * 零变化，黄金回归不变式）。
+   */
+  get proposeStream(): ((request: LlmRequest) => AsyncIterable<string>) | undefined {
+    if (!hasEnabledPersistedConfigSync()) {
+      return undefined;
+    }
+    return async function* (request: LlmRequest): AsyncIterable<string> {
+      const persisted = await getEnabledProviderConfig();
+      if (!persisted) {
+        // 配置于判定后禁用（竞态）——失败上抛，由运行期
+        // 按流中断处理（不静默回退——与失败语义一致）。
+        throw new Error(
+          'llm provider upstream unavailable (persisted config disabled mid-request)',
+        );
+      }
+      yield* new ProviderLlmGateway({
+        provider: persisted.provider,
+        endpoint: persisted.endpoint,
+        model: persisted.model,
+        temperature: persisted.temperature,
+        apiKey: persisted.apiKey,
+        systemPrompt: persisted.systemPrompt,
+      }).proposeStream(request);
+    };
+  }
 }
 
 let serverRuntime: ExperienceRuntime | undefined;

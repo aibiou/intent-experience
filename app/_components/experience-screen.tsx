@@ -98,6 +98,8 @@ export function ExperienceScreen({
   const idCounter = useRef(0);
   const sendingRef = useRef(false);
   const startedRef = useRef(false);
+  const conversationRef = useRef<HTMLDivElement>(null);
+  const followRef = useRef(true);
 
   const nextId = () => (idCounter.current += 1);
 
@@ -351,6 +353,22 @@ export function ExperienceScreen({
     }
   }, [initialInput, resume, send]);
 
+  // 流式自动跟随：内容增长时滚动到底部——用户上滚
+  // 查阅历史时（距底超过阈值）不打扰（不抢回滚动）。
+  const handleConversationScroll = () => {
+    const element = conversationRef.current;
+    if (!element) return;
+    followRef.current =
+      element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+  };
+
+  useEffect(() => {
+    const element = conversationRef.current;
+    if (element && followRef.current) {
+      element.scrollTop = element.scrollHeight;
+    }
+  }, [messages]);
+
   const branchActive = currentBranchId !== null;
 
   const dockActions = useMemo<DockAction[]>(() => {
@@ -401,7 +419,11 @@ export function ExperienceScreen({
         </span>
       </header>
 
-      <div className="conversation">
+      <div
+        ref={conversationRef}
+        className="conversation"
+        onScroll={handleConversationScroll}
+      >
         {messages.length === 0 && !pending && (
           <p className="conversation-empty">开始你的探索。</p>
         )}
