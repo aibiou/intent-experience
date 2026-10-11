@@ -346,10 +346,15 @@ function extractProviderDelta(parsed: unknown): string | undefined {
 function renderProviderUserMessage(context: unknown): string {
   // 确定性映射（S5A-SEMANTIC-FREEZE-01 §1 D-2）：LlmRequest.context
   // 为运行时构造的 { raw_input, memory_signals } 形态；缺失该形态时
-  // 回退 JSON.stringify（防御性兜底——确定性）。
+  // 回退 JSON.stringify（防御性兜底——确定性）。generation_note 为
+  // 运行时多模态编排感知注入（可选行，置于用户输入之前）。
   if (context !== null && typeof context === 'object' && 'raw_input' in context) {
-    const c = context as { raw_input: unknown; memory_signals?: unknown };
-    return [String(c.raw_input), '[memory_signals]', JSON.stringify(c.memory_signals ?? [])].join('\n');
+    const c = context as { raw_input: unknown; memory_signals?: unknown; generation_note?: unknown };
+    const note =
+      typeof c.generation_note === 'string' && c.generation_note.length > 0
+        ? `[系统编排] ${c.generation_note}\n\n`
+        : '';
+    return [`${note}${String(c.raw_input)}`, '[memory_signals]', JSON.stringify(c.memory_signals ?? [])].join('\n');
   }
   return JSON.stringify(context ?? null);
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import {
   ArrowRightIcon,
@@ -16,6 +16,9 @@ import {
   HistoryIcon,
   ImageIcon,
   VideoIcon,
+  TrashIcon,
+  XIcon,
+  LogoMark,
 } from './icons';
 import { creationSrc, timeAgo, type CreationEntry } from './creations';
 import { ExperienceCover } from './experience-cover';
@@ -32,7 +35,6 @@ export interface RecentEntry {
   stateVersion: number;
   topic: string;
   at: string;
-
 }
 
 type FeedTab = 'featured' | 'hot' | 'fresh';
@@ -77,11 +79,21 @@ function greeting(): string {
   return '晚上好';
 }
 
+// 封面高度分档（画廊瀑布流的节奏感）——同一体验永远同一档。
+function coverTier(id: string): 'cover-tall' | 'cover-square' | 'cover-wide' {
+  let hash = 0;
+  for (let index = 0; index < id.length; index += 1) {
+    hash = (hash * 31 + id.charCodeAt(index)) >>> 0;
+  }
+  return (['cover-tall', 'cover-square', 'cover-wide'] as const)[hash % 3];
+}
+
 interface HomeScreenProps {
   recents: RecentEntry[];
   creations: CreationEntry[];
   onStart: (input: string) => void;
   onResume: (recent: RecentEntry) => void;
+  onDeleteCreation: (id: string) => void;
 }
 
 const CREATION_MODALITY_LABELS: Record<CreationEntry['modality'], string> = {
@@ -100,11 +112,18 @@ const ENTRY_HINTS: readonly string[] = [
   '做个极简像素头像……',
 ];
 
+interface LightboxState {
+  src: string;
+  modality: CreationEntry['modality'];
+  prompt: string;
+}
+
 export function HomeScreen({
   recents,
   creations,
   onStart,
   onResume,
+  onDeleteCreation,
 }: HomeScreenProps) {
   const [draft, setDraft] = useState('');
   const [query, setQuery] = useState('');
@@ -112,6 +131,8 @@ export function HomeScreen({
   const [category, setCategory] = useState<ExperienceCategory | null>(null);
   const [pulseIndex, setPulseIndex] = useState(0);
   const [hintIndex, setHintIndex] = useState(0);
+  const [lightbox, setLightbox] = useState<LightboxState | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
   // 脉搏轮转：每 4 秒换一条，像社区的实时感。
   useEffect(() => {
@@ -128,6 +149,16 @@ export function HomeScreen({
     }, 4000);
     return () => clearInterval(timer);
   }, []);
+
+  // Lightbox：Esc 关闭。
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setLightbox(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightbox]);
 
   const catalog = useMemo(() => {
     const base = rotate(EXPERIENCE_CATALOG, dayBucket());
@@ -165,6 +196,7 @@ export function HomeScreen({
     const input = draft.trim();
     if (input.length === 0) return;
     setDraft('');
+    if (composerRef.current) composerRef.current.style.height = 'auto';
     onStart(input);
   };
 
@@ -178,6 +210,13 @@ export function HomeScreen({
     onStart(seed.prompt);
   };
 
+  const resizeComposer = () => {
+    const element = composerRef.current;
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${Math.min(element.scrollHeight, 96)}px`;
+  };
+
   const gridSeeds: ExperienceSeed[] =
     tab === 'featured' && !query && !category
       ? catalog.filter((seed) => seed.id !== featuredFirst.id)
@@ -185,10 +224,19 @@ export function HomeScreen({
 
   const pulseKey = `${pulseVerb}-${pulseSeed.id}-${pulseCount}`;
 
+  const openCreation = (creation: CreationEntry) => {
+    const src = creationSrc(creation);
+    if (src === undefined || creation.modality === 'voice') return;
+    setLightbox({ src, modality: creation.modality, prompt: creation.prompt });
+  };
+
   return (
     <main className="home">
       <nav className="topbar">
-        <span className="wordmark">个人体验引擎</span>
+        <span className="brand">
+          <LogoMark size={22} />
+          <span className="wordmark">个人体验引擎</span>
+        </span>
         <div className="searchbar">
           <SearchIcon size={15} />
           <input
@@ -205,7 +253,9 @@ export function HomeScreen({
       </nav>
 
       <header className="home-hero">
-        <h1 className="home-title">{greeting()}，现在想要什么？</h1>
+        <h1 className="home-title">
+          {greeting()}，<span className="home-title-accent">现在想要什么？</span>
+        </h1>
         <p className="home-sub">不用想太多——选一个像你现在的样子。</p>
         <div className="state-row">
           {STATE_CHOICES.map((choice) => (
@@ -264,22 +314,15 @@ export function HomeScreen({
             onClick={() => onStart(featuredFirst.prompt)}
           >
             <ExperienceCover seed={featuredFirst} />
-            <div className="card-body">
-              <div className="card-title-row">
-                <h3>{featuredFirst.title}</h3>
+            <div className="featured-overlay">
+              <span className="featured-eyebrow">
+                今日精选
                 <span className="hot-badge">
                   <FlameIcon size={12} /> {featuredFirst.hot}
                 </span>
-              </div>
-              <p className="card-summary">{featuredFirst.summary}</p>
-              <div className="card-tags">
-                {featuredFirst.tags.map((tag) => (
-                  <span key={tag} className="tag">{tag}</span>
-                ))}
-                <span className="tag tag-category">
-                  {CATEGORY_LABELS[featuredFirst.category]}
-                </span>
-              </div>
+              </span>
+              <h3>{featuredFirst.title}</h3>
+              <p>{featuredFirst.summary}</p>
               <span className="card-cta">
                 开始探索 <ArrowRightIcon size={14} />
               </span>
@@ -292,26 +335,29 @@ export function HomeScreen({
             <button
               key={seed.id}
               type="button"
-              className="card"
+              className="card card-gallery"
               onClick={() => onStart(seed.prompt)}
             >
-              <ExperienceCover seed={seed} />
-              <div className="card-body">
-                <div className="card-title-row">
-                  <h3>{seed.title}</h3>
-                  {seed.hot >= 60 && (
-                    <span className="hot-badge">
-                      <FlameIcon size={12} /> {seed.hot}
-                    </span>
-                  )}
-                </div>
+              <ExperienceCover seed={seed} className={coverTier(seed.id)} />
+              {seed.hot >= 60 && (
+                <span className="hot-badge cover-hot">
+                  <FlameIcon size={12} /> {seed.hot}
+                </span>
+              )}
+              <span className="tag tag-category cover-category">
+                {CATEGORY_LABELS[seed.category]}
+              </span>
+              <div className="card-overlay">
+                <h3>{seed.title}</h3>
                 <p className="card-summary">{seed.summary}</p>
                 <div className="card-tags">
                   {seed.tags.map((tag) => (
                     <span key={tag} className="tag">{tag}</span>
                   ))}
-                  <span className="tag tag-category">{CATEGORY_LABELS[seed.category]}</span>
                 </div>
+                <span className="card-cta">
+                  开始探索 <ArrowRightIcon size={14} />
+                </span>
               </div>
             </button>
           ))}
@@ -324,45 +370,13 @@ export function HomeScreen({
         )}
       </section>
 
-      <p className="home-divider">或直接说</p>
-
-      <div className="free-entry">
-        <textarea
-          className="free-entry-input"
-          rows={2}
-          placeholder={ENTRY_HINTS[hintIndex]}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-              event.preventDefault();
-              submit();
-            }
-          }}
-        />
-        <div className="free-entry-actions">
-          <span className="free-entry-hint">
-            <MicIcon size={14} /> 也可以直接说
-          </span>
-          <button
-            type="button"
-            className="send-button"
-            onClick={submit}
-            disabled={draft.trim().length === 0}
-            aria-label="发送"
-          >
-            <SendIcon size={16} />
-          </button>
-        </div>
-      </div>
-
       {creations.length > 0 && (
         <section className="creations">
           <h2 className="creations-title">
-            作品
+            我的作品
             <span className="creations-count">{creations.length}</span>
           </h2>
-          <div className="creations-row">
+          <div className="creations-wall">
             {creations.map((creation) => {
               const src = creationSrc(creation);
               return (
@@ -371,16 +385,18 @@ export function HomeScreen({
                     <button
                       type="button"
                       className="creation-media"
-                      onClick={() => window.open(src, '_blank')}
+                      onClick={() => openCreation(creation)}
+                      title="点击放大查看"
                     >
-                      <img src={src} alt={creation.prompt} />
+                      <img src={src} alt={creation.prompt} loading="lazy" />
                     </button>
                   )}
                   {creation.modality === 'video' && src !== undefined && (
                     <button
                       type="button"
                       className="creation-media"
-                      onClick={() => window.open(src, '_blank')}
+                      onClick={() => openCreation(creation)}
+                      title="点击播放"
                     >
                       <video muted playsInline preload="metadata" src={src} />
                       <span className="creation-play" aria-hidden="true">
@@ -394,15 +410,26 @@ export function HomeScreen({
                       <audio controls src={src} />
                     </div>
                   )}
-                  <div className="creation-body">
-                    <span className={`gen-tag gen-tag-${creation.modality}`}>
-                      {CREATION_MODALITY_LABELS[creation.modality]}
-                    </span>
+                  <div className="creation-hover">
                     <p className="creation-prompt" title={creation.prompt}>
                       {creation.prompt}
                     </p>
-                    <span className="creation-time">{timeAgo(creation.at)}</span>
+                    <div className="creation-meta">
+                      <span className={`gen-tag gen-tag-${creation.modality}`}>
+                        {CREATION_MODALITY_LABELS[creation.modality]}
+                      </span>
+                      <span className="creation-time">{timeAgo(creation.at)}</span>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    className="creation-delete"
+                    aria-label="删除作品"
+                    title="删除作品"
+                    onClick={() => onDeleteCreation(creation.id)}
+                  >
+                    <TrashIcon size={13} />
+                  </button>
                 </article>
               );
             })}
@@ -427,6 +454,66 @@ export function HomeScreen({
             ))}
           </div>
         </section>
+      )}
+
+      {/* 悬浮创作条——liblib 式永在入口，居中胶囊随滚动常驻。 */}
+      <div className="composer-dock">
+        <textarea
+          ref={composerRef}
+          className="composer-input"
+          rows={1}
+          placeholder={ENTRY_HINTS[hintIndex]}
+          value={draft}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            resizeComposer();
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+              event.preventDefault();
+              submit();
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="composer-send"
+          onClick={submit}
+          disabled={draft.trim().length === 0}
+          aria-label="发送"
+        >
+          <SendIcon size={15} />
+        </button>
+      </div>
+
+      {lightbox && (
+        <div
+          className="lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label="作品查看"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            type="button"
+            className="lightbox-close"
+            aria-label="关闭"
+            onClick={() => setLightbox(null)}
+          >
+            <XIcon size={18} />
+          </button>
+          <div
+            className="lightbox-body"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {lightbox.modality === 'video' ? (
+              <video controls autoPlay src={lightbox.src} />
+            ) : (
+              <img src={lightbox.src} alt={lightbox.prompt} />
+            )}
+            <p className="lightbox-prompt">{lightbox.prompt}</p>
+          </div>
+        </div>
       )}
     </main>
   );

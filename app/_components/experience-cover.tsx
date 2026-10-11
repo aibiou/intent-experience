@@ -118,14 +118,21 @@ function motifElements(motif: CoverMotif, seed: number): React.ReactNode {
   return <g>{dots}</g>;
 }
 
-export function ExperienceCover({ seed }: { seed: ExperienceSeed }) {
+export function ExperienceCover({
+  seed,
+  className,
+}: {
+  seed: ExperienceSeed;
+  /** 附加容器类——画廊瀑布流按封面高度分档（cover-tall 等）。 */
+  className?: string;
+}) {
   const hash = hashString(seed.id);
   const hue = seed.hue + (hash % 24) - 12;
   const hue2 = seed.hue2 + (hash % 20) - 10;
   const gradientId = `cover-${seed.id}`;
   const Icon = CATEGORY_ICONS[seed.category];
   return (
-    <div className="card-cover" aria-hidden="true">
+    <div className={`card-cover${className ? ` ${className}` : ''}`} aria-hidden="true">
       <svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">

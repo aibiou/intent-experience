@@ -152,6 +152,12 @@ function firstDataEntry(parsed: unknown): Record<string, unknown> | null {
 function extractUrl(entry: Record<string, unknown>): string | undefined {
   const direct = entry.url;
   if (typeof direct === 'string' && direct.length > 0) return direct;
+  // 官方文档：任务完成响应的产物地址在 metadata.url。
+  const metadata = entry.metadata;
+  if (metadata !== null && typeof metadata === 'object') {
+    const nested = (metadata as { url?: unknown }).url;
+    if (typeof nested === 'string' && nested.length > 0) return nested;
+  }
   const output = entry.output;
   if (output !== null && typeof output === 'object') {
     const nested = (output as { url?: unknown }).url;
@@ -168,11 +174,11 @@ const VIDEO_POLL_INTERVAL_MS = 1_500;
 // 须容纳排队 + 处理——过短会把正在
 // 处理的任务误判为失败。
 const VIDEO_POLL_TIMEOUT_MS = 420_000;
-// 任务创建瞬态失败重试（免费档限速 /
-// 队列满常见——退避 3 次，间隔递增；
-// 重试窗口合计约 2 分钟，与 420 秒
-// 任务超时互补）。
-const VIDEO_CREATE_RETRY_DELAYS_MS = [20_000, 40_000, 60_000];
+// 任务创建瞬态失败重试（免费档限速 / 队列满常见——
+// 实测「视频队列已满」可持续 10 分钟以上，退避 4 段
+// 约 5 分钟，尽量 ride out 短时队列波动；仍满则把
+// 重试指引交给用户）。重试等待期进度 0 =「排队中」。
+const VIDEO_CREATE_RETRY_DELAYS_MS = [30_000, 60_000, 90_000, 120_000];
 // 轮询自身瞬态失败（限速）的等待——
 // 任务仍在队列里，不应因此判失败。
 const POLL_RETRY_WAIT_MS = 5_000;
@@ -268,18 +274,21 @@ export async function generateVideo(
   prompt: string,
   onProgress?: (progress: number) => void,
 ): Promise<GenerationArtifact> {
-  // 官方文档最佳实践（Agnes Video 2.5 Flash——
-  // 异步任务接口）：POST /videos 创建任务
-  // （mode 为生成模式 text/keyframe/reference——
-  // 非质量档位；size 固定 720P），保存返回的
-  // video_id 后轮询 GET /agnesapi 直至
-  // status=completed，从响应顶层 url 取产物。
+  // 官方文档契约（Agnes Video 2.5 Flash——docs/agnes-video-25-flash，
+  // OpenAI Videos 兼容异步任务接口）：POST /videos 创建任务
+  // （mode 为生成模式 text/keyframe/reference；size 固定 "720P"；
+  // seconds 为字符串 "4"–"12"），保存 video_id 后轮询
+  // GET /agnesapi?video_id=&model_name= 直至 status=completed，
+  // 产物在响应顶层 url。注意与 agnes-video-v2.0 的文档是两代
+  // 契约（V2.0 用 width/height/num_frames、产物在 metadata.url
+  // ——对本模型发 height 会被 400「禁止字段」拒绝，实测 2026-10-11）。
+  // 503 = 服务忙（队列满）——按瞬态退避重试处理。
   const createTask = () =>
     callProvider(config, '/videos', {
       model: config.model,
       prompt,
       mode: 'text',
-      seconds: '5',
+      seconds: '4',
       size: '720P',
       aspect_ratio: '16:9',
     });

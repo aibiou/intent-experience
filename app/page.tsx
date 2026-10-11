@@ -77,6 +77,14 @@ export default function HomePage() {
     });
   }, []);
 
+  const handleDeleteCreation = useCallback((id: string) => {
+    setCreations((prev) => {
+      const next = prev.filter((item) => item.id !== id);
+      saveCreations(next);
+      return next;
+    });
+  }, []);
+
   const start = useCallback(async (input: string) => {
     try {
       const response = await fetch('/api/session/start', { method: 'POST' });
@@ -111,7 +119,16 @@ export default function HomePage() {
 
   const handleRecent = useCallback((entry: RecentEntry) => {
     setRecents((prev) => {
-      const next = [entry, ...prev.filter((item) => item.experienceId !== entry.experienceId)].slice(0, 5);
+      // 去重双维度：同一会话去重（续聊不堆叠）+ 同主题去重
+      // （不同会话聊同一话题只保留最新——重复 chip 无用户价值）。
+      const next = [
+        entry,
+        ...prev.filter(
+          (item) =>
+            item.experienceId !== entry.experienceId &&
+            item.topic.trim() !== entry.topic.trim(),
+        ),
+      ].slice(0, 5);
       saveRecents(next);
       return next;
     });
@@ -139,6 +156,7 @@ export default function HomePage() {
       creations={creations}
       onStart={start}
       onResume={resumeRecent}
+      onDeleteCreation={handleDeleteCreation}
     />
   );
 }

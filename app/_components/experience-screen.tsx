@@ -1,5 +1,7 @@
 'use client';
 
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeftIcon,
@@ -60,6 +62,9 @@ interface GenerationState {
   message?: string;
   /** 生成进度（0–100——视频异步任务轮询透传）。 */
   progress?: number;
+  /** 锚定消息 id（内联渲染在产生它的那条回答下方——
+   * 问答与产物同一滚动流，可持续查看）。 */
+  anchor?: number;
 }
 
 const GENERATION_MODALITY_LABELS: Record<GenerationState['modality'], string> = {
@@ -67,6 +72,48 @@ const GENERATION_MODALITY_LABELS: Record<GenerationState['modality'], string> = 
   video: '视频',
   voice: '语音',
 };
+
+/**
+ * 生成失败文案主次分离：人性化指引为主行，提供方
+ * 技术细节（humanized 文案尾部括注）降级为次行
+ * （产品可用性——用户不必面对英文错误堆）。
+ */
+function splitGenerationDetail(message?: string): { main: string; detail: string | null } {
+  const text = message ?? '';
+  const marker = text.indexOf('（generation');
+  if (marker === -1) return { main: text, detail: null };
+  const main = text.slice(0, marker).trim();
+  const detail = (
+    text.endsWith('）') ? text.slice(marker + 1, -1) : text.slice(marker + 1)
+  ).trim();
+  return { main, detail: detail.length > 0 ? detail : null };
+}
+
+/**
+ * 助手回复轻量 Markdown 渲染——提供方输出普遍带
+ * 标题/加粗/列表记号，裸吐记号是体验硬伤。仅覆盖
+ * 常见形态（井号标题、双星加粗、反引号行内码、
+ * 星号/连字符/数字列表），不引第三方库；
+ * 用户与系统消息保持原样。
+ */
+/**
+ * AI 回答 Markdown 渲染（2026-10-11 全视角审计 P0——此前
+ * 自研 formatRichText 不支持表格 / 引用 / 分隔线，模型输出
+ * 的 GFM 表格以裸管道符呈现）。react-markdown 默认转义
+ * HTML——无注入面；流式期间随文本增长重解析。
+ */
+function MarkdownContent({ text }: { text: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        a: (props) => <a {...props} target="_blank" rel="noreferrer" />,
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+}
 
 const ACTION_LABELS: Record<string, string> = {
   DIRECT_ANSWER: '回应',
@@ -126,6 +173,9 @@ export function ExperienceScreen({
   // 各模态本轮生成的提示词——完成事件不携带
   // 提示词，作品持久化需要它（started 时记录）。
   const pendingPromptRef = useRef(new Map<string, string>());
+  // 当前轮助手消息 id——generation started 事件的
+  // 内联锚点（产物挂在引发它的那条回答下面）。
+  const lastAssistantIdRef = useRef<number | null>(null);
   const conversationRef = useRef<HTMLDivElement>(null);
   const followRef = useRef(true);
 
@@ -136,15 +186,27 @@ export function ExperienceScreen({
     const modality = String(event.modality ?? '') as GenerationState['modality'];
     if (status === 'started') {
       pendingPromptRef.current.set(modality, String(event.prompt ?? ''));
-      setGenerations((prev) => [
-        ...prev,
-        {
-          id: nextId(),
+      setGenerations((prev) => {
+        // 去重防护：同锚点同模态仍有 pending 卡片时替换
+        // 而非叠加（事件重复 / 重放不产生双卡）。
+        const duplicateIndex = prev.findIndex(
+          (item) =>
+            item.status === 'pending' &&
+            item.modality === modality &&
+            item.anchor === lastAssistantIdRef.current,
+        );
+        const card = {
+          id: duplicateIndex !== -1 ? prev[duplicateIndex].id : nextId(),
           modality,
-          status: 'pending',
+          status: 'pending' as const,
           prompt: String(event.prompt ?? ''),
-        },
-      ]);
+          anchor: lastAssistantIdRef.current ?? undefined,
+        };
+        if (duplicateIndex === -1) return [...prev, card];
+        const next = [...prev];
+        next[duplicateIndex] = card;
+        return next;
+      });
       return;
     }
     if (status === 'progress') {
@@ -325,6 +387,10 @@ export function ExperienceScreen({
             const data = (await response.json()) as Record<string, unknown>;
             if (data.code === 'INVALID_ACTION') {
               errorMessage = '这个问题我还不确定怎么接——换个说法，或选一个方向。';
+            } else if (data.code === 'INVALID_STATE_TRANSITION') {
+              // 状态机拒绝（如创作会话内换方向）——中文可行动指引，
+              // 不裸吐内部英文。
+              errorMessage = '这一步和当前阶段接不上——试试「继续」，或从下面的方向里选一个。';
             } else if (
               typeof data.message === 'string' &&
               data.message.startsWith('unknown session')
@@ -333,7 +399,11 @@ export function ExperienceScreen({
               // globalThis 单例挡住——此条仅兜底完整重启）。
               errorMessage = '服务刚重启过，这段体验的会话已失效——返回首页重新开始即可。';
             } else if (typeof data.message === 'string') {
-              errorMessage = data.message;
+              // 提供方 / 内部错误原文可能是英文——无中文时换
+              // 通用可行动文案，不裸吐。
+              errorMessage = /[\u4e00-\u9fff]/.test(data.message)
+                ? data.message
+                : '出了点问题——请再试一次，或换个说法。';
             }
           } catch {
             // 非 JSON 错误体——使用默认文案
@@ -371,6 +441,7 @@ export function ExperienceScreen({
 
             if (event.type === 'submission') {
               assistantId = nextId();
+              lastAssistantIdRef.current = assistantId;
               const semanticAction =
                 typeof event.policy_decision === 'object' && event.policy_decision !== null
                   ? String((event.policy_decision as Record<string, unknown>).semantic_action)
@@ -489,9 +560,25 @@ export function ExperienceScreen({
     if (element && followRef.current) {
       element.scrollTop = element.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, generations]);
 
   const branchActive = currentBranchId !== null;
+
+  // 内联生成物索引：锚定消息 id → 该回答下方的产物卡片
+  // （问答与生成物同一滚动流——产物随对话持续可查看）。
+  const generationsByAnchor = useMemo(() => {
+    const map = new Map<number, GenerationState[]>();
+    for (const item of generations) {
+      if (item.anchor === undefined) continue;
+      const list = map.get(item.anchor);
+      if (list !== undefined) {
+        list.push(item);
+      } else {
+        map.set(item.anchor, [item]);
+      }
+    }
+    return map;
+  }, [generations]);
 
   const dockActions = useMemo<DockAction[]>(() => {
     const list: DockAction[] = [];
@@ -536,9 +623,6 @@ export function ExperienceScreen({
           <ArrowLeftIcon size={16} /> 返回
         </button>
         <StageRail stage={sessionState.stage} branchActive={branchActive} />
-        <span className={`mode-badge mode-${mode}`}>
-          {mode === 'provider' ? `模型 ${providerLabel ?? ''}` : '合成演示'}
-        </span>
       </header>
 
       <div
@@ -550,62 +634,109 @@ export function ExperienceScreen({
           <p className="conversation-empty">开始你的探索。</p>
         )}
         {messages.map((message) => (
-          <div key={message.id} className={`message message-${message.role}`}>
-            {message.role === 'assistant' && message.semanticAction && (
-              <span className="message-tag">
-                {ACTION_LABELS[message.semanticAction] ?? message.semanticAction}
-              </span>
-            )}
-            <span className={`message-text${message.streaming ? ' is-streaming' : ''}`}>
-              {message.text}
-              {message.streaming && <span className="stream-cursor" aria-hidden="true" />}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {generations.length > 0 && (
-        <section className="generations">
-          <h2 className="generations-title">生成物</h2>
-          <div className="generations-row">
-            {generations.map((item) => (
+          <div key={message.id} className="message-flow">
+            <div className={`message message-${message.role}`}>
+              {message.role === 'assistant' && message.semanticAction && (
+                <span className="message-tag">
+                  {ACTION_LABELS[message.semanticAction] ?? message.semanticAction}
+                </span>
+              )}
+              {message.role === 'assistant' ? (
+                <div
+                  className={`message-text is-rich message-md${
+                    message.streaming ? ' is-streaming' : ''
+                  }`}
+                >
+                  <MarkdownContent text={message.text} />
+                  {message.streaming && <span className="stream-cursor" aria-hidden="true" />}
+                </div>
+              ) : (
+                <span className="message-text">
+                  {message.text}
+                  {message.streaming && <span className="stream-cursor" aria-hidden="true" />}
+                </span>
+              )}
+            </div>
+            {generationsByAnchor.get(message.id)?.map((item) => (
               <article
                 key={item.id}
                 className={`gen-card gen-${item.modality} gen-${item.status}`}
               >
                 {item.status === 'pending' && (
                   <div className="gen-pending">
-                    <span className="gen-pending-dot" aria-hidden="true" />
-                    <span>{GENERATION_MODALITY_LABELS[item.modality]}生成中…</span>
-                    {typeof item.progress === 'number' && item.progress > 0 && (
-                      <span className="gen-progress">
-                        <span className="gen-progress-bar">
-                          <span
-                            className="gen-progress-fill"
-                            style={{ width: `${item.progress}%` }}
-                          />
-                        </span>
-                        <span className="gen-progress-num">
-                          {item.progress}%
-                        </span>
+                    <div className="gen-skeleton" aria-hidden="true" />
+                    <div className="gen-pending-body">
+                      <span className="gen-pending-status">
+                        <span className="gen-pending-dot" aria-hidden="true" />
+                        {GENERATION_MODALITY_LABELS[item.modality]}生成中
                       </span>
-                    )}
-                    {typeof item.progress === 'number' && item.progress === 0 && (
-                      <span className="gen-queued">排队中</span>
-                    )}
+                      {typeof item.progress === 'number' && item.progress > 0 ? (
+                        <span className="gen-progress">
+                          <span className="gen-progress-bar">
+                            <span
+                              className="gen-progress-fill"
+                              style={{ width: `${item.progress}%` }}
+                            />
+                          </span>
+                          <span className="gen-progress-num">
+                            {item.progress}%
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="gen-queued">排队中…</span>
+                      )}
+                    </div>
                   </div>
                 )}
                 {item.status === 'completed' &&
-                  (item.url !== undefined || item.dataUri !== undefined) &&
-                  (item.modality === 'voice' ? (
-                    <audio className="gen-audio" controls src={item.dataUri ?? item.url} />
-                  ) : item.modality === 'video' ? (
-                    <video className="gen-media" controls src={item.dataUri ?? item.url} />
-                  ) : (
-                    <img className="gen-media" src={item.dataUri ?? item.url} alt={item.prompt} />
-                  ))}
+                  (item.url !== undefined || item.dataUri !== undefined) && (
+                    item.modality === 'voice' ? (
+                      <audio className="gen-audio" controls src={item.dataUri ?? item.url} />
+                    ) : item.modality === 'video' ? (
+                      <>
+                        <video className="gen-media" controls src={item.dataUri ?? item.url} />
+                        <a
+                          className="gen-download"
+                          href={item.dataUri ?? item.url}
+                          download={`generation-${item.id}.mp4`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          下载视频
+                        </a>
+                      </>
+                    ) : (
+                      <>
+                        <a
+                          className="gen-media-link"
+                          href={item.dataUri ?? item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="点击查看原图"
+                        >
+                          <img className="gen-media" src={item.dataUri ?? item.url} alt={item.prompt} />
+                        </a>
+                        <a
+                          className="gen-download"
+                          href={item.dataUri ?? item.url}
+                          download={`generation-${item.id}.png`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          下载图片
+                        </a>
+                      </>
+                    )
+                  )}
                 {(item.status === 'unconfigured' || item.status === 'failed') && (
-                  <p className="gen-message">{item.message}</p>
+                  <div className="gen-message-wrap">
+                    <p className="gen-message">{splitGenerationDetail(item.message).main}</p>
+                    {splitGenerationDetail(item.message).detail !== null && (
+                      <p className="gen-detail" title={splitGenerationDetail(item.message).detail ?? undefined}>
+                        {splitGenerationDetail(item.message).detail}
+                      </p>
+                    )}
+                  </div>
                 )}
                 <footer className="gen-foot">
                   <span className={`gen-tag gen-tag-${item.modality}`}>
@@ -629,8 +760,8 @@ export function ExperienceScreen({
               </article>
             ))}
           </div>
-        </section>
-      )}
+        ))}
+      </div>
 
       <div className="panels">
         <button

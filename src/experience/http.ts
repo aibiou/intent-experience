@@ -63,6 +63,30 @@ export interface HandlerResult {
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 const NDJSON_HEADERS = { 'Content-Type': 'application/x-ndjson' };
 
+// 提示词增稠（2026-10-11——实测 agnes-image 对单词级提示词
+// 先验极强：「美女」两次独立生成收敛到同一张「图库感」
+// 图像——同款毛衣同款沙发）。短提示词自动补充多样化的
+// 质感 / 光影描述（每次随机一组），让再生成有差异。仅用于
+// 用户直接输入的短提示词——体验主题派生的提示词（呈现类）
+// 不增稠：后缀会把非人物主题拉偏（实测「猫…」+「自然光
+// 摄影质感」生成人物肖像），主题正确性优先于多样性。
+const PROMPT_ENRICHERS: ReadonlyArray<string> = [
+  '自然光摄影质感',
+  '电影感光影',
+  '温暖柔和的色调',
+  '清新明亮的色调',
+  '细腻的细节刻画',
+  '氛围感光影',
+  '高细节写实风格',
+  '柔和的背景虚化',
+];
+
+function enrichPrompt(prompt: string): string {
+  if (prompt.length >= 12) return prompt;
+  const pick = PROMPT_ENRICHERS[Math.floor(Math.random() * PROMPT_ENRICHERS.length)];
+  return `${prompt}，${pick}`;
+}
+
 function jsonResponse(status: number, payload: Record<string, unknown>): HandlerResult {
   return {
     status,
@@ -106,18 +130,54 @@ function ndjsonResponse(stream: AsyncGenerator<unknown>): HandlerResult {
  */
 async function* withGeneration(
   source: AsyncGenerator<unknown>,
-  intent: { modality: GenerationModality; prompt: string },
+  intent: { modality: GenerationModality; prompt: string; useContext?: boolean },
   signal?: AbortSignal,
+  getTopic?: () => string | null,
 ): AsyncGenerator<unknown> {
+  // 回答内容累积（呈现形式类生成的提示词原料——
+  // 「用视频展现」这类输入不含画面主题，主题在本轮
+  // 回答里）。chunk 事件在流内逐段拼接。
+  let answerText = '';
   let ended = false;
   for await (const event of source) {
     yield event;
     if ((event as { type?: string }).type === 'done') ended = true;
+    if ((event as { type?: string }).type === 'chunk') {
+      const content = (event as { content?: unknown }).content;
+      if (typeof content === 'string') answerText += content;
+    }
   }
   // 流末（done 之后）触发生成——对话回应先完整呈现。
   if (!ended || signal?.aborted) return;
-    const at = new Date().toISOString();
-    yield { type: 'generation', status: 'started', modality: intent.modality, prompt: intent.prompt, at };
+  // 呈现形式类生成的提示词来源（2026-10-11 修订）：
+  // ①视觉模态（图像 / 视频）优先用体验主题（首轮用户
+  // 输入，如「猫为什么会发出呼噜声」——短视觉主题，
+  // 文生图模型可消费；实测 400 字叙述文被提供方忽略
+  // 并回落人物先验）；无主题时回退回答首句。
+  // ②语音为朗读语义——直接朗读回答内容，不加前缀。
+  let prompt = intent.prompt;
+  if (intent.useContext === true) {
+    let topic: string | null = null;
+    try {
+      topic = getTopic?.() ?? null;
+    } catch (topicError) {
+      console.error('[withGeneration] getTopic failed:', topicError);
+      topic = null;
+    }
+    if (intent.modality === 'voice') {
+      prompt = answerText.trim().slice(0, 1_000) || intent.prompt;
+    } else if (topic !== null && topic.trim().length > 0) {
+      prompt = topic.trim().slice(0, 60);
+    } else {
+      const firstSentence = answerText.trim().split(/(?<=[。！？])/)[0] ?? '';
+      prompt =
+        firstSentence.trim().length > 0
+          ? firstSentence.trim().slice(0, 60)
+          : intent.prompt;
+    }
+  }
+  const at = new Date().toISOString();
+  yield { type: 'generation', status: 'started', modality: intent.modality, prompt, at };
     try {
       const config = await getEnabledProviderConfigForModality(intent.modality);
       if (!config) {
@@ -137,7 +197,13 @@ async function* withGeneration(
       const progressQueue: number[] = [];
       const artifactPromise = GENERATION_CALLS[intent.modality](
         config,
-        intent.prompt,
+        // 提示词来源（2026-10-11 修订——此前这里错用
+        // intent.prompt 原话，上下文 / 主题提示词从未真正
+        // 到达提供方，是「生成无关图」的总根因）：
+        // 呈现类（useContext）用上文构建的主题提示词；
+        // 直接创作输入用用户原话——短提示词增稠仅此形态
+        // （增稠后缀会把非人物主题拉偏，主题正确性优先）。
+        intent.useContext === true ? prompt : enrichPrompt(prompt),
         (progress) => {
           progressQueue.push(progress);
         },
@@ -185,10 +251,27 @@ async function* withGeneration(
         at: new Date().toISOString(),
       };
     } catch (error) {
-      const message =
-        error instanceof GenerationError
-          ? error.message
-          : `generation failed (modality=${intent.modality})`;
+      // 人性化文案（产品可用性——用户面对的不再是
+      // 「出错了」或提供方原文）：瞬态失败给重试
+      // 指引，其余失败给换法指引；提供方细节保留
+      // 在 message 供排障，不含 key、不含请求体。
+      const modalityLabel =
+        intent.modality === 'image' ? '图像' : intent.modality === 'video' ? '视频' : '语音';
+      let message: string;
+      if (error instanceof GenerationError) {
+        if (/quota|余额/i.test(error.message)) {
+          // 余额类失败（非瞬态）——重试 / 换说法都无效，
+          // 指引直指充值。
+          message = `生成账户余额不足——充值后到「模型配置」确认启用，再说一次即可。`;
+        } else if (error.retryable) {
+          message = `${modalityLabel}生成暂时排队繁忙——稍等片刻再说一次即可重试。（${error.message}）`;
+        } else {
+          message = `${modalityLabel}生成没有成功——可以换个说法再试一次。（${error.message}）`;
+        }
+      } else {
+        message = `${modalityLabel}生成没有成功——可以换个说法再试一次。`;
+      }
+      console.error('[withGeneration] generation failed:', message);
       yield { type: 'generation', status: 'failed', modality: intent.modality, message, at: new Date().toISOString() };
     }
 }
@@ -229,6 +312,8 @@ async function handleExecutionForm(
     typeof body.user_input === 'string' && body.user_input.length > 0 ? body.user_input : null;
   if (requestId === null || sessionId === null || userInput === null) {
     return jsonResponse(400, {
+      code: 'INVALID_REQUEST',
+      message: '请求缺了必要字段——请刷新页面再试一次。',
       error: 'INVALID_REQUEST',
       reason: 'request_id, session_id and user_input are required non-empty strings',
     });
@@ -247,23 +332,29 @@ async function handleExecutionForm(
     const classification = classifyInput(userInput);
     const generation = recognizeGenerationIntent(userInput);
     // 生成意图确定性路由（暴露层——与记忆操作同一
-    // 纪律）：语义动作词表未命中且生成意图命中时，
-    // 确定性路由为 CREATE（创作族——「画 / 生成 /
-    // 制作」是创作表达；不发明新语义动作，
-    // policy_v2.3.0 词汇表不变）。
+    // 纪律）：语义动作词表未命中时按生成意图路由——
+    // 呈现形式类（useContext，如「用视频展现」）路由
+    // 为 REPEAT（重放上一轮回答——呈现层重放恰好
+    // 提供生成提示词的内容原料）；带创作主题的
+    // （如「做一段深海雾气的视频」）路由为 CREATE；
+    // 其余自由文本兜底 DIRECT_ANSWER（LLM 会话承接
+    // ——不再升级拒绝死胡同）。再生成特例：分类为
+    // CHANGE_DIRECTION（「换一张图片…」）但生成意图
+    // 命中时路由 CREATE（换介质/换一张是对产物的
+    // 再生成，非探索方向变更——CHANGE_DIRECTION 在
+    // WAITING/CREATION 阶段非法，曾以英文原文报错）。
+    // 不发明新语义动作，policy_v2.3.0 词汇表不变。
+    const routedClassification =
+      classification.semanticAction === 'CHANGE_DIRECTION' && generation !== null
+        ? 'CREATE'
+        : classification.semanticAction;
     const semanticAction =
       declaredAction ??
-      (classification.semanticAction !== 'UNKNOWN'
-        ? classification.semanticAction
+      (routedClassification !== 'UNKNOWN'
+        ? routedClassification
         : generation !== null
-          ? 'CREATE'
-          : null);
-    if (semanticAction === null) {
-      return jsonResponse(400, {
-        error: 'INVALID_ACTION',
-        reason: 'unclassifiable input: escalated per authorization §5.7 (unknown situations escalate, never LLM-decided)',
-      });
-    }
+          ? (generation.useContext === true ? 'REPEAT' : 'CREATE')
+          : 'DIRECT_ANSWER');
     const submission: SubmissionResult = await runtime.submitExperienceEvent({
       experienceId,
       sessionId,
@@ -274,11 +365,27 @@ async function handleExecutionForm(
       signal: input.signal,
     });
     if (!submission.ok) {
+      // 呈现形式类降级引导：REPEAT 需要上一完成轮
+      // 内容（新会话首轮没有可重放的内容）——此时
+      // 用户想展现的对象还不存在，给出可行动的
+      // 引导而非创建空创作会话。
+      if (
+        semanticAction === 'REPEAT' &&
+        !declaredAction &&
+        submission.error.code === 'INVALID_STATE_TRANSITION'
+      ) {
+        return jsonResponse(400, {
+          code: 'INVALID_ACTION',
+          message: '还没有可展现的内容——先聊一个话题，再说「用视频 / 图片展现」。',
+          error: 'INVALID_ACTION',
+          reason: 'presentation intent with no previous content round to present',
+        });
+      }
       return runtimeErrorResponse(submission.error);
     }
     return ndjsonResponse(
       generation
-        ? withGeneration(submission.stream, generation, input.signal)
+        ? withGeneration(submission.stream, generation, input.signal, () => runtime.getExperienceTopic(experienceId))
         : submission.stream,
     );
   }
@@ -327,17 +434,9 @@ async function handleExecutionForm(
   // 先例，不发明语义动作）。
   const generation = recognizeGenerationIntent(userInput);
 
-  // 升级拒绝（UNKNOWN——未知情况升级而非由系统
-  // 决定）。
-  if (resolution.action === 'escalate') {
-    return jsonResponse(400, {
-      error: 'INVALID_ACTION',
-      reason: 'unclassifiable input: escalated per authorization §5.7 (unknown situations escalate, never LLM-decided)',
-    });
-  }
-
   // 体验建立 + 首轮提交（创作会话路由 / WHAT_IF 首轮自动
-  // CREATE 分支——与进程内路径完全一致）。
+  // CREATE 分支——与进程内路径完全一致；无法归类的自由
+  // 文本已在 resolveIntent 兜底为 DIRECT_ANSWER）。
   const started = await runtime.startExperience({
     sessionId,
     intentId: resolution.intent.intentId,
@@ -362,7 +461,7 @@ async function handleExecutionForm(
   }
   return ndjsonResponse(
     generation
-      ? withGeneration(submission.stream, generation, input.signal)
+      ? withGeneration(submission.stream, generation, input.signal, () => runtime.getExperienceTopic(started.experienceId))
       : submission.stream,
   );
 }
@@ -378,7 +477,7 @@ export async function handleExperienceStreamRequest(
   try {
     parsed = JSON.parse(input.body);
   } catch {
-    return jsonResponse(400, { error: 'INVALID_JSON_BODY' });
+    return jsonResponse(400, { code: 'INVALID_JSON_BODY', message: '请求格式有问题——请刷新页面再试一次。', error: 'INVALID_JSON_BODY' });
   }
 
   const body = parsed as {
@@ -407,12 +506,18 @@ export async function handleExperienceStreamRequest(
 
   const semanticAction = body.semanticAction;
   if (typeof semanticAction !== 'string' || semanticAction.length === 0) {
-    return jsonResponse(400, { error: 'MISSING_SEMANTIC_ACTION' });
+    return jsonResponse(400, {
+      code: 'MISSING_SEMANTIC_ACTION',
+      message: '请求缺了必要字段——请刷新页面再试一次。',
+      error: 'MISSING_SEMANTIC_ACTION',
+    });
   }
 
   const policy = resolvePolicy(semanticAction);
   if (!policy.ok) {
     return jsonResponse(400, {
+      code: policy.code,
+      message: '这个操作目前还不支持——请从界面上的选项里选择。',
       error: policy.code,
       semanticAction,
       reason: 'action is not in the S1 frozen policy set; undefined semantics are escalated, not implemented',

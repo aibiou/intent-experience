@@ -18,14 +18,19 @@ export function StageRail({ stage, branchActive }: StageRailProps) {
       {FIRST_EXPERIENCE_STAGES.map((item, index) => {
         const isCurrent = index === currentIndex;
         const isDone = index < currentIndex;
+        // 轨道标签取中文短名（「Curiosity（好奇）」→「好奇」
+        // ——顶栏横向空间有限，英文名省略，完整名见 title）。
+        const match = /（([^）]*)）/.exec(item.label);
+        const shortLabel = match !== null ? match[1] : item.label;
         return (
           <li
             key={item.step}
             className={`stage-rail-item${isCurrent ? ' is-current' : ''}${isDone ? ' is-done' : ''}`}
             aria-current={isCurrent ? 'step' : undefined}
+            title={item.label}
           >
             <span className="stage-rail-dot" />
-            <span className="stage-rail-label">{item.label}</span>
+            <span className="stage-rail-label">{shortLabel}</span>
           </li>
         );
       })}

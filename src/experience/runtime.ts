@@ -355,11 +355,20 @@ export class ExperienceRuntime {
     this.counters.intent += 1;
     const intentId = `intent_synthetic_${String(this.counters.intent).padStart(4, '0')}`;
     const now = new Date().toISOString();
+    // 无法归类兜底（2026-10-11 产品可用性）：分类未命中且非生成
+    // 意图 → DIRECT_ANSWER（自由文本交 LLM 会话承接，不再
+    // escalate 死胡同——此前悬置建议，实测反馈后落地）。
+    const resolvedSemanticAction =
+      classification.semanticAction === 'UNKNOWN' && !generationRouted
+        ? 'DIRECT_ANSWER'
+        : generationRouted
+          ? 'CREATE'
+          : classification.semanticAction;
     const intent: IntentRecord = {
       intentId,
       sessionId: input.sessionId,
       rawInput: input.rawInput,
-      semanticAction: generationRouted ? 'CREATE' : classification.semanticAction,
+      semanticAction: resolvedSemanticAction,
       state: 'INTERPRETED',
       createdAt: now,
     };
@@ -446,7 +455,12 @@ export class ExperienceRuntime {
       intent,
       semanticAction: intent.semanticAction,
       confidence: 1,
-      action: intent.semanticAction === 'UNKNOWN' ? 'escalate' : 'start_experience',
+      // 无法归类兜底（2026-10-11 产品可用性——实测「美女的展示」
+      // 等名词短语表达被升级拒绝 HTTP 400 死胡同）：不再 escalate，
+      // 路由 DIRECT_ANSWER 交 LLM 会话承接（自由文本兜底问答——
+      // 此前悬置建议，产品负责人实测反馈后落地）。语义动作域
+      // 不变（DIRECT_ANSWER 在冻结集合内）。
+      action: 'start_experience',
       events: [received, parsed],
     };
   }
@@ -655,6 +669,15 @@ export class ExperienceRuntime {
     return {
       raw_input: rawInput,
       memory_signals: this.memories.retrieveRelevant(rawInput, now),
+      // 多模态生成编排感知（2026-10-11——实测文本模型在生成
+      // 轮次宣称「我无法生成图像」，与下方的实时产物自相矛盾）：
+      // 生成意图命中时向 LLM 声明编排事实，正文自然承接。
+      ...(recognizeGenerationIntent(rawInput) !== null
+        ? {
+            generation_note:
+              '用户的多模态生成请求已由系统编排：对应模态的生成模型正在实时生成产物，将自动展示在本条回答下方。请自然承接用户的创作请求（可描述你理解的目标画面/内容），不要声明你无法生成图片、视频或语音。',
+          }
+        : {}),
     };
   }
 
@@ -1158,25 +1181,33 @@ export class ExperienceRuntime {
       }
     }
     // 生成意图确定性路由（产品负责人指令 2026-10-10）：
-    // 分类未命中（UNKNOWN）但生成意图规则命中时，
-    // 语义动作确定性路由为 CREATE（与 resolveIntent
-    // 同一规则——提交层与解析层一致；客户端不能注入
-    // 策略动作的守卫不变：路由由确定性规则完成，
-    // 声明与分类结果经同一规则收敛为一致）。
-    if (
-      semanticAction === 'UNKNOWN' &&
+    // 分类未命中（UNKNOWN）但生成意图规则命中时按
+    // 意图类型路由——呈现形式类（useContext，如
+    // 「用视频展现」）路由为 REPEAT（呈现层重放上一轮
+    // 回答——重放内容即生成提示词的内容原料）；带
+    // 创作主题的（如「做一段深海雾气的视频」）路由为
+    // CREATE（与 resolveIntent 同一规则——提交层与解析层
+    // 一致；客户端不能注入策略动作的守卫不变：路由由
+    // 确定性规则完成，声明与分类结果经同一规则收敛为
+    // 一致）。
+    if (semanticAction === 'UNKNOWN') {
+      const generationIntent = recognizeGenerationIntent(input.rawInput);
+      if (generationIntent !== null) {
+        semanticAction = generationIntent.useContext === true ? 'REPEAT' : 'CREATE';
+      } else {
+        // 无法归类兜底（2026-10-11 产品可用性——与 resolveIntent
+        // 同一规则）：自由文本交 LLM 会话承接，不再升级拒绝。
+        semanticAction = 'DIRECT_ANSWER';
+      }
+    } else if (
+      semanticAction === 'CHANGE_DIRECTION' &&
       recognizeGenerationIntent(input.rawInput) !== null
     ) {
+      // 再生成特例（2026-10-11——与暴露层同一规则）：
+      // 「换一张图片…」分类命中 CHANGE_DIRECTION 但生成
+      // 意图命中 → CREATE（对产物的再生成，非方向变更；
+      // CHANGE_DIRECTION 在 WAITING/CREATION 阶段非法）。
       semanticAction = 'CREATE';
-    }
-    if (semanticAction === 'UNKNOWN') {
-      return {
-        ok: false,
-        error: runtimeError(
-          'INVALID_ACTION',
-          'unclassifiable input: escalated per authorization §5.7 (unknown situations escalate, never LLM-decided)',
-        ),
-      };
     }
     if (input.semanticAction !== semanticAction) {
       return {
@@ -4724,5 +4755,19 @@ export class ExperienceRuntime {
       at: new Date().toISOString(),
     };
     await this.traceSink(trace);
+  }
+
+  /**
+   * 体验主题（只读——2026-10-11 多模态编排用）：体验首轮的
+   * 用户原始输入（如「猫为什么会发出呼噜声」）。呈现形式类
+   * 生成（「用有趣的图像展示」）以此为视觉主题构建提示词
+   * ——文生图模型消费短视觉主题而非叙述长文（实测 400 字
+   * 叙述被提供方忽略并回落人物先验）。
+   */
+  getExperienceTopic(experienceId: string): string | null {
+    const experience = this.experiences.get(experienceId);
+    if (!experience) return null;
+    const intent = this.intents.get(experience.intentId);
+    return intent?.rawInput ?? null;
   }
 }
