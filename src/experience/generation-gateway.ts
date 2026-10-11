@@ -31,6 +31,9 @@ export class GenerationError extends Error {
   constructor(
     message: string,
     public readonly modality: string,
+    /** 瞬态失败（限速 / 队列满 / 5xx）——
+     * 调用方可退避重试。 */
+    public readonly retryable = false,
   ) {
     super(message);
     this.name = 'GenerationError';
@@ -73,12 +76,68 @@ async function callProvider(
     );
   }
   if (!response.ok) {
+    // 错误体透传：提供方返回人类可读原因
+    // （如「视频队列已满，请稍后重试」）——
+    // 丢弃它会让用户面对一个无法行动的
+    // 状态码。瞬态失败标记 retryable。
+    const detail = await readProviderError(response);
+    const reason = detail.message.length > 0 ? `: ${detail.message}` : '';
     throw new GenerationError(
-      `generation provider failed (provider=${config.provider}, modality=${config.modality}, status=${response.status})`,
+      `generation provider failed (provider=${config.provider}, modality=${config.modality}, status=${response.status}${reason})`,
       config.modality,
+      detail.retryable,
     );
   }
   return response;
+}
+
+// 瞬态失败：限速 / 队列满 / 服务端临时
+// 错误——等待后重试通常可恢复（免费档
+// 常态，非产品缺陷）。
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+const RETRYABLE_CODES = new Set([
+  'rate_limit_exceeded',
+  'video_queue_full',
+  'queue_full',
+  'server_overloaded',
+  'internal_error',
+  'try_again',
+]);
+
+interface ProviderErrorDetail {
+  message: string;
+  retryable: boolean;
+}
+
+/** 提供方错误体解析（message / error /
+ * code 三形态——不含 key、不含请求体）。 */
+async function readProviderError(response: Response): Promise<ProviderErrorDetail> {
+  let message = '';
+  let code: string | undefined;
+  try {
+    const payload = (await response.json()) as {
+      message?: unknown;
+      error?: unknown;
+      code?: unknown;
+    };
+    if (typeof payload.message === 'string' && payload.message.length > 0) {
+      message = payload.message;
+    } else if (typeof payload.error === 'string' && payload.error.length > 0) {
+      message = payload.error;
+    } else if (payload.error !== null && typeof payload.error === 'object') {
+      const nested = (payload.error as { message?: unknown }).message;
+      if (typeof nested === 'string' && nested.length > 0) message = nested;
+    }
+    if (typeof payload.code === 'string' && payload.code.length > 0) {
+      code = payload.code;
+    }
+  } catch {
+    // 非 JSON 错误体——仅用状态码。
+  }
+  const retryable =
+    RETRYABLE_STATUS.has(response.status) ||
+    (code !== undefined && RETRYABLE_CODES.has(code));
+  return { message, retryable };
 }
 
 function firstDataEntry(parsed: unknown): Record<string, unknown> | null {
@@ -104,7 +163,19 @@ function extractUrl(entry: Record<string, unknown>): string | undefined {
 /** 异步任务轮询间隔与总超时（Agnes 视频官方
  * 建议每 1–2 秒查询一次；生成通常需数十秒）。 */
 const VIDEO_POLL_INTERVAL_MS = 1_500;
-const VIDEO_POLL_TIMEOUT_MS = 180_000;
+// 免费档常态：任务入队后排队可达数分钟
+// （实测约 2 分钟才开始处理），总超时
+// 须容纳排队 + 处理——过短会把正在
+// 处理的任务误判为失败。
+const VIDEO_POLL_TIMEOUT_MS = 420_000;
+// 任务创建瞬态失败重试（免费档限速 /
+// 队列满常见——退避 3 次，间隔递增；
+// 重试窗口合计约 2 分钟，与 420 秒
+// 任务超时互补）。
+const VIDEO_CREATE_RETRY_DELAYS_MS = [20_000, 40_000, 60_000];
+// 轮询自身瞬态失败（限速）的等待——
+// 任务仍在队列里，不应因此判失败。
+const POLL_RETRY_WAIT_MS = 5_000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -203,14 +274,34 @@ export async function generateVideo(
   // 非质量档位；size 固定 720P），保存返回的
   // video_id 后轮询 GET /agnesapi 直至
   // status=completed，从响应顶层 url 取产物。
-  const response = await callProvider(config, '/videos', {
-    model: config.model,
-    prompt,
-    mode: 'text',
-    seconds: '5',
-    size: '720P',
-    aspect_ratio: '16:9',
-  });
+  const createTask = () =>
+    callProvider(config, '/videos', {
+      model: config.model,
+      prompt,
+      mode: 'text',
+      seconds: '5',
+      size: '720P',
+      aspect_ratio: '16:9',
+    });
+  const retryDelays = [...VIDEO_CREATE_RETRY_DELAYS_MS];
+  // 瞬态失败退避重试：限速 / 队列满时
+  // 等待比立即失败更接近成功。
+  let response: Response;
+  for (;;) {
+    try {
+      response = await createTask();
+      break;
+    } catch (error) {
+      const retryable =
+        error instanceof GenerationError && error.retryable;
+      if (!retryable || retryDelays.length === 0) {
+        throw error;
+      }
+      const wait = retryDelays.shift();
+      if (wait === undefined) throw error;
+      await sleep(wait);
+    }
+  }
   let parsed: unknown;
   try {
     parsed = await response.json();
@@ -257,10 +348,20 @@ export async function generateVideo(
       );
     }
     if (!status.ok) {
-      throw new GenerationError(
-        `generation provider failed (provider=${config.provider}, modality=video: task poll status=${status.status})`,
-        'video',
-      );
+      // 轮询瞬态失败（限速）：任务仍在
+      // 队列里——等待后继续轮询，而非
+      // 判任务失败。
+      const detail = await readProviderError(status);
+      if (!detail.retryable) {
+        const reason =
+          detail.message.length > 0 ? `: ${detail.message}` : '';
+        throw new GenerationError(
+          `generation provider failed (provider=${config.provider}, modality=video: task poll status=${status.status}${reason})`,
+          'video',
+        );
+      }
+      await sleep(POLL_RETRY_WAIT_MS);
+      continue;
     }
     let state: unknown;
     try {
@@ -290,7 +391,19 @@ export async function generateVideo(
       );
     }
     if (record.status === 'failed') {
-      const reason = typeof record.error === 'string' ? record.error : 'unknown';
+      const failed = state as {
+        error?: unknown;
+        message?: unknown;
+        code?: unknown;
+      };
+      const reason =
+        typeof failed.error === 'string' && failed.error.length > 0
+          ? failed.error
+          : typeof failed.message === 'string' && failed.message.length > 0
+            ? failed.message
+            : typeof failed.code === 'string' && failed.code.length > 0
+              ? failed.code
+              : 'unknown';
       throw new GenerationError(
         `generation provider task failed (provider=${config.provider}, modality=video: ${reason})`,
         'video',

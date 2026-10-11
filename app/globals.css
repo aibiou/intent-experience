@@ -1623,6 +1623,17 @@ a:hover {
   opacity: 0.65;
 }
 
+.gen-queued {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 12px;
+  color: var(--ink-faint, #888);
+}
+
 .gen-media {
   display: block;
   width: 100%;
