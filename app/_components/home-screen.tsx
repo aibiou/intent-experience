@@ -90,6 +90,16 @@ const CREATION_MODALITY_LABELS: Record<CreationEntry['modality'], string> = {
   video: '视频',
 };
 
+// 自由输入框轮播提示——多模态能力
+// 一目了然，每 4 秒换一条。
+const ENTRY_HINTS: readonly string[] = [
+  '做个清晨森林的视频……',
+  '画一张赛博朋克城市插画……',
+  '读一段睡前故事……',
+  '写一首关于地铁的诗……',
+  '做个极简像素头像……',
+];
+
 export function HomeScreen({
   recents,
   creations,
@@ -101,11 +111,20 @@ export function HomeScreen({
   const [tab, setTab] = useState<FeedTab>('featured');
   const [category, setCategory] = useState<ExperienceCategory | null>(null);
   const [pulseIndex, setPulseIndex] = useState(0);
+  const [hintIndex, setHintIndex] = useState(0);
 
   // 脉搏轮转：每 4 秒换一条，像社区的实时感。
   useEffect(() => {
     const timer = setInterval(() => {
       setPulseIndex((index) => index + 1);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 输入框提示轮播。
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHintIndex((index) => (index + 1) % ENTRY_HINTS.length);
     }, 4000);
     return () => clearInterval(timer);
   }, []);
@@ -147,6 +166,16 @@ export function HomeScreen({
     if (input.length === 0) return;
     setDraft('');
     onStart(input);
+  };
+
+  // 惊喜一下：随机挑一个体验立即开始——
+  // 发现成本为零，liblib 式惊喜入口。
+  const surprise = () => {
+    const seed =
+      EXPERIENCE_CATALOG[
+        Math.floor(Math.random() * EXPERIENCE_CATALOG.length)
+      ];
+    onStart(seed.prompt);
   };
 
   const gridSeeds: ExperienceSeed[] =
@@ -192,6 +221,14 @@ export function HomeScreen({
               <span>{choice.label}</span>
             </button>
           ))}
+          <button
+            type="button"
+            className="surprise-button"
+            onClick={surprise}
+          >
+            <SparklesIcon size={15} />
+            <span>惊喜一下</span>
+          </button>
         </div>
       </header>
 
@@ -293,7 +330,7 @@ export function HomeScreen({
         <textarea
           className="free-entry-input"
           rows={2}
-          placeholder="直接告诉我：做个清晨森林的视频、画张插画、读段文字……"
+          placeholder={ENTRY_HINTS[hintIndex]}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {

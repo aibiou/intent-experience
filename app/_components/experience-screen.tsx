@@ -7,6 +7,7 @@ import {
   DatabaseIcon,
   SendIcon,
 } from './icons';
+import { RefreshIcon } from './icons';
 import { StageRail } from './stage-rail';
 import type { RecentEntry } from './home-screen';
 import { creationId, type CreationEntry } from './creations';
@@ -324,6 +325,13 @@ export function ExperienceScreen({
             const data = (await response.json()) as Record<string, unknown>;
             if (data.code === 'INVALID_ACTION') {
               errorMessage = '这个问题我还不确定怎么接——换个说法，或选一个方向。';
+            } else if (
+              typeof data.message === 'string' &&
+              data.message.startsWith('unknown session')
+            ) {
+              // dev 服务器完整重启后内存会话清空（热重载已由
+              // globalThis 单例挡住——此条仅兜底完整重启）。
+              errorMessage = '服务刚重启过，这段体验的会话已失效——返回首页重新开始即可。';
             } else if (typeof data.message === 'string') {
               errorMessage = data.message;
             }
@@ -606,6 +614,17 @@ export function ExperienceScreen({
                   <span className="gen-prompt" title={item.prompt}>
                     {item.prompt}
                   </span>
+                  {item.status === 'completed' && (
+                    <button
+                      type="button"
+                      className="gen-regen"
+                      onClick={() => void send(item.prompt)}
+                      title="同一提示词再生成一次"
+                    >
+                      <RefreshIcon size={13} />
+                      <span>再来一次</span>
+                    </button>
+                  )}
                 </footer>
               </article>
             ))}
