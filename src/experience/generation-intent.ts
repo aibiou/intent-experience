@@ -23,6 +23,9 @@ export interface GenerationIntent {
   /** 呈现形式类表达（「用视频展现 / 以图片形式呈现」）：
    * 输入本身不含画面主题，提示词须由本轮回答内容构建。 */
   useContext?: boolean;
+  /** 指代类表达（「生成一个对应的猫图片」）：主体在对话
+   * 上文——提示词优先由上一轮助手内容解析（而非首轮主题）。 */
+  referential?: boolean;
 }
 
 // 生成动词表（显式创作表达）。消费意图
@@ -30,7 +33,10 @@ export interface GenerationIntent {
 // 不会误判；「来」「给我」不再单独作
 // 开头——「来一段视频 / 给我看看视频」
 // 语义偏消费，须跟生成动词才识别。
-const MAKE_VERBS = '(?:做|生成|制作|创作|拍|画|搞)';
+// 「生产」为实测缺口（2026-10-11 用户输入
+// 「生产一个图片猫」未命中——与「生成」
+// 同义的常见表达）。
+const MAKE_VERBS = '(?:做|生成|生产|制作|创作|拍|画|搞)';
 
 const VIDEO_PATTERNS: ReadonlyArray<RegExp> = [
   // 生成动词 + 模态词（间隔放宽——自然
@@ -124,16 +130,33 @@ export function recognizeGenerationIntent(rawInput: string): GenerationIntent | 
   // 「换一种呈现介质」的表达，不含画面主题，提示词
   // 须由本轮回答内容构建（useContext）。再生成表达
   // （regen）自带约束主题，不是换介质，优先排除。
+  // 指代类表达（2026-10-11 实测缺口——「生成一个对应的猫
+  // 图片」「调用相应的图片模型生成图片」：主体在对话上文，
+  // 裸短语直达 t2i 会因无主体回落提供方默认人像）。
+  const referentialPresentation =
+    regen === null &&
+    /(?:对应的?|相应|调用).{0,24}(?:图|图片|图像|插画|头像|壁纸|封面|视频|动画|短片)/.test(input);
   const presentation =
     regen === null &&
-    (/(?:视频|动画|短片|图片|图像|照片|写真|画像|插画|插图|语音).{0,6}(?:方式|形式)/.test(input) ||
+    (referentialPresentation ||
+      /(?:视频|动画|短片|图片|图像|照片|写真|画像|插画|插图|语音).{0,6}(?:方式|形式)/.test(input) ||
       /(?:视频|动画|短片|图片|图像|照片|写真|画像|插画|插图|语音).{0,4}(?:展现|呈现|展示)/.test(input) ||
       /(?:改|换).{0,4}(?:视频|动画|短片|图片|图像|照片|写真|画像|插画|插图|语音)/.test(input));
   if (VIDEO_PATTERNS.some((pattern) => pattern.test(input))) {
-    return { modality: 'video', prompt: promptBase, ...(presentation ? { useContext: true } : {}) };
+    return {
+      modality: 'video',
+      prompt: promptBase,
+      ...(presentation ? { useContext: true } : {}),
+      ...(referentialPresentation ? { referential: true } : {}),
+    };
   }
   if (IMAGE_PATTERNS.some((pattern) => pattern.test(input))) {
-    return { modality: 'image', prompt: promptBase, ...(presentation ? { useContext: true } : {}) };
+    return {
+      modality: 'image',
+      prompt: promptBase,
+      ...(presentation ? { useContext: true } : {}),
+      ...(referentialPresentation ? { referential: true } : {}),
+    };
   }
   if (VOICE_PATTERNS.some((pattern) => pattern.test(input))) {
     // 朗读类请求（「读给我听 / 朗读 / 读出来」）的语义是

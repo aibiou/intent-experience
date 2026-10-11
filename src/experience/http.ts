@@ -12,9 +12,9 @@
  * - S1 形态（向后兼容）：{ semanticAction }——合成语料 fixture 流式
  *   输出（既有路径，行为不变）。
  * - S2/S3 形态：{ request_id, session_id, user_input, experience_id?,
- *   state_version?, semantic_action? }——经同一 ExperienceRuntime
- *   单例执行真实运行路径（resolveIntent → startExperience →
- *   submitExperienceEvent）：WHAT_IF 分支操作经用户输入负载携带
+ *   state_version?, semantic_action?, aspect_ratio?, seconds? }——经同一
+ *   ExperienceRuntime 单例执行真实运行路径（resolveIntent →
+ *   startExperience → submitExperienceEvent）：WHAT_IF 分支操作经用户输入负载携带
  *   分支操作词（/采用/、/切换/、/放弃/、/返回主线/——词表优先级
  *   RETURN > SWITCH > ABANDON > ADOPT_BRANCH，与进程内识别完全
  *   一致）；创作域顶层动作（deepen / simplify / reframe）经创作
@@ -40,6 +40,7 @@ import { recognizeGenerationIntent, type GenerationModality } from './generation
 import {
   GENERATION_CALLS,
   GenerationError,
+  type GenerationOptions,
 } from './generation-gateway';
 import { getEnabledProviderConfigForModality } from './config-store';
 import type { ExperienceRuntime, RuntimeError, SubmissionResult } from './runtime';
@@ -130,9 +131,20 @@ function ndjsonResponse(stream: AsyncGenerator<unknown>): HandlerResult {
  */
 async function* withGeneration(
   source: AsyncGenerator<unknown>,
-  intent: { modality: GenerationModality; prompt: string; useContext?: boolean },
+  intent: {
+    modality: GenerationModality;
+    prompt: string;
+    useContext?: boolean;
+    /** 指代类（「对应的猫图片」）——提示词优先由上一轮
+     * 助手内容解析（getTranscript 回调注入转录）。 */
+    referential?: boolean;
+    /** 创作参数（画幅 / 视频时长——透传生成网关）。 */
+    aspectRatio?: GenerationOptions['aspectRatio'];
+    seconds?: GenerationOptions['seconds'];
+  },
   signal?: AbortSignal,
   getTopic?: () => string | null,
+  getTranscript?: () => Array<{ role: 'user' | 'assistant'; text: string }>,
 ): AsyncGenerator<unknown> {
   // 回答内容累积（呈现形式类生成的提示词原料——
   // 「用视频展现」这类输入不含画面主题，主题在本轮
@@ -154,6 +166,9 @@ async function* withGeneration(
   // 输入，如「猫为什么会发出呼噜声」——短视觉主题，
   // 文生图模型可消费；实测 400 字叙述文被提供方忽略
   // 并回落人物先验）；无主题时回退回答首句。
+  // ①′ 指代类（referential——「生成一个对应的猫图片」）：
+  // 主体在上一轮助手内容里（「对应的」指代上文）——优先
+  // 由转录的上一轮助手首句解析，主题仅作回退。
   // ②语音为朗读语义——直接朗读回答内容，不加前缀。
   let prompt = intent.prompt;
   if (intent.useContext === true) {
@@ -166,6 +181,38 @@ async function* withGeneration(
     }
     if (intent.modality === 'voice') {
       prompt = answerText.trim().slice(0, 1_000) || intent.prompt;
+    } else if (intent.referential === true) {
+      let referent: string | null = null;
+      try {
+        const transcript = getTranscript?.() ?? [];
+        // 指针须落在当前用户轮**之前**的最近助手轮——当前轮的
+        // 回答在流末先入转录（captureLastResponse），直接取
+        // 「最后一条助手」会拿到本轮而非指代所指的上文。
+        let lastUserIdx = -1;
+        for (let i = transcript.length - 1; i >= 0; i -= 1) {
+          if (transcript[i].role === 'user') {
+            lastUserIdx = i;
+            break;
+          }
+        }
+        const lastAssistant =
+          lastUserIdx > 0
+            ? transcript
+                .slice(0, lastUserIdx)
+                .reverse()
+                .find((turn) => turn.role === 'assistant')
+            : undefined;
+        const first = lastAssistant?.text.split(/(?<=[。！？])/)[0]?.trim() ?? '';
+        if (first.length > 0) referent = first.slice(0, 60);
+      } catch (transcriptError) {
+        console.error('[withGeneration] getTranscript failed:', transcriptError);
+        referent = null;
+      }
+      prompt =
+        referent ??
+        (topic !== null && topic.trim().length > 0
+          ? topic.trim().slice(0, 60)
+          : prompt);
     } else if (topic !== null && topic.trim().length > 0) {
       prompt = topic.trim().slice(0, 60);
     } else {
@@ -207,6 +254,9 @@ async function* withGeneration(
         (progress) => {
           progressQueue.push(progress);
         },
+        // 创作参数（画幅 / 时长——前端创作参数条透传；
+        // 缺省 undefined 保持提供方默认行为）。
+        { aspectRatio: intent.aspectRatio, seconds: intent.seconds },
       );
       let artifact: Awaited<typeof artifactPromise>;
       let generationError: unknown;
@@ -276,6 +326,31 @@ async function* withGeneration(
     }
 }
 
+/**
+ * 创作参数抽取（专业生产能力——画幅 / 视频时长随请求
+ * 透传到生成网关）：白名单校验，非法值静默忽略——
+ * 参数是增强项，绝不影响对话主轴。
+ */
+const ASPECT_RATIO_VALUES = new Set(['16:9', '9:16', '1:1']);
+const VIDEO_SECONDS_VALUES = new Set(['4', '6', '8', '12']);
+
+function extractCreationParams(body: {
+  aspect_ratio?: unknown;
+  seconds?: unknown;
+}): GenerationOptions {
+  const options: GenerationOptions = {};
+  if (
+    typeof body.aspect_ratio === 'string' &&
+    ASPECT_RATIO_VALUES.has(body.aspect_ratio)
+  ) {
+    options.aspectRatio = body.aspect_ratio as GenerationOptions['aspectRatio'];
+  }
+  if (typeof body.seconds === 'string' && VIDEO_SECONDS_VALUES.has(body.seconds)) {
+    options.seconds = body.seconds as GenerationOptions['seconds'];
+  }
+  return options;
+}
+
 /** 运行时错误 → JSON 错误响应（与 Route Handler 错误形态一致）。 */
 function runtimeErrorResponse(error: RuntimeError): HandlerResult {
   return jsonResponse(error.status, {
@@ -300,6 +375,8 @@ async function handleExecutionForm(
     experience_id?: unknown;
     state_version?: unknown;
     semantic_action?: unknown;
+    aspect_ratio?: unknown;
+    seconds?: unknown;
   },
   input: StreamRequestInput,
 ): Promise<HandlerResult> {
@@ -324,6 +401,8 @@ async function handleExecutionForm(
     typeof body.state_version === 'number' && Number.isInteger(body.state_version) ? body.state_version : null;
   const declaredAction =
     typeof body.semantic_action === 'string' && body.semantic_action.length > 0 ? body.semantic_action : null;
+  // 创作参数（专业生产能力——画幅 / 视频时长，白名单外静默忽略）。
+  const creationParams = extractCreationParams(body);
 
   // 既有体验提交（含跨会话分支操作——S3a D-2：新会话经
   // experience_id + state_version 对持久分支记录显式操作，
@@ -385,7 +464,13 @@ async function handleExecutionForm(
     }
     return ndjsonResponse(
       generation
-        ? withGeneration(submission.stream, generation, input.signal, () => runtime.getExperienceTopic(experienceId))
+        ? withGeneration(
+            submission.stream,
+            { ...generation, ...creationParams },
+            input.signal,
+            () => runtime.getExperienceTopic(experienceId),
+            () => runtime.getExperienceTranscript(experienceId),
+          )
         : submission.stream,
     );
   }
@@ -461,7 +546,13 @@ async function handleExecutionForm(
   }
   return ndjsonResponse(
     generation
-      ? withGeneration(submission.stream, generation, input.signal, () => runtime.getExperienceTopic(started.experienceId))
+      ? withGeneration(
+          submission.stream,
+          { ...generation, ...creationParams },
+          input.signal,
+          () => runtime.getExperienceTopic(started.experienceId),
+          () => runtime.getExperienceTranscript(started.experienceId),
+        )
       : submission.stream,
   );
 }
@@ -488,6 +579,8 @@ export async function handleExperienceStreamRequest(
     experience_id?: unknown;
     state_version?: unknown;
     semantic_action?: unknown;
+    aspect_ratio?: unknown;
+    seconds?: unknown;
   };
 
   // S2/S3 执行形态判定（S3b）：会话上下文三要素齐备

@@ -34,11 +34,32 @@ export class GenerationError extends Error {
     /** 瞬态失败（限速 / 队列满 / 5xx）——
      * 调用方可退避重试。 */
     public readonly retryable = false,
+    /** 提供方 HTTP 状态码（参数兼容降级判定——
+     * 400 表示请求体字段被拒绝）。 */
+    public readonly status?: number,
   ) {
     super(message);
     this.name = 'GenerationError';
   }
 }
+
+/** 创作参数（前端透传——画幅 / 视频时长；缺省用
+ * 提供方默认，不改变既有生成行为）。 */
+export interface GenerationOptions {
+  /** 画幅（视频 aspect_ratio 直传；图像映射为
+   * OpenAI images 契约的 size 三档）。 */
+  aspectRatio?: '16:9' | '9:16' | '1:1';
+  /** 视频时长（官方契约 "4"–"12" 秒）。 */
+  seconds?: '4' | '6' | '8' | '12';
+}
+
+// 画幅 → 图像尺寸（OpenAI images 兼容契约——聚合
+// 提供方普遍接受的三档；不发送即提供方默认）。
+const IMAGE_SIZES: Record<string, string> = {
+  '16:9': '1792x1024',
+  '9:16': '1024x1792',
+  '1:1': '1024x1024',
+};
 
 /** 端点基地址（剥离 chat-completions 后缀——生成端点
  * 与对话端点共享同一 API Base）。 */
@@ -86,6 +107,7 @@ async function callProvider(
       `generation provider failed (provider=${config.provider}, modality=${config.modality}, status=${response.status}${reason})`,
       config.modality,
       detail.retryable,
+      response.status,
     );
   }
   return response;
@@ -202,12 +224,38 @@ function extractVideoId(parsed: unknown): string | undefined {
 export async function generateImage(
   config: EnabledProviderConfig,
   prompt: string,
+  _onProgress?: (progress: number) => void,
+  options?: GenerationOptions,
 ): Promise<GenerationArtifact> {
-  const response = await callProvider(config, '/images/generations', {
-    model: config.model,
-    prompt,
-    n: 1,
-  });
+  const size =
+    options?.aspectRatio !== undefined
+      ? IMAGE_SIZES[options.aspectRatio]
+      : undefined;
+  const call = (withSize: boolean) =>
+    callProvider(config, '/images/generations', {
+      model: config.model,
+      prompt,
+      n: 1,
+      ...(withSize && size !== undefined ? { size } : {}),
+    });
+  let response: Response;
+  try {
+    response = await call(size !== undefined);
+  } catch (error) {
+    // 参数兼容降级：显式画幅被提供方拒绝（400 且非瞬态）
+    // → 无参重试一次（出图能力优先于画幅偏好——聚合
+    // 提供方对 images 契约的支持面参差）。
+    if (
+      size !== undefined &&
+      error instanceof GenerationError &&
+      !error.retryable &&
+      error.status === 400
+    ) {
+      response = await call(false);
+    } else {
+      throw error;
+    }
+  }
   let parsed: unknown;
   try {
     parsed = await response.json();
@@ -273,6 +321,7 @@ export async function generateVideo(
   config: EnabledProviderConfig,
   prompt: string,
   onProgress?: (progress: number) => void,
+  options?: GenerationOptions,
 ): Promise<GenerationArtifact> {
   // 官方文档契约（Agnes Video 2.5 Flash——docs/agnes-video-25-flash，
   // OpenAI Videos 兼容异步任务接口）：POST /videos 创建任务
@@ -283,14 +332,23 @@ export async function generateVideo(
   // 契约（V2.0 用 width/height/num_frames、产物在 metadata.url
   // ——对本模型发 height 会被 400「禁止字段」拒绝，实测 2026-10-11）。
   // 503 = 服务忙（队列满）——按瞬态退避重试处理。
+  // 创作参数：画幅 / 时长由前端透传（缺省 16:9 / 4s 保持
+  // 原行为）；自定义参数被 400 拒绝时降级默认参数重试
+  // （契约容差——时长/画幅档位可能随提供方收窄）。
+  const hasCustomParams =
+    options?.aspectRatio !== undefined || options?.seconds !== undefined;
+  let useCustomParams = hasCustomParams;
   const createTask = () =>
     callProvider(config, '/videos', {
       model: config.model,
       prompt,
       mode: 'text',
-      seconds: '4',
+      seconds: useCustomParams && options?.seconds !== undefined ? options.seconds : '4',
       size: '720P',
-      aspect_ratio: '16:9',
+      aspect_ratio:
+        useCustomParams && options?.aspectRatio !== undefined
+          ? options.aspectRatio
+          : '16:9',
     });
   const retryDelays = [...VIDEO_CREATE_RETRY_DELAYS_MS];
   // 瞬态失败退避重试：限速 / 队列满时
@@ -301,6 +359,17 @@ export async function generateVideo(
       response = await createTask();
       break;
     } catch (error) {
+      // 参数拒绝降级：自定义画幅 / 时长被 400 拒绝
+      // → 回落默认参数（立即重试，不占退避段）。
+      if (
+        useCustomParams &&
+        error instanceof GenerationError &&
+        !error.retryable &&
+        error.status === 400
+      ) {
+        useCustomParams = false;
+        continue;
+      }
       const retryable =
         error instanceof GenerationError && error.retryable;
       if (!retryable || retryDelays.length === 0) {
@@ -443,6 +512,7 @@ export const GENERATION_CALLS: Record<
     config: EnabledProviderConfig,
     prompt: string,
     onProgress?: (progress: number) => void,
+    options?: GenerationOptions,
   ) => Promise<GenerationArtifact>
  > = {
   image: generateImage,

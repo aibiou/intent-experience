@@ -25,8 +25,24 @@ export interface LlmRequest {
   semantic_action: SemanticAction;
   allowed_action: PolicyAction;
   context: unknown;
+  /** 创作对象摘要（可选——创作域轮次注入：模型据此理解
+   * 当前作品的主体结构，修改 / 预览轮输出贴合对象本身）。 */
+  creation?: CreationLlmSummary;
   /** 取消信号（可选——增量流式形态经此中止上游连接；S5A v1.2.0）。 */
   signal?: AbortSignal;
+}
+
+/** 创作对象 LLM 摘要（九分量的紧凑形态——结构化字段
+ * 确定性渲染进用户消息，模型无需猜测作品内容）。 */
+export interface CreationLlmSummary {
+  theme: string;
+  coreMechanic: string;
+  goal: string;
+  version: number;
+  objects: string[];
+  rules: string[];
+  interactions: string[];
+  presentation: string;
 }
 
 export interface LlmProposal {
@@ -174,7 +190,7 @@ export class ProviderLlmGateway implements LlmGateway {
       model: this.config.model,
       messages: [
         { role: 'system', content: this.config.systemPrompt },
-        { role: 'user', content: renderProviderUserMessage(request.context) },
+        { role: 'user', content: renderProviderUserMessage(request) },
       ],
       temperature: this.config.temperature,
     };
@@ -237,7 +253,7 @@ export class ProviderLlmGateway implements LlmGateway {
       model: this.config.model,
       messages: [
         { role: 'system', content: this.config.systemPrompt },
-        { role: 'user', content: renderProviderUserMessage(request.context) },
+        { role: 'user', content: renderProviderUserMessage(request) },
       ],
       temperature: this.config.temperature,
       stream: true,
@@ -343,20 +359,88 @@ function extractProviderDelta(parsed: unknown): string | undefined {
   return typeof content === 'string' ? content : undefined;
 }
 
-function renderProviderUserMessage(context: unknown): string {
-  // 确定性映射（S5A-SEMANTIC-FREEZE-01 §1 D-2）：LlmRequest.context
-  // 为运行时构造的 { raw_input, memory_signals } 形态；缺失该形态时
-  // 回退 JSON.stringify（防御性兜底——确定性）。generation_note 为
-  // 运行时多模态编排感知注入（可选行，置于用户输入之前）。
+/**
+ * 语义动作 → 用户消息指令行（确定性映射——dock 动作如
+ * 「换角度 / 简化」的原始输入不含意图信息，模型据此理解
+ * 本轮要做什么；未登记的语义动作不注入该行）。
+ */
+const SEMANTIC_ACTION_GUIDANCE: Record<string, string> = {
+  DIRECT_ANSWER: '直接回答用户的问题或回应用户的输入。',
+  WHY: '解释原因与底层机制。',
+  WHAT_IF: '展开假设推演，并区分事实 / 推断 / 假设 / 模拟结果。',
+  DEEPEN: '在既有话题上向更深处推进一层。',
+  SIMPLIFY: '把当前创作对象（或话题）以更简单直白的方式重述——结构保持，表达降阶。',
+  REFRAME: '换一个观察视角重述当前创作对象（或话题）——主体不变，视角更新。',
+  CREATE: '基于继承的主题与上下文构建创作预览。',
+  CONTINUE: '顺着既有上下文继续推进。',
+  REPEAT: '重述上一轮的内容要点。',
+  CORRECTION: '根据用户的纠正调整上一轮的说法。',
+  CHANGE_DIRECTION: '更换探索方向，开启新的话题。',
+  STOP: '为本次体验做收束。',
+};
+
+/** 创作对象 → 用户消息结构块（确定性渲染）。 */
+function renderCreationBlock(creation: CreationLlmSummary): string {
+  const lines = [
+    '[当前创作对象]',
+    `主题：${creation.theme}；核心机制：${creation.coreMechanic}；目标：${creation.goal}；版本：v${creation.version}`,
+  ];
+  const structure: string[] = [];
+  if (creation.objects.length > 0) structure.push(`对象：${creation.objects.join('、')}`);
+  if (creation.rules.length > 0) structure.push(`规则：${creation.rules.join('；')}`);
+  if (creation.interactions.length > 0) structure.push(`交互：${creation.interactions.join('；')}`);
+  if (creation.presentation.length > 0) structure.push(`呈现：${creation.presentation}`);
+  if (structure.length > 0) lines.push(structure.join('\n'));
+  return lines.join('\n');
+}
+
+function renderProviderUserMessage(request: LlmRequest): string {
+  // 确定性映射（S5A-SEMANTIC-FREEZE-01 §1 D-2 的超集演化）：
+  // LlmRequest.context 为运行时构造的 { raw_input, memory_signals,
+  // history? } 形态；缺失该形态时回退 JSON.stringify（防御性兜底）。
+  // generation_note 为运行时多模态编排感知注入（可选行）。对话
+  // 历史 / 语义动作指令 / 创作对象块随请求注入（连续性 + 创作域
+  // 轮次——模型不知道「换角度」「对应的」指什么，必须明说；
+  // 确定性拼接，无随机性）。
+  const context = request.context;
+  const lines: string[] = [];
   if (context !== null && typeof context === 'object' && 'raw_input' in context) {
-    const c = context as { raw_input: unknown; memory_signals?: unknown; generation_note?: unknown };
+    const c = context as {
+      raw_input: unknown;
+      memory_signals?: unknown;
+      generation_note?: unknown;
+      history?: unknown;
+    };
     const note =
       typeof c.generation_note === 'string' && c.generation_note.length > 0
         ? `[系统编排] ${c.generation_note}\n\n`
         : '';
-    return [`${note}${String(c.raw_input)}`, '[memory_signals]', JSON.stringify(c.memory_signals ?? [])].join('\n');
+    if (note.length > 0) lines.push(note);
+    // 对话历史（连续性）——置于当前输入之前，模型先理解上文
+    // 再读本轮；指代（「对应的」「它」）由此可解。
+    if (Array.isArray(c.history) && c.history.length > 0) {
+      lines.push('[对话历史]');
+      for (const turn of c.history as Array<{ role?: unknown; text?: unknown }>) {
+        const who = turn.role === 'user' ? '用户' : '助手';
+        lines.push(`${who}：${String(turn.text ?? '')}`);
+      }
+      lines.push('（以上为更早轮次——理解用户的指代与本轮意图时参考）');
+      lines.push('');
+    }
+    lines.push(String(c.raw_input));
+    lines.push('[memory_signals]');
+    lines.push(JSON.stringify(c.memory_signals ?? []));
+  } else {
+    lines.push(JSON.stringify(context ?? null));
   }
-  return JSON.stringify(context ?? null);
+  const guidance = SEMANTIC_ACTION_GUIDANCE[request.semantic_action];
+  if (guidance !== undefined) {
+    lines.push(`[语义动作] ${request.semantic_action}——${guidance}`);
+  }
+  if (request.creation !== undefined) {
+    lines.push(renderCreationBlock(request.creation));
+  }
+  return lines.join('\n');
 }
 
 /**

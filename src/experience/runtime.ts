@@ -53,7 +53,7 @@ import {
   nextDecisionId,
   type DecisionTraceSink,
 } from './decision-trace';
-import { SyntheticLlmGateway, nextProviderProposalId, type LlmGateway, type LlmProposal, type LlmRequest } from './llm-gateway';
+import { SyntheticLlmGateway, nextProviderProposalId, type CreationLlmSummary, type LlmGateway, type LlmProposal, type LlmRequest } from './llm-gateway';
 import { createExperienceStream, type StreamEvent } from './stream';
 import { allFixtures, loadChunkFixture } from './chunks';
 import {
@@ -72,6 +72,21 @@ import {
   type FirstExperiencePresentation,
   type PresentationStage,
 } from './presentation';
+
+/** 创作对象 → LLM 请求摘要（九分量的紧凑形态——修改轮预览
+ * 由真模型产出时，模型据此知道作品本身的主体结构）。 */
+function creationLlmSummary(creation: CreationObject): CreationLlmSummary {
+  return {
+    theme: creation.concept.theme,
+    coreMechanic: creation.concept.coreMechanic,
+    goal: creation.goal,
+    version: creation.version,
+    objects: creation.objects,
+    rules: creation.rules,
+    interactions: creation.interactions,
+    presentation: creation.presentation,
+  };
+}
 import { searchExperienceContext, type SearchContextResult } from './search';
 import {
   SimulationStore,
@@ -270,6 +285,10 @@ export class ExperienceRuntime {
   /** 当前生效 generation（每体验单写者视角的 generation epoch）。 */
   private readonly activeGenerations = new Map<string, string>();
   private readonly generationControllers = new Map<string, AbortController>();
+  /** 对话转录（连续性——提供方上下文携带近几轮用户/助手
+   * 内容，指代（「对应的」「它」）可被模型理解；会话内存活，
+   * 上限 12 轮滚动淘汰）。 */
+  private readonly transcripts = new Map<string, Array<{ role: 'user' | 'assistant'; text: string }>>();
   /** 已发出 generation_cancelled 的 generation（事件不重复登记）。 */
   private readonly cancellationMarked = new Set<string>();
   private counters = { intent: 0, experience: 0, candidate: 0, generation: 0, creation: 0 };
@@ -644,7 +663,7 @@ export class ExperienceRuntime {
    * 到期衰减在每次生成请求前应用（懒到期——memory_expired
    * 事件经 Runtime 事件管道留痕）。
    */
-  private async buildLlmContext(rawInput: string): Promise<{ raw_input: string; memory_signals: MemorySignal[] }> {
+  private async buildLlmContext(rawInput: string, experienceId?: string): Promise<{ raw_input: string; memory_signals: MemorySignal[]; history?: Array<{ role: 'user' | 'assistant'; text: string }> }> {
     const now = new Date().toISOString();
     const decay = this.memories.applyDecay(now);
     for (const record of decay.expired) {
@@ -669,15 +688,30 @@ export class ExperienceRuntime {
     return {
       raw_input: rawInput,
       memory_signals: this.memories.retrieveRelevant(rawInput, now),
+      // 连续性（实测缺口——「对应的」「它」类指代无从理解）：
+      // 近几轮对话转录随上下文携带（纯文本、确定性拼接；
+      // 无转录的路径缺省省略）。
+      ...(experienceId !== undefined
+        ? { history: this.transcripts.get(experienceId)?.slice(-6) ?? [] }
+        : {}),
       // 多模态生成编排感知（2026-10-11——实测文本模型在生成
       // 轮次宣称「我无法生成图像」，与下方的实时产物自相矛盾）：
       // 生成意图命中时向 LLM 声明编排事实，正文自然承接。
       ...(recognizeGenerationIntent(rawInput) !== null
         ? {
             generation_note:
-              '用户的多模态生成请求已由系统编排：对应模态的生成模型正在实时生成产物，将自动展示在本条回答下方。请自然承接用户的创作请求（可描述你理解的目标画面/内容），不要声明你无法生成图片、视频或语音。',
+              '用户的多模态生成请求已由系统编排：对应模态的生成模型正在实时生成产物，将自动展示在本条回答下方。请自然承接用户的创作请求，不要声明你无法生成图片、视频或语音。回答的第一句请直接描述生成的目标画面（主体 + 场景 + 视觉风格，一句完整的话）——它会作为提示词提供给图像 / 视频模型，请让画面主体明确、可供绘制；画面细节从第二句起展开。',
           }
-        : {}),
+        : // 死胡同引导（实测缺口——「生产一个图片猫」这类
+          // 未命中词表的生成表达曾被模型引向 Midjourney 等
+          // 外部工具，与平台能力相悖）：疑似生成表达但未
+          // 识别时，给出可命中的说法而非否认平台能力。
+          /(?:图|图片|图像|插画|头像|壁纸|封面|视频|动画|短片|语音|音频|音乐)/.test(rawInput)
+            ? {
+                generation_note:
+                  '用户可能希望生成媒体内容，但本条输入未命中生成识别。本平台具备图像 / 视频 / 语音生成能力——请顺着用户意图回应，并引导其用可识别的说法触发：图像「画一张…」或「生成一张…的图片」，视频「做一段…视频」，朗读「读出来」。不要声称本平台无法生成媒体，也不要推荐外部工具。',
+              }
+            : {}),
     };
   }
 
@@ -701,7 +735,7 @@ export class ExperienceRuntime {
     memory_signals: MemorySignal[];
     search_context: SearchContextResult;
   }> {
-    const base = await this.buildLlmContext(input.rawInput);
+    const base = await this.buildLlmContext(input.rawInput, input.experienceId);
     const current = this.store.get(input.experienceId);
     const creationRecord = this.creations.get(input.experienceId);
     const history = this.actionHistory.get(input.experienceId) ?? [];
@@ -1156,29 +1190,39 @@ export class ExperienceRuntime {
     // TARGET_SYNONYMS 确定性派生）；无活跃创作对象时按
     // 升级规则处理（C3 纪律，model on F-2/F-3 创作会话
     // 路由保护——INVALID_ACTION 升级，不静默执行未定义语义）。
+    // 创作域方向性补丁（14 §8）：SIMPLIFY / REFRAME 恒为创作
+    // 操作（无活跃创作对象时升级拒绝——C3 纪律不变）；DEEPEN
+    // 双语义——有活跃创作对象时深化作品（补丁），探索阶段不再
+    // 升级拒绝（2026-10-11 按钮审计实测：动作坞在探索阶段提供
+    // 「深入一点」，硬升级导致必死按钮）——落回解释层内容生成
+    // （S1 §14 冻结映射 DEEPEN → ANSWER，按语义动作指令推进）。
     if (
-      classification.semanticAction === 'DEEPEN' ||
-      classification.semanticAction === 'SIMPLIFY' ||
-      classification.semanticAction === 'REFRAME'
+      (classification.semanticAction === 'SIMPLIFY' || classification.semanticAction === 'REFRAME') &&
+      !(activeCreation?.active && activeCreation.creation.phase !== 'COMPLETE')
     ) {
-      if (activeCreation?.active && activeCreation.creation.phase !== 'COMPLETE') {
-        creationIntent = {
-          kind: 'modification',
-          patch: buildDirectionalPatch(
-            classification.semanticAction.toLowerCase() as 'deepen' | 'simplify' | 'reframe',
-            input.rawInput,
-            activeCreation.creation,
-          ),
-        };
-      } else {
-        return {
-          ok: false,
-          error: runtimeError(
-            'INVALID_ACTION',
-            `directional operation ${classification.semanticAction} requires an active creation session (escalated per policy_v2.0.0 变更 5; C3 upgrade discipline)`,
-          ),
-        };
-      }
+      return {
+        ok: false,
+        error: runtimeError(
+          'INVALID_ACTION',
+          `directional operation ${classification.semanticAction} requires an active creation session (escalated per policy_v2.0.0 变更 5; C3 upgrade discipline)`,
+        ),
+      };
+    }
+    if (
+      (classification.semanticAction === 'SIMPLIFY' ||
+        classification.semanticAction === 'REFRAME' ||
+        classification.semanticAction === 'DEEPEN') &&
+      activeCreation?.active &&
+      activeCreation.creation.phase !== 'COMPLETE'
+    ) {
+      creationIntent = {
+        kind: 'modification',
+        patch: buildDirectionalPatch(
+          classification.semanticAction.toLowerCase() as 'deepen' | 'simplify' | 'reframe',
+          input.rawInput,
+          activeCreation.creation,
+        ),
+      };
     }
     // 生成意图确定性路由（产品负责人指令 2026-10-10）：
     // 分类未命中（UNKNOWN）但生成意图规则命中时按
@@ -1322,6 +1366,11 @@ export class ExperienceRuntime {
       const history = this.actionHistory.get(input.experienceId) ?? [];
       history.push(policy.semanticAction);
       this.actionHistory.set(input.experienceId, history);
+      // 连续性转录：用户输入入转录（助手侧于流末由
+      // captureLastResponse 登记——空轮次不登记）。
+      const transcript = this.transcripts.get(input.experienceId) ?? [];
+      transcript.push({ role: 'user', text: input.rawInput.slice(0, 500) });
+      this.transcripts.set(input.experienceId, transcript.slice(-12));
       // S4（D-1 选项 A；S4A-SEMANTIC-FREEZE-01 v1.0.0 §1 D-1）——
       // 上一完成轮响应内容登记（REPEAT 呈现层重放数据源）：
       // 包装异步生成器——客户端事件原样转发，chunk 事件内容经
@@ -1762,7 +1811,7 @@ export class ExperienceRuntime {
       experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
       semantic_action: policy.semanticAction,
       allowed_action: policy.policyAction,
-      context: await this.buildLlmContext(input.rawInput),
+      context: await this.buildLlmContext(input.rawInput, input.experienceId),
     };
     // 流式形态（S5A-SEMANTIC-FREEZE-01 v1.2.0 / CR-38）：
     // 提供方网关经可选 proposeStream 增量产出——chunk 事件随
@@ -2114,7 +2163,7 @@ export class ExperienceRuntime {
         experience_state: { status: current.status, stage: current.stage, state_version: current.stateVersion },
         semantic_action: policy.semanticAction,
         allowed_action: policy.policyAction,
-        context: await this.buildLlmContext(input.rawInput),
+        context: await this.buildLlmContext(input.rawInput, input.experienceId),
       });
     } catch {
       // EB-02：propose 失败不提交、不消耗版本号（在途 generation 已被取代取消）。
@@ -2755,6 +2804,12 @@ export class ExperienceRuntime {
     this.activeGenerations.set(input.experienceId, generationId);
     const controller = new AbortController();
     this.generationControllers.set(input.experienceId, controller);
+    // 提供方流式接线（CR-38 同款纪律）：修改轮预览由真模型
+    // 产出——语义动作与修改后的创作对象随请求注入（网关
+    // 确定性渲染进用户消息）；合成网关保持既有静态语料路径
+    // （行为零变化——黄金回归不变式）。
+    const llmRequestId = `req_${generationId}`;
+    const streamingForm = typeof this.gateway.proposeStream === 'function';
 
     const stateTransitions = await this.recordEvent('state_transitioned', {
       identity: { user_id: this.userId, session_id: input.sessionId },
@@ -2771,27 +2826,32 @@ export class ExperienceRuntime {
       },
     });
 
-    await this.writeDecisionTrace({
-      decisionId,
-      sessionId: input.sessionId,
-      experienceId: input.experienceId,
-      semanticAction: policy.semanticAction,
-      stateBefore,
-      stateBeforeVersion: current.stateVersion,
-      stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
-      selectedAction: policy.policyAction,
-      reasonPrimary: patch.operation === 'restore' ? 'creation_restore' : 'explicit_user_direction',
-      reasonSecondary: patch.operation === 'restore'
-        ? `creation restore committed as monotonic revert patch (creation v${expectedCreationVersion} → v${patchCommit.record.creation.version}; new content = version ${typeof patch.change.restoreFromVersion === 'number' ? patch.change.restoreFromVersion : 'n/a'} content; version pointer never rolls back, S1-12; RESTORE_PREVIOUS_VERSION subtype of CORRECTION, 08 §28 / D-04 选项 A)`
-        : `creation modification applied as patch (creation v${expectedCreationVersion} → v${patchCommit.record.creation.version}; local patch, no whole-work regeneration, 08 §11)`,
-      llmUsed: false,
-      userOverride: true,
-      inputEvent: null,
-      intentBefore: null,
-    });
+    // 决策轨迹：静态形态于流前写入；流式形态于流末由
+    // chunk 源写入（完成时机经 S5A v1.2.0 §1 登记）。
+    if (!streamingForm) {
+      await this.writeDecisionTrace({
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        semanticAction: policy.semanticAction,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+        selectedAction: policy.policyAction,
+        reasonPrimary: patch.operation === 'restore' ? 'creation_restore' : 'explicit_user_direction',
+        reasonSecondary: patch.operation === 'restore'
+          ? `creation restore committed as monotonic revert patch (creation v${expectedCreationVersion} → v${patchCommit.record.creation.version}; new content = version ${typeof patch.change.restoreFromVersion === 'number' ? patch.change.restoreFromVersion : 'n/a'} content; version pointer never rolls back, S1-12; RESTORE_PREVIOUS_VERSION subtype of CORRECTION, 08 §28 / D-04 选项 A)`
+          : `creation modification applied as patch (creation v${expectedCreationVersion} → v${patchCommit.record.creation.version}; local patch, no whole-work regeneration, 08 §11)`,
+        llmUsed: false,
+        userOverride: true,
+        inputEvent: null,
+        intentBefore: null,
+      });
+    }
 
-    // 9. 预览流（合成语料——补丁后创作状态经 getCreation 可查；
-    //    流完成经 completeGeneration 推进 PREVIEW → USER_FEEDBACK）。
+    // 9. 预览流（流式形态由真模型产出预览；补丁后创作状态
+    //    经 getCreation 可查；流完成经 completeGeneration 推进
+    //    PREVIEW → USER_FEEDBACK）。
     const header: SubmissionHeader = {
       type: 'submission',
       accepted: true,
@@ -2816,6 +2876,59 @@ export class ExperienceRuntime {
     const combinedSignal = input.signal
       ? AbortSignal.any([input.signal, controller.signal])
       : controller.signal;
+    let providerChunkSource: AsyncGenerator<StreamEvent> | undefined;
+    if (streamingForm) {
+      await this.recordEvent('generation_started', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: input.requestId, decision_id: decisionId },
+        source: { layer: 'runtime', component: 'generation' },
+        properties: { generation_id: generationId },
+      });
+      await this.recordEvent('llm_request_started', {
+        identity: { user_id: this.userId, session_id: input.sessionId },
+        context: { experience_id: input.experienceId, intent_id: experience.intentId, state_version: current.stateVersion, request_id: llmRequestId, decision_id: decisionId },
+        source: { layer: 'llm', component: 'llm-gateway' },
+        properties: { generation_id: generationId, semantic_action: policy.semanticAction, allowed_action: policy.policyAction },
+      });
+      const llmRequest: LlmRequest = {
+        request_id: llmRequestId,
+        session_id: input.sessionId,
+        experience_id: input.experienceId,
+        intent: { intent_id: experience.intentId },
+        experience_state: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+        semantic_action: policy.semanticAction,
+        allowed_action: policy.policyAction,
+        context: await this.buildGenerationContext(input),
+        // 修改后的创作对象随请求注入——模型重述的是打补丁
+        // 之后的作品本身，而非泛泛地解释「换角度 / 简化」。
+        creation: creationLlmSummary(patchCommit.record.creation),
+        signal: combinedSignal,
+      };
+      providerChunkSource = this.createProviderChunkSource({
+        request: llmRequest,
+        semanticAction: policy.semanticAction,
+        policyAction: policy.policyAction,
+        fixtureId: fixture.fixture.fixtureId,
+        generationId,
+        llmRequestId,
+        decisionId,
+        sessionId: input.sessionId,
+        experienceId: input.experienceId,
+        intentId: experience.intentId,
+        stateVersion: current.stateVersion,
+        stateBefore,
+        stateBeforeVersion: current.stateVersion,
+        stateAfter: { status: commit.state.status, stage: commit.state.stage, state_version: commit.state.stateVersion },
+        selectedAction: policy.policyAction,
+        reasonPrimary: patch.operation === 'restore' ? 'creation_restore' : 'explicit_user_direction',
+        reasonSecondary: patch.operation === 'restore'
+          ? `creation restore committed as monotonic revert patch (creation v${expectedCreationVersion} → v${patchCommit.record.creation.version}; new content = version ${typeof patch.change.restoreFromVersion === 'number' ? patch.change.restoreFromVersion : 'n/a'} content; version pointer never rolls back, S1-12; RESTORE_PREVIOUS_VERSION subtype of CORRECTION, 08 §28 / D-04 选项 A)`
+          : `creation modification applied as patch (creation v${expectedCreationVersion} → v${patchCommit.record.creation.version}; local patch, no whole-work regeneration, 08 §11)`,
+        llmUsed: true,
+        userOverride: true,
+        audit: this.auditSink,
+      });
+    }
     const stream = this.wrapGenerationStream({
       header,
       experienceId: input.experienceId,
@@ -2828,6 +2941,7 @@ export class ExperienceRuntime {
         signal: combinedSignal,
         chunkDelayMs: 40,
         audit: this.auditSink,
+        ...(providerChunkSource ? { chunkSource: providerChunkSource } : {}),
       },
       completionCommit: true,
       stateTransitionedEvent: stateTransitions,
@@ -3900,6 +4014,11 @@ export class ExperienceRuntime {
     }
     if (chunks.length > 0) {
       this.lastResponseByExperience.set(experienceId, { chunks, fixtureId, at: new Date().toISOString() });
+      // 连续性转录：助手内容入转录（空轮次不覆盖——与 REPEAT
+      // 数据源同纪律；截断 1500 字防上下文膨胀）。
+      const transcript = this.transcripts.get(experienceId) ?? [];
+      transcript.push({ role: 'assistant', text: chunks.join('').slice(0, 1_500) });
+      this.transcripts.set(experienceId, transcript.slice(-12));
     }
   }
 
@@ -4769,5 +4888,13 @@ export class ExperienceRuntime {
     if (!experience) return null;
     const intent = this.intents.get(experience.intentId);
     return intent?.rawInput ?? null;
+  }
+
+  /** 对话转录（连续性——呈现层 / 生成编排读取近几轮上下文；
+   * 指代类生成（「对应的猫图片」）据此解析主体。只读副本）。 */
+  getExperienceTranscript(
+    experienceId: string,
+  ): Array<{ role: 'user' | 'assistant'; text: string }> {
+    return [...(this.transcripts.get(experienceId) ?? [])];
   }
 }

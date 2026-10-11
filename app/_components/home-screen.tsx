@@ -93,7 +93,7 @@ interface HomeScreenProps {
   creations: CreationEntry[];
   onStart: (input: string) => void;
   onResume: (recent: RecentEntry) => void;
-  onDeleteCreation: (id: string) => void;
+  onDeleteCreation: (entry: CreationEntry) => void;
 }
 
 const CREATION_MODALITY_LABELS: Record<CreationEntry['modality'], string> = {
@@ -101,6 +101,9 @@ const CREATION_MODALITY_LABELS: Record<CreationEntry['modality'], string> = {
   voice: '语音',
   video: '视频',
 };
+
+// 作品墙分页粒度。
+const WALL_PAGE_SIZE = 12;
 
 // 自由输入框轮播提示——多模态能力
 // 一目了然，每 4 秒换一条。
@@ -132,6 +135,10 @@ export function HomeScreen({
   const [pulseIndex, setPulseIndex] = useState(0);
   const [hintIndex, setHintIndex] = useState(0);
   const [lightbox, setLightbox] = useState<LightboxState | null>(null);
+  // 作品墙模态筛选 + 分页（专业作品库——服务端全量在手，
+  // 展示按 12 件一页渐进加载）。
+  const [wallFilter, setWallFilter] = useState<'all' | CreationEntry['modality']>('all');
+  const [wallLimit, setWallLimit] = useState(WALL_PAGE_SIZE);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
   // 脉搏轮转：每 4 秒换一条，像社区的实时感。
@@ -224,6 +231,24 @@ export function HomeScreen({
 
   const pulseKey = `${pulseVerb}-${pulseSeed.id}-${pulseCount}`;
 
+  // 作品库：模态计数 + 筛选 + 分页切片。
+  const modalityCounts = useMemo(() => {
+    const counts: Record<'all' | CreationEntry['modality'], number> = {
+      all: creations.length,
+      image: 0,
+      voice: 0,
+      video: 0,
+    };
+    for (const creation of creations) counts[creation.modality] += 1;
+    return counts;
+  }, [creations]);
+
+  const filteredCreations =
+    wallFilter === 'all'
+      ? creations
+      : creations.filter((creation) => creation.modality === wallFilter);
+  const visibleCreations = filteredCreations.slice(0, wallLimit);
+
   const openCreation = (creation: CreationEntry) => {
     const src = creationSrc(creation);
     if (src === undefined || creation.modality === 'voice') return;
@@ -249,6 +274,9 @@ export function HomeScreen({
         </div>
         <a className="config-link" href="/config">
           <SettingsIcon size={14} /> 模型配置
+        </a>
+        <a className="config-link" href="/create">
+          <VideoIcon size={14} /> 创作工作台
         </a>
       </nav>
 
@@ -372,12 +400,39 @@ export function HomeScreen({
 
       {creations.length > 0 && (
         <section className="creations">
-          <h2 className="creations-title">
-            我的作品
-            <span className="creations-count">{creations.length}</span>
-          </h2>
+          <div className="creations-head">
+            <h2 className="creations-title">
+              我的作品
+              <span className="creations-count">{creations.length}</span>
+            </h2>
+            <div className="wall-filters">
+              {(
+                [
+                  { value: 'all', label: '全部' },
+                  { value: 'image', label: '图像' },
+                  { value: 'video', label: '视频' },
+                  { value: 'voice', label: '语音' },
+                ] as const
+              )
+                .filter((item) => item.value === 'all' || modalityCounts[item.value] > 0)
+                .map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    className={`param-chip${wallFilter === item.value ? ' is-active' : ''}`}
+                    onClick={() => {
+                      setWallFilter(item.value);
+                      setWallLimit(WALL_PAGE_SIZE);
+                    }}
+                  >
+                    {item.label}
+                    <span className="param-chip-count">{modalityCounts[item.value]}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
           <div className="creations-wall">
-            {creations.map((creation) => {
+            {visibleCreations.map((creation) => {
               const src = creationSrc(creation);
               return (
                 <article key={creation.id} className="creation-card">
@@ -426,7 +481,7 @@ export function HomeScreen({
                     className="creation-delete"
                     aria-label="删除作品"
                     title="删除作品"
-                    onClick={() => onDeleteCreation(creation.id)}
+                    onClick={() => onDeleteCreation(creation)}
                   >
                     <TrashIcon size={13} />
                   </button>
@@ -434,6 +489,23 @@ export function HomeScreen({
               );
             })}
           </div>
+          {visibleCreations.length === 0 && (
+            <p className="wall-empty">这个模态还没有作品——换个筛选，或直接创作一个。</p>
+          )}
+          {filteredCreations.length > wallLimit && (
+            <div className="wall-more-row">
+              <button
+                type="button"
+                className="wall-more"
+                onClick={() => setWallLimit((limit) => limit + WALL_PAGE_SIZE)}
+              >
+                加载更多
+                <span className="wall-more-count">
+                  还有 {filteredCreations.length - wallLimit} 件
+                </span>
+              </button>
+            </div>
+          )}
         </section>
       )}
 
@@ -512,6 +584,31 @@ export function HomeScreen({
               <img src={lightbox.src} alt={lightbox.prompt} />
             )}
             <p className="lightbox-prompt">{lightbox.prompt}</p>
+            <div
+              className="lightbox-actions"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <a
+                className="lightbox-action"
+                href={lightbox.src}
+                download={`creation.${lightbox.modality === 'video' ? 'mp4' : 'png'}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                下载
+              </a>
+              <button
+                type="button"
+                className="lightbox-action lightbox-action-primary"
+                onClick={() => {
+                  const prompt = lightbox.prompt;
+                  setLightbox(null);
+                  onStart(prompt);
+                }}
+              >
+                再做一次
+              </button>
+            </div>
           </div>
         </div>
       )}
