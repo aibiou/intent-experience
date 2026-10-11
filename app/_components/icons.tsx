@@ -16,6 +16,34 @@ function base(size: number): SVGProps<SVGSVGElement> {
   };
 }
 
+// 品牌徽标——渐变圆角底 + 星芒，顶栏字标前使用。
+export function LogoMark({ size = 22, ...props }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden={true}
+      {...props}
+    >
+      <defs>
+        <linearGradient id="logo-grad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#b4552d" />
+          <stop offset="55%" stopColor="#d94f6b" />
+          <stop offset="100%" stopColor="#7c4dd4" />
+        </linearGradient>
+      </defs>
+      <rect width="24" height="24" rx="7" fill="url(#logo-grad)" />
+      <path
+        d="M12 5.5l1.7 4.3 4.3 1.7-4.3 1.7-1.7 4.3-1.7-4.3-4.3-1.7 4.3-1.7 1.7-4.3Z"
+        fill="#ffffff"
+      />
+      <circle cx="17.6" cy="6.4" r="1.4" fill="#ffffff" fillOpacity="0.9" />
+    </svg>
+  );
+}
+
 export function MicIcon({ size = 18, ...props }: IconProps) {
   return (
     <svg {...base(size)} {...props}>

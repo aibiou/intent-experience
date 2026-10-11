@@ -147,17 +147,25 @@ class PersistedConfigLlmGateway implements LlmGateway {
   }
 }
 
-let serverRuntime: ExperienceRuntime | undefined;
+// 单例挂载于进程级 globalThis（dev 形态存活）：Turbopack
+// 热重载会重求值本模块——模块级变量随重置（2026-10-11 实测
+// 用户会话在代码编辑后被清空：unknown session），globalThis
+// 不随重置。挂载于此，热重载后 Session / Experience / 内存
+// 创作会话跨请求保持连续。注意 trade-off：网关构造参数随
+// 实例冻结——但 PersistedConfigLlmGateway 每次调用重新解析
+// 持久化配置，配置面启用 / 禁用仍即时生效；仅网关类代码
+// 本身的修改需完整重启 dev 服务器。
+const globalStore = globalThis as { __experienceRuntime?: ExperienceRuntime };
 
 export function getServerRuntime(): ExperienceRuntime {
-  if (!serverRuntime) {
+  if (!globalStore.__experienceRuntime) {
     const gateway = resolveServerGateway();
-    serverRuntime = new ExperienceRuntime({
+    globalStore.__experienceRuntime = new ExperienceRuntime({
       eventSink: createServerEventSink(serverEventLogPath()),
       decisionTraceSink: createServerDecisionTraceSink(serverDecisionTraceLogPath()),
       auditSink: createServerAuditSink(serverAuditLogPath()),
       ...(gateway ? { gateway } : {}),
     });
   }
-  return serverRuntime;
+  return globalStore.__experienceRuntime;
 }

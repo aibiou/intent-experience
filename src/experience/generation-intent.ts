@@ -20,6 +20,9 @@ export interface GenerationIntent {
   modality: GenerationModality;
   /** 生成提示（原始输入——提供方模型消费自然语言提示）。 */
   prompt: string;
+  /** 呈现形式类表达（「用视频展现 / 以图片形式呈现」）：
+   * 输入本身不含画面主题，提示词须由本轮回答内容构建。 */
+  useContext?: boolean;
 }
 
 // 生成动词表（显式创作表达）。消费意图
@@ -45,6 +48,18 @@ const VIDEO_PATTERNS: ReadonlyArray<RegExp> = [
   new RegExp(`${MAKE_VERBS}.{0,40}短片`),
   new RegExp(`给我.{0,4}${MAKE_VERBS}.{0,40}短片`),
   /拍.{0,40}短片/,
+  // 名词短语式表达（实测缺口——「美女的展示」「美女的视频」
+  // 被升级拒绝）：「…的视频 / 动画 / 短片」是视频主题表达。
+  /.{0,16}的(?:视频|动画|短片)/,
+  // 再生成表达（视频侧——「换一个视频」）。
+  /(?:换|再|来)(?:一个|一段|张|个)?(?:视频|动画|短片)(?:[，,、].*)?$/,
+  // 呈现形式类表达（实测缺口——「视频方式展现」被
+  // 升级拒绝 HTTP 400）：模态词 + 方式 / 形式 /
+  // 展现 / 呈现 / 展示。这类输入不含画面主题，
+  // useContext 标记提示编排层用回答内容构建提示词。
+  /(?:视频|动画|短片).{0,6}(?:方式|形式)/,
+  /(?:视频|动画|短片).{0,4}(?:展现|呈现|展示)/,
+  /(?:以|用|改|换).{0,4}(?:视频|动画|短片)/,
 ];
 
 const IMAGE_PATTERNS: ReadonlyArray<RegExp> = [
@@ -54,6 +69,24 @@ const IMAGE_PATTERNS: ReadonlyArray<RegExp> = [
   /(?:设计|画).{0,8}(?:头像|像素)/,
   new RegExp(`(?:做|生成|制作).{0,40}(?:示意图|概念图)`),
   new RegExp(`给我.{0,4}${MAKE_VERBS}.{0,40}(?:图|图片|画像|插画|插图|壁纸|头像|背景|封面)`),
+  // 名词短语式表达（实测缺口——「美女的展示」被升级拒绝）：
+  // 「…的图片 / 照片 / 画像 / 写真」是图像主题表达；
+  // 「…的展示 / 演示」缺模态词，按最常用的图像模态理解
+  // （提示词裁剪见 recognize——剥去「的展示」尾缀）。
+  /.{0,16}的(?:图片|照片|图像|画像|插画|插图|写真|壁纸|头像|背景|封面)/,
+  /.{0,16}的(?:展示|演示)/,
+  // 再生成表达（实测缺口——「换一张图片，夏天的服装」被
+  // 误路由 CHANGE_DIRECTION 撞状态机）：换 / 再 / 来 + 模态
+  // 词是对上一张的再生成；新约束经 recognize 提取为提示词。
+  /(?:换|再|来)(?:一张|一幅|一个|张|幅)?(?:图片|照片|图像|画|图|插画|头像|壁纸)(?:[，,、].*)?$/,
+  // 裸「模态词 + 展示动词」（无主题——呈现形式类，与视频
+  // 侧同形；「图像展示一下」）。
+  /(?:图像|图片|照片|画像|插画).{0,4}(?:展现|呈现|展示)/,
+  // 呈现形式类表达（同视频——模态词 + 方式 / 形式 /
+  // 展现 / 呈现；「用图片展现这个概念」）。
+  /(?:图片|画像|插画|插图|壁纸|头像|背景|封面).{0,6}(?:方式|形式)/,
+  /(?:图片|画像|插画|插图|壁纸|头像|背景|封面).{0,4}(?:展现|呈现|展示)/,
+  /(?:以|用|改|换).{0,4}(?:图片|画像|插画|插图)/,
 ];
 
 const VOICE_PATTERNS: ReadonlyArray<RegExp> = [
@@ -65,19 +98,52 @@ const VOICE_PATTERNS: ReadonlyArray<RegExp> = [
   /(用|发出).{0,4}语音/,
   /说.{0,4}出来/,
   /发音/,
+  // 呈现形式类表达（「语音方式呈现 / 换成语音」）。
+  /语音.{0,6}(?:方式|形式)/,
+  /(?:以|改|换).{0,4}语音/,
 ];
 
 export function recognizeGenerationIntent(rawInput: string): GenerationIntent | null {
   const input = rawInput.trim();
   if (input.length === 0) return null;
+  // 名词短语提示词裁剪：「美女的展示」→ 提示词「美女」
+  // （提供方模型消费画面主题而非 UI 用语）——仅作用于
+  // 提示词，模式匹配仍用原句（否则剥尾后模式失配）。
+  const stripped = /^(.{1,16})的(?:展示|演示)$/.exec(input);
+  // 再生成新约束提取：「换一张图片，夏天的服装」→ 提示词
+  // 「夏天的服装」（逗号后即用户对下一张的要求；无约束时
+  // 保留原句——提示词能力所及的最优确定性变换）。
+  const regen = /(?:换|再|来)(?:一张|一幅|一个|张|幅)?(?:图片|照片|图像|画|图|插画|头像|壁纸|视频|动画|短片)[，,、\s]+(.+)$/.exec(input);
+  const promptBase = regen !== null && regen[1] !== undefined && regen[1].trim().length > 0
+    ? regen[1].trim()
+    : stripped !== null
+      ? stripped[1]
+      : input;
+  // 呈现形式类表达：模态词 + 方式 / 形式 / 展现 / 呈现 /
+  // 展示，或「改 / 换 + 模态词」（换介质表达）——输入是
+  // 「换一种呈现介质」的表达，不含画面主题，提示词
+  // 须由本轮回答内容构建（useContext）。再生成表达
+  // （regen）自带约束主题，不是换介质，优先排除。
+  const presentation =
+    regen === null &&
+    (/(?:视频|动画|短片|图片|图像|照片|写真|画像|插画|插图|语音).{0,6}(?:方式|形式)/.test(input) ||
+      /(?:视频|动画|短片|图片|图像|照片|写真|画像|插画|插图|语音).{0,4}(?:展现|呈现|展示)/.test(input) ||
+      /(?:改|换).{0,4}(?:视频|动画|短片|图片|图像|照片|写真|画像|插画|插图|语音)/.test(input));
   if (VIDEO_PATTERNS.some((pattern) => pattern.test(input))) {
-    return { modality: 'video', prompt: input };
+    return { modality: 'video', prompt: promptBase, ...(presentation ? { useContext: true } : {}) };
   }
   if (IMAGE_PATTERNS.some((pattern) => pattern.test(input))) {
-    return { modality: 'image', prompt: input };
+    return { modality: 'image', prompt: promptBase, ...(presentation ? { useContext: true } : {}) };
   }
   if (VOICE_PATTERNS.some((pattern) => pattern.test(input))) {
-    return { modality: 'voice', prompt: input };
+    // 朗读类请求（「读给我听 / 朗读 / 读出来」）的语义是
+    // 「把上一轮回答读出来」——朗读对象是已有内容而非
+    // 用户原话（实测「读给我听」曾把原话直接丢给 TTS）。
+    // 输入携带引号内容（「把「静夜思」读出来」）时朗读
+    // 用户指定的文本，不走上下文。
+    const readingRequest = /读|朗读|念/.test(input) && !/[「『""']/u.test(input);
+    const useContext = presentation === true || readingRequest === true;
+    return { modality: 'voice', prompt: promptBase, ...(useContext ? { useContext: true } : {}) };
   }
   return null;
 }
