@@ -3,11 +3,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { HomeScreen, type RecentEntry } from './_components/home-screen';
 import {
+  loadCreations,
+  saveCreations,
+  type CreationEntry,
+} from './_components/creations';
+import {
   ExperienceScreen,
   type SessionState,
 } from './_components/experience-screen';
 
 const RECENTS_KEY = 'intent-experience.recents';
+const CREATIONS_MAX = 12;
 
 function loadRecents(): RecentEntry[] {
   if (typeof window === 'undefined') return [];
@@ -34,11 +40,13 @@ export default function HomePage() {
   const [initialInput, setInitialInput] = useState<string | undefined>();
   const [resume, setResume] = useState(false);
   const [recents, setRecents] = useState<RecentEntry[]>([]);
+  const [creations, setCreations] = useState<CreationEntry[]>([]);
   const [mode, setMode] = useState<'synthetic' | 'provider'>('synthetic');
   const [providerLabel, setProviderLabel] = useState<string | undefined>();
 
   useEffect(() => {
     setRecents(loadRecents());
+    setCreations(loadCreations());
     fetch('/api/config/status')
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
@@ -51,6 +59,22 @@ export default function HomePage() {
         );
       })
       .catch(() => undefined);
+  }, []);
+
+  const handleCreation = useCallback((entry: CreationEntry) => {
+    setCreations((prev) => {
+      // 同模态同产物去重（重试不重复入库），新作品在前。
+      const fingerprint = `${entry.modality}:${entry.dataUri ?? entry.url}`;
+      const next = [
+        entry,
+        ...prev.filter(
+          (item) =>
+            `${item.modality}:${item.dataUri ?? item.url}` !== fingerprint,
+        ),
+      ].slice(0, CREATIONS_MAX);
+      saveCreations(next);
+      return next;
+    });
   }, []);
 
   const start = useCallback(async (input: string) => {
@@ -104,9 +128,17 @@ export default function HomePage() {
         onSessionUpdate={setSession}
         onRecent={handleRecent}
         onExit={() => setPhase('home')}
+        onCreation={handleCreation}
       />
     );
   }
 
-  return <HomeScreen recents={recents} onStart={start} onResume={resumeRecent} />;
+  return (
+    <HomeScreen
+      recents={recents}
+      creations={creations}
+      onStart={start}
+      onResume={resumeRecent}
+    />
+  );
 }

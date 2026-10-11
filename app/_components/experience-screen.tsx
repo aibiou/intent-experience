@@ -9,6 +9,7 @@ import {
 } from './icons';
 import { StageRail } from './stage-rail';
 import type { RecentEntry } from './home-screen';
+import { creationId, type CreationEntry } from './creations';
 
 export interface SessionState {
   sessionId: string;
@@ -90,6 +91,8 @@ interface ExperienceScreenProps {
   onSessionUpdate: (session: SessionState) => void;
   onRecent: (entry: RecentEntry) => void;
   onExit: () => void;
+  /** 生成完成回调——作品持久化（首页作品墙）。 */
+  onCreation?: (entry: CreationEntry) => void;
 }
 
 export function ExperienceScreen({
@@ -101,6 +104,7 @@ export function ExperienceScreen({
   onSessionUpdate,
   onRecent,
   onExit,
+  onCreation,
 }: ExperienceScreenProps) {
   const [sessionState, setSessionState] = useState<SessionState>(session);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -118,6 +122,9 @@ export function ExperienceScreen({
   const idCounter = useRef(0);
   const sendingRef = useRef(false);
   const startedRef = useRef(false);
+  // 各模态本轮生成的提示词——完成事件不携带
+  // 提示词，作品持久化需要它（started 时记录）。
+  const pendingPromptRef = useRef(new Map<string, string>());
   const conversationRef = useRef<HTMLDivElement>(null);
   const followRef = useRef(true);
 
@@ -127,6 +134,7 @@ export function ExperienceScreen({
     const status = String(event.status ?? '');
     const modality = String(event.modality ?? '') as GenerationState['modality'];
     if (status === 'started') {
+      pendingPromptRef.current.set(modality, String(event.prompt ?? ''));
       setGenerations((prev) => [
         ...prev,
         {
@@ -166,18 +174,39 @@ export function ExperienceScreen({
         }
       }
       if (index === -1) return prev;
+      const completed = status === 'completed';
+      const prompt = pendingPromptRef.current.get(modality) ?? '';
+      if (completed) {
+        pendingPromptRef.current.delete(modality);
+      }
       const next: GenerationState = {
         ...prev[index],
-        status:
-          status === 'completed' ? 'completed' : status === 'unconfigured' ? 'unconfigured' : 'failed',
+        status: completed
+          ? 'completed'
+          : status === 'unconfigured'
+            ? 'unconfigured'
+            : 'failed',
         ...(typeof event.url === 'string' ? { url: event.url } : {}),
         ...(typeof event.dataUri === 'string' ? { dataUri: event.dataUri } : {}),
         ...(typeof event.mime === 'string' ? { mime: event.mime } : {}),
         ...(typeof event.message === 'string' ? { message: event.message } : {}),
       };
+      // 生成完成 → 上报作品（持久化到首页作品墙）。
+      // 副作用须放在状态更新器之外——更新器保持纯净。
+      if (completed && onCreation && (next.url !== undefined || next.dataUri !== undefined)) {
+        onCreation({
+          id: creationId(),
+          modality,
+          prompt,
+          ...(next.url !== undefined ? { url: next.url } : {}),
+          ...(next.dataUri !== undefined ? { dataUri: next.dataUri } : {}),
+          ...(next.mime !== undefined ? { mime: next.mime } : {}),
+          at: new Date().toISOString(),
+        });
+      }
       return [...prev.slice(0, index), next, ...prev.slice(index + 1)];
     });
-  }, []);
+  }, [onCreation]);
 
   const applySession = useCallback(
     (next: SessionState) => {

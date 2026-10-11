@@ -234,3 +234,22 @@ export function ClockIcon({ size = 18, ...props }: IconProps) {
     </svg>
   );
 }
+
+export function ImageIcon({ size = 18, ...props }: IconProps) {
+  return (
+    <svg {...base(size)} {...props}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="9" cy="9" r="1.6" />
+      <path d="m21 15-4.5-4.5L6 21" />
+    </svg>
+  );
+}
+
+export function VideoIcon({ size = 18, ...props }: IconProps) {
+  return (
+    <svg {...base(size)} {...props}>
+      <rect x="3" y="6" width="13" height="12" rx="2" />
+      <path d="m16 10 5-3v10l-5-3" />
+    </svg>
+  );
+}
