@@ -12,6 +12,9 @@ export interface CreationEntry {
   dataUri?: string;
   mime?: string;
   at: string;
+  /** 服务端作品库记录 id（服务端持久化后由 /api/works 回填——
+   * 删除时同步服务端；纯本地缓存条目无此字段）。 */
+  workId?: string;
 }
 
 const CREATIONS_KEY = 'intent-experience.creations';

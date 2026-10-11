@@ -101,7 +101,23 @@ function splitGenerationDetail(message?: string): { main: string; detail: string
  * 自研 formatRichText 不支持表格 / 引用 / 分隔线，模型输出
  * 的 GFM 表格以裸管道符呈现）。react-markdown 默认转义
  * HTML——无注入面；流式期间随文本增长重解析。
+ *
+ * 内联 HTML 剥离（实测排版缺陷——模型偶发输出 <b> / <br>
+ * 等内联标签，react-markdown 跳过 HTML 节点，未闭合标签
+ * 会使其后的正文整段消失——句中截断丢字）。渲染前白名单
+ * 剥离：换行类标签转换行，其余移除标签保留文本——不引入
+ * rehype-raw 注入面。
  */
+function stripInlineHtml(text: string): string {
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(
+      /<\/?(b|i|u|em|strong|sub|sup|span|p|div|font|small|big|hr|center|mark)[^<>]*>/gi,
+      '',
+    );
+}
+
 function MarkdownContent({ text }: { text: string }) {
   return (
     <ReactMarkdown
@@ -110,7 +126,7 @@ function MarkdownContent({ text }: { text: string }) {
         a: (props) => <a {...props} target="_blank" rel="noreferrer" />,
       }}
     >
-      {text}
+      {stripInlineHtml(text)}
     </ReactMarkdown>
   );
 }
@@ -129,6 +145,21 @@ const ACTION_LABELS: Record<string, string> = {
   REPEAT: '重复',
   STOP: '完成',
 };
+
+// 创作参数（专业生产能力——画幅 / 视频时长随请求透传
+// 生成网关；「自动」不发送参数，保持提供方默认行为）。
+const ASPECT_CHOICES = [
+  { value: 'auto', label: '自动' },
+  { value: '16:9', label: '16:9' },
+  { value: '9:16', label: '9:16' },
+  { value: '1:1', label: '1:1' },
+] as const;
+
+const DURATION_CHOICES = [
+  { value: 'auto', label: '自动' },
+  { value: '8', label: '8s' },
+  { value: '12', label: '12s' },
+] as const;
 
 interface ExperienceScreenProps {
   session: SessionState;
@@ -165,6 +196,9 @@ export function ExperienceScreen({
   const [currentBranchId, setCurrentBranchId] = useState<string | null>(null);
   const [memories, setMemories] = useState<MemoryInfo[]>([]);
   const [generations, setGenerations] = useState<GenerationState[]>([]);
+  // 创作参数（画幅 / 视频时长——「自动」= 不发送，跟随提供方默认）。
+  const [aspect, setAspect] = useState<(typeof ASPECT_CHOICES)[number]['value']>('auto');
+  const [duration, setDuration] = useState<(typeof DURATION_CHOICES)[number]['value']>('auto');
 
   const sessionRef = useRef(session);
   const idCounter = useRef(0);
@@ -373,6 +407,9 @@ export function ExperienceScreen({
         body.experience_id = sessionRef.current.experienceId;
         body.state_version = sessionRef.current.stateVersion;
       }
+      // 创作参数透传（仅非「自动」时携带——后端白名单校验）。
+      if (aspect !== 'auto') body.aspect_ratio = aspect;
+      if (duration !== 'auto') body.seconds = duration;
 
       try {
         const response = await fetch('/api/experience/stream', {
@@ -533,7 +570,7 @@ export function ExperienceScreen({
         setPending(false);
       }
     },
-    [applySession, onRecent, resyncState, refreshPanels],
+    [applySession, onRecent, resyncState, refreshPanels, aspect, duration],
   );
 
   useEffect(() => {
@@ -542,7 +579,12 @@ export function ExperienceScreen({
     if (initialInput) {
       void send(initialInput, true);
     } else if (resume) {
-      void send('继续');
+      // 恢复会话（T14 修复）：recents 存的是首轮 stateVersion，
+      // 会话可能已推进——先重同步当前版本再提交，否则版本冲突。
+      void (async () => {
+        await resyncState();
+        void send('接着往下讲');
+      })();
     }
   }, [initialInput, resume, send]);
 
@@ -603,12 +645,23 @@ export function ExperienceScreen({
         });
       list.push({ label: '返回主线', input: '如果返回主线' });
     }
-    list.push({ label: '换一个', input: '换一个' });
-    list.push({ label: '继续', input: '继续' });
+    // 换方向在创作阶段被状态机拒绝（曾以「这一步和当前
+    // 阶段接不上」错误收场——动作坞不该提供必被拒的
+    // 动作）；仅探索阶段提供。
+    // 换方向（CHANGE_DIRECTION）冻结状态机仅 READY/ACTIVE 合法——
+    // WAITING（每轮回答完成后的常态）点击必被拒，隐藏该按钮。
+    if (sessionState.stage !== 'CREATION' && sessionState.status !== 'WAITING') {
+      list.push({ label: '换一个', input: '换一个' });
+    }
+    // 「继续」的冻结语义是幂等空确认（S4A D-1）——按钮改发
+    // 内容承接措辞（UNKNOWN→DIRECT_ANSWER，带对话历史续讲）。
+    list.push({ label: '继续', input: '接着往下讲' });
     list.push({ label: '重复上一条', input: '重复上一条' });
     list.push({ label: '好了', input: '好了' });
     return list;
-  }, [sessionState.stage, branchActive, branches]);
+    // status 参与「换一个」可见性——依赖必须含 status，否则
+    // 轮次完成后（WAITING）按钮列表不刷新。
+  }, [sessionState.stage, sessionState.status, branchActive, branches]);
 
   const submit = () => {
     const input = draft.trim();
@@ -843,6 +896,33 @@ export function ExperienceScreen({
             onClick={() => void send(action.input)}
           >
             {action.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 创作参数条——画幅 / 时长，下一次生成生效 */}
+      <div className="creation-params">
+        <span className="creation-params-label">画幅</span>
+        {ASPECT_CHOICES.map((choice) => (
+          <button
+            key={choice.value}
+            type="button"
+            className={`param-chip${aspect === choice.value ? ' is-active' : ''}`}
+            onClick={() => setAspect(choice.value)}
+          >
+            {choice.label}
+          </button>
+        ))}
+        <span className="creation-params-divider" aria-hidden="true" />
+        <span className="creation-params-label">时长</span>
+        {DURATION_CHOICES.map((choice) => (
+          <button
+            key={choice.value}
+            type="button"
+            className={`param-chip${duration === choice.value ? ' is-active' : ''}`}
+            onClick={() => setDuration(choice.value)}
+          >
+            {choice.label}
           </button>
         ))}
       </div>

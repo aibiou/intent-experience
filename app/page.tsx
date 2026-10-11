@@ -13,7 +13,53 @@ import {
 } from './_components/experience-screen';
 
 const RECENTS_KEY = 'intent-experience.recents';
-const CREATIONS_MAX = 12;
+// 服务端作品库（/api/works）落地后——展示上限放开；
+// localStorage 降级为缓存（saveCreations 内部仍限 12 条）。
+const CREATIONS_MAX = 60;
+// localStorage 缓存条数（容量纪律——语音 dataUri 约 100KB 级）。
+const CREATIONS_CACHE_MAX = 12;
+
+/** 服务端作品记录 → 展示条目（资产经 /api/works/{id}/asset
+ * 提供——远程提供方 URL 失效免疫；workId 支撑删除同步）。 */
+function workEntries(works: Array<Record<string, unknown>>): CreationEntry[] {
+  return works
+    .filter(
+      (work) =>
+        typeof work.id === 'string' &&
+        (work.modality === 'image' || work.modality === 'voice' || work.modality === 'video') &&
+        typeof work.assetUrl === 'string',
+    )
+    .map((work) => ({
+      id: String(work.id),
+      workId: String(work.id),
+      modality: work.modality as CreationEntry['modality'],
+      prompt: typeof work.prompt === 'string' ? work.prompt : '',
+      url: String(work.assetUrl),
+      ...(typeof work.mime === 'string' ? { mime: work.mime } : {}),
+      at: typeof work.createdAt === 'string' ? work.createdAt : new Date().toISOString(),
+    }));
+}
+
+async function postWork(entry: CreationEntry): Promise<string | null> {
+  try {
+    const response = await fetch('/api/works', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        modality: entry.modality,
+        prompt: entry.prompt,
+        ...(entry.url !== undefined && !entry.url.startsWith('/api/works/') ? { url: entry.url } : {}),
+        ...(entry.dataUri !== undefined ? { dataUri: entry.dataUri } : {}),
+        ...(entry.mime !== undefined ? { mime: entry.mime } : {}),
+      }),
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { work?: { id?: unknown } };
+    return typeof data.work?.id === 'string' ? data.work.id : null;
+  } catch {
+    return null;
+  }
+}
 
 function loadRecents(): RecentEntry[] {
   if (typeof window === 'undefined') return [];
@@ -47,6 +93,39 @@ export default function HomePage() {
   useEffect(() => {
     setRecents(loadRecents());
     setCreations(loadCreations());
+    // 服务端作品库同步（平台能力——作品持久化不再依赖
+    // 浏览器）：服务端有记录以其为准；服务端为空且本地
+    // 有缓存时一次性迁移上传；服务端不可达保持本地。
+    void (async () => {
+      try {
+        const response = await fetch('/api/works');
+        if (!response.ok) return;
+        const data = (await response.json()) as { works?: unknown };
+        const works = Array.isArray(data.works) ? (data.works as Array<Record<string, unknown>>) : [];
+        if (works.length > 0) {
+          const entries = workEntries(works);
+          setCreations(entries);
+          saveCreations(entries.slice(0, CREATIONS_CACHE_MAX));
+          return;
+        }
+        const local = loadCreations();
+        if (local.length === 0) return;
+        await Promise.allSettled(local.map((entry) => postWork(entry)));
+        const again = await fetch('/api/works');
+        if (!again.ok) return;
+        const retry = (await again.json()) as { works?: unknown };
+        const retryWorks = Array.isArray(retry.works)
+          ? (retry.works as Array<Record<string, unknown>>)
+          : [];
+        if (retryWorks.length > 0) {
+          const entries = workEntries(retryWorks);
+          setCreations(entries);
+          saveCreations(entries.slice(0, CREATIONS_CACHE_MAX));
+        }
+      } catch {
+        // 服务端不可达——保持本地缓存展示
+      }
+    })();
     fetch('/api/config/status')
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
@@ -75,14 +154,28 @@ export default function HomePage() {
       saveCreations(next);
       return next;
     });
+    // 服务端持久化（平台能力——产物字节落盘，提供方 URL
+    // 失效免疫）：成功后回填 workId 供删除同步。
+    void postWork(entry).then((workId) => {
+      if (workId === null) return;
+      setCreations((prev) =>
+        prev.map((item) => (item.id === entry.id ? { ...item, workId } : item)),
+      );
+    });
   }, []);
 
-  const handleDeleteCreation = useCallback((id: string) => {
+  const handleDeleteCreation = useCallback((entry: CreationEntry) => {
     setCreations((prev) => {
-      const next = prev.filter((item) => item.id !== id);
+      const next = prev.filter((item) => item.id !== entry.id);
       saveCreations(next);
       return next;
     });
+    // 服务端记录同步删除（纯本地缓存条目无 workId——跳过）。
+    if (entry.workId !== undefined) {
+      void fetch(`/api/works/${entry.workId}`, { method: 'DELETE' }).catch(
+        () => undefined,
+      );
+    }
   }, []);
 
   const start = useCallback(async (input: string) => {
