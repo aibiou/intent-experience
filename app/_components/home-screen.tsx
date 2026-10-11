@@ -14,7 +14,10 @@ import {
   ClockIcon,
   SparklesIcon,
   HistoryIcon,
+  ImageIcon,
+  VideoIcon,
 } from './icons';
+import { creationSrc, timeAgo, type CreationEntry } from './creations';
 import { ExperienceCover } from './experience-cover';
 import {
   EXPERIENCE_CATALOG,
@@ -76,11 +79,23 @@ function greeting(): string {
 
 interface HomeScreenProps {
   recents: RecentEntry[];
+  creations: CreationEntry[];
   onStart: (input: string) => void;
   onResume: (recent: RecentEntry) => void;
 }
 
-export function HomeScreen({ recents, onStart, onResume }: HomeScreenProps) {
+const CREATION_MODALITY_LABELS: Record<CreationEntry['modality'], string> = {
+  image: '图像',
+  voice: '语音',
+  video: '视频',
+};
+
+export function HomeScreen({
+  recents,
+  creations,
+  onStart,
+  onResume,
+}: HomeScreenProps) {
   const [draft, setDraft] = useState('');
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<FeedTab>('featured');
@@ -278,7 +293,7 @@ export function HomeScreen({ recents, onStart, onResume }: HomeScreenProps) {
         <textarea
           className="free-entry-input"
           rows={2}
-          placeholder="直接告诉我……"
+          placeholder="直接告诉我：做个清晨森林的视频、画张插画、读段文字……"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
@@ -303,6 +318,60 @@ export function HomeScreen({ recents, onStart, onResume }: HomeScreenProps) {
           </button>
         </div>
       </div>
+
+      {creations.length > 0 && (
+        <section className="creations">
+          <h2 className="creations-title">
+            作品
+            <span className="creations-count">{creations.length}</span>
+          </h2>
+          <div className="creations-row">
+            {creations.map((creation) => {
+              const src = creationSrc(creation);
+              return (
+                <article key={creation.id} className="creation-card">
+                  {creation.modality === 'image' && src !== undefined && (
+                    <button
+                      type="button"
+                      className="creation-media"
+                      onClick={() => window.open(src, '_blank')}
+                    >
+                      <img src={src} alt={creation.prompt} />
+                    </button>
+                  )}
+                  {creation.modality === 'video' && src !== undefined && (
+                    <button
+                      type="button"
+                      className="creation-media"
+                      onClick={() => window.open(src, '_blank')}
+                    >
+                      <video muted playsInline preload="metadata" src={src} />
+                      <span className="creation-play" aria-hidden="true">
+                        <VideoIcon size={16} />
+                      </span>
+                    </button>
+                  )}
+                  {creation.modality === 'voice' && src !== undefined && (
+                    <div className="creation-media creation-voice">
+                      <MicIcon size={18} />
+                      <audio controls src={src} />
+                    </div>
+                  )}
+                  <div className="creation-body">
+                    <span className={`gen-tag gen-tag-${creation.modality}`}>
+                      {CREATION_MODALITY_LABELS[creation.modality]}
+                    </span>
+                    <p className="creation-prompt" title={creation.prompt}>
+                      {creation.prompt}
+                    </p>
+                    <span className="creation-time">{timeAgo(creation.at)}</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {recents.length > 0 && (
         <section className="recents">
