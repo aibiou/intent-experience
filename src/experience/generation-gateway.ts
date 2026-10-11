@@ -195,6 +195,7 @@ export async function generateVoice(
 export async function generateVideo(
   config: EnabledProviderConfig,
   prompt: string,
+  onProgress?: (progress: number) => void,
 ): Promise<GenerationArtifact> {
   // 官方文档最佳实践（Agnes Video 2.5 Flash——
   // 异步任务接口）：POST /videos 创建任务
@@ -270,7 +271,11 @@ export async function generateVideo(
         'video',
       );
     }
-    const record = state as { status?: unknown; error?: unknown };
+    const record = state as {
+      status?: unknown;
+      error?: unknown;
+      progress?: unknown;
+    };
     if (record.status === 'completed') {
       const stateEntry = firstDataEntry(state);
       const url =
@@ -291,6 +296,12 @@ export async function generateVideo(
         'video',
       );
     }
+    // 进度透传（提供方任务 progress 0–100——
+    // 呈现层据此展示进度条，视频生成耗时
+    // 数十秒至数分钟，反馈不可省）。
+    if (onProgress !== undefined && typeof record.progress === 'number') {
+      onProgress(record.progress);
+    }
     if (Date.now() >= deadline) {
       throw new GenerationError(
         `generation provider timeout (provider=${config.provider}, modality=video: task not completed within ${VIDEO_POLL_TIMEOUT_MS / 1000}s)`,
@@ -302,7 +313,11 @@ export async function generateVideo(
 
 export const GENERATION_CALLS: Record<
   'image' | 'voice' | 'video',
-  (config: EnabledProviderConfig, prompt: string) => Promise<GenerationArtifact>
+  (
+    config: EnabledProviderConfig,
+    prompt: string,
+    onProgress?: (progress: number) => void,
+  ) => Promise<GenerationArtifact>
  > = {
   image: generateImage,
   voice: generateVoice,

@@ -56,6 +56,8 @@ interface GenerationState {
   dataUri?: string;
   mime?: string;
   message?: string;
+  /** 生成进度（0–100——视频异步任务轮询透传）。 */
+  progress?: number;
 }
 
 const GENERATION_MODALITY_LABELS: Record<GenerationState['modality'], string> = {
@@ -134,6 +136,24 @@ export function ExperienceScreen({
           prompt: String(event.prompt ?? ''),
         },
       ]);
+      return;
+    }
+    if (status === 'progress') {
+      // 更新该模态最近一条待完成产物的进度。
+      setGenerations((prev) => {
+        for (let i = prev.length - 1; i >= 0; i -= 1) {
+          if (prev[i].status === 'pending' && prev[i].modality === modality) {
+            const next = [...prev];
+            next[i] = {
+              ...next[i],
+              progress:
+                typeof event.progress === 'number' ? event.progress : undefined,
+            };
+            return next;
+          }
+        }
+        return prev;
+      });
       return;
     }
     setGenerations((prev) => {
@@ -513,6 +533,19 @@ export function ExperienceScreen({
                   <div className="gen-pending">
                     <span className="gen-pending-dot" aria-hidden="true" />
                     <span>{GENERATION_MODALITY_LABELS[item.modality]}生成中…</span>
+                    {typeof item.progress === 'number' && (
+                      <span className="gen-progress">
+                        <span className="gen-progress-bar">
+                          <span
+                            className="gen-progress-fill"
+                            style={{ width: `${item.progress}%` }}
+                          />
+                        </span>
+                        <span className="gen-progress-num">
+                          {item.progress}%
+                        </span>
+                      </span>
+                    )}
                   </div>
                 )}
                 {item.status === 'completed' &&

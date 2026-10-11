@@ -130,7 +130,51 @@ async function* withGeneration(
         };
         return;
       }
-      const artifact = await GENERATION_CALLS[intent.modality](config, intent.prompt);
+      // 进度透传：提供方轮询回调推入队列，
+      // 本循环每 400ms drain 一次并随流输出
+      // progress 事件——视频生成耗时数十秒
+      // 至数分钟，呈现层据此展示进度条。
+      const progressQueue: number[] = [];
+      const artifactPromise = GENERATION_CALLS[intent.modality](
+        config,
+        intent.prompt,
+        (progress) => {
+          progressQueue.push(progress);
+        },
+      );
+      let artifact: Awaited<typeof artifactPromise>;
+      let generationError: unknown;
+      let settled = false;
+      while (!settled) {
+        while (progressQueue.length > 0) {
+          const progress = progressQueue.shift();
+          if (progress !== undefined) {
+            yield {
+              type: 'generation',
+              status: 'progress',
+              modality: intent.modality,
+              progress,
+              at: new Date().toISOString(),
+            };
+          }
+        }
+        settled = await Promise.race([
+          artifactPromise.then(
+            () => true,
+            (error: unknown) => {
+              generationError = error;
+              return true;
+            },
+          ),
+          new Promise<boolean>((resolve) => {
+            setTimeout(() => resolve(false), 400);
+          }),
+        ]);
+      }
+      if (generationError !== undefined) {
+        throw generationError;
+      }
+      artifact = await artifactPromise;
       yield {
         type: 'generation',
         status: 'completed',
