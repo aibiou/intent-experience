@@ -56,6 +56,18 @@ export class ExperienceStateStore {
   }
 
   /**
+   * 恢复（dev/personal 跨重启续讲——PD-07 附加层）：按快照
+   * 原样注入状态（含版本号，保证续讲提交的版本校验通过）。
+   * 仅在内存无此体验时由运行时调用；已存在则忽略。
+   */
+  restore(experienceId: string, state: ExperienceState): ExperienceState {
+    const existing = this.states.get(experienceId);
+    if (existing) return existing;
+    this.states.set(experienceId, state);
+    return state;
+  }
+
+  /**
    * 提交一次版本化写入。
    * expectedStateVersion 与当前版本不一致 → STATE_VERSION_CONFLICT（不修改状态）。
    */

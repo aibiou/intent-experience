@@ -37,6 +37,11 @@ import {
 import { createSession, transitionSession, type SessionRecord } from './session';
 import { ExperienceStateStore, type ExperienceState } from './state-store';
 import {
+  loadSessionSnapshot,
+  saveSessionSnapshot,
+  type SessionSnapshot,
+} from './session-snapshot';
+import {
   CORRECTION_APPLIED_EVENT,
   CORRECTION_RESTORED_EVENT,
   MEMORY_CORRECTED_EVENT,
@@ -886,6 +891,8 @@ export class ExperienceRuntime {
       }),
     );
 
+    // 会话快照（跨重启续讲）：体验建立即落盘。
+    this.snapshotSession(experienceId);
     return {
       ok: true,
       experienceId,
@@ -903,6 +910,7 @@ export class ExperienceRuntime {
   getExperienceState(
     experienceId: string,
   ): { ok: true; state: ExperienceState } | { ok: false; error: RuntimeError } {
+    this.ensureRestored(experienceId);
     const state = this.store.get(experienceId);
     if (!state) {
       return { ok: false, error: runtimeError('INVALID_REQUEST', `unknown experience: ${experienceId}`) };
@@ -1371,6 +1379,9 @@ export class ExperienceRuntime {
       const transcript = this.transcripts.get(input.experienceId) ?? [];
       transcript.push({ role: 'user', text: input.rawInput.slice(0, 500) });
       this.transcripts.set(input.experienceId, transcript.slice(-12));
+      // 快照不在此处落盘——提交时点 status=ACTIVE（生成中），
+      // 恢复后会被状态机视为在途而拒绝新轮次；快照统一在
+      // 流末（captureLastResponse）以完成后状态落盘。
       // S4（D-1 选项 A；S4A-SEMANTIC-FREEZE-01 v1.0.0 §1 D-1）——
       // 上一完成轮响应内容登记（REPEAT 呈现层重放数据源）：
       // 包装异步生成器——客户端事件原样转发，chunk 事件内容经
@@ -4020,6 +4031,10 @@ export class ExperienceRuntime {
       transcript.push({ role: 'assistant', text: chunks.join('').slice(0, 1_500) });
       this.transcripts.set(experienceId, transcript.slice(-12));
     }
+    // 会话快照（跨重启续讲）：流末以完成态落盘——此时
+    // completeGeneration 已提交（WAITING），快照状态可安全恢复。
+    // 空轮次（STOP / CONTINUE）也刷新——状态变更不落旧态。
+    this.snapshotSession(experienceId);
   }
 
   private async executeContentGeneration(
@@ -4877,6 +4892,79 @@ export class ExperienceRuntime {
   }
 
   /**
+   * 会话快照（跨重启续讲——PD-07 附加层）：体验建立后与每轮
+   * 完成后落盘续讲最小集（状态含版本号 + 转录 + 主题）。
+   * 失败静默——续讲降级为既有死会话指引，不影响主流程。
+   */
+  private snapshotSession(experienceId: string): void {
+    try {
+      const experience = this.experiences.get(experienceId);
+      const state = this.store.get(experienceId);
+      if (!experience || !state) return;
+      const intent = this.intents.get(experience.intentId);
+      const snapshot: SessionSnapshot = {
+        experienceId,
+        sessionId: experience.sessionId,
+        intentId: experience.intentId,
+        candidateId: experience.candidateId,
+        topic: intent?.rawInput ?? '',
+        state,
+        transcript: this.transcripts.get(experienceId) ?? [],
+        savedAt: new Date().toISOString(),
+      };
+      void saveSessionSnapshot(snapshot);
+    } catch {
+      // 快照失败静默
+    }
+  }
+
+  /** 内存无此体验时按快照重建最小续讲面（会话 / 意图 / 体验
+   * 记录 + 状态含版本号 + 转录）。已存在则空操作。 */
+  private ensureRestored(experienceId: string): void {
+    if (this.store.get(experienceId) !== undefined) return;
+    const snapshot = loadSessionSnapshot(experienceId);
+    if (!snapshot) return;
+    try {
+      const session = this.sessions.get(snapshot.sessionId);
+      if (session) {
+        session.state = 'SESSION_ACTIVE';
+        session.intentId = snapshot.intentId;
+        session.experienceId = snapshot.experienceId;
+        session.endedAt = null;
+      } else {
+        this.sessions.set(snapshot.sessionId, {
+          sessionId: snapshot.sessionId,
+          state: 'SESSION_ACTIVE',
+          intentId: snapshot.intentId,
+          experienceId: snapshot.experienceId,
+          createdAt: snapshot.savedAt,
+          endedAt: null,
+        });
+      }
+      if (snapshot.intentId !== null) {
+        this.intents.set(snapshot.intentId, {
+          intentId: snapshot.intentId,
+          sessionId: snapshot.sessionId,
+          rawInput: snapshot.topic,
+          semanticAction: 'DIRECT_ANSWER',
+          state: 'CREATED',
+          createdAt: snapshot.savedAt,
+        });
+      }
+      this.experiences.set(snapshot.experienceId, {
+        experienceId: snapshot.experienceId,
+        sessionId: snapshot.sessionId,
+        intentId: snapshot.intentId ?? '',
+        candidateId: snapshot.candidateId,
+      });
+      this.store.restore(snapshot.experienceId, snapshot.state);
+      this.transcripts.set(snapshot.experienceId, snapshot.transcript ?? []);
+    } catch {
+      // 恢复失败静默——走既有 unknown experience 指引
+    }
+  }
+
+  /**
    * 体验主题（只读——2026-10-11 多模态编排用）：体验首轮的
    * 用户原始输入（如「猫为什么会发出呼噜声」）。呈现形式类
    * 生成（「用有趣的图像展示」）以此为视觉主题构建提示词
@@ -4884,6 +4972,7 @@ export class ExperienceRuntime {
    * 叙述被提供方忽略并回落人物先验）。
    */
   getExperienceTopic(experienceId: string): string | null {
+    this.ensureRestored(experienceId);
     const experience = this.experiences.get(experienceId);
     if (!experience) return null;
     const intent = this.intents.get(experience.intentId);
@@ -4895,6 +4984,7 @@ export class ExperienceRuntime {
   getExperienceTranscript(
     experienceId: string,
   ): Array<{ role: 'user' | 'assistant'; text: string }> {
+    this.ensureRestored(experienceId);
     return [...(this.transcripts.get(experienceId) ?? [])];
   }
 }
