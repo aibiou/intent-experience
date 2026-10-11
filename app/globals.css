@@ -1473,6 +1473,35 @@ a:hover {
   animation: pulse-beat 1.2s ease-in-out infinite;
 }
 
+.gen-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.gen-progress-bar {
+  width: 72px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.gen-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.gen-progress-num {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.65;
+}
+
 .gen-media {
   display: block;
   width: 100%;

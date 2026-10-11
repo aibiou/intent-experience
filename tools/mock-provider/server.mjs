@@ -10,6 +10,10 @@ import { createServer } from 'node:http';
 
 const PORT = 4011;
 const artifacts = new Map();
+// 异步视频任务（模拟 Agnes 视频接口——
+// 创建返回 video_id，轮询 /agnesapi 直至
+// completed，progress 每查询 +30）。
+const videoTasks = new Map();
 let artifactSeq = 0;
 
 function readBody(req) {
@@ -126,14 +130,65 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && url.pathname === '/v1/videos') {
+    // 异步任务形态（与 Agnes 视频接口一致——
+    // 创建后轮询查询，而非同步返回产物）。
     const body = await readBody(req);
     const prompt = String(body.prompt || '');
     const hue = (prompt.length * 31) % 360;
     artifactSeq += 1;
     const id = `vid-${artifactSeq}`;
-    artifacts.set(id, { kind: 'image/svg+xml', body: makeSvg(`视频：${prompt}`, hue) });
+    videoTasks.set(id, { progress: 0, hue, prompt });
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ id, data: [{ url: `http://localhost:${PORT}/artifacts/${id}` }] }));
+    res.end(JSON.stringify({
+      id,
+      video_id: id,
+      task_id: id,
+      object: 'video',
+      model: String(body.model || 'mock-video'),
+      status: 'queued',
+      progress: 0,
+      created_at: Math.floor(Date.now() / 1000),
+      seconds: String(body.seconds || '5'),
+      size: '720P',
+      quality: 'standard',
+    }));
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/agnesapi') {
+    // 任务查询端点（Agnes 视频轮询规范——
+    // GET /agnesapi?video_id=...&model_name=...）。
+    const videoId = url.searchParams.get('video_id');
+    const task = videoTasks.get(videoId);
+    if (!task) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'task not found' }));
+      return;
+    }
+    task.progress = Math.min(100, task.progress + 30);
+    if (task.progress >= 100) {
+      artifacts.set(videoId, {
+        kind: 'image/svg+xml',
+        body: makeSvg(`视频：${task.prompt}`, task.hue),
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        id: videoId,
+        object: 'video',
+        status: 'completed',
+        progress: 100,
+        url: `http://localhost:${PORT}/artifacts/${videoId}`,
+        completed_at: Math.floor(Date.now() / 1000),
+      }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      id: videoId,
+      object: 'video',
+      status: 'in_progress',
+      progress: task.progress,
+    }));
     return;
   }
 
