@@ -562,7 +562,7 @@ export function ExperienceScreen({
                   <div className="gen-pending">
                     <span className="gen-pending-dot" aria-hidden="true" />
                     <span>{GENERATION_MODALITY_LABELS[item.modality]}生成中…</span>
-                    {typeof item.progress === 'number' && (
+                    {typeof item.progress === 'number' && item.progress > 0 && (
                       <span className="gen-progress">
                         <span className="gen-progress-bar">
                           <span
@@ -574,6 +574,9 @@ export function ExperienceScreen({
                           {item.progress}%
                         </span>
                       </span>
+                    )}
+                    {typeof item.progress === 'number' && item.progress === 0 && (
+                      <span className="gen-queued">排队中</span>
                     )}
                   </div>
                 )}
