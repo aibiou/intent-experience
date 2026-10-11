@@ -164,6 +164,31 @@ export function ExperienceScreen({
       });
       return;
     }
+    const completed = status === 'completed';
+    const prompt = pendingPromptRef.current.get(modality) ?? '';
+    if (completed) {
+      pendingPromptRef.current.delete(modality);
+    }
+    // 生成完成 → 上报作品（持久化到首页
+    // 作品墙）。完成事件自身携带产物
+    // 字段——副作用放在状态更新器之外，
+    // 更新器保持纯净（渲染期不得触发
+    // 其他组件的 setState）。
+    if (
+      completed &&
+      onCreation &&
+      (typeof event.url === 'string' || typeof event.dataUri === 'string')
+    ) {
+      onCreation({
+        id: creationId(),
+        modality,
+        prompt,
+        ...(typeof event.url === 'string' ? { url: event.url } : {}),
+        ...(typeof event.dataUri === 'string' ? { dataUri: event.dataUri } : {}),
+        ...(typeof event.mime === 'string' ? { mime: event.mime } : {}),
+        at: new Date().toISOString(),
+      });
+    }
     setGenerations((prev) => {
       // 匹配该模态最近一条待完成产物（同一轮只生成一次）。
       let index = -1;
@@ -174,11 +199,6 @@ export function ExperienceScreen({
         }
       }
       if (index === -1) return prev;
-      const completed = status === 'completed';
-      const prompt = pendingPromptRef.current.get(modality) ?? '';
-      if (completed) {
-        pendingPromptRef.current.delete(modality);
-      }
       const next: GenerationState = {
         ...prev[index],
         status: completed
@@ -191,19 +211,6 @@ export function ExperienceScreen({
         ...(typeof event.mime === 'string' ? { mime: event.mime } : {}),
         ...(typeof event.message === 'string' ? { message: event.message } : {}),
       };
-      // 生成完成 → 上报作品（持久化到首页作品墙）。
-      // 副作用须放在状态更新器之外——更新器保持纯净。
-      if (completed && onCreation && (next.url !== undefined || next.dataUri !== undefined)) {
-        onCreation({
-          id: creationId(),
-          modality,
-          prompt,
-          ...(next.url !== undefined ? { url: next.url } : {}),
-          ...(next.dataUri !== undefined ? { dataUri: next.dataUri } : {}),
-          ...(next.mime !== undefined ? { mime: next.mime } : {}),
-          at: new Date().toISOString(),
-        });
-      }
       return [...prev.slice(0, index), next, ...prev.slice(index + 1)];
     });
   }, [onCreation]);
