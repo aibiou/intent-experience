@@ -321,12 +321,12 @@ export function ExperienceScreen({
     [onSessionUpdate],
   );
 
-  const resyncState = useCallback(async () => {
+  const resyncState = useCallback(async (): Promise<boolean> => {
     const experienceId = sessionRef.current.experienceId;
-    if (!experienceId) return;
+    if (!experienceId) return false;
     try {
       const response = await fetch(`/api/experience/${experienceId}/state`);
-      if (!response.ok) return;
+      if (!response.ok) return false;
       const data = await response.json();
       applySession({
         ...sessionRef.current,
@@ -334,8 +334,10 @@ export function ExperienceScreen({
         status: data.state?.status ?? sessionRef.current.status,
         stage: data.state?.stage ?? sessionRef.current.stage,
       });
+      return true;
     } catch {
       // 状态同步失败时保持本地状态——下次提交携带本地版本
+      return false;
     }
   }, [applySession]);
 
@@ -428,6 +430,11 @@ export function ExperienceScreen({
               // 状态机拒绝（如创作会话内换方向）——中文可行动指引，
               // 不裸吐内部英文。
               errorMessage = '这一步和当前阶段接不上——试试「继续」，或从下面的方向里选一个。';
+            } else if (
+              typeof data.message === 'string' &&
+              data.message.startsWith('unknown experience')
+            ) {
+              errorMessage = '这段体验的服务端会话已失效（服务可能重启过）——返回首页重新开始即可。';
             } else if (
               typeof data.message === 'string' &&
               data.message.startsWith('unknown session')
@@ -579,10 +586,22 @@ export function ExperienceScreen({
     if (initialInput) {
       void send(initialInput, true);
     } else if (resume) {
-      // 恢复会话（T14 修复）：recents 存的是首轮 stateVersion，
-      // 会话可能已推进——先重同步当前版本再提交，否则版本冲突。
+      // 恢复会话（T14 修复 + 存活探测）：recents 存的是首轮
+      // stateVersion——先重同步；服务端会话不存在（dev 重启清
+      // 内存态）时给明确指引而非盲目提交吃通用错误。
       void (async () => {
-        await resyncState();
+        const alive = await resyncState();
+        if (!alive) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: nextId(),
+              role: 'system',
+              text: '这段体验的服务端会话已失效（服务可能重启过）——返回首页重新开始即可。',
+            },
+          ]);
+          return;
+        }
         void send('接着往下讲');
       })();
     }
