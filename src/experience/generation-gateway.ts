@@ -299,6 +299,10 @@ export async function generateVideo(
       }
       const wait = retryDelays.shift();
       if (wait === undefined) throw error;
+      // 重试等待期间保持前端反馈——
+      // 进度 0 即「排队中」态，否则
+      // 用户面对两分钟无反馈的「生成中」。
+      onProgress?.(0);
       await sleep(wait);
     }
   }
