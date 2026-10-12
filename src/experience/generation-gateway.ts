@@ -18,6 +18,12 @@
  */
 
 import type { EnabledProviderConfig } from './config-store';
+import {
+  buildZhipuVideoCreate,
+  parseZhipuCreateId,
+  parseZhipuPoll,
+  videoProviderOf,
+} from './video-contract';
 
 export interface GenerationArtifact {
   /** 远程 URL（提供方托管产物）。 */
@@ -252,6 +258,281 @@ function extractVideoId(parsed: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * 视频契约路由：Seedance（火山方舟豆包——POST
+ * /contents/generations/tasks 异步任务 + GET
+ * /contents/generations/tasks/{id} 轮询，产物在 content.video_url）
+ * 与 Agnes（/v1/videos + /agnesapi 轮询）两套契约不同——按模型名 /
+ * 端点域判定，避免把 Seedance 请求发到 Agnes 契约（实测经第三方
+ * OpenAI 兼容网关转发视频会被网关无 /v1/videos 路由拒成 400；
+ * 走提供方官方端点后契约正确、仅剩队列瞬态 503——网关能力边界，
+ * 非产品参数缺陷）。
+ */
+function isSeedanceContract(config: EnabledProviderConfig): boolean {
+  const model = config.model.toLowerCase();
+  const endpoint = config.endpoint.toLowerCase();
+  return (
+    model.includes('seedance') ||
+    endpoint.includes('volcengine') ||
+    endpoint.includes('volces') ||
+    /ark\./.test(endpoint) ||
+    endpoint.includes('/api/v3')
+  );
+}
+
+/**
+ * Seedance（火山方舟豆包）视频契约执行器——异步任务：
+ * POST {base}/contents/generations/tasks 创建（content[0].text
+ * 承载提示词），保存 task id 后轮询
+ * GET {base}/contents/generations/tasks/{id} 直至 succeeded，
+ * 产物在 content.video_url。免费档常态排队/限速——错误映射与
+ * 退避复用 callProvider / readProviderError（瞬态 status 标记
+ * retryable），轮询用与 agnes 相同的间隔 / 超时纪律。
+ */
+async function generateVideoSeedance(
+  config: EnabledProviderConfig,
+  prompt: string,
+  onProgress?: (progress: number) => void,
+  _options?: GenerationOptions,
+): Promise<GenerationArtifact> {
+  const response = await callProvider(config, '/contents/generations/tasks', {
+    model: config.model,
+    content: [{ type: 'text', text: prompt }],
+  });
+  let parsed: unknown;
+  try {
+    parsed = await response.json();
+  } catch {
+    throw new GenerationError(
+      `generation provider response malformed (provider=${config.provider}, modality=video: non-JSON body)`,
+      'video',
+    );
+  }
+  // 同步形态兜底（部分提供方直接返回产物 url）。
+  const entry = firstDataEntry(parsed);
+  const syncUrl =
+    (entry !== null ? extractUrl(entry) : undefined) ??
+    extractUrl(parsed as Record<string, unknown>);
+  if (syncUrl !== undefined) {
+    return { url: syncUrl, mime: 'video/mp4' };
+  }
+  const taskId = extractTaskId(parsed);
+  if (taskId === undefined) {
+    throw new GenerationError(
+      `generation provider response malformed (provider=${config.provider}, modality=video: no artifact url or task id)`,
+      'video',
+    );
+  }
+  const pollUrl = `${baseUrl(config.endpoint)}/contents/generations/tasks/${encodeURIComponent(taskId)}`;
+  const deadline = Date.now() + VIDEO_POLL_TIMEOUT_MS;
+  for (;;) {
+    await sleep(VIDEO_POLL_INTERVAL_MS);
+    let status: Response;
+    try {
+      status = await fetch(pollUrl, {
+        headers: headers(config.apiKey),
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch {
+      throw new GenerationError(
+        `generation provider network failure (provider=${config.provider}, modality=video: task poll)`,
+        'video',
+      );
+    }
+    if (!status.ok) {
+      const detail = await readProviderError(status);
+      if (!detail.retryable) {
+        const reason = detail.message.length > 0 ? `: ${detail.message}` : '';
+        throw new GenerationError(
+          `generation provider failed (provider=${config.provider}, modality=video: task poll status=${status.status}${reason})`,
+          'video',
+        );
+      }
+      await sleep(POLL_RETRY_WAIT_MS);
+      continue;
+    }
+    let state: unknown;
+    try {
+      state = await status.json();
+    } catch {
+      throw new GenerationError(
+        `generation provider response malformed (provider=${config.provider}, modality=video: task poll non-JSON body)`,
+        'video',
+      );
+    }
+    const poll = parseSeedancePoll(state);
+    if (poll.status === 'succeeded') {
+      if (poll.url !== undefined) {
+        return { url: poll.url, mime: 'video/mp4' };
+      }
+      throw new GenerationError(
+        `generation provider response malformed (provider=${config.provider}, modality=video: task completed without url)`,
+        'video',
+      );
+    }
+    if (poll.status === 'failed') {
+      throw new GenerationError(
+        `generation provider task failed (provider=${config.provider}, modality=video: task failed)`,
+        'video',
+      );
+    }
+    if (onProgress && poll.progress !== undefined) {
+      onProgress(poll.progress);
+    }
+    if (Date.now() >= deadline) {
+      throw new GenerationError(
+        `generation provider timeout (provider=${config.provider}, modality=video: task not completed within ${VIDEO_POLL_TIMEOUT_MS / 1000}s)`,
+        'video',
+      );
+    }
+  }
+}
+
+/** Seedance 轮询响应解析（status / content.video_url / progress）。 */
+function parseSeedancePoll(parsed: unknown): {
+  status: string;
+  progress?: number;
+  url?: string;
+} {
+  if (parsed === null || typeof parsed !== 'object') {
+    return { status: '' };
+  }
+  const record = parsed as Record<string, unknown>;
+  const status =
+    typeof record.status === 'string'
+      ? record.status.toLowerCase()
+      : typeof record.state === 'string'
+        ? record.state.toLowerCase()
+        : '';
+  let progress: number | undefined;
+  if (typeof record.progress === 'number') progress = record.progress;
+  const content = record.content;
+  let url: string | undefined;
+  if (content !== null && typeof content === 'object') {
+    const c = content as Record<string, unknown>;
+    if (typeof c.video_url === 'string' && c.video_url.length > 0) url = c.video_url;
+    else if (typeof c.url === 'string' && c.url.length > 0) url = c.url;
+  }
+  return { status, progress, url };
+}
+
+/** 取异步任务 id（video_id / id / task_id 兜底——兼容各家）。 */
+function extractTaskId(parsed: unknown): string | undefined {
+  if (parsed === null || typeof parsed !== 'object') return undefined;
+  const record = parsed as Record<string, unknown>;
+  for (const key of ['video_id', 'id', 'task_id', 'taskId']) {
+    const value = record[key];
+    if (typeof value === 'string' && value.length > 0) return value;
+  }
+  return undefined;
+}
+
+/**
+ * 智谱（CogVideoX / Vidu）视频契约执行器——OpenAI 兼容
+ * 异步任务：POST /videos/generations 创建（model/prompt，
+ * 可选 size/duration），保存 id 后轮询
+ * GET {base}/async-result/{id}，task_status=SUCCESS 时取
+ * data[0].url / video_result。请求体 / 响应解析为纯函数
+ * （video-contract.ts——单测锁定）；网络与轮询纪律与
+ * agnes / seedance 一致。
+ */
+async function generateVideoZhipu(
+  config: EnabledProviderConfig,
+  prompt: string,
+  onProgress?: (progress: number) => void,
+  options?: GenerationOptions,
+): Promise<GenerationArtifact> {
+  const response = await callProvider(config, '/videos/generations', {
+    ...buildZhipuVideoCreate(config.model, prompt, options),
+  });
+  let parsed: unknown;
+  try {
+    parsed = await response.json();
+  } catch {
+    throw new GenerationError(
+      `generation provider response malformed (provider=${config.provider}, modality=video: non-JSON body)`,
+      'video',
+    );
+  }
+  const entry = firstDataEntry(parsed);
+  const syncUrl =
+    (entry !== null ? extractUrl(entry) : undefined) ??
+    extractUrl(parsed as Record<string, unknown>);
+  if (syncUrl !== undefined) {
+    return { url: syncUrl, mime: 'video/mp4' };
+  }
+  const videoId = parseZhipuCreateId(parsed);
+  if (videoId === undefined) {
+    throw new GenerationError(
+      `generation provider response malformed (provider=${config.provider}, modality=video: no artifact url or task id)`,
+      'video',
+    );
+  }
+  const pollUrl = `${baseUrl(config.endpoint)}/async-result/${encodeURIComponent(videoId)}`;
+  const deadline = Date.now() + VIDEO_POLL_TIMEOUT_MS;
+  for (;;) {
+    await sleep(VIDEO_POLL_INTERVAL_MS);
+    let status: Response;
+    try {
+      status = await fetch(pollUrl, {
+        headers: headers(config.apiKey),
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch {
+      throw new GenerationError(
+        `generation provider network failure (provider=${config.provider}, modality=video: task poll)`,
+        'video',
+      );
+    }
+    if (!status.ok) {
+      const detail = await readProviderError(status);
+      if (!detail.retryable) {
+        const reason = detail.message.length > 0 ? `: ${detail.message}` : '';
+        throw new GenerationError(
+          `generation provider failed (provider=${config.provider}, modality=video: task poll status=${status.status}${reason})`,
+          'video',
+        );
+      }
+      await sleep(POLL_RETRY_WAIT_MS);
+      continue;
+    }
+    let state: unknown;
+    try {
+      state = await status.json();
+    } catch {
+      throw new GenerationError(
+        `generation provider response malformed (provider=${config.provider}, modality=video: task poll non-JSON body)`,
+        'video',
+      );
+    }
+    const poll = parseZhipuPoll(state);
+    if (poll.status.toUpperCase() === 'SUCCESS') {
+      if (poll.url !== undefined) {
+        return { url: poll.url, mime: 'video/mp4' };
+      }
+      throw new GenerationError(
+        `generation provider response malformed (provider=${config.provider}, modality=video: task completed without url)`,
+        'video',
+      );
+    }
+    if (poll.status.toUpperCase() === 'FAIL') {
+      throw new GenerationError(
+        `generation provider task failed (provider=${config.provider}, modality=video: task failed)`,
+        'video',
+      );
+    }
+    if (onProgress && poll.progress !== undefined) {
+      onProgress(poll.progress);
+    }
+    if (Date.now() >= deadline) {
+      throw new GenerationError(
+        `generation provider timeout (provider=${config.provider}, modality=video: task not completed within ${VIDEO_POLL_TIMEOUT_MS / 1000}s)`,
+        'video',
+      );
+    }
+  }
+}
+
 export async function generateImage(
   config: EnabledProviderConfig,
   prompt: string,
@@ -373,6 +654,15 @@ export async function generateVideo(
   onProgress?: (progress: number) => void,
   options?: GenerationOptions,
 ): Promise<GenerationArtifact> {
+  // 契约路由：Seedance（火山方舟豆包）用其自有异步任务契约；
+  // 否则按 Agnes 契约（下方原实现，纯增量零回归）。
+  if (isSeedanceContract(config)) {
+    return generateVideoSeedance(config, prompt, onProgress, options);
+  }
+  // 智谱（CogVideoX / Vidu）——OpenAI 兼容 /videos/generations 契约。
+  if (videoProviderOf(config) === 'zhipu') {
+    return generateVideoZhipu(config, prompt, onProgress, options);
+  }
   // 官方文档契约（Agnes Video 2.5 Flash——docs/agnes-video-25-flash，
   // OpenAI Videos 兼容异步任务接口）：POST /videos 创建任务
   // （mode 为生成模式 text/keyframe/reference；size 固定 "720P"；
