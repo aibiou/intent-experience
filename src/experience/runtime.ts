@@ -112,65 +112,27 @@ import {
 import { deriveCorrectionTarget, isRestoreIntent } from './correction';
 import type { AuditSink } from './audit';
 
-/** S1 §28 错误契约代码（API 契约 §22 错误结构：{code, message, retryable}）。 */
-export type RuntimeErrorCode =
-  | 'INVALID_REQUEST'
-  | 'INVALID_STATE_TRANSITION'
-  | 'STATE_VERSION_CONFLICT'
-  | 'INVALID_ACTION'
-  | 'POLICY_REJECTED'
-  | 'LLM_SCHEMA_INVALID'
-  | 'LLM_UNAVAILABLE'
-  | 'REQUEST_DUPLICATE'
-  | 'INTERNAL_ERROR';
-
-export interface RuntimeError {
-  code: RuntimeErrorCode;
-  message: string;
-  retryable: boolean;
-  /** HTTP 形态状态码（错误契约未规定状态码，此处为工程映射并记录于迭代记录）。 */
-  status: number;
-  details?: Record<string, unknown>;
-}
-
-/** C6 §14 交互事件名：S1 §23 "user_action" 的权威实现（名称调和见迭代记录）。 */
-const INTERACTION_EVENT_BY_SEMANTIC_ACTION: Readonly<Record<SemanticAction, string>> = {
-  DIRECT_ANSWER: 'question_asked',
-  WHY: 'why_requested',
-  WHAT_IF: 'what_if_requested',
-  CHANGE_DIRECTION: 'change_direction_requested',
-  STOP: 'stop_requested',
-  CREATE: 'create_requested', // PD-21 关闭切片（C6 §14 交互事件命名模式）
-  CORRECTION: 'correction_requested', // PD-21 关闭切片（C6 §14 交互事件命名模式）
-  DEEPEN: 'deepen_requested', // S2b（D-01 选项 A；C6 §14 交互事件命名模式）
-  SIMPLIFY: 'simplify_requested', // S2b（同上）
-  REFRAME: 'reframe_requested', // S2b（同上）
-  CONTINUE: 'continue_requested', // S4（D-1 选项 A；C6 §14 交互事件命名模式）
-  REPEAT: 'repeat_requested', // S4（同上）
-};
-
-function errorCodeStatus(code: RuntimeErrorCode): number {
-  switch (code) {
-    case 'STATE_VERSION_CONFLICT':
-    case 'REQUEST_DUPLICATE':
-      return 409;
-    case 'LLM_UNAVAILABLE':
-      return 503;
-    case 'INTERNAL_ERROR':
-      return 500;
-    default:
-      return 400;
-  }
-}
-
-function runtimeError(
-  code: RuntimeErrorCode,
-  message: string,
-  retryable = false,
-  details?: Record<string, unknown>,
-): RuntimeError {
-  return { code, message, retryable, status: errorCodeStatus(code), details };
-}
+import {
+  errorCodeStatus,
+  runtimeError,
+  type RuntimeErrorCode,
+  type RuntimeError,
+} from './runtime-errors';
+import {
+  INTERACTION_EVENT_BY_SEMANTIC_ACTION,
+  type GenerationRecord,
+  type IntentRecord,
+  type ExperienceRecord,
+  type SubmissionHeader,
+  type StateUpdatedEvent,
+  type RuntimeStreamEvent,
+  type SubmissionResult,
+  type RuntimeOptions,
+} from './runtime-contracts';
+export { errorCodeStatus, runtimeError } from './runtime-errors';
+export type { RuntimeErrorCode, RuntimeError } from './runtime-errors';
+export type { IntentRecord, ExperienceRecord, SubmissionHeader, StateUpdatedEvent, RuntimeStreamEvent, SubmissionResult, RuntimeOptions, GenerationRecord } from './runtime-contracts';
+export { INTERACTION_EVENT_BY_SEMANTIC_ACTION } from './runtime-contracts';
 
 /**
  * 提供方内容确定性分块（句界切分——S5A 内容流缺口修复）：
@@ -186,75 +148,6 @@ function chunkProviderContent(content: string): string[] {
   return segments.length > 0 ? segments : [content];
 }
 
-export interface IntentRecord {
-  intentId: string;
-  sessionId: string;
-  rawInput: string;
-  semanticAction: SemanticAction | 'UNKNOWN';
-  state: 'CREATED' | 'INTERPRETED';
-  createdAt: string;
-}
-
-export interface ExperienceRecord {
-  experienceId: string;
-  sessionId: string;
-  intentId: string;
-  candidateId: string;
-}
-
-/** 提交响应首行（API 契约 §11.3 响应结构的流式实现：首行即契约响应）。 */
-export interface SubmissionHeader {
-  type: 'submission';
-  accepted: true;
-  experience_id: string;
-  session_id: string;
-  request_id: string;
-  policy_decision: {
-    decision_id: string;
-    policy_version: string;
-    semantic_action: SemanticAction;
-    selected_action: PolicyAction;
-    reason: string;
-  };
-  state_version: number;
-  state: { status: ExperienceStatus; stage: ExperienceStage; waiting_for_user: boolean };
-  at: string;
-}
-
-/** 流结束后的最终状态（客户端据此更新预期版本，PD-16 字段名）。 */
-export interface StateUpdatedEvent {
-  type: 'state_updated';
-  state_version: number;
-  state: { status: ExperienceStatus; stage: ExperienceStage; waiting_for_user: boolean };
-  at: string;
-}
-
-export type RuntimeStreamEvent = SubmissionHeader | StreamEvent | StateUpdatedEvent;
-
-export type SubmissionResult =
-  | {
-      ok: true;
-      header: SubmissionHeader;
-      stream: AsyncGenerator<RuntimeStreamEvent>;
-      generationId: string;
-    }
-  | { ok: false; error: RuntimeError };
-
-export interface RuntimeOptions {
-  /** 合成用户标识（非真实用户数据）。 */
-  userId?: string;
-  eventSink?: EventSink;
-  decisionTraceSink?: DecisionTraceSink;
-  auditSink?: AuditSink;
-  /** LLM 网关注入点（证据经同一接口注入脚本化提案以测试拒绝路径）。 */
-  gateway?: LlmGateway;
-}
-
-interface GenerationRecord {
-  generationId: string;
-  experienceId: string;
-  controller: AbortController;
-}
 
 /**
  * 体验运行时（S1-09 执行器 + S1-01/03/04/05/07/08/10/11/12 组件）。
