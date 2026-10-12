@@ -4396,7 +4396,7 @@ async function main() {
       };
     }
     const caseRecord = {
-      caseIdNamespace: `${RUN_ID}--${definition.caseId}`,
+      caseIdNamespace: `${RUN_ID}:${definition.caseId}`, // 冒号→case 文件名下划线（caselog.mjs replace）；trace 单独用 `--`（避 ADS）
       sourceClause: definition.sourceClause,
       scope: definition.scope,
       precondition: definition.precondition,
