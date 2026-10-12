@@ -1,9 +1,9 @@
 {
   "runId": "G3-GOLDEN-0001",
   "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）",
-  "startedAt": "2026-10-12T02:41:48.231Z",
-  "finishedAt": "2026-10-12T02:42:26.733Z",
-  "durationMs": 38501,
+  "startedAt": "2026-10-12T03:16:02.255Z",
+  "finishedAt": "2026-10-12T03:16:40.154Z",
+  "durationMs": 37898,
   "goldenCases": [
     {
       "goldenCase": "G01",
@@ -209,7 +209,7 @@
       "caseId": "G3-GOLDEN-0001:G05-FR",
       "goldenCase": "G05",
       "dimension": "FAILURE_RECOVERY",
-      "result": "FAIL"
+      "result": "PASS"
     },
     {
       "caseId": "G3-GOLDEN-0001:G06-N",
@@ -257,7 +257,7 @@
       "caseId": "G3-GOLDEN-0001:G04-FR",
       "goldenCase": "G04",
       "dimension": "FAILURE_RECOVERY",
-      "result": "FAIL"
+      "result": "PASS"
     },
     {
       "caseId": "G3-GOLDEN-0001:G07-N",
@@ -281,7 +281,7 @@
       "caseId": "G3-GOLDEN-0001:G07-FR",
       "goldenCase": "G07",
       "dimension": "FAILURE_RECOVERY",
-      "result": "FAIL"
+      "result": "PASS"
     },
     {
       "caseId": "G3-GOLDEN-0001:G08-N",
@@ -293,7 +293,7 @@
       "caseId": "G3-GOLDEN-0001:G08-NEG",
       "goldenCase": "G08",
       "dimension": "NEGATIVE",
-      "result": "FAIL"
+      "result": "PASS"
     },
     {
       "caseId": "G3-GOLDEN-0001:G08-B",
@@ -305,7 +305,7 @@
       "caseId": "G3-GOLDEN-0001:G08-FR",
       "goldenCase": "G08",
       "dimension": "FAILURE_RECOVERY",
-      "result": "FAIL"
+      "result": "PASS"
     },
     {
       "caseId": "G3-GOLDEN-0001:G09-N",
@@ -365,7 +365,7 @@
       "caseId": "G3-GOLDEN-0001:G11-NEG",
       "goldenCase": "G11",
       "dimension": "NEGATIVE",
-      "result": "FAIL"
+      "result": "PASS"
     },
     {
       "caseId": "G3-GOLDEN-0001:G11-B",
@@ -405,7 +405,7 @@
     }
   ],
   "executedCases": 48,
-  "allExecutedCasesPass": false,
+  "allExecutedCasesPass": true,
   "deferredCases": [],
   "assertions": [
     {
@@ -416,12 +416,12 @@
     {
       "id": "A3",
       "description": "全部 48 案例记录齐备且 12 字段完整（E5 §4；48 执行；PD-19 延期义务已履行——G04/G07/G08 关闭切片执行，无 DEFERRED 登记）",
-      "passed": false
+      "passed": true
     },
     {
       "id": "A4",
       "description": "全部 48 执行案例轨迹齐备且非空（trace_started + 案例事实 + trace_completed）",
-      "passed": false
+      "passed": true
     },
     {
       "id": "A5",
@@ -446,7 +446,7 @@
     {
       "id": "A9",
       "description": "全部 48 执行案例 PASS（本运行断言；不设置 G3 为 PASS——G3 判定属独立评测）",
-      "passed": false
+      "passed": true
     },
     {
       "id": "A1",
@@ -459,8 +459,8 @@
       "passed": true
     }
   ],
-  "allAssertionsPass": false,
-  "allPassed": false,
-  "exitCode": 1,
+  "allAssertionsPass": true,
+  "allPassed": true,
+  "exitCode": 0,
   "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置 G3 或任何产品 Gate 状态为 PASS（E5 §2）。G3 Gate 判定由独立评测人经逐项裁决作出；G04/G07/G08 以 PD-21 关闭切片最小形态执行（完整语义 DEFERRED TO S2，acceptance-mapping §B），是否接受为关闭条件属产品负责人与评测人共同裁决。"
 }
