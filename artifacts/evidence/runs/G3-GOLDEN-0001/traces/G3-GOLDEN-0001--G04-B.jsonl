@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001--G04-B","event":"trace_started","at":"2026-10-12T03:16:19.456Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G04 Boundary；相邻重复输入；版本链 +1 不变式；PD-21","goldenCase":"G04","dimension":"BOUNDARY"}
-{"caseId":"G3-GOLDEN-0001--G04-B","event":"trace_completed","at":"2026-10-12T03:16:20.714Z","startedAt":"2026-10-12T03:16:19.455Z","durationMs":1259,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001--G04-B","event":"trace_started","at":"2026-10-12T03:45:26.264Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G04 Boundary；相邻重复输入；版本链 +1 不变式；PD-21","goldenCase":"G04","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001--G04-B","event":"trace_completed","at":"2026-10-12T03:45:27.525Z","startedAt":"2026-10-12T03:45:26.263Z","durationMs":1262,"result":"PASS","pass":true}

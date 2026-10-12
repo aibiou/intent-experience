@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001--G10-B","event":"trace_started","at":"2026-10-12T03:16:32.386Z","form":"in-process","sourceClause":"S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A：adopted 附加属性幂等、生命周期契约不变（ACTIVE/RETURNED/ABANDONED 三态）、主线当前上下文不因采用而改变","goldenCase":"G10","dimension":"BOUNDARY"}
-{"caseId":"G3-GOLDEN-0001--G10-B","event":"trace_completed","at":"2026-10-12T03:16:34.029Z","startedAt":"2026-10-12T03:16:32.386Z","durationMs":1643,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001--G10-B","event":"trace_started","at":"2026-10-12T03:45:39.178Z","form":"in-process","sourceClause":"S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A：adopted 附加属性幂等、生命周期契约不变（ACTIVE/RETURNED/ABANDONED 三态）、主线当前上下文不因采用而改变","goldenCase":"G10","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001--G10-B","event":"trace_completed","at":"2026-10-12T03:45:40.799Z","startedAt":"2026-10-12T03:45:39.178Z","durationMs":1621,"result":"PASS","pass":true}

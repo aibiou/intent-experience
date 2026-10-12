@@ -1,2 +1,2 @@
-{"caseId":"G3-GOLDEN-0001--G02-NEG","event":"trace_started","at":"2026-10-12T03:16:12.185Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G02 Negative；P-01 STOP 永远优先（含 STOP 标记的输入不误读为 WHY）","goldenCase":"G02","dimension":"NEGATIVE"}
-{"caseId":"G3-GOLDEN-0001--G02-NEG","event":"trace_completed","at":"2026-10-12T03:16:12.195Z","startedAt":"2026-10-12T03:16:12.185Z","durationMs":10,"result":"PASS","pass":true}
+{"caseId":"G3-GOLDEN-0001--G02-NEG","event":"trace_started","at":"2026-10-12T03:45:18.774Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G02 Negative；P-01 STOP 永远优先（含 STOP 标记的输入不误读为 WHY）","goldenCase":"G02","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001--G02-NEG","event":"trace_completed","at":"2026-10-12T03:45:18.971Z","startedAt":"2026-10-12T03:45:18.774Z","durationMs":197,"result":"PASS","pass":true}
