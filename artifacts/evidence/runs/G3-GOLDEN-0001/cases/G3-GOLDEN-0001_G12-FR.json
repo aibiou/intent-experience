@@ -36,7 +36,7 @@
       "waitingForUser": false,
       "candidateId": "candidate_synthetic_0001",
       "lastSemanticAction": "WHAT_IF",
-      "updatedAt": "2026-10-10T13:29:58.523Z",
+      "updatedAt": "2026-10-12T02:42:26.672Z",
       "stateVersion": 6
     }
   },
@@ -52,7 +52,7 @@
   ],
   "evidence": {
     "trace": "traces/G3-GOLDEN-0001:G12-FR.jsonl",
-    "traceSha256": "74d28e2a00fc579eae44f0bd339640ede088982bfa32bffa686987582a99d66b",
+    "traceSha256": "2a3c5b8e5cc3c3f26b43a3bde6b15d0677e4a7aafcbdf5c7906e9a609d7951e3",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },

@@ -21,12 +21,12 @@
     "withdrawExecuted": true,
     "withdrawn": {
       "lifecycle": "EXPIRED",
-      "withdrawnAt": "2026-10-10T13:29:54.321Z",
+      "withdrawnAt": "2026-10-12T02:42:21.783Z",
       "deletionAudit": {
-        "deletedAt": "2026-10-10T13:29:54.321Z",
+        "deletedAt": "2026-10-12T02:42:21.783Z",
         "scope": "record memory_synthetic_0001 (topic: 我喜欢古典音乐)",
         "reason": "withdrawn",
-        "verification": "withdrawal acknowledged at 2026-10-10T13:29:54.321Z; record marked EXPIRED and excluded from retrieval"
+        "verification": "withdrawal acknowledged at 2026-10-12T02:42:21.783Z; record marked EXPIRED and excluded from retrieval"
       }
     },
     "memoryWithdrawnEvents": [
@@ -54,7 +54,7 @@
   ],
   "evidence": {
     "trace": "traces/G3-GOLDEN-0001:G11-FR.jsonl",
-    "traceSha256": "f02ba9b8ad460b5fcd89162d913f6c489a029d7f6a19dc1f950158e793add176",
+    "traceSha256": "984df4eb7bf4f0918ce881a6ce03890951aead7cdc149d12aa990b35c04bd8ce",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },
