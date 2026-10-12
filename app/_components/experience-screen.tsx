@@ -19,6 +19,12 @@ import { RefreshIcon } from './icons';
 import type { RecentEntry } from './home-screen';
 import { creationId, type CreationEntry } from './creations';
 import { splitGenerationDetail, downloadFileName } from './generation-text';
+import {
+  EXPERIENCE_CATALOG,
+  CATEGORY_LABELS,
+  type ExperienceSeed,
+  type ExperienceCategory,
+} from '../../src/experience/catalog';
 
 export interface SessionState {
   sessionId: string;
@@ -148,6 +154,53 @@ const ACTION_LABELS: Record<string, string> = {
   REPEAT: '重复',
   STOP: '完成',
 };
+
+/**
+ * Screen 04 会话阶段轨道（① 项）——把 runtime 的隐形 stage/status
+ * 呈现为可见的"体验旅程"进度，兑现"控制感 / 从看见到参与"。
+ * 五段：开始 → 理解 → 深入 → 创作 → 完成。当前段高亮 + 下一步可做什么。
+ * 映射依据状态机语义（status 与 stage 的复合定位）。
+ */
+const STAGE_RAIL = [
+  { key: 'start', label: '开始', hint: '进入这个体验' },
+  { key: 'understand', label: '理解', hint: '正在理解你的方向' },
+  { key: 'deepen', label: '深入', hint: '现在可以深入、换角度或模拟' },
+  { key: 'create', label: '创作', hint: '把灵感做成作品' },
+  { key: 'done', label: '完成', hint: '收尾并沉淀这次体验' },
+];
+
+function stageRailIndex(status: string, stage: string): number {
+  if (status === 'COMPLETED' || stage === 'COMPLETION') return 4;
+  if (stage === 'CREATION') return 3;
+  if (stage === 'SIMULATION' || status === 'WAITING') return 2;
+  if (status === 'ENTERING' || stage === 'CURIOSITY') return 0;
+  return 1; // READY/ACTIVE + UNDERSTANDING → 理解
+}
+
+function StageRail({ status, stage }: { status: string; stage: string }) {
+  const index = stageRailIndex(status, stage);
+  return (
+    <div className="stage-rail" aria-label="体验阶段">
+      <div className="stage-rail-track">
+        {STAGE_RAIL.map((segment, segmentIndex) => (
+          <div
+            key={segment.key}
+            className={`stage-rail-seg${
+              segmentIndex <= index ? ' is-reached' : ''
+            }${segmentIndex === index ? ' is-current' : ''}`}
+          >
+            <span className="stage-rail-dot" />
+            <span className="stage-rail-label">{segment.label}</span>
+          </div>
+        ))}
+      </div>
+      <p className="stage-rail-hint">
+        <span className="stage-rail-now">{STAGE_RAIL[index].label}阶段</span>
+        · {STAGE_RAIL[index].hint}
+      </p>
+    </div>
+  );
+}
 
 /**
  * 单条消息流（气泡 + 产物引用）——memo 化的流式性能关键：
@@ -284,6 +337,8 @@ interface ExperienceScreenProps {
   onExit: () => void;
   /** 生成完成回调——作品持久化（首页作品墙）。 */
   onCreation?: (entry: CreationEntry) => void;
+  /** 体验收尾——继续探索关联体验（④ 项）：进入新体验入口屏。 */
+  onExploreMore?: (seed: ExperienceSeed) => void;
 }
 
 export function ExperienceScreen({
@@ -297,6 +352,7 @@ export function ExperienceScreen({
   onRecent,
   onExit,
   onCreation,
+  onExploreMore,
 }: ExperienceScreenProps) {
   const [sessionState, setSessionState] = useState<SessionState>(session);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1262,6 +1318,25 @@ export function ExperienceScreen({
     void refreshMemory();
   }, [refreshMemory]);
 
+  // ④ 连续体验：体验完成时推荐关联体验（同分类优先 → 同标签 → 其余）。
+  const relatedExperiences = useMemo(() => {
+    if (!onExploreMore) return [];
+    const currentId = session.experienceId;
+    const current = EXPERIENCE_CATALOG.find((seed) => seed.id === currentId);
+    const candidates = EXPERIENCE_CATALOG.filter((seed) => seed.id !== currentId);
+    const byCategory = current
+      ? candidates.filter((seed) => seed.category === current.category)
+      : [];
+    const byTags = current
+      ? candidates.filter((seed) =>
+          seed.tags.some((tag) => current.tags.includes(tag)),
+        )
+      : [];
+    const ranked = [...byCategory, ...byTags.filter((seed) => !byCategory.includes(seed))];
+    const rest = candidates.filter((seed) => !ranked.includes(seed));
+    return [...ranked, ...rest].slice(0, 3);
+  }, [session.experienceId, onExploreMore]);
+
   const submit = () => {
     const input = draft.trim();
     if (input.length === 0) return;
@@ -1296,6 +1371,8 @@ export function ExperienceScreen({
         </div>
       </header>
 
+      <StageRail status={sessionState.status} stage={sessionState.stage} />
+
       <div className="experience-body">
         <section className="chat-column">
       <div
@@ -1317,6 +1394,37 @@ export function ExperienceScreen({
             onRegen={(prompt) => void send(prompt)}
           />
         ))}
+
+        {/* ② 体验收尾闭环 + ④ 连续体验：会话完成（STOP/好了）时收束，并推荐关联体验 */}
+        {onExploreMore && sessionState.status === 'COMPLETED' && (
+          <div className="wrapup">
+            <p className="wrapup-title">这次探索告一段落</p>
+            <p className="wrapup-note">想带走什么，或接着往哪走？</p>
+            {relatedExperiences.length > 0 && (
+              <div className="wrapup-more">
+                <span className="wrapup-more-label">接下来，去看看</span>
+                <div className="wrapup-more-list">
+                  {relatedExperiences.map((seed) => (
+                    <button
+                      key={seed.id}
+                      type="button"
+                      className="wrapup-more-item"
+                      onClick={() => onExploreMore(seed)}
+                    >
+                      <span className="wrapup-more-cat">
+                        {CATEGORY_LABELS[seed.category]}
+                      </span>
+                      <span className="wrapup-more-title">{seed.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button type="button" className="wrapup-exit" onClick={onExit}>
+              完成并返回首页
+            </button>
+          </div>
+        )}
       </div>
 
       {(branchPanelOpen || memoryPanelOpen) && (

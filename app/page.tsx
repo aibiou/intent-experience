@@ -300,6 +300,10 @@ export default function HomePage() {
         onRecent={handleRecent}
         onExit={() => setPhase('home')}
         onCreation={handleCreation}
+        onExploreMore={(seed) => {
+          setEntranceSeed(seed);
+          setPhase('entrance');
+        }}
       />
     );
   }

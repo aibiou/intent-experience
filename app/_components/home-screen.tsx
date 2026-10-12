@@ -151,6 +151,29 @@ export function HomeScreen({
   );
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
+  // ③ 记忆可见化：首页"我记得你"总览——把系统跨体验记住的理解
+  // 呈现给用户看（信任增益，且可纠正）。数据来自 /api/memory（全局记忆）。
+  const [globalMemories, setGlobalMemories] = useState<
+    { topic: string; memory_class: string; confidence: number; source: string }[]
+  >([]);
+  const [memoryOpen, setMemoryOpen] = useState(false);
+
+  // 拉取全局记忆快照（只读 Query 路由）。
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/memory')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data && Array.isArray(data.records)) {
+          setGlobalMemories(data.records);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // 老用户 = 有历史（最近探索或作品）→ 首屏直接给全量；否则新用户聚焦首屏。
   const isReturning = recents.length > 0 || creations.length > 0;
 
@@ -328,6 +351,49 @@ export function HomeScreen({
           </button>
         </div>
       </header>
+
+      {isReturning && globalMemories.length > 0 && (
+        <section className="memory-overview">
+          <button
+            type="button"
+            className="memory-overview-trigger"
+            onClick={() => setMemoryOpen((open) => !open)}
+            aria-expanded={memoryOpen}
+          >
+            <span className="memory-overview-label">我记得你</span>
+            <span className="memory-overview-count">
+              {globalMemories.filter((m) => m.memory_class === 'long_term').length} 项长期理解
+              · {globalMemories.length} 条记忆
+            </span>
+            <span className="memory-overview-caret">{memoryOpen ? '收起' : '展开'}</span>
+          </button>
+          {memoryOpen && (
+            <div className="memory-overview-panel">
+              <p className="memory-overview-note">
+                这是我对你的理解——说一句，随时纠正或补充。
+              </p>
+              <ul className="memory-overview-list">
+                {globalMemories.map((memory, index) => (
+                  <li key={index} className="memory-overview-item">
+                    <span className="memory-overview-topic">{memory.topic}</span>
+                    <span className="memory-overview-meta">
+                      {memory.memory_class === 'long_term' ? '长期' : '短期'}
+                      {' · 置信 '}
+                      {memory.confidence.toFixed(2)}
+                      {' · '}
+                      {memory.source === 'explicit'
+                        ? '你告诉我的'
+                        : memory.source === 'user_correction'
+                          ? '你纠正的'
+                          : '我观察的'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="pulse">
         <span className="pulse-dot" aria-hidden="true" />
