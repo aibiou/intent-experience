@@ -40,8 +40,8 @@
     "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
   ],
   "evidence": {
-    "trace": "traces/G3-GOLDEN-0001:G06-N.jsonl",
-    "traceSha256": "1f625321f2efbf61344d488393506eda6f7beff38236f00d0a1bdf2cd472d07b",
+    "trace": "traces/G3-GOLDEN-0001--G06-N.jsonl",
+    "traceSha256": "286c4fb50f62ca6d88756cf48a47bcf09a4a46d299837368ae847ae3a0ceb016",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },

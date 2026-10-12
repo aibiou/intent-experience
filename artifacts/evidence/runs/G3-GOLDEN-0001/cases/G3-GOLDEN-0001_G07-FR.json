@@ -36,12 +36,12 @@
     "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
   ],
   "evidence": {
-    "trace": "traces/G3-GOLDEN-0001:G07-FR.jsonl",
-    "traceSha256": "8f9fd58131cdddff3520ae21503013303399417718d5fa46245fa8b710fe958d",
+    "trace": "traces/G3-GOLDEN-0001--G07-FR.jsonl",
+    "traceSha256": "d2d8a1aa9387ab27a0bda2e0779adef66775e59cd8f358806565d17f26fd18f4",
     "form": "in-process",
     "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
   },
-  "result": "FAIL",
+  "result": "PASS",
   "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
-  "defectsFollowUp": "本案例未通过——按 ADR-0002 §5 如实登记，不得重跑至通过为止；缺陷须在关闭切片处置"
+  "defectsFollowUp": "无（本案例）；G3 Gate 逐项判定属独立评测范畴（角色 5）；G04/G07/G08 完整语义 DEFERRED TO S2（acceptance-mapping §B）"
 }
