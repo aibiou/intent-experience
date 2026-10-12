@@ -689,13 +689,17 @@ export function ExperienceScreen({
               errorMessage = '服务刚重启过，这段体验的会话已失效——返回首页重新开始即可。';
             } else if (typeof data.message === 'string') {
               // 提供方 / 内部错误原文可能是英文——无中文时换
-              // 通用可行动文案，不裸吐。
+              // 通用可行动文案，不裸吐。这类失败多为服务瞬时
+              // 繁忙 / 网络波动——指引重试而非「换说法」（输入
+              // 本身没错，归因放错会让用户反复绕圈）。
               errorMessage = /[\u4e00-\u9fff]/.test(data.message)
                 ? data.message
-                : '出了点问题——请再试一次，或换个说法。';
+                : '服务暂时繁忙或连接中断——稍等片刻再试一次。';
             }
           } catch {
-            // 非 JSON 错误体——使用默认文案
+            // 非 JSON 错误体（网络层失败）——同服务繁忙指引，
+            // 重试即可恢复，不归因用户输入。
+            errorMessage = '服务暂时繁忙或连接中断——稍等片刻再试一次。';
           }
           setMessages((prev) => [
             ...prev,
