@@ -28,6 +28,7 @@ import {
   type ExperienceSeed,
   type ExperienceCategory,
 } from '../../src/experience/catalog';
+import { curateList } from '../../src/experience/curation';
 
 export interface RecentEntry {
   experienceId: string;
@@ -222,8 +223,13 @@ export function HomeScreen({
     if (tab === 'fresh') {
       return [...list].reverse();
     }
+    // 目录策展（⑥ 项）：默认"推荐"视图且无显式筛选（搜索/选分类）时，
+    // 按全局记忆偏好把匹配体验整体前移；显式语义一律不策展。
+    if (!category && !query.trim()) {
+      return curateList(list, globalMemories);
+    }
     return list;
-  }, [query, tab, category]);
+  }, [query, tab, category, globalMemories]);
 
   const featured = useMemo(
     () => EXPERIENCE_CATALOG.filter((seed) => seed.featured),
