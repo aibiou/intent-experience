@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeftIcon,
   CheckIcon,
@@ -218,8 +218,14 @@ export default function ConfigPage() {
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
+  // 删除两步确认（破坏性操作——第一次点击进入待确认态，
+  // 再次点击才真正删除；误触不再直接丢配置）。
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const [busyId, setBusyId] = useState<string | null>(null);
   const [modality, setModality] = useState<Modality>('text');
+  // 预设默认值仅首次加载填充一次（refresh 不随表单输入重跑）。
+  const didInitDefaultsRef = useRef(false);
 
   const visibleConfigs = useMemo(
     () => configs.filter((config) => (config.modality ?? 'text') === modality),
@@ -242,7 +248,11 @@ export default function ConfigPage() {
       const profilesData = (await profilesResponse.json()) as { providers: ProviderProfile[] };
       setConfigs(configsData.configs);
       setProfiles(profilesData.providers);
-      if (profilesData.providers.length > 0 && provider === '') {
+      // 预设默认值仅首次填充——表单输入不触发整页重载
+      // （此前 refresh 依赖 provider 状态：每敲一个字符都
+      // 全量重拉三接口 + loading 闪烁）。
+      if (profilesData.providers.length > 0 && !didInitDefaultsRef.current) {
+        didInitDefaultsRef.current = true;
         setProvider(profilesData.providers[0].provider);
         setModel(profilesData.providers[0].default_model ?? '');
         setEndpoint(profilesData.providers[0].default_endpoint ?? '');
@@ -255,7 +265,7 @@ export default function ConfigPage() {
     } finally {
       setLoading(false);
     }
-  }, [provider]);
+  }, []);
 
   useEffect(() => {
     void refresh();
@@ -406,6 +416,7 @@ export default function ConfigPage() {
           await handleApiError(response, '删除配置失败');
           return;
         }
+        setDeletingId(null);
         await refresh();
       } finally {
         setBusyId(null);
@@ -1127,14 +1138,35 @@ export default function ConfigPage() {
                         >
                           编辑
                         </button>
-                        <button
-                          type="button"
-                          className="config-button config-button-danger"
-                          onClick={() => void remove(config.id)}
-                          disabled={busyId === config.id}
-                        >
-                          <TrashIcon size={14} /> 删除
-                        </button>
+                        {deletingId === config.id ? (
+                          <>
+                            <button
+                              type="button"
+                              className="config-button config-button-danger"
+                              onClick={() => void remove(config.id)}
+                              disabled={busyId === config.id}
+                            >
+                              <TrashIcon size={14} /> 确认删除
+                            </button>
+                            <button
+                              type="button"
+                              className="config-button config-button-quiet"
+                              onClick={() => setDeletingId(null)}
+                              disabled={busyId === config.id}
+                            >
+                              取消
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="config-button config-button-danger"
+                            onClick={() => setDeletingId(config.id)}
+                            disabled={busyId === config.id}
+                          >
+                            <TrashIcon size={14} /> 删除
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

@@ -43,7 +43,35 @@ export class GenerationError extends Error {
   }
 }
 
-/** 创作参数（前端透传——画幅 / 视频时长；缺省用
+/**
+ * 生成失败人性化文案（体验流 withGeneration / 直接生成
+ * /api/generate 两路共用——展示纪律统一：用户面对的不再是
+ * 「出错了」或提供方原文）：瞬态失败给重试指引，余额类失败
+ * 指引充值，其余失败给换法指引；提供方技术细节保留在尾部
+ * 括注供排障（前端 splitGenerationDetail 拆为次行），
+ * 不含 key、不含请求体。
+ */
+export function humanizeGenerationFailure(
+  error: unknown,
+  modality: 'image' | 'voice' | 'video',
+): string {
+  const modalityLabel =
+    modality === 'image' ? '图像' : modality === 'video' ? '视频' : '语音';
+  if (error instanceof GenerationError) {
+    if (/quota|余额/i.test(error.message)) {
+      // 余额类失败（非瞬态）——重试 / 换说法都无效，
+      // 指引直指充值。
+      return `生成账户余额不足——充值后到「模型配置」确认启用，再说一次即可。`;
+    }
+    if (error.retryable) {
+      return `${modalityLabel}生成暂时排队繁忙——稍等片刻再说一次即可重试。（${error.message}）`;
+    }
+    return `${modalityLabel}生成没有成功——可以换个说法再试一次。（${error.message}）`;
+  }
+  return `${modalityLabel}生成没有成功——可以换个说法再试一次。`;
+}
+
+/** 创作参数（前端透传——画幅 / 视频时长 / 参考图；缺省用
  * 提供方默认，不改变既有生成行为）。 */
 export interface GenerationOptions {
   /** 画幅（视频 aspect_ratio 直传；图像映射为
@@ -51,6 +79,9 @@ export interface GenerationOptions {
   aspectRatio?: '16:9' | '9:16' | '1:1';
   /** 视频时长（官方契约 "4"–"12" 秒）。 */
   seconds?: '4' | '6' | '8' | '12';
+  /** 参考图（dataURI 数组，≤3 张——图生图：Agnes
+   * extra_body.image 契约，生成与参考图主体一致）。 */
+  referenceImages?: string[];
 }
 
 // 画幅 → 图像尺寸（OpenAI images 兼容契约——聚合
@@ -231,27 +262,46 @@ export async function generateImage(
     options?.aspectRatio !== undefined
       ? IMAGE_SIZES[options.aspectRatio]
       : undefined;
-  const call = (withSize: boolean) =>
+  const refs = options?.referenceImages ?? [];
+  // 三段调用形态：带画幅 + 带参考图 → 仅参考图（画幅被拒）→
+  // 裸调用（参考图也被拒——保底出图，文生图契约兜底）。
+  const call = (withSize: boolean, withRefs: boolean) =>
     callProvider(config, '/images/generations', {
       model: config.model,
       prompt,
       n: 1,
       ...(withSize && size !== undefined ? { size } : {}),
+      ...(withRefs && refs.length > 0
+        ? { extra_body: { image: refs } }
+        : {}),
     });
   let response: Response;
   try {
-    response = await call(size !== undefined);
+    response = await call(size !== undefined, refs.length > 0);
   } catch (error) {
     // 参数兼容降级：显式画幅被提供方拒绝（400 且非瞬态）
-    // → 无参重试一次（出图能力优先于画幅偏好——聚合
-    // 提供方对 images 契约的支持面参差）。
+    // → 无画幅重试（仍带参考图——图生图意图优先于画幅）；
+    // 再被拒 → 裸重试（丢参考图保底出图）。
     if (
       size !== undefined &&
       error instanceof GenerationError &&
       !error.retryable &&
       error.status === 400
     ) {
-      response = await call(false);
+      try {
+        response = await call(false, refs.length > 0);
+      } catch (retryError) {
+        if (
+          refs.length > 0 &&
+          retryError instanceof GenerationError &&
+          !retryError.retryable &&
+          retryError.status === 400
+        ) {
+          response = await call(false, false);
+        } else {
+          throw retryError;
+        }
+      }
     } else {
       throw error;
     }
@@ -338,11 +388,21 @@ export async function generateVideo(
   const hasCustomParams =
     options?.aspectRatio !== undefined || options?.seconds !== undefined;
   let useCustomParams = hasCustomParams;
+  // 系列参考模式：有公开 URL 参考图时走 reference 模式——
+  // 会话内全部分集图作为角色 / 场景参考（≤5），视频连续剧
+  // 逐集保持角色一致；无参考图回退 text 模式。dataURI 不
+  // 适合视频参考（官方要求公开可访问 URL）——过滤之。
+  const videoRefs = (options?.referenceImages ?? []).filter((ref) =>
+    ref.startsWith('http'),
+  );
+  let useRefs = videoRefs.length > 0;
   const createTask = () =>
     callProvider(config, '/videos', {
       model: config.model,
       prompt,
-      mode: 'text',
+      ...(useRefs
+        ? { mode: 'reference', images: videoRefs.slice(0, 5) }
+        : { mode: 'text' }),
       seconds: useCustomParams && options?.seconds !== undefined ? options.seconds : '4',
       size: '720P',
       aspect_ratio:
@@ -359,16 +419,22 @@ export async function generateVideo(
       response = await createTask();
       break;
     } catch (error) {
-      // 参数拒绝降级：自定义画幅 / 时长被 400 拒绝
-      // → 回落默认参数（立即重试，不占退避段）。
+      // 参数拒绝降级：自定义画幅 / 时长 / 参考模式被 400 拒绝
+      // → 先降参考模式（保底文本生成），再降参数；逐级保出图。
       if (
-        useCustomParams &&
         error instanceof GenerationError &&
         !error.retryable &&
         error.status === 400
       ) {
-        useCustomParams = false;
-        continue;
+        if (useRefs) {
+          useRefs = false;
+          continue;
+        }
+        if (useCustomParams) {
+          useCustomParams = false;
+          continue;
+        }
+        throw error;
       }
       const retryable =
         error instanceof GenerationError && error.retryable;

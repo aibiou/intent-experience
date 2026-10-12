@@ -9,6 +9,7 @@ import {
   SendIcon,
   SparklesIcon,
   VideoIcon,
+  XIcon,
 } from '../_components/icons';
 import {
   creationId,
@@ -16,6 +17,7 @@ import {
   saveCreations,
   type CreationEntry,
 } from '../_components/creations';
+import { splitGenerationDetail, downloadFileName } from '../_components/generation-text';
 
 type Modality = 'image' | 'voice' | 'video';
 type Phase = 'idle' | 'pending' | 'completed' | 'failed';
@@ -208,14 +210,24 @@ export default function CreatePage() {
           }
         }
       } catch {
-        // 用户主动取消（切换请求）时不改状态。
-        if (!controller.signal.aborted) {
+        // 用户主动取消（切换请求或点击取消）——回到可输入态
+        // （不归位会永远停在「生成中…」）；真实网络故障才报失败。
+        if (controller.signal.aborted) {
+          setPhase('idle');
+          setProgress(undefined);
+          setMessage('');
+        } else {
           setPhase('failed');
           setMessage('网络中断');
         }
       }
     })();
   }, [prompt, phase, modality, modelId]);
+
+  // 取消在途生成（fetch abort → 服务端流中断）。
+  const cancelGeneration = useCallback(() => {
+    requestRef.current?.abort();
+  }, []);
 
   const activeTab = MODALITY_TABS.find((tab) => tab.id === modality);
   const resultSrc = result !== null ? srcOf(result) : undefined;
@@ -289,16 +301,32 @@ export default function CreatePage() {
               ))}
             </select>
           </label>
+          {options.length === 0 && (
+            <p className="workspace-field-hint">
+              该模态还没有启用的模型——<a href="/config">去模型配置</a>添加并启用后再生成。
+            </p>
+          )}
 
-          <button
-            type="button"
-            className="workspace-generate"
-            onClick={() => void generate()}
-            disabled={prompt.trim().length === 0 || phase === 'pending'}
-          >
-            <SendIcon size={15} />
-            <span>{phase === 'pending' ? '生成中…' : '开始生成'}</span>
-          </button>
+          {phase === 'pending' ? (
+            <button
+              type="button"
+              className="workspace-generate workspace-cancel"
+              onClick={cancelGeneration}
+            >
+              <XIcon size={15} />
+              <span>取消生成</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="workspace-generate"
+              onClick={() => void generate()}
+              disabled={prompt.trim().length === 0}
+            >
+              <SendIcon size={15} />
+              <span>开始生成</span>
+            </button>
+          )}
 
           {history.length > 0 && (
             <div className="workspace-history">
@@ -377,11 +405,27 @@ export default function CreatePage() {
               <p className="workspace-output-prompt" title={prompt}>
                 {prompt}
               </p>
+              {modality !== 'voice' && (
+                <a
+                  className="gen-download"
+                  href={resultSrc}
+                  download={downloadFileName({ label: undefined, prompt, modality })}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {modality === 'video' ? '下载视频' : '下载图片'}
+                </a>
+              )}
             </div>
           )}
           {phase === 'failed' && (
             <div className="workspace-failed">
-              <p className="gen-message">{message}</p>
+              <p className="gen-message">{splitGenerationDetail(message).main}</p>
+              {splitGenerationDetail(message).detail !== null && (
+                <p className="gen-detail" title={splitGenerationDetail(message).detail ?? undefined}>
+                  {splitGenerationDetail(message).detail}
+                </p>
+              )}
               <button
                 type="button"
                 className="gen-regen"

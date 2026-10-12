@@ -1,4 +1,7 @@
-import { GENERATION_CALLS, GenerationError } from '../../../src/experience/generation-gateway';
+import {
+  GENERATION_CALLS,
+  humanizeGenerationFailure,
+} from '../../../src/experience/generation-gateway';
 import {
   getEnabledProviderConfigForModality,
   getProviderConfigById,
@@ -45,6 +48,7 @@ export async function POST(req: Request): Promise<Response> {
     modality?: unknown;
     prompt?: unknown;
     model_id?: unknown;
+    reference_images?: unknown;
   };
   if (typeof body.request_id !== 'string' || body.request_id.length === 0) {
     return jsonError(400, 'INVALID_REQUEST', 'request_id is required');
@@ -103,11 +107,27 @@ export async function POST(req: Request): Promise<Response> {
       const progressQueue: number[] = [];
       emit({ type: 'started', modality, prompt });
       try {
+        // 参考图（图生图——dataURI 白名单校验，≤3 张）。
+        const referenceImages = Array.isArray(body.reference_images)
+          ? body.reference_images
+              .filter(
+                (item): item is string =>
+                  typeof item === 'string' &&
+                  item.startsWith('data:image/') &&
+                  item.length <= 1_500_000,
+              )
+              .slice(0, 3)
+          : undefined;
         const artifactPromise = GENERATION_CALLS[modality](
           config,
           prompt,
           (progress) => {
             progressQueue.push(progress);
+          },
+          {
+            ...(referenceImages !== undefined && referenceImages.length > 0
+              ? { referenceImages }
+              : {}),
           },
         );
         // 进度随流输出（每 400ms drain——
@@ -139,11 +159,14 @@ export async function POST(req: Request): Promise<Response> {
           mime: artifact.mime,
         });
       } catch (error) {
-        const message =
-          error instanceof GenerationError
-            ? error.message
-            : 'generation failed';
-        emit({ type: 'failed', modality, message });
+        // 失败文案与体验流同一人性化纪律
+        // （humanizeGenerationFailure——主行可行动，
+        // 提供方细节在尾部括注供前端拆为次行）。
+        emit({
+          type: 'failed',
+          modality,
+          message: humanizeGenerationFailure(error, modality),
+        });
       }
       controller.close();
     },
