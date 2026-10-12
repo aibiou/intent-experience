@@ -2,7 +2,7 @@
  * Experience 状态机与阶段机（S1-04；状态机规范 §7 / §14 / §15 / §23）。
  *
  * 状态轴（§7）：ENTERING → READY → ACTIVE → WAITING → ACTIVE → … → COMPLETED；
- *              READY/ACTIVE 可经 CHANGE_DIRECTION 回到 ENTERING（新候选周期）；
+ *              READY/ACTIVE/WAITING 可经 CHANGE_DIRECTION 回到 ENTERING（新候选周期；WAITING 覆盖中断归位后恢复重试）；
  *              ACTIVE/WAITING 可经 STOP 到 COMPLETED。
  * 阶段轴（§14/§15）：CURIOSITY → UNDERSTANDING → SIMULATION →
  * CREATION（PD-21 关闭切片最小形态）→ COMPLETION。
@@ -76,7 +76,7 @@ export type ExperienceTrigger =
   | 'USER_ACTION' // READY → ACTIVE；WAITING → ACTIVE（用户继续交互）
   | 'WHAT_IF_SIMULATE' // 阶段 UNDERSTANDING/SIMULATION → SIMULATION（§15.2/§15.3；须先经 USER_ACTION 到 ACTIVE）
   | 'RESPONSE_COMPLETED' // ACTIVE → WAITING（系统完成当前工作，有意等待用户）
-  | 'CHANGE_DIRECTION' // READY/ACTIVE → ENTERING（取消旧候选，进入新候选周期；阶段 → CURIOSITY）
+  | 'CHANGE_DIRECTION' // READY/ACTIVE/WAITING → ENTERING（取消旧候选，进入新候选周期；阶段 → CURIOSITY；WAITING 覆盖生成中断归位后恢复重试）
   | 'STOP' // ACTIVE/WAITING → COMPLETED（阶段 → COMPLETION；终态）
   | 'CREATE' // READY/ACTIVE/WAITING × UNDERSTANDING/SIMULATION/CREATION → ACTIVE/CREATION（PD-21 关闭切片）
   | 'CORRECTION'; // 同域但阶段保持：重评估当前阶段（PD-21 关闭切片；G07）
@@ -98,6 +98,10 @@ const LEGAL_TRANSITIONS: ReadonlyArray<TransitionRule> = [
   { from: 'WAITING', to: 'COMPLETED', toStage: 'COMPLETION' },
   { from: 'READY', to: 'ENTERING', toStage: 'CURIOSITY' },
   { from: 'ACTIVE', to: 'ENTERING', toStage: 'CURIOSITY' },
+  // 生成中断归位（S6）把悬挂生成落回 WAITING 后，用户重试 CHANGE——
+  // WAITING 下换方向语义合法（状态机规范 §13 未限制源状态）；缺此规则致
+  // G05-FR 故障恢复死锁（INVALID_STATE_TRANSITION）。（G05-FR 缺陷修复）
+  { from: 'WAITING', to: 'ENTERING', toStage: 'CURIOSITY' },
 ];
 
 /** WHAT_IF 的阶段迁移（§15.2 UNDERSTANDING→SIMULATION；§15.3 SIMULATION→SIMULATION）。 */
