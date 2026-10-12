@@ -96,7 +96,47 @@ export default function CreatePage() {
   const [result, setResult] = useState<CreationEntry | null>(null);
   const [message, setMessage] = useState('');
   const [history, setHistory] = useState<CreationEntry[]>([]);
+  const [referenceImages, setReferenceImages] = useState<string[]>([]);
+  const refInputRef = useRef<HTMLInputElement>(null);
   const requestRef = useRef<AbortController | null>(null);
+
+  // 参考图文件 → 压缩 dataURI（≤1024px JPEG；≤3 张）。
+  const handleReferenceFiles = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const picked = Array.from(files)
+      .filter((file) => file.type.startsWith('image/'))
+      .slice(0, 3 - referenceImages.length);
+    for (const file of picked) {
+      try {
+        const dataUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const image = new Image();
+            image.onload = () => {
+              const scale = Math.min(1, 1024 / Math.max(image.width, image.height));
+              const canvas = document.createElement('canvas');
+              canvas.width = Math.max(1, Math.round(image.width * scale));
+              canvas.height = Math.max(1, Math.round(image.height * scale));
+              const context = canvas.getContext('2d');
+              if (!context) {
+                resolve(String(reader.result));
+                return;
+              }
+              context.drawImage(image, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            image.onerror = () => reject(new Error('image decode failed'));
+            image.src = String(reader.result);
+          };
+          reader.onerror = () => reject(new Error('file read failed'));
+          reader.readAsDataURL(file);
+        });
+        setReferenceImages((prev) => [...prev, dataUri].slice(0, 3));
+      } catch {
+        // 单张失败不影响其余。
+      }
+    }
+  }, [referenceImages.length]);
 
   // 可选模型：该模态已启用的配置
   // （一次配置、按模态选用——不重复配置）。
@@ -153,6 +193,9 @@ export default function CreatePage() {
             modality,
             prompt: input,
             ...(modelId !== undefined ? { model_id: modelId } : {}),
+            ...(referenceImages.length > 0
+              ? { reference_images: referenceImages }
+              : {}),
           }),
         });
         if (!response.ok || response.body === null) {
@@ -284,6 +327,31 @@ export default function CreatePage() {
             }}
           />
 
+          {referenceImages.length > 0 && (
+            <div className="ref-thumbs">
+              {referenceImages.map((uri, index) => (
+                <span key={index} className="ref-thumb">
+                  <img src={uri} alt={`参考图${index + 1}`} />
+                  <button
+                    type="button"
+                    className="ref-thumb-remove"
+                    onClick={() =>
+                      setReferenceImages((prev) =>
+                        prev.filter((_, i) => i !== index),
+                      )
+                    }
+                    aria-label="移除参考图"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <span className="ref-thumbs-hint">
+                参考图——本次生成与其保持一致
+              </span>
+            </div>
+          )}
+
           <label className="workspace-field">
             <span className="workspace-field-label">模型</span>
             <select
@@ -317,15 +385,36 @@ export default function CreatePage() {
               <span>取消生成</span>
             </button>
           ) : (
-            <button
-              type="button"
-              className="workspace-generate"
-              onClick={() => void generate()}
-              disabled={prompt.trim().length === 0}
-            >
-              <SendIcon size={15} />
-              <span>开始生成</span>
-            </button>
+            <>
+              <button
+                type="button"
+                className="ref-attach workspace-ref-attach"
+                onClick={() => refInputRef.current?.click()}
+                title="添加参考图（≤3 张，本次生成与其保持一致）"
+              >
+                参考图{referenceImages.length > 0 ? ` ${referenceImages.length}` : ''}
+              </button>
+              <input
+                ref={refInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(event) => {
+                  void handleReferenceFiles(event.target.files);
+                  event.target.value = '';
+                }}
+              />
+              <button
+                type="button"
+                className="workspace-generate"
+                onClick={() => void generate()}
+                disabled={prompt.trim().length === 0}
+              >
+                <SendIcon size={15} />
+                <span>开始生成</span>
+              </button>
+            </>
           )}
 
           {history.length > 0 && (
