@@ -13,7 +13,7 @@ import {
   type SemanticAction,
 } from './policy';
 import { classifyInput } from './classifier';
-import { recognizeGenerationIntent } from './generation-intent';
+import { shouldCompactReplay } from './generation-intent';
 import { validateProposal } from './validator';
 import {
   initialExperienceView,
@@ -2682,6 +2682,17 @@ export class RuntimeActions extends RuntimeCoreBase {
     };
     // REPEAT 呈现层重放：上一完成轮响应内容经既有流式 chunk 路径
     // 重放（内容与 fixtureId 为上一轮原文——呈现层重放，不重新生成）。
+    // 呈现形式类生成意图（如「画成图片 / 用图片展现刚才的内容」）
+    // 触发的 REPEAT（2026-10-13 CR-56）：展示层收敛为简短引导——
+    // 用户意图是「把内容画出来」，重复重放上一轮 300+ 字长文本
+    // 造成对话流文本污染（实测截图「半截 / 对不上」）；蒸馏内容
+    // 原料由 withGeneration 独立从转录取原文（REPEAT 不入转录，
+    // 上一轮原文仍可回溯），图像质量不受影响；语音朗读保留完整
+    // 重放（用户要听内容）；「再说一遍」等重放指令保持原文。
+    const presentationalReplay = shouldCompactReplay(input.rawInput);
+    const replayChunks = presentationalReplay
+      ? ['好的，把刚才的感受画成图片——正在生成，马上就好。']
+      : lastResponse.chunks;
     const stream = this.wrapGenerationStream({
       header,
       experienceId: input.experienceId,
@@ -2690,7 +2701,7 @@ export class RuntimeActions extends RuntimeCoreBase {
         semanticAction: policy.semanticAction,
         policyAction: 'REPEAT',
         fixtureId: lastResponse.fixtureId,
-        chunks: lastResponse.chunks,
+        chunks: replayChunks,
         signal: input.signal,
         chunkDelayMs: 0,
         audit: this.auditSink,
@@ -2703,21 +2714,29 @@ export class RuntimeActions extends RuntimeCoreBase {
   /** S4（D-1 选项 A；S4A-SEMANTIC-FREEZE-01 v1.0.0 §1 D-1）——
    * 上一完成轮响应内容登记：包装异步生成器，客户端事件原样转发；
    * chunk 事件内容经内部登记（REPEAT 呈现层重放数据源——
-   * 不改变客户端流；仅内容轮次登记——空轮次不覆盖上一内容轮记录）。 */
+   * 不改变客户端流；仅内容轮次登记——空轮次不覆盖上一内容轮记录）。
+   *
+   * CR-56（2026-10-13）：呈现形式类收敛 REPEAT（「画成图片」等）
+   * 传 skipCapture=true——收敛引导语不是真实内容轮，既不更新
+   * lastResponse（保证后续「再说一遍」仍能拿到完整原文），也不
+   * 写入转录（保证 withGeneration 蒸馏取到的是上一轮真实回答，
+   * 而非收敛引导）；事件流仍原样转发，会话快照仍在流末刷新。 */
   protected async *captureLastResponse(
     experienceId: string,
     source: AsyncGenerator<RuntimeStreamEvent>,
+    options?: { skipCapture?: boolean },
   ): AsyncGenerator<RuntimeStreamEvent> {
+    const skipCapture = options?.skipCapture === true;
     const chunks: string[] = [];
     let fixtureId = '';
     for await (const event of source) {
-      if (event.type === 'chunk' && event.content !== null) {
+      if (!skipCapture && event.type === 'chunk' && event.content !== null) {
         chunks.push(event.content);
         fixtureId = event.fixtureId;
       }
       yield event;
     }
-    if (chunks.length > 0) {
+    if (!skipCapture && chunks.length > 0) {
       this.lastResponseByExperience.set(experienceId, { chunks, fixtureId, at: new Date().toISOString() });
       // 连续性转录：助手内容入转录（空轮次不覆盖——与 REPEAT
       // 数据源同纪律；截断 1500 字防上下文膨胀）。

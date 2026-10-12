@@ -170,3 +170,69 @@ export function recognizeGenerationIntent(rawInput: string): GenerationIntent | 
   }
   return null;
 }
+
+/**
+ * CR-56（2026-10-13）——REPEAT 呈现层是否收敛为简短引导。
+ *
+ * 呈现形式类视觉生成（「画成图片 / 用图片展现刚才的内容 / 用视频
+ * 展现」）触发的 REPEAT，用户意图是「把内容画出来」而非「再读
+ * 一遍」——完整重放上一轮 300+ 字回答会污染对话流（实测「半截 /
+ * 对不上」），应收敛为一句简短引导。
+ *
+ * 排除项：
+ * - 语音朗读（modality === 'voice'）：用户要「听」完整内容，
+ *   保留完整重放；
+ * - 指代类（referential，「生成一个对应的猫图片」）：蒸馏链路
+ *   独立（prompt 由上一轮助手首句解析），不纳入本次收敛。
+ * - 「再说一遍」等纯重放指令：recognizeGenerationIntent 不命中，
+ *   返回 false，保持原文重放。
+ */
+export function shouldCompactReplay(rawInput: string): boolean {
+  const intent = recognizeGenerationIntent(rawInput);
+  return (
+    intent !== null &&
+    intent.useContext === true &&
+    intent.referential !== true &&
+    intent.modality !== 'voice'
+  );
+}
+
+/** 转录轮次（窄结构——只取蒸馏原料选择所需字段）。 */
+export interface TranscriptTurn {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
+/**
+ * CR-56（2026-10-13）——选择视觉蒸馏的设计文案（designText）。
+ *
+ * 呈现形式类生成（useContext，非指代）的 REPEAT 展示层已收敛，
+ * 流内 answerText 只剩简短引导，不能再作为蒸馏原料——改从转录
+ * 取上一轮助手原文（REPEAT 不入转录，原文仍可回溯）。
+ *
+ * 取不到原文时返回 undefined（蒸馏只基于意图 / 主题），绝不把
+ * 收敛后的简短引导回喂（避免画面结论漂移）。
+ *
+ * 直接创作（无 useContext）与指代类（referential）保持原逻辑：
+ * 使用流内 answerText。
+ *
+ * 注意：仅用于视觉模态（图像 / 视频）；语音朗读不经过蒸馏。
+ */
+export function resolveDistillDesignText(
+  intent: {
+    useContext?: boolean;
+    referential?: boolean;
+  },
+  answerText: string,
+  transcript: ReadonlyArray<TranscriptTurn>,
+): string | undefined {
+  const fallback = answerText.trim().slice(0, 700) || undefined;
+  if (intent.useContext !== true || intent.referential === true) {
+    return fallback;
+  }
+  const lastAssistant = [...transcript]
+    .reverse()
+    .find((turn) => turn.role === 'assistant');
+  const original = lastAssistant?.text?.trim();
+  return original && original.length > 0 ? original.slice(0, 700) : undefined;
+}
