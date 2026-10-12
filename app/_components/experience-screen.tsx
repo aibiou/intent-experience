@@ -1279,6 +1279,36 @@ export function ExperienceScreen({
         : undefined;
     return picked ?? completedArtifacts[completedArtifacts.length - 1];
   }, [completedArtifacts, stageGenId]);
+
+  // 生成过程进度反馈：图像 / 语音无 progress 事件——用计时兜底，
+  // 不让用户在空白舞台前干等；视频有 progress 事件直接透传。
+  const pendingGeneration = useMemo(
+    () => generations.find((item) => item.status === 'pending'),
+    [generations],
+  );
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  useEffect(() => {
+    if (!pendingGeneration && !pending) {
+      setElapsedSeconds(0);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setElapsedSeconds((seconds) => seconds + 1);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [pendingGeneration, pending]);
+
+  // 作品来源：锚定消息（引发生成的回答）摘要——回答「哪个是
+  // 哪个生成的」：作品说明是基于哪一段引导内容画出来的。
+  const stageSource = useMemo(() => {
+    if (!stageArtifact?.anchor) return null;
+    const anchorMessage = messages.find(
+      (item) => item.id === stageArtifact.anchor,
+    );
+    const text = anchorMessage?.text?.trim();
+    if (!text) return null;
+    return text.length > 24 ? `${text.slice(0, 24)}…` : text;
+  }, [stageArtifact, messages]);
   const stageIndex = stageArtifact
     ? completedArtifacts.findIndex((item) => item.id === stageArtifact.id)
     : -1;
@@ -1670,6 +1700,24 @@ export function ExperienceScreen({
         </section>
 
         <aside className="stage-pane" aria-label="产物舞台">
+          {pendingGeneration || pending ? (
+            <div className="stage-progress">
+              <span className="gen-pending-dot" aria-hidden="true" />
+              <span>
+                {pendingGeneration
+                  ? pendingGeneration.modality === 'video'
+                    ? `正在生成视频${
+                        pendingGeneration.progress != null
+                          ? ` · ${Math.round(pendingGeneration.progress)}%`
+                          : ''
+                      }…`
+                    : `正在生成${
+                        GENERATION_MODALITY_LABELS[pendingGeneration.modality]
+                      }…（已等待 ${elapsedSeconds} 秒）`
+                  : `正在处理…（已等待 ${elapsedSeconds} 秒）`}
+              </span>
+            </div>
+          ) : null}
           {stageArtifact ? (
             stageView === 'grid' ? (
               <>
@@ -1808,8 +1856,15 @@ export function ExperienceScreen({
                       : stageArtifact.prompt
                   }
                 >
-                  {stageArtifact.label ?? stageArtifact.prompt}
+                  {stageArtifact.distilled ??
+                    stageArtifact.label ??
+                    stageArtifact.prompt}
                 </span>
+                {stageSource && (
+                  <span className="stage-caption-source">
+                    源自：{stageSource}
+                  </span>
+                )}
               </div>
               <div className="stage-actions">
                 {stageArtifact.modality !== 'voice' && (
@@ -1868,6 +1923,40 @@ export function ExperienceScreen({
               </a>
               </>
             )
+          ) : pendingGeneration ? (
+            <div className="stage-empty">
+              <SparklesIcon size={26} />
+              <p className="stage-empty-title">
+                {pendingGeneration.modality === 'video'
+                  ? `正在生成视频${
+                      pendingGeneration.progress != null
+                        ? ` · ${Math.round(pendingGeneration.progress)}%`
+                        : ''
+                    }`
+                  : `正在生成${
+                      GENERATION_MODALITY_LABELS[pendingGeneration.modality]
+                    }…`}
+              </p>
+              <p className="stage-empty-hint">
+                {pendingGeneration.modality === 'video' &&
+                pendingGeneration.progress != null
+                  ? '生成完成会自动放到这里'
+                  : `${
+                      pendingGeneration.modality === 'image'
+                        ? '图片生成通常需要 10~30 秒'
+                        : '生成完成会自动放到这里'
+                    }（已等待 ${elapsedSeconds} 秒）`}
+              </p>
+            </div>
+          ) : pending ? (
+            // 发送→generation started 之间的过渡：不显示空白空态。
+            <div className="stage-empty">
+              <SparklesIcon size={26} />
+              <p className="stage-empty-title">正在处理…</p>
+              <p className="stage-empty-hint">
+                已等待 {elapsedSeconds} 秒，马上就好
+              </p>
+            </div>
           ) : (
             <div className="stage-empty">
               <SparklesIcon size={26} />
