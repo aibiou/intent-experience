@@ -84,6 +84,7 @@ export default function HomePage() {
   const [phase, setPhase] = useState<'home' | 'experience'>('home');
   const [session, setSession] = useState<SessionState | null>(null);
   const [initialInput, setInitialInput] = useState<string | undefined>();
+  const [initialRefs, setInitialRefs] = useState<string[] | undefined>();
   const [resume, setResume] = useState(false);
   const [recents, setRecents] = useState<RecentEntry[]>([]);
   const [creations, setCreations] = useState<CreationEntry[]>([]);
@@ -190,10 +191,49 @@ export default function HomePage() {
         stage: 'CURIOSITY',
       });
       setInitialInput(input);
+      setInitialRefs(undefined);
       setResume(false);
       setPhase('experience');
     } catch {
       // 启动失败时留在首页
+    }
+  }, []);
+
+  // 作品墙「续作」：以该作品为参考图开启新体验——
+  // 回看与再创作连通（作品→参考→续作闭环的最后一块）。
+  const handleContinueCreation = useCallback(async (entry: CreationEntry) => {
+    try {
+      const src = entry.dataUri ?? entry.url;
+      if (!src) return;
+      let dataUri = entry.dataUri;
+      if (!dataUri && !src.startsWith('data:')) {
+        const blob = await fetch(src).then((r) => {
+          if (!r.ok) throw new Error('asset fetch failed');
+          return r.blob();
+        });
+        dataUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error('encode failed'));
+          reader.readAsDataURL(blob);
+        });
+      }
+      if (!dataUri) return;
+      const response = await fetch('/api/session/start', { method: 'POST' });
+      const data = await response.json();
+      setSession({
+        sessionId: data.session_id,
+        experienceId: null,
+        stateVersion: 0,
+        status: data.state,
+        stage: 'CURIOSITY',
+      });
+      setInitialInput(`以这张图为参考继续创作：${entry.prompt}`);
+      setInitialRefs([dataUri]);
+      setResume(false);
+      setPhase('experience');
+    } catch {
+      // 参考图转换失败——留在首页（不阻塞入口）。
     }
   }, []);
 
@@ -232,6 +272,7 @@ export default function HomePage() {
       <ExperienceScreen
         session={session}
         initialInput={initialInput}
+        initialRefs={initialRefs}
         resume={resume}
         mode={mode}
         providerLabel={providerLabel}
@@ -250,6 +291,7 @@ export default function HomePage() {
       onStart={start}
       onResume={resumeRecent}
       onDeleteCreation={handleDeleteCreation}
+      onContinueCreation={handleContinueCreation}
     />
   );
 }

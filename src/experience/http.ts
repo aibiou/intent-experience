@@ -39,10 +39,48 @@ import { getServerRuntime } from './server-runtime';
 import { recognizeGenerationIntent, type GenerationModality } from './generation-intent';
 import {
   GENERATION_CALLS,
-  GenerationError,
+  humanizeGenerationFailure,
   type GenerationOptions,
 } from './generation-gateway';
-import { getEnabledProviderConfigForModality } from './config-store';
+import { getEnabledProviderConfig, getEnabledProviderConfigForModality } from './config-store';
+import { distillVisualPrompt, planSeries, type SeriesPlan } from './prompt-engine';
+
+/** 本会话最终蒸馏提示词（按体验 id——系列连贯性参考；进程内存量）。 */
+const distilledPromptsByExperience = new Map<string, string[]>();
+
+/** 系列规划触发词（用户显式要求系列化产出——角色设定 / 分集 / 短剧）。 */
+const SERIES_PLAN_PATTERN = /(系列|分集|短剧|连续剧|角色设定|插画集|组图)/;
+
+/**
+ * 系列规划包装（流末触发）：对话回答先完整呈现（用户先读到
+ * 规划内容），流末经规划器结构化为角色 + 分集 JSON——
+ * series_plan 事件随流输出；规划失败静默（文字回答仍在）。
+ */
+async function* withSeriesPlanning(
+  source: AsyncGenerator<unknown>,
+  runPlan: (answerText: string) => Promise<SeriesPlan | null>,
+  signal?: AbortSignal,
+): AsyncGenerator<unknown> {
+  let answerText = '';
+  let ended = false;
+  for await (const event of source) {
+    yield event;
+    if ((event as { type?: string }).type === 'done') ended = true;
+    if ((event as { type?: string }).type === 'chunk') {
+      const content = (event as { content?: unknown }).content;
+      if (typeof content === 'string') answerText += content;
+    }
+  }
+  if (!ended || signal?.aborted) return;
+  const seriesPlan = await runPlan(answerText);
+  if (seriesPlan) {
+    yield {
+      type: 'series_plan',
+      plan: seriesPlan,
+      at: new Date().toISOString(),
+    };
+  }
+}
 import type { ExperienceRuntime, RuntimeError, SubmissionResult } from './runtime';
 import type { AuditSink } from './audit';
 
@@ -138,13 +176,15 @@ async function* withGeneration(
     /** 指代类（「对应的猫图片」）——提示词优先由上一轮
      * 助手内容解析（getTranscript 回调注入转录）。 */
     referential?: boolean;
-    /** 创作参数（画幅 / 视频时长——透传生成网关）。 */
+    /** 创作参数（画幅 / 视频时长 / 参考图——透传生成网关）。 */
     aspectRatio?: GenerationOptions['aspectRatio'];
     seconds?: GenerationOptions['seconds'];
+    referenceImages?: string[];
   },
   signal?: AbortSignal,
   getTopic?: () => string | null,
   getTranscript?: () => Array<{ role: 'user' | 'assistant'; text: string }>,
+  experienceId?: string | null,
 ): AsyncGenerator<unknown> {
   // 回答内容累积（呈现形式类生成的提示词原料——
   // 「用视频展现」这类输入不含画面主题，主题在本轮
@@ -224,9 +264,58 @@ async function* withGeneration(
     }
   }
   const at = new Date().toISOString();
-  yield { type: 'generation', status: 'started', modality: intent.modality, prompt, at };
     try {
       const config = await getEnabledProviderConfigForModality(intent.modality);
+      // 提示词引擎（2026-10-12——视觉生成算法层）：先经 LLM
+      // 蒸馏——创作轮设计文案 + 系列上下文 → 一条覆盖主体 /
+      // 风格 / 构图 / 色调的专业提示词。逐轮设计文案不同 →
+      // 蒸馏结果不同 → 多轮作品自然分化；蒸馏失败（无文本
+      // 配置 / 超时 / 输出不合格）回退既有规则（呈现类用
+      // 主题 / 首句；直接创作用原话+增稠），绝不阻塞生成。
+      let finalPrompt =
+        intent.useContext === true ? prompt : enrichPrompt(prompt);
+      let distilledPrompt: string | null = null;
+      if (intent.modality !== 'voice') {
+        try {
+          const textConfig = await getEnabledProviderConfig();
+          if (textConfig) {
+            // 系列上下文取本会话的【最终】蒸馏提示词（用户意图
+            // 太薄，做连贯性参考会失真）。
+            const previousPrompts =
+              experienceId !== undefined && experienceId !== null
+                ? distilledPromptsByExperience.get(experienceId)
+                : undefined;
+            distilledPrompt = await distillVisualPrompt(textConfig, {
+              modality: intent.modality === 'video' ? 'video' : 'image',
+              intentPrompt: prompt,
+              designText: answerText.trim().slice(0, 700) || undefined,
+              aspectRatio: intent.aspectRatio,
+              seconds: intent.seconds,
+              hasReference: (intent.referenceImages?.length ?? 0) > 0,
+              previousPrompts,
+            });
+          }
+        } catch {
+          distilledPrompt = null;
+        }
+        if (distilledPrompt !== null) {
+          finalPrompt = distilledPrompt;
+          if (experienceId !== undefined && experienceId !== null) {
+            const history = distilledPromptsByExperience.get(experienceId) ?? [];
+            history.push(distilledPrompt);
+            distilledPromptsByExperience.set(experienceId, history.slice(-5));
+          }
+          console.log('[withGeneration] distilled prompt:', distilledPrompt);
+        }
+      }
+      yield {
+        type: 'generation',
+        status: 'started',
+        modality: intent.modality,
+        prompt,
+        ...(distilledPrompt !== null ? { distilledPrompt } : {}),
+        at,
+      };
       if (!config) {
         yield {
           type: 'generation',
@@ -244,13 +333,7 @@ async function* withGeneration(
       const progressQueue: number[] = [];
       const artifactPromise = GENERATION_CALLS[intent.modality](
         config,
-        // 提示词来源（2026-10-11 修订——此前这里错用
-        // intent.prompt 原话，上下文 / 主题提示词从未真正
-        // 到达提供方，是「生成无关图」的总根因）：
-        // 呈现类（useContext）用上文构建的主题提示词；
-        // 直接创作输入用用户原话——短提示词增稠仅此形态
-        // （增稠后缀会把非人物主题拉偏，主题正确性优先）。
-        intent.useContext === true ? prompt : enrichPrompt(prompt),
+        finalPrompt,
         (progress) => {
           progressQueue.push(progress);
         },
@@ -301,26 +384,9 @@ async function* withGeneration(
         at: new Date().toISOString(),
       };
     } catch (error) {
-      // 人性化文案（产品可用性——用户面对的不再是
-      // 「出错了」或提供方原文）：瞬态失败给重试
-      // 指引，其余失败给换法指引；提供方细节保留
-      // 在 message 供排障，不含 key、不含请求体。
-      const modalityLabel =
-        intent.modality === 'image' ? '图像' : intent.modality === 'video' ? '视频' : '语音';
-      let message: string;
-      if (error instanceof GenerationError) {
-        if (/quota|余额/i.test(error.message)) {
-          // 余额类失败（非瞬态）——重试 / 换说法都无效，
-          // 指引直指充值。
-          message = `生成账户余额不足——充值后到「模型配置」确认启用，再说一次即可。`;
-        } else if (error.retryable) {
-          message = `${modalityLabel}生成暂时排队繁忙——稍等片刻再说一次即可重试。（${error.message}）`;
-        } else {
-          message = `${modalityLabel}生成没有成功——可以换个说法再试一次。（${error.message}）`;
-        }
-      } else {
-        message = `${modalityLabel}生成没有成功——可以换个说法再试一次。`;
-      }
+      // 人性化文案（体验流 / 直接生成共用同一纪律——
+      // 见 humanizeGenerationFailure）。
+      const message = humanizeGenerationFailure(error, intent.modality);
       console.error('[withGeneration] generation failed:', message);
       yield { type: 'generation', status: 'failed', modality: intent.modality, message, at: new Date().toISOString() };
     }
@@ -337,6 +403,7 @@ const VIDEO_SECONDS_VALUES = new Set(['4', '6', '8', '12']);
 function extractCreationParams(body: {
   aspect_ratio?: unknown;
   seconds?: unknown;
+  reference_images?: unknown;
 }): GenerationOptions {
   const options: GenerationOptions = {};
   if (
@@ -347,6 +414,19 @@ function extractCreationParams(body: {
   }
   if (typeof body.seconds === 'string' && VIDEO_SECONDS_VALUES.has(body.seconds)) {
     options.seconds = body.seconds as GenerationOptions['seconds'];
+  }
+  // 参考图（图生图）：dataURI 白名单校验——仅 data:image/、
+  // 单张 ≤1.5MB、至多 3 张；非法项静默丢弃。
+  if (Array.isArray(body.reference_images)) {
+    const refs = body.reference_images
+      .filter(
+        (item): item is string =>
+          typeof item === 'string' &&
+          item.startsWith('data:image/') &&
+          item.length <= 1_500_000,
+      )
+      .slice(0, 3);
+    if (refs.length > 0) options.referenceImages = refs;
   }
   return options;
 }
@@ -470,6 +550,7 @@ async function handleExecutionForm(
             input.signal,
             () => runtime.getExperienceTopic(experienceId),
             () => runtime.getExperienceTranscript(experienceId),
+            experienceId,
           )
         : submission.stream,
     );
@@ -544,6 +625,23 @@ async function handleExecutionForm(
   if (!submission.ok) {
     return runtimeErrorResponse(submission.error);
   }
+  // 系列规划触发：无生成意图但用户显式要求系列化产出
+  // （角色设定 / 分集 / 短剧）——流末结构化为可执行计划。
+  const planTriggered =
+    generation === null && SERIES_PLAN_PATTERN.test(userInput);
+  const runPlan = planTriggered
+    ? async (answerText: string): Promise<SeriesPlan | null> => {
+        const textConfig = await getEnabledProviderConfig().catch(() => null);
+        if (!textConfig) return null;
+        const plan = await planSeries(textConfig, { userInput, answerText });
+        if (plan) {
+          console.log(
+            `[withSeriesPlanning] series plan: ${plan.title}（${plan.characters.length} 角色 / ${plan.episodes.length} 集）`,
+          );
+        }
+        return plan;
+      }
+    : null;
   return ndjsonResponse(
     generation
       ? withGeneration(
@@ -552,8 +650,11 @@ async function handleExecutionForm(
           input.signal,
           () => runtime.getExperienceTopic(started.experienceId),
           () => runtime.getExperienceTranscript(started.experienceId),
+          started.experienceId,
         )
-      : submission.stream,
+      : runPlan
+        ? withSeriesPlanning(submission.stream, runPlan, input.signal)
+        : submission.stream,
   );
 }
 

@@ -2,17 +2,23 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeftIcon,
+  ArrowRightIcon,
   BranchIcon,
   DatabaseIcon,
+  DownloadIcon,
+  MicIcon,
   SendIcon,
+  SparklesIcon,
+  VideoIcon,
+  XIcon,
 } from './icons';
 import { RefreshIcon } from './icons';
-import { StageRail } from './stage-rail';
 import type { RecentEntry } from './home-screen';
 import { creationId, type CreationEntry } from './creations';
+import { splitGenerationDetail, downloadFileName } from './generation-text';
 
 export interface SessionState {
   sessionId: string;
@@ -65,6 +71,17 @@ interface GenerationState {
   /** 锚定消息 id（内联渲染在产生它的那条回答下方——
    * 问答与产物同一滚动流，可持续查看）。 */
   anchor?: number;
+  /** 系列标签（如「第1集·标题」——系列创作的有序查看）。 */
+  label?: string;
+  /** 蒸馏提示词（实际发送给图像模型的提示词——可解释性）。 */
+  distilled?: string;
+}
+
+/** 系列创作规划（series_plan 事件——角色设定 + 分集）。 */
+interface SeriesPlanState {
+  title: string;
+  characters: Array<{ name: string; design: string }>;
+  episodes: Array<{ title: string; prompt: string }>;
 }
 
 const GENERATION_MODALITY_LABELS: Record<GenerationState['modality'], string> = {
@@ -72,22 +89,6 @@ const GENERATION_MODALITY_LABELS: Record<GenerationState['modality'], string> = 
   video: '视频',
   voice: '语音',
 };
-
-/**
- * 生成失败文案主次分离：人性化指引为主行，提供方
- * 技术细节（humanized 文案尾部括注）降级为次行
- * （产品可用性——用户不必面对英文错误堆）。
- */
-function splitGenerationDetail(message?: string): { main: string; detail: string | null } {
-  const text = message ?? '';
-  const marker = text.indexOf('（generation');
-  if (marker === -1) return { main: text, detail: null };
-  const main = text.slice(0, marker).trim();
-  const detail = (
-    text.endsWith('）') ? text.slice(marker + 1, -1) : text.slice(marker + 1)
-  ).trim();
-  return { main, detail: detail.length > 0 ? detail : null };
-}
 
 /**
  * 助手回复轻量 Markdown 渲染——提供方输出普遍带
@@ -118,7 +119,9 @@ function stripInlineHtml(text: string): string {
     );
 }
 
-function MarkdownContent({ text }: { text: string }) {
+// 流式性能关键：Markdown 解析是重操作——text 不变时跳过
+// 重解析（每 chunk 只应重渲正在流式的那条消息）。
+const MarkdownContent = memo(function MarkdownContent({ text }: { text: string }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -129,7 +132,7 @@ function MarkdownContent({ text }: { text: string }) {
       {stripInlineHtml(text)}
     </ReactMarkdown>
   );
-}
+});
 
 const ACTION_LABELS: Record<string, string> = {
   DIRECT_ANSWER: '回应',
@@ -145,6 +148,113 @@ const ACTION_LABELS: Record<string, string> = {
   REPEAT: '重复',
   STOP: '完成',
 };
+
+/**
+ * 单条消息流（气泡 + 产物引用）——memo 化的流式性能关键：
+ * chunk 更新只变更正在流式的那条消息对象引用，其余行引用
+ * 不变即整行跳过重渲染（Markdown 重解析是最大开销点）。
+ */
+interface MessageFlowProps {
+  message: Message;
+  items: GenerationState[] | undefined;
+  onStage: number | null;
+  pending: boolean;
+  onSelectStage: (id: number) => void;
+  onRegen: (prompt: string) => void;
+}
+
+const MessageFlow = memo(function MessageFlow({
+  message,
+  items,
+  onStage,
+  pending,
+  onSelectStage,
+  onRegen,
+}: MessageFlowProps) {
+  return (
+    <div className="message-flow">
+      <div className={`message message-${message.role}`}>
+        {message.role === 'assistant' && message.semanticAction && (
+          <span className="message-tag">
+            {ACTION_LABELS[message.semanticAction] ?? message.semanticAction}
+          </span>
+        )}
+        {message.role === 'assistant' ? (
+          <div
+            className={`message-text is-rich message-md${
+              message.streaming ? ' is-streaming' : ''
+            }`}
+          >
+            <MarkdownContent text={message.text} />
+            {message.streaming && <span className="stream-cursor" aria-hidden="true" />}
+          </div>
+        ) : (
+          <span className="message-text">
+            {message.text}
+            {message.streaming && <span className="stream-cursor" aria-hidden="true" />}
+          </span>
+        )}
+      </div>
+      {items?.map((item) =>
+        item.status === 'completed' &&
+        (item.url !== undefined || item.dataUri !== undefined) ? (
+          <button
+            key={item.id}
+            type="button"
+            className={`gen-ref${onStage === item.id ? ' is-on-stage' : ''}`}
+            onClick={() => onSelectStage(item.id)}
+            title="在右侧舞台查看"
+          >
+            <span className={`gen-tag gen-tag-${item.modality}`}>
+              {GENERATION_MODALITY_LABELS[item.modality]}
+            </span>
+            <span className="gen-ref-text">{item.label ?? item.prompt}</span>
+            <span className="gen-ref-hint">舞台查看</span>
+          </button>
+        ) : item.status === 'pending' ? (
+          <div key={item.id} className="gen-ref-pending">
+            <span className="gen-pending-dot" aria-hidden="true" />
+            <span>{GENERATION_MODALITY_LABELS[item.modality]}生成中</span>
+            {typeof item.progress === 'number' && item.progress > 0 ? (
+              <span className="gen-progress">
+                <span className="gen-progress-bar">
+                  <span
+                    className="gen-progress-fill"
+                    style={{ width: `${item.progress}%` }}
+                  />
+                </span>
+                <span className="gen-progress-num">{item.progress}%</span>
+              </span>
+            ) : (
+              <span className="gen-queued">排队中</span>
+            )}
+          </div>
+        ) : (
+          <div key={item.id} className="gen-ref-fail">
+            <p className="gen-message">{splitGenerationDetail(item.message).main}</p>
+            {splitGenerationDetail(item.message).detail !== null && (
+              <p
+                className="gen-detail"
+                title={splitGenerationDetail(item.message).detail ?? undefined}
+              >
+                {splitGenerationDetail(item.message).detail}
+              </p>
+            )}
+            <button
+              type="button"
+              className="gen-regen"
+              onClick={() => onRegen(item.prompt)}
+              disabled={pending}
+            >
+              <RefreshIcon size={12} />
+              <span>重试</span>
+            </button>
+          </div>
+        ),
+      )}
+    </div>
+  );
+});
 
 // 创作参数（专业生产能力——画幅 / 视频时长随请求透传
 // 生成网关；「自动」不发送参数，保持提供方默认行为）。
@@ -164,6 +274,8 @@ const DURATION_CHOICES = [
 interface ExperienceScreenProps {
   session: SessionState;
   initialInput?: string;
+  /** 初始参考图（dataURI——作品墙「续作」入口注入）。 */
+  initialRefs?: string[];
   resume?: boolean;
   mode: 'synthetic' | 'provider';
   providerLabel?: string;
@@ -177,6 +289,7 @@ interface ExperienceScreenProps {
 export function ExperienceScreen({
   session,
   initialInput,
+  initialRefs,
   resume,
   mode,
   providerLabel,
@@ -191,6 +304,14 @@ export function ExperienceScreen({
   const [pending, setPending] = useState(false);
   const [branchPanelOpen, setBranchPanelOpen] = useState(false);
   const [memoryPanelOpen, setMemoryPanelOpen] = useState(false);
+  // 创作参数弹层（画幅 / 时长——低频设置，不常驻占位）。
+  const [paramsOpen, setParamsOpen] = useState(false);
+  // 参考图（图生图——随下一条消息发送，≤3 张；可由作品墙
+  // 「续作」入口预注入）。
+  const [pendingRefs, setPendingRefs] = useState<string[]>(initialRefs ?? []);
+  const refInputRef = useRef<HTMLInputElement>(null);
+  // 系列创作规划（series_plan 事件——角色 + 分集 + 逐集生成）。
+  const [seriesPlan, setSeriesPlan] = useState<SeriesPlanState | null>(null);
   const [branches, setBranches] = useState<BranchInfo[]>([]);
   const [roundCount, setRoundCount] = useState(0);
   const [currentBranchId, setCurrentBranchId] = useState<string | null>(null);
@@ -204,6 +325,9 @@ export function ExperienceScreen({
   const idCounter = useRef(0);
   const sendingRef = useRef(false);
   const startedRef = useRef(false);
+  // 在途流的中止控制器——视频等长生成（重试退避可达数分钟）
+  // 期间用户必须能停止，否则整个对话被锁死。
+  const abortRef = useRef<AbortController | null>(null);
   // 各模态本轮生成的提示词——完成事件不携带
   // 提示词，作品持久化需要它（started 时记录）。
   const pendingPromptRef = useRef(new Map<string, string>());
@@ -235,6 +359,9 @@ export function ExperienceScreen({
           status: 'pending' as const,
           prompt: String(event.prompt ?? ''),
           anchor: lastAssistantIdRef.current ?? undefined,
+          ...(typeof event.distilledPrompt === 'string'
+            ? { distilled: event.distilledPrompt }
+            : {}),
         };
         if (duplicateIndex === -1) return [...prev, card];
         const next = [...prev];
@@ -396,6 +523,8 @@ export function ExperienceScreen({
     async (rawInput: string, isFirst = false) => {
       if (sendingRef.current) return;
       sendingRef.current = true;
+      const controller = new AbortController();
+      abortRef.current = controller;
       setPending(true);
       setMessages((prev) => [...prev, { id: nextId(), role: 'user', text: rawInput }]);
       setDraft('');
@@ -412,11 +541,17 @@ export function ExperienceScreen({
       // 创作参数透传（仅非「自动」时携带——后端白名单校验）。
       if (aspect !== 'auto') body.aspect_ratio = aspect;
       if (duration !== 'auto') body.seconds = duration;
+      // 参考图（图生图——随消息透传，发送即清空附件栏）。
+      if (pendingRefs.length > 0) {
+        body.reference_images = pendingRefs;
+        setPendingRefs([]);
+      }
 
       try {
         const response = await fetch('/api/experience/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify(body),
         });
 
@@ -432,12 +567,14 @@ export function ExperienceScreen({
               errorMessage = '这一步和当前阶段接不上——试试「继续」，或从下面的方向里选一个。';
             } else if (
               typeof data.message === 'string' &&
-              data.message.startsWith('unknown experience')
+              (data.message.startsWith('unknown experience') ||
+                data.message === 'experience/session mismatch')
             ) {
               errorMessage = '这段体验的服务端会话已失效（服务可能重启过）——返回首页重新开始即可。';
             } else if (
               typeof data.message === 'string' &&
-              data.message.startsWith('unknown session')
+              (data.message.startsWith('unknown session') ||
+                data.message.startsWith('session ') && data.message.includes('rejects'))
             ) {
               // dev 服务器完整重启后内存会话清空（热重载已由
               // globalThis 单例挡住——此条仅兜底完整重启）。
@@ -564,21 +701,341 @@ export function ExperienceScreen({
                     : message,
                 ),
               );
+            } else if (event.type === 'series_plan') {
+              // 系列创作规划落地（结构化角色 + 分集——舞台
+              // 面板逐集生成与有序查看的数据源）。
+              const plan = event.plan as {
+                title?: unknown;
+                characters?: unknown;
+                episodes?: unknown;
+              } | null;
+              if (
+                plan &&
+                typeof plan.title === 'string' &&
+                Array.isArray(plan.episodes)
+              ) {
+                setSeriesPlan({
+                  title: plan.title,
+                  characters: Array.isArray(plan.characters)
+                    ? (plan.characters as Array<{ name?: unknown; design?: unknown }>)
+                        .filter(
+                          (c): c is { name: string; design: string } =>
+                            typeof c.name === 'string' &&
+                            typeof c.design === 'string',
+                        )
+                        .map((c) => ({ name: c.name, design: c.design }))
+                    : [],
+                  episodes: (plan.episodes as Array<{ title?: unknown; prompt?: unknown }>)
+                    .filter(
+                      (e): e is { title: string; prompt: string } =>
+                        typeof e.title === 'string' &&
+                        typeof e.prompt === 'string',
+                    )
+                    .map((e) => ({ title: e.title, prompt: e.prompt })),
+                });
+              }
             }
           }
         }
       } catch {
-        setMessages((prev) => [
-          ...prev,
-          { id: nextId(), role: 'system', text: '连接中断了——请再试一次。' },
-        ]);
+        // 主动停止（用户点击停止按钮）：流在途中止，服务端
+        // 经 request.signal 传播取消（不产出后续分块）；区别
+        // 于网络故障文案。中止时收尾在途的流式消息——已有一
+        // 定内容的保留原样（真实产物），空骨架直接移除（不
+        // 留空气泡）。
+        setMessages((prev) => {
+          const cleaned = prev.filter(
+            (message) =>
+              !(
+                message.role === 'assistant' &&
+                message.streaming &&
+                message.text.length === 0
+              ),
+          );
+          return [
+            ...cleaned.map((message) =>
+              message.streaming ? { ...message, streaming: false } : message,
+            ),
+            {
+              id: nextId(),
+              role: 'system',
+              text: controller.signal.aborted
+                ? '已停止这一轮生成——随时继续。'
+                : '连接中断了——请再试一次。',
+            },
+          ];
+        });
       } finally {
+        if (abortRef.current === controller) abortRef.current = null;
         sendingRef.current = false;
         setPending(false);
       }
     },
-    [applySession, onRecent, resyncState, refreshPanels, aspect, duration],
+    [applySession, onRecent, resyncState, refreshPanels, aspect, duration, pendingRefs],
   );
+
+  const stopStreaming = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
+
+  // 参考图文件 → 压缩 dataURI（≤1024px JPEG——控制上传与
+  // 存档体积）；非图片忽略，至多 3 张。
+  const handleReferenceFiles = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const picked = Array.from(files)
+      .filter((file) => file.type.startsWith('image/'))
+      .slice(0, 3 - pendingRefs.length);
+    for (const file of picked) {
+      try {
+        const dataUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const image = new Image();
+            image.onload = () => {
+              const scale = Math.min(1, 1024 / Math.max(image.width, image.height));
+              const canvas = document.createElement('canvas');
+              canvas.width = Math.max(1, Math.round(image.width * scale));
+              canvas.height = Math.max(1, Math.round(image.height * scale));
+              const context = canvas.getContext('2d');
+              if (!context) {
+                resolve(String(reader.result));
+                return;
+              }
+              context.drawImage(image, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            image.onerror = () => reject(new Error('image decode failed'));
+            image.src = String(reader.result);
+          };
+          reader.onerror = () => reject(new Error('file read failed'));
+          reader.readAsDataURL(file);
+        });
+        setPendingRefs((prev) => [...prev, dataUri].slice(0, 3));
+      } catch {
+        // 单张失败不影响其余——静默跳过。
+      }
+    }
+  }, [pendingRefs.length]);
+
+  // 系列分集生成（走直接生成路由——逐集异步、互不阻塞；
+  // 产物带系列标签回流舞台与总览，角色设定注入保证一致性）。
+  const [videoSeriesRunning, setVideoSeriesRunning] = useState(false);
+  const generateVideoSeries = useCallback(async () => {
+    if (videoSeriesRunning) return;
+    setVideoSeriesRunning(true);
+    try {
+      // 驱动源：作品墙的图像作品（最新在前）——按叙事顺序
+      // 倒排为剧集顺序；每集以上一集画面为参考（reference
+      // 模式——角色与场景跨集一致）。
+      const works = await fetch('/api/works')
+        .then((r) => (r.ok ? r.json() : { works: [] }))
+        .catch(() => ({ works: [] }));
+      const imageWorks = (works.works ?? [])
+        .filter((w: { modality?: string }) => w.modality === 'image')
+        .slice(0, 5) as Array<{ id: string; prompt: string; assetUrl: string }>;
+      const ordered = [...imageWorks].reverse();
+      for (const [index, work] of ordered.entries()) {
+        const genId = nextId();
+        const label = `第${index + 1}幕·动画`;
+        const motionPrompt = `${work.prompt}。以参考图为该场景的起点，让画面自然动起来：雪花缓缓飘落，灯光光晕轻晃，人物缓缓前行，镜头缓慢推进，电影感氛围。`;
+        const videoGen: GenerationState = {
+          id: genId,
+          modality: 'video',
+          status: 'pending',
+          prompt: motionPrompt,
+          label,
+        };
+        setGenerations((prev) => [...prev, videoGen]);
+        setStageGenId(genId);
+        try {
+          const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              request_id: `web_${crypto.randomUUID()}`,
+              modality: 'video',
+              prompt: motionPrompt,
+              reference_images: [work.assetUrl],
+            }),
+          });
+          if (!response.ok || response.body === null) {
+            setGenerations((prev) =>
+              prev.map((item) =>
+                item.id === genId
+                  ? { ...item, status: 'failed', message: '生成服务不可用' }
+                  : item,
+              ),
+            );
+            continue;
+          }
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
+            for (const line of lines) {
+              if (line.length === 0) continue;
+              let evt: Record<string, unknown>;
+              try {
+                evt = JSON.parse(line) as Record<string, unknown>;
+              } catch {
+                continue;
+              }
+              if (evt.type === 'completed') {
+                const completedGen: GenerationState = {
+                  ...videoGen,
+                  status: 'completed',
+                  ...(typeof evt.url === 'string' ? { url: evt.url } : {}),
+                  ...(typeof evt.dataUri === 'string'
+                    ? { dataUri: evt.dataUri }
+                    : {}),
+                  mime: typeof evt.mime === 'string' ? evt.mime : 'video/mp4',
+                };
+                setGenerations((prev) =>
+                  prev.map((item) => (item.id === genId ? completedGen : item)),
+                );
+                setStageGenId(genId);
+              } else if (evt.type === 'failed' || evt.type === 'unconfigured') {
+                setGenerations((prev) =>
+                  prev.map((item) =>
+                    item.id === genId
+                      ? {
+                          ...item,
+                          status: 'failed',
+                          message: String(evt.message ?? '生成失败'),
+                        }
+                      : item,
+                  ),
+                );
+              } else if (evt.type === 'progress') {
+                const progress =
+                  typeof evt.progress === 'number' ? evt.progress : undefined;
+                setGenerations((prev) =>
+                  prev.map((item) =>
+                    item.id === genId ? { ...item, progress } : item,
+                  ),
+                );
+              }
+            }
+          }
+        } catch {
+          setGenerations((prev) =>
+            prev.map((item) =>
+              item.id === genId
+                ? { ...item, status: 'failed', message: '网络中断' }
+                : item,
+            ),
+          );
+        }
+      }
+    } finally {
+      setVideoSeriesRunning(false);
+    }
+  }, [videoSeriesRunning]);
+  const generateEpisode = useCallback(async (index: number) => {
+    if (seriesPlan === null) return;
+    const episode = seriesPlan.episodes[index];
+    if (!episode) return;
+    const existing = generations.find(
+      (item) => item.label?.startsWith(`第${index + 1}集`),
+    );
+    if (existing && existing.status !== 'failed') return;
+    const genId = nextId();
+    const characterNote =
+      seriesPlan.characters.length > 0
+        ? `。角色一致性：${seriesPlan.characters
+            .map((c) => `${c.name}（${c.design}）`)
+            .join('；')}`
+        : '';
+    const fullPrompt = `系列「${seriesPlan.title}」第${index + 1}集「${episode.title}」：${episode.prompt}${characterNote}`;
+    const genCard: GenerationState = {
+      id: genId,
+      modality: 'image',
+      status: 'pending',
+      prompt: fullPrompt,
+      label: `第${index + 1}集·${episode.title}`,
+      anchor: lastAssistantIdRef.current ?? undefined,
+    };
+    setGenerations((prev) => [...prev, genCard]);
+    setStageGenId(genId);
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          request_id: `web_${crypto.randomUUID()}`,
+          modality: 'image',
+          prompt: fullPrompt,
+        }),
+      });
+      if (!response.ok || response.body === null) {
+        setGenerations((prev) =>
+          prev.map((item) =>
+            item.id === genId
+              ? { ...item, status: 'failed', message: '生成服务不可用' }
+              : item,
+          ),
+        );
+        return;
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (line.length === 0) continue;
+          let evt: Record<string, unknown>;
+          try {
+            evt = JSON.parse(line) as Record<string, unknown>;
+          } catch {
+            continue;
+          }
+          if (evt.type === 'completed') {
+            const completedGen: GenerationState = {
+              ...genCard,
+              status: 'completed',
+              ...(typeof evt.url === 'string' ? { url: evt.url } : {}),
+              ...(typeof evt.dataUri === 'string' ? { dataUri: evt.dataUri } : {}),
+              ...(typeof evt.mime === 'string' ? { mime: evt.mime } : {}),
+            };
+            setGenerations((prev) =>
+              prev.map((item) => (item.id === genId ? completedGen : item)),
+            );
+            setStageGenId(genId);
+          } else if (evt.type === 'failed' || evt.type === 'unconfigured') {
+            setGenerations((prev) =>
+              prev.map((item) =>
+                item.id === genId
+                  ? {
+                      ...item,
+                      status: 'failed',
+                      message: String(evt.message ?? '生成失败'),
+                    }
+                  : item,
+              ),
+            );
+          }
+        }
+      }
+    } catch {
+      setGenerations((prev) =>
+        prev.map((item) =>
+          item.id === genId
+            ? { ...item, status: 'failed', message: '网络中断' }
+            : item,
+        ),
+      );
+    }
+  }, [seriesPlan, generations]);
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -586,10 +1043,40 @@ export function ExperienceScreen({
     if (initialInput) {
       void send(initialInput, true);
     } else if (resume) {
-      // 恢复会话（T14 修复 + 存活探测）：recents 存的是首轮
-      // stateVersion——先重同步；服务端会话不存在（dev 重启清
-      // 内存态）时给明确指引而非盲目提交吃通用错误。
+      // 恢复会话（T14 修复 + 存活探测 + 对话继续）：先取回
+      // 刷新前留在本地的对话与产物（sessionStorage 按
+      // 体验 id 存档——离开再进来不打断上下文），再重同步
+      // 服务端状态；服务端会话不存在（dev 重启清内存态）
+      // 时仍给出明确指引而非盲目提交。
       void (async () => {
+        const experienceId = sessionRef.current.experienceId;
+        if (experienceId) {
+          try {
+            const raw = sessionStorage.getItem(
+              `intent-experience.exp.${experienceId}`,
+            );
+            if (raw) {
+              const saved = JSON.parse(raw) as {
+                messages?: Message[];
+                generations?: GenerationState[];
+                seriesPlan?: SeriesPlanState | null;
+              };
+              if (Array.isArray(saved.messages) && saved.messages.length > 0) {
+                setMessages(saved.messages);
+                idCounter.current =
+                  Math.max(...saved.messages.map((m) => m.id ?? 0)) + 1;
+              }
+              if (Array.isArray(saved.generations)) {
+                setGenerations(saved.generations);
+              }
+              if (saved.seriesPlan) {
+                setSeriesPlan(saved.seriesPlan);
+              }
+            }
+          } catch {
+            // 存档不可用——按空白会话继续（不阻断恢复）。
+          }
+        }
         const alive = await resyncState();
         if (!alive) {
           setMessages((prev) => [
@@ -606,6 +1093,22 @@ export function ExperienceScreen({
       })();
     }
   }, [initialInput, resume, send]);
+
+  // 会话视图存档（对话继续的另一半）：消息与产物随变化写入
+  // sessionStorage（按体验 id）——刷新 / 返回再进时由上方恢复
+  // 逻辑取回；配额满或不可用静默跳过（主流程不受影响）。
+  useEffect(() => {
+    const experienceId = sessionState.experienceId;
+    if (!experienceId) return;
+    try {
+      sessionStorage.setItem(
+        `intent-experience.exp.${experienceId}`,
+        JSON.stringify({ messages, generations, seriesPlan }),
+      );
+    } catch {
+      // 容量/可用性限制——跳过持久化。
+    }
+  }, [messages, generations, sessionState.experienceId, seriesPlan]);
 
   // 流式自动跟随：内容增长时滚动到底部——用户上滚
   // 查阅历史时（距底超过阈值）不打扰（不抢回滚动）。
@@ -625,8 +1128,8 @@ export function ExperienceScreen({
 
   const branchActive = currentBranchId !== null;
 
-  // 内联生成物索引：锚定消息 id → 该回答下方的产物卡片
-  // （问答与生成物同一滚动流——产物随对话持续可查看）。
+  // 内联生成物索引：锚定消息 id → 该回答下方的产物引用
+  // （对话列只承载过程态；产物正身常驻右侧舞台）。
   const generationsByAnchor = useMemo(() => {
     const map = new Map<number, GenerationState[]>();
     for (const item of generations) {
@@ -641,46 +1144,123 @@ export function ExperienceScreen({
     return map;
   }, [generations]);
 
+  // 舞台产物（右侧常驻大幅展示）：会话内已完成产物集合；
+  // stageGenId 为用户显式选择的产物，未选择时自动跟随最新。
+  const [stageGenId, setStageGenId] = useState<number | null>(null);
+  // 舞台视图：单幅（大图+导航）/ 总览（本会话作品网格）。
+  const [stageView, setStageView] = useState<'single' | 'grid'>('single');
+  const completedArtifacts = useMemo(
+    () =>
+      generations.filter(
+        (item) =>
+          item.status === 'completed' &&
+          (item.url !== undefined || item.dataUri !== undefined),
+      ),
+    [generations],
+  );
+  const stageArtifact = useMemo(() => {
+    if (completedArtifacts.length === 0) return null;
+    const picked =
+      stageGenId !== null
+        ? completedArtifacts.find((item) => item.id === stageGenId)
+        : undefined;
+    return picked ?? completedArtifacts[completedArtifacts.length - 1];
+  }, [completedArtifacts, stageGenId]);
+  const stageIndex = stageArtifact
+    ? completedArtifacts.findIndex((item) => item.id === stageArtifact.id)
+    : -1;
+
+  // 舞台键盘翻页（← / →——多轮作品回看不打断手位）。
+  useEffect(() => {
+    if (stageView !== 'single' || completedArtifacts.length < 2) return;
+    const onStageKey = (event: KeyboardEvent) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT')
+      ) {
+        return;
+      }
+      event.preventDefault();
+      const next =
+        event.key === 'ArrowLeft' ? stageIndex - 1 : stageIndex + 1;
+      if (next >= 0 && next < completedArtifacts.length) {
+        setStageGenId(completedArtifacts[next].id);
+      }
+    };
+    window.addEventListener('keydown', onStageKey);
+    return () => window.removeEventListener('keydown', onStageKey);
+  }, [stageView, stageIndex, completedArtifacts]);
+
+  // 新产物落地即自动上舞台（新鲜产物第一时间可见）。
+  const latestCompletedId =
+    completedArtifacts.length > 0
+      ? completedArtifacts[completedArtifacts.length - 1].id
+      : null;
+  useEffect(() => {
+    if (latestCompletedId !== null) {
+      setStageGenId(latestCompletedId);
+    }
+  }, [latestCompletedId]);
+
+  // 情境建议（最多三个 + 完成信号）：动作坞曾是七钮墙——
+  // 每一个都要用户理解，违背「不用想太多」的入口承诺。
+  // 现在按会话阶段给最相关的三个，其余交给自由输入。
   const dockActions = useMemo<DockAction[]>(() => {
-    const list: DockAction[] = [];
+    // 「画成图片」在三态都提供——把本轮回答画出来是多轮
+    // 表达最自然的下一步（REPEAT 链路——回答先呈现，流末
+    // 以主题蒸馏成图）。叙事推进类输入（第N集…）不带生成
+    // 动词时不触发，此 chip 即明确的补位入口。
     if (sessionState.stage === 'CREATION') {
-      list.push({ label: '简化', input: '简化' });
-      list.push({ label: '换角度', input: '换角度' });
-      list.push({ label: '做个小游戏', input: '做个小游戏' });
-    } else {
-      list.push({ label: '为什么', input: '为什么' });
-      list.push({ label: '如果…会怎样', input: '如果会怎样' });
-      list.push({ label: '深入一点', input: '深入一点' });
+      return [
+        { label: '简化', input: '简化' },
+        { label: '换角度', input: '换角度' },
+        { label: '画成图片', input: '用图片展现刚才的内容' },
+        { label: '好了', input: '好了' },
+      ];
     }
+    const list: DockAction[] = [];
     if (branchActive) {
-      branches
-        .filter((branch) => branch.lifecycle === 'ACTIVE')
-        .slice(0, 3)
-        .forEach((branch) => {
-          list.push({
-            label: `采用分支${branch.ordinal}`,
-            input: `如果采用分支${branch.ordinal}`,
-          });
+      // 分支会话中：采用 / 返回是当前最有价值的动作。
+      const activeBranch = branches.find(
+        (branch) => branch.lifecycle === 'ACTIVE',
+      );
+      if (activeBranch) {
+        list.push({
+          label: `采用分支${activeBranch.ordinal}`,
+          input: `如果采用分支${activeBranch.ordinal}`,
         });
+      }
       list.push({ label: '返回主线', input: '如果返回主线' });
+    } else {
+      list.push({ label: '深入一点', input: '深入一点' });
+      if (sessionState.status !== 'WAITING') {
+        list.push({ label: '如果…会怎样', input: '如果会怎样' });
+      }
     }
-    // 换方向在创作阶段被状态机拒绝（曾以「这一步和当前
-    // 阶段接不上」错误收场——动作坞不该提供必被拒的
-    // 动作）；仅探索阶段提供。
-    // 换方向（CHANGE_DIRECTION）冻结状态机仅 READY/ACTIVE 合法——
-    // WAITING（每轮回答完成后的常态）点击必被拒，隐藏该按钮。
-    if (sessionState.stage !== 'CREATION' && sessionState.status !== 'WAITING') {
-      list.push({ label: '换一个', input: '换一个' });
-    }
-    // 「继续」的冻结语义是幂等空确认（S4A D-1）——按钮改发
-    // 内容承接措辞（UNKNOWN→DIRECT_ANSWER，带对话历史续讲）。
-    list.push({ label: '继续', input: '接着往下讲' });
-    list.push({ label: '重复上一条', input: '重复上一条' });
+    list.push({ label: '画成图片', input: '用图片展现刚才的内容' });
     list.push({ label: '好了', input: '好了' });
     return list;
-    // status 参与「换一个」可见性——依赖必须含 status，否则
-    // 轮次完成后（WAITING）按钮列表不刷新。
+    // status 参与「如果…会怎样」可见性——依赖必须含 status。
   }, [sessionState.stage, sessionState.status, branchActive, branches]);
+
+  // 详情面板互斥（同时至多开一个——头部入口不叠层）。
+  const toggleBranchPanel = useCallback(() => {
+    setBranchPanelOpen((open) => {
+      if (!open) setMemoryPanelOpen(false);
+      return !open;
+    });
+    void refreshSimulation();
+  }, [refreshSimulation]);
+
+  const toggleMemoryPanel = useCallback(() => {
+    setMemoryPanelOpen((open) => {
+      if (!open) setBranchPanelOpen(false);
+      return !open;
+    });
+    void refreshMemory();
+  }, [refreshMemory]);
 
   const submit = () => {
     const input = draft.trim();
@@ -694,9 +1274,30 @@ export function ExperienceScreen({
         <button type="button" className="back-button" onClick={onExit}>
           <ArrowLeftIcon size={16} /> 返回
         </button>
-        <StageRail stage={sessionState.stage} branchActive={branchActive} />
+        <div className="header-tools">
+          <button
+            type="button"
+            className={`tool-button${branchPanelOpen ? ' is-open' : ''}`}
+            onClick={toggleBranchPanel}
+            title="分支模拟——问「如果…会怎样」产生分支"
+          >
+            <BranchIcon size={13} />
+            <span>分支{roundCount > 0 ? ` · ${roundCount}` : ''}</span>
+          </button>
+          <button
+            type="button"
+            className={`tool-button${memoryPanelOpen ? ' is-open' : ''}`}
+            onClick={toggleMemoryPanel}
+            title="会话记忆"
+          >
+            <DatabaseIcon size={13} />
+            <span>记忆{memories.length > 0 ? ` · ${memories.length}` : ''}</span>
+          </button>
+        </div>
       </header>
 
+      <div className="experience-body">
+        <section className="chat-column">
       <div
         ref={conversationRef}
         className="conversation"
@@ -706,203 +1307,64 @@ export function ExperienceScreen({
           <p className="conversation-empty">开始你的探索。</p>
         )}
         {messages.map((message) => (
-          <div key={message.id} className="message-flow">
-            <div className={`message message-${message.role}`}>
-              {message.role === 'assistant' && message.semanticAction && (
-                <span className="message-tag">
-                  {ACTION_LABELS[message.semanticAction] ?? message.semanticAction}
-                </span>
-              )}
-              {message.role === 'assistant' ? (
-                <div
-                  className={`message-text is-rich message-md${
-                    message.streaming ? ' is-streaming' : ''
-                  }`}
-                >
-                  <MarkdownContent text={message.text} />
-                  {message.streaming && <span className="stream-cursor" aria-hidden="true" />}
-                </div>
-              ) : (
-                <span className="message-text">
-                  {message.text}
-                  {message.streaming && <span className="stream-cursor" aria-hidden="true" />}
-                </span>
-              )}
-            </div>
-            {generationsByAnchor.get(message.id)?.map((item) => (
-              <article
-                key={item.id}
-                className={`gen-card gen-${item.modality} gen-${item.status}`}
-              >
-                {item.status === 'pending' && (
-                  <div className="gen-pending">
-                    <div className="gen-skeleton" aria-hidden="true" />
-                    <div className="gen-pending-body">
-                      <span className="gen-pending-status">
-                        <span className="gen-pending-dot" aria-hidden="true" />
-                        {GENERATION_MODALITY_LABELS[item.modality]}生成中
-                      </span>
-                      {typeof item.progress === 'number' && item.progress > 0 ? (
-                        <span className="gen-progress">
-                          <span className="gen-progress-bar">
-                            <span
-                              className="gen-progress-fill"
-                              style={{ width: `${item.progress}%` }}
-                            />
-                          </span>
-                          <span className="gen-progress-num">
-                            {item.progress}%
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="gen-queued">排队中…</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {item.status === 'completed' &&
-                  (item.url !== undefined || item.dataUri !== undefined) && (
-                    item.modality === 'voice' ? (
-                      <audio className="gen-audio" controls src={item.dataUri ?? item.url} />
-                    ) : item.modality === 'video' ? (
-                      <>
-                        <video className="gen-media" controls src={item.dataUri ?? item.url} />
-                        <a
-                          className="gen-download"
-                          href={item.dataUri ?? item.url}
-                          download={`generation-${item.id}.mp4`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          下载视频
-                        </a>
-                      </>
-                    ) : (
-                      <>
-                        <a
-                          className="gen-media-link"
-                          href={item.dataUri ?? item.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          title="点击查看原图"
-                        >
-                          <img className="gen-media" src={item.dataUri ?? item.url} alt={item.prompt} />
-                        </a>
-                        <a
-                          className="gen-download"
-                          href={item.dataUri ?? item.url}
-                          download={`generation-${item.id}.png`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          下载图片
-                        </a>
-                      </>
-                    )
-                  )}
-                {(item.status === 'unconfigured' || item.status === 'failed') && (
-                  <div className="gen-message-wrap">
-                    <p className="gen-message">{splitGenerationDetail(item.message).main}</p>
-                    {splitGenerationDetail(item.message).detail !== null && (
-                      <p className="gen-detail" title={splitGenerationDetail(item.message).detail ?? undefined}>
-                        {splitGenerationDetail(item.message).detail}
-                      </p>
-                    )}
-                  </div>
-                )}
-                <footer className="gen-foot">
-                  <span className={`gen-tag gen-tag-${item.modality}`}>
-                    {GENERATION_MODALITY_LABELS[item.modality]}
-                  </span>
-                  <span className="gen-prompt" title={item.prompt}>
-                    {item.prompt}
-                  </span>
-                  {item.status === 'completed' && (
-                    <button
-                      type="button"
-                      className="gen-regen"
-                      onClick={() => void send(item.prompt)}
-                      title="同一提示词再生成一次"
-                    >
-                      <RefreshIcon size={13} />
-                      <span>再来一次</span>
-                    </button>
-                  )}
-                </footer>
-              </article>
-            ))}
-          </div>
+          <MessageFlow
+            key={message.id}
+            message={message}
+            items={generationsByAnchor.get(message.id)}
+            onStage={stageGenId}
+            pending={pending}
+            onSelectStage={setStageGenId}
+            onRegen={(prompt) => void send(prompt)}
+          />
         ))}
       </div>
 
-      <div className="panels">
-        <button
-          type="button"
-          className={`panel-toggle${branchPanelOpen ? ' is-open' : ''}`}
-          onClick={() => {
-            const next = !branchPanelOpen;
-            setBranchPanelOpen(next);
-            if (next) void refreshSimulation();
-          }}
-        >
-          <BranchIcon size={14} /> 分支模拟 {roundCount > 0 ? `· ${roundCount} 轮` : ''}
-        </button>
-        <button
-          type="button"
-          className={`panel-toggle${memoryPanelOpen ? ' is-open' : ''}`}
-          onClick={() => {
-            const next = !memoryPanelOpen;
-            setMemoryPanelOpen(next);
-            if (next) void refreshMemory();
-          }}
-        >
-          <DatabaseIcon size={14} /> 记忆 {memories.length > 0 ? `· ${memories.length}` : ''}
-        </button>
-      </div>
-
-      {branchPanelOpen && (
-        <section className="panel">
-          {branches.length === 0 ? (
-            <p className="panel-empty">还没有分支——问一句「如果…会怎样」开始模拟。</p>
-          ) : (
-            <ul className="branch-list">
-              {branches.map((branch) => (
-                <li key={branch.branchId} className="branch-item">
-                  <span className="branch-name">分支{branch.ordinal}</span>
-                  <span className="branch-meta">
-                    {branch.lifecycle === 'ACTIVE' && (branch.adopted ? '已采用' : '进行中')}
-                    {branch.lifecycle === 'RETURNED' ? '已返回主线' : ''}
-                    {branch.lifecycle === 'ABANDONED' ? '已放弃' : ''}
-                    {' · '}
-                    {branch.rounds} 轮
-                  </span>
-                  {currentBranchId === branch.branchId && (
-                    <span className="branch-current">当前</span>
-                  )}
-                </li>
-              ))}
-            </ul>
+      {(branchPanelOpen || memoryPanelOpen) && (
+        <div className="panel-popover">
+          {branchPanelOpen && (
+            <section className="panel">
+              {branches.length === 0 ? (
+                <p className="panel-empty">还没有分支——问一句「如果…会怎样」开始模拟。</p>
+              ) : (
+                <ul className="branch-list">
+                  {branches.map((branch) => (
+                    <li key={branch.branchId} className="branch-item">
+                      <span className="branch-name">分支{branch.ordinal}</span>
+                      <span className="branch-meta">
+                        {branch.lifecycle === 'ACTIVE' && (branch.adopted ? '已采用' : '进行中')}
+                        {branch.lifecycle === 'RETURNED' ? '已返回主线' : ''}
+                        {branch.lifecycle === 'ABANDONED' ? '已放弃' : ''}
+                        {' · '}
+                        {branch.rounds} 轮
+                      </span>
+                      {currentBranchId === branch.branchId && (
+                        <span className="branch-current">当前</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           )}
-        </section>
-      )}
-
-      {memoryPanelOpen && (
-        <section className="panel">
-          {memories.length === 0 ? (
-            <p className="panel-empty">还没有记忆——探索中产生的显式表达会登记在这里。</p>
-          ) : (
-            <ul className="memory-list">
-              {memories.map((memory, index) => (
-                <li key={index} className="memory-item">
-                  <span className="memory-topic">{memory.topic}</span>
-                  <span className="memory-meta">
-                    {memory.memoryClass === 'long_term' ? '长期' : '短期'} · 置信 {memory.confidence.toFixed(2)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          {memoryPanelOpen && (
+            <section className="panel">
+              {memories.length === 0 ? (
+                <p className="panel-empty">还没有记忆——探索中产生的显式表达会登记在这里。</p>
+              ) : (
+                <ul className="memory-list">
+                  {memories.map((memory, index) => (
+                    <li key={index} className="memory-item">
+                      <span className="memory-topic">{memory.topic}</span>
+                      <span className="memory-meta">
+                        {memory.memoryClass === 'long_term' ? '长期' : '短期'} · 置信 {memory.confidence.toFixed(2)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           )}
-        </section>
+        </div>
       )}
 
       <div className="dock">
@@ -919,34 +1381,58 @@ export function ExperienceScreen({
         ))}
       </div>
 
-      {/* 创作参数条——画幅 / 时长，下一次生成生效 */}
-      <div className="creation-params">
-        <span className="creation-params-label">画幅</span>
-        {ASPECT_CHOICES.map((choice) => (
-          <button
-            key={choice.value}
-            type="button"
-            className={`param-chip${aspect === choice.value ? ' is-active' : ''}`}
-            onClick={() => setAspect(choice.value)}
-          >
-            {choice.label}
-          </button>
-        ))}
-        <span className="creation-params-divider" aria-hidden="true" />
-        <span className="creation-params-label">时长</span>
-        {DURATION_CHOICES.map((choice) => (
-          <button
-            key={choice.value}
-            type="button"
-            className={`param-chip${duration === choice.value ? ' is-active' : ''}`}
-            onClick={() => setDuration(choice.value)}
-          >
-            {choice.label}
-          </button>
-        ))}
-      </div>
-
       <div className="free-entry">
+        {paramsOpen && (
+          <div className="params-popover">
+            <div className="params-popover-row">
+              <span className="creation-params-label">画幅</span>
+              {ASPECT_CHOICES.map((choice) => (
+                <button
+                  key={choice.value}
+                  type="button"
+                  className={`param-chip${aspect === choice.value ? ' is-active' : ''}`}
+                  onClick={() => setAspect(choice.value)}
+                >
+                  {choice.label}
+                </button>
+              ))}
+            </div>
+            <div className="params-popover-row">
+              <span className="creation-params-label">时长</span>
+              {DURATION_CHOICES.map((choice) => (
+                <button
+                  key={choice.value}
+                  type="button"
+                  className={`param-chip${duration === choice.value ? ' is-active' : ''}`}
+                  onClick={() => setDuration(choice.value)}
+                >
+                  {choice.label}
+                </button>
+              ))}
+            </div>
+            <p className="params-popover-hint">仅影响下一次图像 / 视频生成；「自动」跟随提供方默认。</p>
+          </div>
+        )}
+        {pendingRefs.length > 0 && (
+          <div className="ref-thumbs">
+            {pendingRefs.map((uri, index) => (
+              <span key={index} className="ref-thumb">
+                <img src={uri} alt={`参考图${index + 1}`} />
+                <button
+                  type="button"
+                  className="ref-thumb-remove"
+                  onClick={() =>
+                    setPendingRefs((prev) => prev.filter((_, i) => i !== index))
+                  }
+                  aria-label="移除参考图"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            <span className="ref-thumbs-hint">参考图——下一条消息生成将与其保持一致</span>
+          </div>
+        )}
         <textarea
           className="free-entry-input"
           rows={2}
@@ -961,17 +1447,336 @@ export function ExperienceScreen({
           }}
         />
         <div className="free-entry-actions">
-          <span className="free-entry-hint">{pending ? '生成中…' : '随时退出：好了'}</span>
           <button
             type="button"
-            className="send-button"
-            onClick={submit}
-            disabled={draft.trim().length === 0 || pending}
-            aria-label="发送"
+            className={`ref-attach${pendingRefs.length > 0 ? ' is-set' : ''}`}
+            onClick={() => refInputRef.current?.click()}
+            title="添加参考图（≤3 张，下一条消息生成与其保持一致）"
           >
-            <SendIcon size={16} />
+            参考图{pendingRefs.length > 0 ? ` ${pendingRefs.length}` : ''}
           </button>
+          <input
+            ref={refInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(event) => {
+              void handleReferenceFiles(event.target.files);
+              event.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            className={`params-toggle${aspect !== 'auto' || duration !== 'auto' ? ' is-set' : ''}`}
+            onClick={() => setParamsOpen((open) => !open)}
+            title="画幅 / 时长（图像与视频生成参数）"
+          >
+            画幅 {aspect === 'auto' ? '自动' : aspect} · 时长{' '}
+            {duration === 'auto' ? '自动' : `${duration}s`}
+          </button>
+          <span className="free-entry-hint">
+            {pending ? '生成中…可随时停止' : '随时退出：好了'}
+          </span>
+          {pending ? (
+            <button
+              type="button"
+              className="send-button send-button-stop"
+              onClick={stopStreaming}
+              disabled={!pending}
+              aria-label="停止生成"
+              title="停止这一轮生成"
+            >
+              <XIcon size={16} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="send-button"
+              onClick={submit}
+              disabled={draft.trim().length === 0}
+              aria-label="发送"
+            >
+              <SendIcon size={16} />
+            </button>
+          )}
         </div>
+        </div>
+        </section>
+
+        <aside className="stage-pane" aria-label="产物舞台">
+          {stageArtifact ? (
+            stageView === 'grid' ? (
+              <>
+                <div className="stage-toolbar">
+                  <span className="stage-count">
+                    作品集 · {completedArtifacts.length} 件
+                  </span>
+                  <button
+                    type="button"
+                    className="stage-nav-btn"
+                    onClick={() => setStageView('single')}
+                  >
+                    返回单幅
+                  </button>
+                </div>
+                <div className="stage-grid">
+                  {completedArtifacts.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="stage-grid-item"
+                      onClick={() => {
+                        setStageGenId(item.id);
+                        setStageView('single');
+                      }}
+                      title={item.prompt}
+                    >
+                      {item.modality === 'image' ? (
+                        <img src={item.dataUri ?? item.url} alt="" />
+                      ) : item.modality === 'video' ? (
+                        <VideoIcon size={20} />
+                      ) : (
+                        <MicIcon size={20} />
+                      )}
+                      <span className="stage-grid-badge">
+                        {item.label ?? `第${index + 1}轮`}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="stage-toolbar">
+                  <span className="stage-count">
+                    作品 {stageIndex + 1} / {completedArtifacts.length}
+                  </span>
+                  <div className="stage-nav">
+                    <button
+                      type="button"
+                      className="stage-nav-btn"
+                      onClick={() =>
+                        setStageGenId(
+                          completedArtifacts[stageIndex - 1]?.id ?? stageGenId,
+                        )
+                      }
+                      disabled={stageIndex <= 0}
+                      title="上一件"
+                    >
+                      <ArrowLeftIcon size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="stage-nav-btn"
+                      onClick={() =>
+                        setStageGenId(
+                          completedArtifacts[stageIndex + 1]?.id ?? stageGenId,
+                        )
+                      }
+                      disabled={stageIndex >= completedArtifacts.length - 1}
+                      title="下一件"
+                    >
+                      <ArrowRightIcon size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="stage-nav-btn"
+                      onClick={() => void generateVideoSeries()}
+                      disabled={videoSeriesRunning || pending}
+                      title="把本会话的图像作品逐集生成动画——连续剧模式"
+                    >
+                      {videoSeriesRunning ? '生成中…' : '视频连续剧'}
+                    </button>
+                    <button
+                      type="button"
+                      className="stage-nav-btn"
+                      onClick={() => setStageView('grid')}
+                      title="本会话作品总览"
+                    >
+                      总览
+                    </button>
+                  </div>
+                </div>
+                <div className="stage-media">
+                {stageArtifact.modality === 'voice' ? (
+                  <div className="stage-voice">
+                    <span className="gen-voice-chip" aria-hidden="true">
+                      <MicIcon size={22} />
+                    </span>
+                    <audio
+                      controls
+                      src={stageArtifact.dataUri ?? stageArtifact.url}
+                    />
+                  </div>
+                ) : stageArtifact.modality === 'video' ? (
+                  <video
+                    className="stage-media-el"
+                    controls
+                    src={stageArtifact.dataUri ?? stageArtifact.url}
+                  />
+                ) : (
+                  <a
+                    className="stage-media-link"
+                    href={stageArtifact.dataUri ?? stageArtifact.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="点击查看原图"
+                  >
+                    <img
+                      className="stage-media-el"
+                      src={stageArtifact.dataUri ?? stageArtifact.url}
+                      alt={stageArtifact.prompt}
+                    />
+                  </a>
+                )}
+              </div>
+              <div className="stage-caption">
+                <span className={`gen-tag gen-tag-${stageArtifact.modality}`}>
+                  {GENERATION_MODALITY_LABELS[stageArtifact.modality]}
+                </span>
+                <span
+                  className="stage-caption-text"
+                  title={
+                    stageArtifact.distilled
+                      ? `用户意图：${stageArtifact.prompt}\n\n实际发送给模型的提示词：${stageArtifact.distilled}`
+                      : stageArtifact.prompt
+                  }
+                >
+                  {stageArtifact.label ?? stageArtifact.prompt}
+                </span>
+              </div>
+              <div className="stage-actions">
+                {stageArtifact.modality !== 'voice' && (
+                  <a
+                    className="gen-download"
+                    href={stageArtifact.dataUri ?? stageArtifact.url}
+                    download={downloadFileName(stageArtifact)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <DownloadIcon size={13} />
+                    <span>
+                      {stageArtifact.modality === 'video' ? '下载视频' : '下载图片'}
+                    </span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  className="gen-regen"
+                  onClick={() => void send(stageArtifact.prompt)}
+                  disabled={pending}
+                  title="同一提示词再生成一次"
+                >
+                  <RefreshIcon size={13} />
+                  <span>再来一次</span>
+                </button>
+              </div>
+              {completedArtifacts.length > 1 && (
+                <div className="filmstrip">
+                  {completedArtifacts.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`filmstrip-item${stageArtifact.id === item.id ? ' is-active' : ''}`}
+                      onClick={() => setStageGenId(item.id)}
+                      title={`${item.label ?? `第${index + 1}轮`} · ${item.prompt}`}
+                    >
+                      {item.modality === 'image' ? (
+                        <img src={item.dataUri ?? item.url} alt="" />
+                      ) : item.modality === 'video' ? (
+                        <VideoIcon size={16} />
+                      ) : (
+                        <MicIcon size={16} />
+                      )}
+                      <span className="filmstrip-badge">{index + 1}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <a
+                className="stage-wall-link"
+                href="/"
+                title="全部作品在首页作品墙——跨会话回看"
+              >
+                全部作品 · 首页作品墙
+              </a>
+              </>
+            )
+          ) : (
+            <div className="stage-empty">
+              <SparklesIcon size={26} />
+              <p className="stage-empty-title">产物舞台</p>
+              <p className="stage-empty-hint">
+                聊到这里，说「画一张……」或「用视频展现」——
+                <br />
+                生成的作品会出现在这里。
+              </p>
+            </div>
+          )}
+          {seriesPlan && (
+            <div className="series-panel">
+              <div className="series-panel-head">
+                系列 · {seriesPlan.title}
+              </div>
+              {seriesPlan.characters.length > 0 && (
+                <div className="series-characters">
+                  {seriesPlan.characters.map((character) => (
+                    <div key={character.name} className="series-character">
+                      <span className="series-character-name">
+                        {character.name}
+                      </span>
+                      <span className="series-character-design">
+                        {character.design}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="series-episodes">
+                {seriesPlan.episodes.map((episode, index) => {
+                  const episodeGen = generations.find((item) =>
+                    item.label?.startsWith(`第${index + 1}集`),
+                  );
+                  return (
+                    <div key={index} className="series-episode">
+                      <span className="series-episode-num">
+                        第{index + 1}集
+                      </span>
+                      <span className="series-episode-title">
+                        {episode.title}
+                      </span>
+                      {episodeGen?.status === 'pending' ? (
+                        <span className="series-episode-state">
+                          生成中…
+                        </span>
+                      ) : episodeGen?.status === 'completed' ? (
+                        <button
+                          type="button"
+                          className="series-episode-view"
+                          onClick={() => setStageGenId(episodeGen.id)}
+                        >
+                          查看
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="series-episode-gen"
+                          onClick={() => void generateEpisode(index)}
+                          disabled={pending}
+                        >
+                          {episodeGen?.status === 'failed'
+                            ? '重生成'
+                            : '生成本集'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
     </main>
   );

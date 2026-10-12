@@ -94,6 +94,7 @@ interface HomeScreenProps {
   onStart: (input: string) => void;
   onResume: (recent: RecentEntry) => void;
   onDeleteCreation: (entry: CreationEntry) => void;
+  onContinueCreation: (entry: CreationEntry) => void;
 }
 
 const CREATION_MODALITY_LABELS: Record<CreationEntry['modality'], string> = {
@@ -127,6 +128,7 @@ export function HomeScreen({
   onStart,
   onResume,
   onDeleteCreation,
+  onContinueCreation,
 }: HomeScreenProps) {
   const [draft, setDraft] = useState('');
   const [query, setQuery] = useState('');
@@ -476,6 +478,18 @@ export function HomeScreen({
                       <span className="creation-time">{timeAgo(creation.at)}</span>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    className="creation-continue"
+                    title="以此为参考继续创作"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onContinueCreation(creation);
+                    }}
+                  >
+                    <SparklesIcon size={12} />
+                    <span>续作</span>
+                  </button>
                   <button
                     type="button"
                     className="creation-delete"

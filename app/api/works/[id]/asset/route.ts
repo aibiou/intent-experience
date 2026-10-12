@@ -23,7 +23,31 @@ export async function GET(
   const assetPath = workAssetPath(record);
   if (assetPath === null) {
     if (record.remoteUrl !== undefined) {
-      return new Response(null, { status: 302, headers: { Location: record.remoteUrl } });
+      // 服务端代理回源（此前 302 直跳提供方 URL——跨域重定向
+      // 令页面 fetch 被 CORS 拦截，参考图上传 / canvas 导出全断）。
+      try {
+        const upstream = await fetch(record.remoteUrl, {
+          signal: AbortSignal.timeout(30_000),
+        });
+        if (!upstream.ok || upstream.body === null) {
+          return new Response(JSON.stringify({ code: 'WORK_ASSET_MISSING', message: '作品资产回源失败。' }), {
+            status: 502,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return new Response(upstream.body, {
+          status: 200,
+          headers: {
+            'Content-Type': upstream.headers.get('content-type') ?? record.mime,
+            'Cache-Control': 'private, max-age=86400',
+          },
+        });
+      } catch {
+        return new Response(JSON.stringify({ code: 'WORK_ASSET_MISSING', message: '作品资产回源失败。' }), {
+          status: 502,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
     }
     return new Response(JSON.stringify({ code: 'WORK_ASSET_MISSING', message: '作品资产缺失。' }), {
       status: 404,

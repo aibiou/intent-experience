@@ -1084,7 +1084,7 @@ export class ExperienceRuntime {
         };
       }
     }
-    const current = this.store.get(input.experienceId);
+    let current = this.store.get(input.experienceId);
     if (!current) {
       return { ok: false, error: runtimeError('INTERNAL_ERROR', 'experience state missing') };
     }
@@ -1093,6 +1093,41 @@ export class ExperienceRuntime {
         ok: false,
         error: runtimeError('INVALID_STATE_TRANSITION', 'experience COMPLETED is terminal; start a new session'),
       };
+    }
+
+    // --- 生成中断归位（停止 / 断线后的 ACTIVE 悬挂恢复——
+    //     2026-10-11 停止能力引入时修复的既有死锁）-------------
+    // 客户端停止 / 断开使在途 generation 死亡（controller abort），
+    // 但取消不提交版本（冻结纪律）——状态悬挂在提交时的 ACTIVE。
+    // 冻结状态机从 ACTIVE mid-generation 只接受 STOP/CHANGE：
+    // 继续对话类动作被永久拒绝（该 generation 不会再完成）。
+    // 检测「ACTIVE 且在途 generation 已死」时提交一次归位版本
+    // （ACTIVE → WAITING，等待用户），后续动作从 WAITING 正常
+    // 评估；活跃 generation 不受影响（仍按 §7 拒绝新动作）。
+    if (current.status === 'ACTIVE' && this.isGenerationDead(input.experienceId)) {
+      const rollback = await this.store.commit(input.experienceId, current.stateVersion, (state) => ({
+        ...state,
+        status: 'WAITING' as const,
+        waitingForUser: true,
+        updatedAt: new Date().toISOString(),
+      }));
+      if (rollback.ok) {
+        input.expectedStateVersion = rollback.state.stateVersion;
+        current = rollback.state;
+        await this.recordEvent('generation_interrupted_rollback', {
+          identity: { user_id: this.userId, session_id: input.sessionId },
+          context: { experience_id: input.experienceId, intent_id: null, state_version: rollback.state.stateVersion, request_id: input.requestId, decision_id: null },
+          source: { layer: 'runtime', component: 'state-store' },
+          properties: { reason: 'in-flight generation dead (client stop / disconnect); ACTIVE dangling normalized to WAITING' },
+        });
+      } else {
+        // 并发归位（另一提交先完成归位）——以最新状态继续评估。
+        const latest = this.store.get(input.experienceId);
+        if (latest) {
+          current = latest;
+          input.expectedStateVersion = latest.stateVersion;
+        }
+      }
     }
     if (typeof input.rawInput !== 'string' || input.rawInput.length === 0) {
       return { ok: false, error: runtimeError('INVALID_REQUEST', 'raw_input must be a non-empty string') };
@@ -1959,9 +1994,7 @@ export class ExperienceRuntime {
     this.simulations.endSession(input.experienceId);
 
     // 8. generation epoch 切换（旧 generation 迟到达提交由此守卫拒绝）。
-    this.activeGenerations.set(input.experienceId, generationId);
-    const controller = new AbortController();
-    this.generationControllers.set(input.experienceId, controller);
+    const controller = this.registerGeneration(input.experienceId, generationId, input.signal);
     experience.candidateId = newCandidateId;
 
     const stateTransitions = await this.recordEvent('state_transitioned', {
@@ -2344,9 +2377,7 @@ export class ExperienceRuntime {
     });
 
     // 7. generation epoch 登记 + 迁移事件 + 决策追踪。
-    this.activeGenerations.set(input.experienceId, generationId);
-    const controller = new AbortController();
-    this.generationControllers.set(input.experienceId, controller);
+    const controller = this.registerGeneration(input.experienceId, generationId, input.signal);
 
     const stateTransitions = await this.recordEvent('state_transitioned', {
       identity: { user_id: this.userId, session_id: input.sessionId },
@@ -2812,9 +2843,7 @@ export class ExperienceRuntime {
     // 8. generation epoch 登记 + 迁移事件 + 决策追踪。
     this.counters.generation += 1;
     const generationId = `gen_synthetic_${String(this.counters.generation).padStart(4, '0')}`;
-    this.activeGenerations.set(input.experienceId, generationId);
-    const controller = new AbortController();
-    this.generationControllers.set(input.experienceId, controller);
+    const controller = this.registerGeneration(input.experienceId, generationId, input.signal);
     // 提供方流式接线（CR-38 同款纪律）：修改轮预览由真模型
     // 产出——语义动作与修改后的创作对象随请求注入（网关
     // 确定性渲染进用户消息）；合成网关保持既有静态语料路径
@@ -3068,9 +3097,7 @@ export class ExperienceRuntime {
     // 4. generation epoch 登记 + 迁移事件 + 决策追踪。
     this.counters.generation += 1;
     const generationId = `gen_synthetic_${String(this.counters.generation).padStart(4, '0')}`;
-    this.activeGenerations.set(input.experienceId, generationId);
-    const controller = new AbortController();
-    this.generationControllers.set(input.experienceId, controller);
+    const controller = this.registerGeneration(input.experienceId, generationId, input.signal);
 
     const stateTransitions = await this.recordEvent('state_transitioned', {
       identity: { user_id: this.userId, session_id: input.sessionId },
@@ -3300,9 +3327,7 @@ export class ExperienceRuntime {
     //    （确定性系统回合——llm_used=false）。
     this.counters.generation += 1;
     const generationId = `gen_synthetic_${String(this.counters.generation).padStart(4, '0')}`;
-    this.activeGenerations.set(input.experienceId, generationId);
-    const controller = new AbortController();
-    this.generationControllers.set(input.experienceId, controller);
+    const controller = this.registerGeneration(input.experienceId, generationId, input.signal);
 
     await this.recordEvent('state_transitioned', {
       identity: { user_id: this.userId, session_id: input.sessionId },
@@ -3675,9 +3700,7 @@ export class ExperienceRuntime {
     }
 
     // 7. generation epoch 登记 + 迁移事件 + 决策追踪。
-    this.activeGenerations.set(input.experienceId, generationId);
-    const controller = new AbortController();
-    this.generationControllers.set(input.experienceId, controller);
+    const controller = this.registerGeneration(input.experienceId, generationId, input.signal);
 
     const stateTransitions = await this.recordEvent('state_transitioned', {
       identity: { user_id: this.userId, session_id: input.sessionId },
@@ -4234,9 +4257,7 @@ export class ExperienceRuntime {
     }
 
     // 5. generation epoch 登记。
-    this.activeGenerations.set(input.experienceId, generationId);
-    const controller = new AbortController();
-    this.generationControllers.set(input.experienceId, controller);
+    const controller = this.registerGeneration(input.experienceId, generationId, input.signal);
 
     const stateTransitions = await this.recordEvent('state_transitioned', {
       identity: { user_id: this.userId, session_id: input.sessionId },
@@ -4802,6 +4823,32 @@ export class ExperienceRuntime {
     return chunkProviderContent(proposal.content);
   }
 
+  /**
+   * generation epoch 登记（统一入口——各执行路径共用）：
+   * 簿记登记 + 客户端断开监听。断开时在途生成死亡（上游
+   * LLM fetch 经 request.signal 中止），但流消费侧随响应
+   * 拆除而冻结——取消事件永远不会被流观测到，簿记收敛须由
+   * 本监听直接完成；否则状态悬挂 ACTIVE 且在途簿记永驻
+   * （停止 / 断线后继续对话被状态机永久拒绝——死锁）。
+   */
+  private registerGeneration(experienceId: string, generationId: string, signal?: AbortSignal): AbortController {
+    const controller = new AbortController();
+    this.activeGenerations.set(experienceId, generationId);
+    this.generationControllers.set(experienceId, controller);
+    signal?.addEventListener(
+      'abort',
+      () => {
+        // 正常完成后迟到的断开信号不登记（簿记已被
+        // completeGeneration 清理——id 不再匹配）。
+        if (this.activeGenerations.get(experienceId) === generationId) {
+          void this.markStreamCancellation(experienceId, generationId);
+        }
+      },
+      { once: true },
+    );
+    return controller;
+  }
+
   /** 流观测到取消时登记 generation_cancelled（与 interruptGeneration 幂等互斥）。 */
   private async markStreamCancellation(experienceId: string, generationId: string): Promise<void> {
     if (this.cancellationMarked.has(generationId)) {
@@ -4814,6 +4861,26 @@ export class ExperienceRuntime {
       source: { layer: 'runtime', component: 'generation' },
       properties: { generation_id: generationId, reason: 'client_disconnect_or_interrupt' },
     });
+    // 取消后清理在途簿记（与 completeGeneration 同纪律）——
+    // 否则状态悬挂 ACTIVE 且簿记永驻：后续提交经
+    // isGenerationDead 判定为死亡并归位恢复（无清理则
+    // 判定恒为「活跃」，停止后继续对话被永久拒绝）。
+    if (this.activeGenerations.get(experienceId) === generationId) {
+      this.activeGenerations.delete(experienceId);
+      this.generationControllers.delete(experienceId);
+    }
+  }
+
+  /**
+   * 在途 generation 是否已死（取消 / 断开 / 中断 / 未登记）——
+   * 生成中断归位（ACTIVE 悬挂恢复）判定用；活跃 generation
+   * （已登记且 controller 未 abort）返回 false——正常
+   * mid-generation 拒绝语义（§7）不受影响。
+   */
+  private isGenerationDead(experienceId: string): boolean {
+    if (!this.activeGenerations.has(experienceId)) return true;
+    const controller = this.generationControllers.get(experienceId);
+    return controller !== undefined && controller.signal.aborted;
   }
 
   // ---------------------------------------------------------------------
