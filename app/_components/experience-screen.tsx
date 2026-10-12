@@ -7,6 +7,7 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
   BranchIcon,
+  CopyIcon,
   DatabaseIcon,
   DownloadIcon,
   MicIcon,
@@ -224,6 +225,37 @@ const MessageFlow = memo(function MessageFlow({
   onSelectStage,
   onRegen,
 }: MessageFlowProps) {
+  // 文本产物带走（A 项——多媒体已在产物舞台可下载；纯文本
+  // 回答补「复制 / 下载 .md」闭环，创作型产品最常带走的形态）。
+  const [copied, setCopied] = useState(false);
+  const handleCopy = (text: string): void => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      void navigator.clipboard
+        .writeText(text)
+        .then(() => {
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1600);
+        })
+        .catch(() => {});
+    }
+  };
+  const handleDownload = (text: string): void => {
+    try {
+      const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const base = text.slice(0, 16).replace(/[\\/:*?"<>|#\s]+/g, '-');
+      const name = `${base.length > 0 ? base : 'experience'}.md`;
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = name;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      // 下载不可用——静默（不打断对话）。
+    }
+  };
   return (
     <div className="message-flow">
       <div className={`message message-${message.role}`}>
@@ -248,6 +280,26 @@ const MessageFlow = memo(function MessageFlow({
           </span>
         )}
       </div>
+      {message.role === 'assistant' && !message.streaming && message.text.length > 0 && (
+        <div className="message-tools">
+          <button
+            type="button"
+            className="message-tool"
+            onClick={() => handleCopy(message.text)}
+          >
+            <CopyIcon size={12} />
+            <span>{copied ? '已复制' : '复制'}</span>
+          </button>
+          <button
+            type="button"
+            className="message-tool"
+            onClick={() => handleDownload(message.text)}
+          >
+            <DownloadIcon size={12} />
+            <span>下载 .md</span>
+          </button>
+        </div>
+      )}
       {items?.map((item) =>
         item.status === 'completed' &&
         (item.url !== undefined || item.dataUri !== undefined) ? (
@@ -709,6 +761,7 @@ export function ExperienceScreen({
                     sessionId: sessionRef.current.sessionId,
                     stateVersion: Number(event.state_version),
                     topic: rawInput.slice(0, 40),
+                    stage: String(state.stage ?? sessionRef.current.stage),
                     at: new Date().toISOString(),
                   });
                 }

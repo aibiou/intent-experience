@@ -36,6 +36,8 @@ export interface RecentEntry {
   stateVersion: number;
   topic: string;
   at: string;
+  /** 上次会话停驻的阶段（续讲感知——chip 显示「上次停在哪」）。 */
+  stage?: string;
 }
 
 type FeedTab = 'featured' | 'hot' | 'fresh';
@@ -58,6 +60,19 @@ const TABS: { id: FeedTab; label: string }[] = [
   { id: 'hot', label: '热门' },
   { id: 'fresh', label: '最新' },
 ];
+
+// 续讲感知：会话阶段 → 中文短标签（「上次停在 X」）。
+const STAGE_LABELS: Record<string, string> = {
+  CURIOSITY: '好奇',
+  UNDERSTANDING: '理解',
+  SIMULATION: '模拟',
+  CREATION: '创作',
+  COMPLETION: '完成',
+  READY: '准备',
+  ACTIVE: '进行中',
+  ENTERING: '进入',
+  WAITING: '等待',
+};
 
 // 「此刻」脉搏：让首页读起来像有活的社区在运转。
 const PULSE_VERBS = ['正在探索', '刚刚进入', '正在深入'];
@@ -661,7 +676,14 @@ export function HomeScreen({
                 onClick={() => onResume(recent)}
               >
                 <HistoryIcon size={13} />
-                <span>{recent.topic}</span>
+                <span className="recent-chip-main">
+                  <span className="recent-chip-text">{recent.topic}</span>
+                  {recent.stage && (
+                    <span className="recent-chip-sub">
+                      上次停在 {STAGE_LABELS[recent.stage] ?? '途中'} · {timeAgo(recent.at) || '刚刚'}
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
           </div>
