@@ -253,7 +253,7 @@ export default function HomePage() {
       experienceId: recent.experienceId,
       stateVersion: recent.stateVersion,
       status: 'ACTIVE',
-      stage: 'CURIOSITY',
+      stage: recent.stage ?? 'CURIOSITY',
     });
     setInitialInput(undefined);
     setResume(true);
