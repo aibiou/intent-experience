@@ -598,6 +598,7 @@ a:hover {
 
 .stage-caption {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 8px;
   padding: 0 4px;
@@ -612,6 +613,31 @@ a:hover {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   min-width: 0;
+}
+
+/* 作品来源行（「源自：<锚定回答摘要>」——作品与对话对得上） */
+.stage-caption-source {
+  flex: 0 0 100%;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 生成中状态条（舞台顶部——无论有无旧作品都提示新生成进行中） */
+.stage-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(122, 92, 58, 0.08);
+  color: #7a5c3a;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 
 .stage-actions {
