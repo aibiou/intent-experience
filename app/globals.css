@@ -3794,3 +3794,42 @@ a:hover {
 .entrance-free-input::placeholder {
   color: var(--muted, #9aa3b2);
 }
+
+/* ============ 首屏分级（E 项）：新用户聚焦折叠版 ============ */
+.feed-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feed-compact .card-featured {
+  width: 100%;
+}
+
+.feed-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg, #e6e8ee);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line, #2a3140);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.feed-more:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.feed-compact-note {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted, #9aa3b2);
+}
