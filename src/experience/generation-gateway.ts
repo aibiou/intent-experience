@@ -70,7 +70,7 @@ export function humanizeGenerationFailure(
       return `生成账户余额不足——充值后到「模型配置」确认启用，再说一次即可。`;
     }
     if (error.retryable) {
-      return `${modalityLabel}生成暂时排队繁忙——稍等片刻再说一次即可重试。（${error.message}）`;
+      return `${modalityLabel}生成服务暂时繁忙（排队或网络波动）——稍等片刻再说一次即可重试。（${error.message}）`;
     }
     return `${modalityLabel}生成没有成功——可以换个说法再试一次。（${error.message}）`;
   }
@@ -119,26 +119,44 @@ async function callProvider(
   path: string,
   body: Record<string, unknown>,
 ): Promise<Response> {
-  let response: Response;
-  try {
-    response = await fetch(`${baseUrl(config.endpoint)}${path}`, {
-      method: 'POST',
-      headers: headers(config.apiKey),
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(120_000),
-    });
-  } catch {
-    throw new GenerationError(
-      `generation provider network failure (provider=${config.provider}, modality=${config.modality})`,
-      config.modality,
-    );
-  }
-  if (!response.ok) {
+  // 瞬态自动重试一次：网络波动 / 限速 / 队列满 / 服务端临时
+  // 错误（免费档常态）——等待 2s 后重发，两次仍失败才向上抛。
+  // 间歇性失败在产品内消化，用户无感；不把「服务正忙」甩给
+  // 用户自己重试。
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const isLastAttempt = attempt === 2;
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl(config.endpoint)}${path}`, {
+        method: 'POST',
+        headers: headers(config.apiKey),
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(120_000),
+      });
+    } catch {
+      // 网络失败（超时 / 连接中断——dev 冷启动、上游波动均属
+      // 此类）：非末次则重试一次；仍失败标记可重试，文案指向
+      // 「稍后再试」而非「换说法」。
+      if (!isLastAttempt) {
+        await sleep(2_000);
+        continue;
+      }
+      throw new GenerationError(
+        `generation provider network failure (provider=${config.provider}, modality=${config.modality})`,
+        config.modality,
+        true,
+      );
+    }
+    if (response.ok) return response;
     // 错误体透传：提供方返回人类可读原因
     // （如「视频队列已满，请稍后重试」）——
     // 丢弃它会让用户面对一个无法行动的
     // 状态码。瞬态失败标记 retryable。
     const detail = await readProviderError(response);
+    if (!isLastAttempt && detail.retryable) {
+      await sleep(2_000);
+      continue;
+    }
     const reason = detail.message.length > 0 ? `: ${detail.message}` : '';
     throw new GenerationError(
       `generation provider failed (provider=${config.provider}, modality=${config.modality}, status=${response.status}${reason})`,
@@ -147,7 +165,11 @@ async function callProvider(
       response.status,
     );
   }
-  return response;
+  // 不可达（循环两轮必抛）——类型收口。
+  throw new GenerationError(
+    `generation provider failed (provider=${config.provider}, modality=${config.modality})`,
+    config.modality,
+  );
 }
 
 // 瞬态失败：限速 / 队列满 / 服务端临时
