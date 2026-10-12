@@ -32,6 +32,57 @@ const DISTILL_SYSTEM_PROMPT_VIDEO = [
   '- 只输出提示词本身：无解释、无引号、无前缀、无换行',
 ].join('\n');
 
+/**
+ * 冥想 / 放松 / 心灵类题材校准纪律（2026-10-12 CR-53）：
+ * 产品实测发现「以风声为引的安静练习」深入轮生成出「人体背部 +
+ * 脊柱银光」解剖式图——创作描述中「银光流入血管 / 吹开胸腔的结」
+ * 等体内意象被提示词蒸馏直接具象为人体解剖，与冥想意境不匹配、
+ * 观感不适。命中冥想类意图时向蒸馏 system prompt 注入本纪律，
+ * 强制向意境化自然意象收敛。
+ */
+const DISTILL_MEDITATIVE_CALIBRATION = [
+  '- 若创作意图或创作描述属于冥想 / 放松 / 心灵 / 治愈类：画面必须为意境化自然意象（风、光、雾、云、星、水面、山野、羽毛、涟漪、纱幔等）或远景剪影',
+  '- 禁止人体解剖、器官、骨架、血管、血肉等具象——体内意象一律以自然物隐喻表达，不得出现解剖式主体',
+].join('\n');
+
+/** 冥想 / 放松 / 心灵 / 治愈类意图提示词（命中任一即触发意境化校准）。 */
+export const MEDITATIVE_INTENT_HINTS = [
+  '冥想', '静心', '打坐', '正念', '放松', '安静', '平静', '舒缓', '治愈', '安神',
+  '入眠', '睡眠', '助眠', '呼吸', '深呼吸', '风声', '雨声', '白噪音', '心灵',
+  '减压', '焦虑', '禅', '晚安',
+] as const;
+
+/** 强解剖 / 人体内部具象词——冥想类蒸馏结果含任一即视为不合格（回退）。 */
+export const ANATOMIC_LITERALS = [
+  '脊柱', '脊椎', '肋骨', '骨骼', '骨架', '解剖', '血管', '器官', '内脏', '血肉',
+  '神经', '肌腱', '胸腔', '腹腔', '剖面', '躯干', '背部轮廓',
+] as const;
+
+/** 冥想 / 放松 / 心灵 / 治愈类意图判定（意图 + 创作描述任一命中）。 */
+export function isMeditativeIntent(intentPrompt: string, designText?: string): boolean {
+  const haystack = `${intentPrompt} ${designText ?? ''}`;
+  return MEDITATIVE_INTENT_HINTS.some((hint) => haystack.includes(hint));
+}
+
+/** 文本是否含强解剖 / 人体内部具象词。 */
+export function containsAnatomicLiteral(text: string): boolean {
+  return ANATOMIC_LITERALS.some((literal) => text.includes(literal));
+}
+
+/** 蒸馏 system prompt 构造：冥想类意图注入意境化校准纪律。 */
+export function buildDistillSystemPrompt(
+  modality: 'image' | 'video',
+  isMeditative: boolean,
+): string {
+  const base = modality === 'video' ? DISTILL_SYSTEM_PROMPT_VIDEO : DISTILL_SYSTEM_PROMPT_IMAGE;
+  return isMeditative ? `${base}\n${DISTILL_MEDITATIVE_CALIBRATION}` : base;
+}
+
+/** 蒸馏结果质量门：冥想类且含解剖具象词 → 不合格（调用方回退原提示词）。 */
+export function shouldRejectDistilled(text: string, isMeditative: boolean): boolean {
+  return isMeditative && containsAnatomicLiteral(text);
+}
+
 const DISTILL_TIMEOUT_MS = 12_000;
 
 export interface VisualPromptDistillInput {
@@ -96,10 +147,8 @@ export async function distillVisualPrompt(
         .join('；')}`,
     );
   }
-  const systemPrompt =
-    input.modality === 'video'
-      ? DISTILL_SYSTEM_PROMPT_VIDEO
-      : DISTILL_SYSTEM_PROMPT_IMAGE;
+  const isMeditative = isMeditativeIntent(input.intentPrompt, input.designText);
+  const systemPrompt = buildDistillSystemPrompt(input.modality, isMeditative);
   let response: Response;
   try {
     response = await fetch(config.endpoint.replace(/\/+$/, '').endsWith('/chat/completions')
@@ -135,7 +184,11 @@ export async function distillVisualPrompt(
     choices?: Array<{ message?: { content?: unknown } }>;
   })?.choices?.[0]?.message?.content;
   if (typeof content !== 'string') return null;
-  return sanitizeDistilled(content);
+  const sanitized = sanitizeDistilled(content);
+  // 质量门：冥想类蒸馏结果若仍含解剖具象词（人体脊柱 / 血管 /
+  // 器官等）视为不合格——回退原提示词，避免产出观感不适的画面。
+  if (sanitized === null || shouldRejectDistilled(sanitized, isMeditative)) return null;
+  return sanitized;
 }
 
 /**
