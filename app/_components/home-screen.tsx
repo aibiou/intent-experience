@@ -92,6 +92,8 @@ interface HomeScreenProps {
   recents: RecentEntry[];
   creations: CreationEntry[];
   onStart: (input: string) => void;
+  /** 有策展的体验入口（点卡片 / 今日精选 / 惊喜）→ 先进第一体验入口屏（Screen 03）。 */
+  onEnter: (seed: ExperienceSeed) => void;
   onResume: (recent: RecentEntry) => void;
   onDeleteCreation: (entry: CreationEntry) => void;
   onContinueCreation: (entry: CreationEntry) => void;
@@ -126,6 +128,7 @@ export function HomeScreen({
   recents,
   creations,
   onStart,
+  onEnter,
   onResume,
   onDeleteCreation,
   onContinueCreation,
@@ -209,14 +212,14 @@ export function HomeScreen({
     onStart(input);
   };
 
-  // 惊喜一下：随机挑一个体验立即开始——
+  // 惊喜一下：随机挑一个体验立即进入入口屏——
   // 发现成本为零，liblib 式惊喜入口。
   const surprise = () => {
     const seed =
       EXPERIENCE_CATALOG[
         Math.floor(Math.random() * EXPERIENCE_CATALOG.length)
       ];
-    onStart(seed.prompt);
+    onEnter(seed);
   };
 
   const resizeComposer = () => {
@@ -341,7 +344,7 @@ export function HomeScreen({
           <button
             type="button"
             className="card card-featured"
-            onClick={() => onStart(featuredFirst.prompt)}
+            onClick={() => onEnter(featuredFirst)}
           >
             <ExperienceCover seed={featuredFirst} />
             <div className="featured-overlay">
@@ -366,7 +369,7 @@ export function HomeScreen({
               key={seed.id}
               type="button"
               className="card card-gallery"
-              onClick={() => onStart(seed.prompt)}
+              onClick={() => onEnter(seed)}
             >
               <ExperienceCover seed={seed} className={coverTier(seed.id)} />
               {seed.hot >= 60 && (

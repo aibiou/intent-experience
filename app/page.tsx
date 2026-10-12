@@ -11,6 +11,8 @@ import {
   ExperienceScreen,
   type SessionState,
 } from './_components/experience-screen';
+import { EntranceScreen } from './_components/entrance-screen';
+import type { ExperienceSeed } from '../src/experience/catalog';
 
 const RECENTS_KEY = 'intent-experience.recents';
 // 服务端作品库（/api/works）落地后——展示上限放开；
@@ -81,7 +83,9 @@ function saveRecents(recents: RecentEntry[]) {
 }
 
 export default function HomePage() {
-  const [phase, setPhase] = useState<'home' | 'experience'>('home');
+  const [phase, setPhase] = useState<'home' | 'entrance' | 'experience'>('home');
+  // Screen 03 第一体验入口屏：暂存的策展体验种子（点卡片 / 惊喜进入）。
+  const [entranceSeed, setEntranceSeed] = useState<ExperienceSeed | null>(null);
   const [session, setSession] = useState<SessionState | null>(null);
   const [initialInput, setInitialInput] = useState<string | undefined>();
   const [initialRefs, setInitialRefs] = useState<string[] | undefined>();
@@ -179,6 +183,12 @@ export default function HomePage() {
     }
   }, []);
 
+  // 有策展的体验入口 → 先进入口屏（Screen 03：制造好奇 → 选方向）。
+  const handleEnter = useCallback((seed: ExperienceSeed) => {
+    setEntranceSeed(seed);
+    setPhase('entrance');
+  }, []);
+
   const start = useCallback(async (input: string) => {
     try {
       const response = await fetch('/api/session/start', { method: 'POST' });
@@ -267,6 +277,16 @@ export default function HomePage() {
     });
   }, []);
 
+  if (phase === 'entrance' && entranceSeed) {
+    return (
+      <EntranceScreen
+        seed={entranceSeed}
+        onPick={(prompt) => void start(prompt)}
+        onBack={() => setPhase('home')}
+      />
+    );
+  }
+
   if (phase === 'experience' && session) {
     return (
       <ExperienceScreen
@@ -289,6 +309,7 @@ export default function HomePage() {
       recents={recents}
       creations={creations}
       onStart={start}
+      onEnter={handleEnter}
       onResume={resumeRecent}
       onDeleteCreation={handleDeleteCreation}
       onContinueCreation={handleContinueCreation}

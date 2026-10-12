@@ -3657,3 +3657,140 @@ a:hover {
     max-height: 52%;
   }
 }
+
+/* ============ Screen 03 第一体验入口屏 ============ */
+.entrance {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg, #0f1117);
+}
+
+.entrance .topbar {
+  justify-content: space-between;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.entrance-body {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 56px 24px 72px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 1;
+}
+
+.entrance-kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.entrance-title {
+  font-size: 14px;
+  color: var(--muted, #9aa3b2);
+  letter-spacing: 0.02em;
+}
+
+.entrance-hook {
+  font-size: 30px;
+  line-height: 1.35;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--fg, #e6e8ee);
+  margin: 0 0 18px;
+}
+
+.entrance-context {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--muted, #9aa3b2);
+  margin: 0 0 34px;
+  max-width: 56ch;
+}
+
+.entrance-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entrance-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  font-size: 16px;
+  font-weight: 550;
+  color: var(--fg, #e6e8ee);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line, #2a3140);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+.entrance-entry:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.entrance-entry:active {
+  transform: translateY(1px);
+}
+
+.entrance-entry-arrow {
+  color: var(--muted, #9aa3b2);
+  transform: rotate(180deg);
+  flex: none;
+}
+
+.entrance-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 34px 0 18px;
+  color: var(--muted, #9aa3b2);
+  font-size: 13px;
+}
+
+.entrance-divider::before,
+.entrance-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line, #2a3140);
+}
+
+.entrance-free {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.entrance-free-input {
+  flex: 1;
+  padding: 14px 16px;
+  font-size: 16px;
+  color: var(--fg, #e6e8ee);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line, #2a3140);
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.entrance-free-input:focus {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.entrance-free-input::placeholder {
+  color: var(--muted, #9aa3b2);
+}
