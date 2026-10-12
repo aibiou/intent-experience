@@ -14,17 +14,17 @@ export const CONTRACT_AUTHORITY = [
   {
     id: 'C1', name: 'Core Schema（核心结构）', version: 'core_schema_v1.0.0',
     relPath: 'docs/product/reference/12｜Core Schema Specification V1（核心数据结构规范 V1）.md',
-    registeredHash: 'e6350ae427f6ccb75ea317345398932b2bc6fddd3b3b57af52296ba58ca2e20c',
+    registeredHash: 'ff6cfa8da0eede4a89cf4bf93d5e19b42b227948c2f2fcce62e5039153b06ea3',
   },
   {
     id: 'C2', name: 'State Machine（状态机）', version: 'state_machine_v1.0.0',
     relPath: 'docs/product/reference/13｜State Machine Specification V1（状态机规范 V1）.md',
-    registeredHash: 'feb1130cacc0d628b983a5f46815c46fdb99e35245c797cdad476f29ba3499a1',
+    registeredHash: 'e0dd5c81d62cd2ef55f4dec84fb0198b681a1eed9f001f1c5932cebbea8bacb4',
   },
   {
     id: 'C3', name: 'Action & Policy（动作与策略）', version: 'action_policy_v1.0.0（基线赋予）',
     relPath: 'docs/product/reference/14｜Action & Policy Contract V1（动作与策略契约 V1）.md',
-    registeredHash: '15139925ae66c023b93e9c2adff3699a4812a1baedb228ebf2dc555db8c46c3f',
+    registeredHash: 'c8b5b34c91c68e92e443a8dac96a1191fba86c3d0e332133a48f7dc368a948c3',
   },
   {
     id: 'C4', name: 'LLM Contract（大模型契约，正式文件）', version: 'C4-LLM-Contract-v1.0.0',
@@ -35,17 +35,17 @@ export const CONTRACT_AUTHORITY = [
   {
     id: 'C5', name: 'API（接口）', version: 'api_v1.0.0',
     relPath: 'docs/product/reference/16｜API Contract V1（接口契约 V1）.md',
-    registeredHash: '2470f0a33d38c0561fcf7b10e4d006b69f75eb4327e33ba48c365a71f21f82eb',
+    registeredHash: '0de5c303bb1c7bb768fea1cf4e7b65fd019e38b63b9ef434a60ca70a81524ab7',
   },
   {
     id: 'C6', name: 'Event & Analytics（事件与分析）', version: 'analytics_v1.0.0',
     relPath: 'docs/product/reference/17｜Event & Analytics Contract V1（事件与数据分析契约 V1）.md',
-    registeredHash: '474d73c488744cf22fba2ce2013bfc63b2d7ac6129bf758c4fc46f30a5372671',
+    registeredHash: '624062105fd7c1203128db9741a0c46f4adbac0a6d9b419489bcbaaf84367856',
   },
   {
     id: 'C7', name: 'Evaluation（评测与验收）', version: 'evaluation_v1.0.0',
     relPath: 'docs/product/reference/18｜Evaluation System V1（评测与验收体系 V1）.md',
-    registeredHash: 'ec07d4e68a9f5afaa6eea0c6a3a160619b2950083d0a2ca5c30d4b6f7cf563b0',
+    registeredHash: 'de97ddaa16163bf743a8f46776d545f42761a087734ef5518ed50579af01f54c',
   },
 ];
 
