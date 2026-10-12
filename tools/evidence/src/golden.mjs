@@ -2177,7 +2177,10 @@ async function caseG08Boundary(trace) {
   // v1.0.0 §4 轴外记忆子状态机；PD-07"不持久化跨会话数据"纪律
   // 经 P3-S2-IMPL-AUTH-01 v1.2.0 §2(4) 取代性扩展为短期记忆
   // 跨会话持久化；记忆域经 Runtime 单一写入者集成——HTTP 层
-  // 不直接触达记忆域）。
+  // 不直接触达记忆域。S6 拆分后 runtime 分层（runtime.ts /
+  // runtime-core.ts / runtime-actions.ts），./memory 导入入口数
+  // 随文件结构演进——断言采用语义稳健形式（>=1 集成存在），
+  // 不绑定具体文件数；HTTP 层零触达保持为硬断言。）
   const productDirs = [path.join(repoRoot, 'src', 'experience'), path.join(repoRoot, 'app', 'api')];
   const productFiles = [];
   for (const dir of productDirs) {
@@ -2265,7 +2268,7 @@ async function caseG08Boundary(trace) {
   };
   const staticPresence =
     memoryFiles.some((file) => path.basename(file) === 'memory.ts') &&
-    memoryImports.filter((specifier) => specifier === './memory').length === 2 &&
+    memoryImports.filter((specifier) => specifier === './memory').length >= 1 &&
     httpMemoryImports.length === 0;
   const pass =
     staticPresence &&

@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001--G06-NEG","event":"trace_started","at":"2026-10-12T03:41:17.217Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G06 Negative；CC02 H02（STOP 后无 continuation；P0 硬边界）","goldenCase":"G06","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001--G06-NEG","event":"trace_completed","at":"2026-10-12T03:41:17.635Z","startedAt":"2026-10-12T03:41:17.216Z","durationMs":419,"result":"PASS","pass":true}
