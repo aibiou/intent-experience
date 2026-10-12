@@ -556,12 +556,17 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .stage-media-el {
   display: block;
   max-width: 100%;
-  max-height: 100%;
+  /* 竖图兜底：max-height 100% 在 flex 高度链不可靠时
+     会按自然尺寸（如 1024x1792）撑爆舞台——叠加 viewport
+     兜底，任何比例（9:16 / 超长图）都收缩在舞台内，
+     顶部/底部不被裁切。 */
+  max-height: min(100%, calc(100vh - 300px));
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(31, 26, 20, 0.08), 0 14px 40px rgba(31, 26, 20, 0.12);
   background: var(--card);
@@ -570,7 +575,7 @@ a:hover {
 .stage-media-link {
   display: block;
   max-width: 100%;
-  max-height: 100%;
+  max-height: min(100%, calc(100vh - 300px));
   cursor: zoom-in;
   line-height: 0;
 }
