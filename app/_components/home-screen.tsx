@@ -144,7 +144,15 @@ export function HomeScreen({
   // 展示按 12 件一页渐进加载）。
   const [wallFilter, setWallFilter] = useState<'all' | CreationEntry['modality']>('all');
   const [wallLimit, setWallLimit] = useState(WALL_PAGE_SIZE);
+  // Screen 01 §1.3 首屏分级（E 项）：新用户（无历史）默认聚焦三层首屏，
+  // 内容墙折叠；用户一旦主动表达（选方向/搜索/点更多）即展开。
+  const [feedOpen, setFeedOpen] = useState<boolean>(
+    recents.length > 0 || creations.length > 0,
+  );
   const composerRef = useRef<HTMLTextAreaElement>(null);
+
+  // 老用户 = 有历史（最近探索或作品）→ 首屏直接给全量；否则新用户聚焦首屏。
+  const isReturning = recents.length > 0 || creations.length > 0;
 
   // 脉搏轮转：每 4 秒换一条，像社区的实时感。
   useEffect(() => {
@@ -274,7 +282,11 @@ export function HomeScreen({
             type="search"
             placeholder="搜索体验……"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              // 搜索即主动表达——立即展开内容墙。
+              if (event.target.value.trim()) setFeedOpen(true);
+            }}
           />
         </div>
         <a className="config-link" href="/config">
@@ -296,9 +308,11 @@ export function HomeScreen({
               key={choice.label}
               type="button"
               className={`state-chip${category === choice.category ? ' is-active' : ''}`}
-              onClick={() =>
-                setCategory(category === choice.category ? null : choice.category)
-              }
+              onClick={() => {
+                setCategory(category === choice.category ? null : choice.category);
+                // 用户主动选方向——展开内容墙。
+                setFeedOpen(true);
+              }}
             >
               <choice.icon size={16} />
               <span>{choice.label}</span>
@@ -322,25 +336,89 @@ export function HomeScreen({
         </p>
       </div>
 
-      <section className="feed">
-        <div className="feed-tabs">
-          {TABS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`feed-tab${tab === item.id ? ' is-active' : ''}`}
-              onClick={() => setTab(item.id)}
-            >
-              {item.id === 'hot' && <FlameIcon size={13} />}
-              {item.id === 'fresh' && <ClockIcon size={13} />}
-              {item.id === 'featured' && <SparklesIcon size={13} />}
-              {item.label}
-            </button>
-          ))}
-          <span className="feed-count">{catalog.length} 个体验</span>
-        </div>
+      {isReturning || feedOpen ? (
+        <section className="feed">
+          <div className="feed-tabs">
+            {TABS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`feed-tab${tab === item.id ? ' is-active' : ''}`}
+                onClick={() => setTab(item.id)}
+              >
+                {item.id === 'hot' && <FlameIcon size={13} />}
+                {item.id === 'fresh' && <ClockIcon size={13} />}
+                {item.id === 'featured' && <SparklesIcon size={13} />}
+                {item.label}
+              </button>
+            ))}
+            <span className="feed-count">{catalog.length} 个体验</span>
+          </div>
 
-        {tab === 'featured' && !query && !category && (
+          {tab === 'featured' && !query && !category && (
+            <button
+              type="button"
+              className="card card-featured"
+              onClick={() => onEnter(featuredFirst)}
+            >
+              <ExperienceCover seed={featuredFirst} />
+              <div className="featured-overlay">
+                <span className="featured-eyebrow">
+                  今日精选
+                  <span className="hot-badge">
+                    <FlameIcon size={12} /> {featuredFirst.hot}
+                  </span>
+                </span>
+                <h3>{featuredFirst.title}</h3>
+                <p>{featuredFirst.summary}</p>
+                <span className="card-cta">
+                  开始探索 <ArrowRightIcon size={14} />
+                </span>
+              </div>
+            </button>
+          )}
+
+          <div className="card-grid">
+            {gridSeeds.map((seed) => (
+              <button
+                key={seed.id}
+                type="button"
+                className="card card-gallery"
+                onClick={() => onEnter(seed)}
+              >
+                <ExperienceCover seed={seed} className={coverTier(seed.id)} />
+                {seed.hot >= 60 && (
+                  <span className="hot-badge cover-hot">
+                    <FlameIcon size={12} /> {seed.hot}
+                  </span>
+                )}
+                <span className="tag tag-category cover-category">
+                  {CATEGORY_LABELS[seed.category]}
+                </span>
+                <div className="card-overlay">
+                  <h3>{seed.title}</h3>
+                  <p className="card-summary">{seed.summary}</p>
+                  <div className="card-tags">
+                    {seed.tags.map((tag) => (
+                      <span key={tag} className="tag">{tag}</span>
+                    ))}
+                  </div>
+                  <span className="card-cta">
+                    开始探索 <ArrowRightIcon size={14} />
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {catalog.length === 0 && (
+            <p className="feed-empty">
+              没有找到相关体验——换个关键词，或直接在下面开口。
+            </p>
+          )}
+        </section>
+      ) : (
+        <section className="feed feed-compact">
           <button
             type="button"
             className="card card-featured"
@@ -361,47 +439,20 @@ export function HomeScreen({
               </span>
             </div>
           </button>
-        )}
-
-        <div className="card-grid">
-          {gridSeeds.map((seed) => (
-            <button
-              key={seed.id}
-              type="button"
-              className="card card-gallery"
-              onClick={() => onEnter(seed)}
-            >
-              <ExperienceCover seed={seed} className={coverTier(seed.id)} />
-              {seed.hot >= 60 && (
-                <span className="hot-badge cover-hot">
-                  <FlameIcon size={12} /> {seed.hot}
-                </span>
-              )}
-              <span className="tag tag-category cover-category">
-                {CATEGORY_LABELS[seed.category]}
-              </span>
-              <div className="card-overlay">
-                <h3>{seed.title}</h3>
-                <p className="card-summary">{seed.summary}</p>
-                <div className="card-tags">
-                  {seed.tags.map((tag) => (
-                    <span key={tag} className="tag">{tag}</span>
-                  ))}
-                </div>
-                <span className="card-cta">
-                  开始探索 <ArrowRightIcon size={14} />
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {catalog.length === 0 && (
-          <p className="feed-empty">
-            没有找到相关体验——换个关键词，或直接在下面开口。
+          <button
+            type="button"
+            className="feed-more"
+            onClick={() => setFeedOpen(true)}
+          >
+            <CompassIcon size={15} />
+            <span>发现更多体验</span>
+            <ArrowRightIcon size={14} />
+          </button>
+          <p className="feed-compact-note">
+            或直接在下面开口——你的好奇，就是最好的入口。
           </p>
-        )}
-      </section>
+        </section>
+      )}
 
       {creations.length > 0 && (
         <section className="creations">
