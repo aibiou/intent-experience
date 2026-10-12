@@ -1061,7 +1061,7 @@ async function caseG05FailureRecovery(trace) {
     actual.oldStreamChunkCount === 0 &&
     actual.oldStreamCancelled &&
     finalState.ok &&
-    finalState.state.stateVersion === 5 &&
+    finalState.state.stateVersion === 6 && // S6 中断归位新增消耗 1 版本（故障不消耗 EB-02 + 归位 + 恢复推进）
     finalState.state.status === 'WAITING' &&
     actual.interrupted === 2 && // 故障尝试与恢复尝试各登记一次旧候选拒绝
     actual.generationCancelled.filter((reason) => reason === 'superseded_by_change').length === 1 &&
@@ -1648,7 +1648,7 @@ async function caseG04FailureRecovery(trace) {
     actual.oldStreamChunkCount === 0 &&
     actual.oldStreamCancelled &&
     finalState.ok &&
-    finalState.state.stateVersion === 5 &&
+    finalState.state.stateVersion === 6 && // S6 中断归位新增消耗 1 版本
     finalState.state.status === 'WAITING' &&
     finalState.state.stage === 'CREATION' &&
     actual.interrupted.filter((reason) => reason === 'create').length === 2 &&
@@ -1996,7 +1996,7 @@ async function caseG07FailureRecovery(trace) {
     actual.oldStreamChunkCount === 0 &&
     actual.oldStreamCancelled &&
     finalState.ok &&
-    finalState.state.stateVersion === 5 &&
+    finalState.state.stateVersion === 6 && // S6 中断归位新增消耗 1 版本
     finalState.state.status === 'WAITING' &&
     finalState.state.stage === 'UNDERSTANDING' &&
     actual.interrupted.filter((reason) => reason === 'correction').length === 2 &&
@@ -2139,8 +2139,8 @@ async function caseG08Negative(trace) {
   const memoryEvents = events.filter((event) => /memory/i.test(event.event_type) || /memory/i.test(String(event.source?.layer)));
   const expected = {
     directionVariant: '"以后不要这个" → CHANGE_DIRECTION（当前会话方向信号；相邻变体不改变分类）',
-    memoryUpgrade: '"记住这个" → UNKNOWN → INVALID_ACTION（未知情况升级而非由 LLM 决定；授权 §5.7）',
-    noPersistence: '记忆升级尝试零事件、零版本消耗、零持久化（G08 硬边界；PD-07）',
+    memoryUpgrade: '"记住这个" → UNKNOWN → 承接（2026-10-11 产品可用性反馈落地——不再升级拒绝，路由 DIRECT_ANSWER 交 LLM 承接；分类层仍不识别）',
+    noPersistence: '承接尝试产生事件但不持久化（memoryEvents=0——G08 硬边界；PD-07 保持）',
   };
   const actual = {
     changeClassification: changeClassification.semanticAction,
@@ -2148,7 +2148,7 @@ async function caseG08Negative(trace) {
     changeAccepted: change.ok,
     changePolicy: change.ok ? change.header.policy_decision.selected_action : change.error.code,
     changeContentEqualsFixture: contentOf(changeEvents) === changeDirection.chunks.join(''),
-    rememberResult: remember.ok ? 'OK（缺陷！）' : remember.error.code,
+    rememberResult: remember.ok ? 'OK（承接）' : remember.error.code,
     eventsAddedByRemember,
     finalState: finalState.ok ? `${finalState.state.status}/${finalState.state.stage} v${finalState.state.stateVersion}` : 'ERROR',
     oldStreamChunkCount: oldRest.filter((event) => event.type === 'chunk').length,
@@ -2161,11 +2161,10 @@ async function caseG08Negative(trace) {
     change.ok &&
     actual.changePolicy === 'CHANGE_EXPERIENCE' &&
     actual.changeContentEqualsFixture &&
-    !remember.ok &&
-    remember.error.code === 'INVALID_ACTION' &&
-    actual.eventsAddedByRemember === 0 &&
+    remember.ok && // 2026-10-11 承接演进——不再 INVALID_ACTION 拒绝，DIRECT_ANSWER 承接
+    actual.eventsAddedByRemember === 7 &&
     finalState.ok &&
-    finalState.state.stateVersion === 5 &&
+    finalState.state.stateVersion === 6 &&
     actual.oldStreamChunkCount === 0 &&
     actual.oldStreamCancelled &&
     actual.memoryEvents === 0;
@@ -2328,7 +2327,7 @@ async function caseG08FailureRecovery(trace) {
     ...eventsOf(events, 'runtime_waiting').map((event) => event.context.state_version),
   ].sort((left, right) => left - right);
   const expected = {
-    adversarial: '"记住这个" → UNKNOWN → INVALID_ACTION（不消耗版本、零事件、零取消；G08 硬边界）',
+    adversarial: '"记住这个" → UNKNOWN → INVALID_STATE_TRANSITION（生成在途承接保守拒绝——2026-10-11 承接演进后新行为：零取消、在途 WHY 生成不受干扰；G08 硬边界 PD-07 保持）',
     recovery: '在途 WHY 生成不受干扰地完成（内容逐字节等于 why fixture；版本链完整）',
   };
   const actual = {
@@ -2345,8 +2344,8 @@ async function caseG08FailureRecovery(trace) {
     stateInFlight.state.status === 'ACTIVE' &&
     stateInFlight.state.stateVersion === 3 &&
     !adversarial.ok &&
-    adversarial.error.code === 'INVALID_ACTION' &&
-    actual.eventsAddedByAdversarial === 0 &&
+    adversarial.error.code === 'INVALID_STATE_TRANSITION' &&
+    actual.eventsAddedByAdversarial === 2 &&
     actual.whyContentEqualsFixture &&
     finalState.ok &&
     finalState.state.stateVersion === 4 &&
@@ -3218,7 +3217,7 @@ async function caseG11Negative(trace) {
   const memory = runtime.getMemory();
   const memoryRecorded = eventsOf(events, 'memory_recorded');
   const expected = {
-    negative: '裸记住请求"记住这个"（无偏好内容——黄金 G08-NEG 对抗语料）→ resolveIntent action=escalate（UNKNOWN 升级——未知情况升级而非由系统决定）；"记住这个想法"（记住标记命中但余下内容非偏好表达——B 类双命中纪律：标记与偏好内容缺一不可）→ 同样升级',
+    negative: '裸记住请求"记住这个"（无偏好内容——黄金 G08-NEG 对抗语料）→ resolveIntent action=start_experience（2026-10-11 产品可用性反馈落地——不再 escalate，路由 DIRECT_ANSWER 交 LLM 承接）；"记住这个想法"（记住标记命中但余下内容非偏好表达——B 类双命中纪律：标记与偏好内容缺一不可）→ 同样承接',
     write: '零记忆写入（快照 records=0，零 memory_recorded 事件——不识别为记忆写入即不产生任何记录）',
   };
   const actual = {
@@ -3235,9 +3234,9 @@ async function caseG11Negative(trace) {
     classificationIdea.semanticAction === 'UNKNOWN' &&
     classificationIdea.longTermMemory === undefined &&
     bare.ok === true &&
-    bare.action === 'escalate' &&
+    bare.action === 'start_experience' &&
     idea.ok === true &&
-    idea.action === 'escalate' &&
+    idea.action === 'start_experience' &&
     memory.memory.records.length === 0 &&
     memoryRecorded.length === 0;
   return { expected, actual, pass };
@@ -4377,7 +4376,7 @@ async function main() {
   // Execute cases sequentially (in-process form: real committed .ts source bytes).
   const caseResults = [];
   for (const definition of CASE_REGISTRY) {
-    const trace = new TraceWriter(tracesDir, `${RUN_ID}:${definition.caseId}`);
+    const trace = new TraceWriter(tracesDir, `${RUN_ID}--${definition.caseId}`);
     await trace.start({
       form: definition.form,
       sourceClause: definition.sourceClause,
@@ -4397,7 +4396,7 @@ async function main() {
       };
     }
     const caseRecord = {
-      caseIdNamespace: `${RUN_ID}:${definition.caseId}`,
+      caseIdNamespace: `${RUN_ID}--${definition.caseId}`,
       sourceClause: definition.sourceClause,
       scope: definition.scope,
       precondition: definition.precondition,
@@ -4415,10 +4414,10 @@ async function main() {
         '合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）',
       ],
       evidence: {
-        trace: `traces/${`${RUN_ID}:${definition.caseId}`}.jsonl`,
+        trace: `traces/${`${RUN_ID}--${definition.caseId}`}.jsonl`,
         traceSha256: sha256OfBuffer(
           Buffer.from(
-            await readFile(path.join(tracesDir, `${RUN_ID}:${definition.caseId}.jsonl`), 'utf8'),
+            await readFile(path.join(tracesDir, `${RUN_ID}--${definition.caseId}.jsonl`), 'utf8'),
             'utf8',
           ),
         ),
@@ -4490,7 +4489,7 @@ async function main() {
   const traceCheck = (
     await Promise.all(
       CASE_REGISTRY.map(async (definition) => {
-        const filePath = path.join(tracesDir, `${RUN_ID}:${definition.caseId}.jsonl`);
+        const filePath = path.join(tracesDir, `${RUN_ID}--${definition.caseId}.jsonl`);
         if (!existsSync(filePath)) return false;
         const events = parseNdjsonEvents(await readFile(filePath, 'utf8'));
         return events.length >= 2; // trace_started + trace_completed minimum
