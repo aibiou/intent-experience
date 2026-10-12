@@ -23,7 +23,7 @@ import {
   type SemanticAction,
 } from './policy';
 import { classifyInput } from './classifier';
-import { recognizeGenerationIntent } from './generation-intent';
+import { recognizeGenerationIntent, shouldCompactReplay } from './generation-intent';
 import { validateProposal } from './validator';
 import {
   initialExperienceView,
@@ -729,9 +729,16 @@ export class ExperienceRuntime extends RuntimeActions {
       // 包装异步生成器——客户端事件原样转发，chunk 事件内容经
       // 内部登记（不改变客户端流；仅内容轮次登记——空轮次
       // 不覆盖上一内容轮记录）。
+      // CR-56：呈现形式类收敛 REPEAT（「画成图片」等）跳过捕获——
+      // 收敛引导语不入转录、不覆盖 lastResponse（详见
+      // captureLastResponse 注释）。
+      const skipCapture =
+        policy.policyAction === 'REPEAT' && shouldCompactReplay(input.rawInput);
       branchResult = {
         ...branchResult,
-        stream: this.captureLastResponse(input.experienceId, branchResult.stream),
+        stream: this.captureLastResponse(input.experienceId, branchResult.stream, {
+          skipCapture,
+        }),
       };
     }
 

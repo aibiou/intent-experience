@@ -36,7 +36,11 @@ import { loadChunkFixture, type ChunkFixture, type ChunkResolution } from './chu
 import { createExperienceStream, type StreamEvent } from './stream';
 import { classifyInput } from './classifier';
 import { getServerRuntime } from './server-runtime';
-import { recognizeGenerationIntent, type GenerationModality } from './generation-intent';
+import {
+  recognizeGenerationIntent,
+  resolveDistillDesignText,
+  type GenerationModality,
+} from './generation-intent';
 import {
   GENERATION_CALLS,
   humanizeGenerationFailure,
@@ -285,10 +289,32 @@ async function* withGeneration(
               experienceId !== undefined && experienceId !== null
                 ? distilledPromptsByExperience.get(experienceId)
                 : undefined;
+            // 蒸馏设计文案（2026-10-13 CR-56）：呈现形式类生成
+            // （useContext——「画成图片」等）的 REPEAT 展示层已
+            // 收敛为简短引导，流内 answerText 不再是完整内容——
+            // 蒸馏原料由 resolveDistillDesignText 独立从转录取
+            // 上一轮助手原文（REPEAT 不入转录，原文仍可回溯）；
+            // 取不到原文时为 undefined（蒸馏只基于意图/主题），
+            // 绝不把收敛后的简短引导回喂；指代类与直接创作保持
+            // 原逻辑（详见 generation-intent.ts 纯函数与单测）。
+            let transcriptForDistill: ReadonlyArray<{
+              role: 'user' | 'assistant';
+              text: string;
+            }> = [];
+            try {
+              transcriptForDistill = getTranscript?.() ?? [];
+            } catch {
+              transcriptForDistill = [];
+            }
+            const designText = resolveDistillDesignText(
+              intent,
+              answerText,
+              transcriptForDistill,
+            );
             distilledPrompt = await distillVisualPrompt(textConfig, {
               modality: intent.modality === 'video' ? 'video' : 'image',
               intentPrompt: prompt,
-              designText: answerText.trim().slice(0, 700) || undefined,
+              designText,
               aspectRatio: intent.aspectRatio,
               seconds: intent.seconds,
               hasReference: (intent.referenceImages?.length ?? 0) > 0,
