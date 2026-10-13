@@ -262,14 +262,19 @@ export default function HomePage() {
 
   const handleRecent = useCallback((entry: RecentEntry) => {
     setRecents((prev) => {
+      // topic 兜底：非首条流的刷新（stage/at 更新）不携带主题——
+      // 从同会话旧条目继承，避免指令词覆盖会话主题。
+      const prior = prev.find((item) => item.experienceId === entry.experienceId);
+      const topic = entry.topic.trim() || prior?.topic?.trim() || '';
+      const merged = { ...entry, topic };
       // 去重双维度：同一会话去重（续聊不堆叠）+ 同主题去重
       // （不同会话聊同一话题只保留最新——重复 chip 无用户价值）。
       const next = [
-        entry,
+        merged,
         ...prev.filter(
           (item) =>
-            item.experienceId !== entry.experienceId &&
-            item.topic.trim() !== entry.topic.trim(),
+            item.experienceId !== merged.experienceId &&
+            item.topic.trim() !== merged.topic.trim(),
         ),
       ].slice(0, 5);
       saveRecents(next);
