@@ -305,3 +305,23 @@ Stage Summary:
 - 结论：代码从未提交远端；本地 git 现已干净规范、随时可推送
 - 推送需用户提供：远端仓库地址（如 https://github.com/<user>/<repo>.git）+ 访问凭证（PAT/SSH），本环境无法自行创建远端仓库
 - 不重写历史（9 个历史提交含 UUID 信息保留原样）；.env 历史内容仅本地 DB 路径，无真实密钥，泄露风险可忽略
+
+---
+Task ID: 9
+Agent: Z.ai Code (主控)
+Task: 用户指定远端 https://github.com/aibiou/intent-experience.git，按「合并保留同步」（非强推）策略将本地实现并入 origin/main
+
+Work Log:
+- git remote add origin + fetch（公开仓库免认证）：远端 main = 43c2e64，比本地参考克隆 af54156 更新（记忆持久化/V1.1首页/模型层基建三个新提交）
+- 文件重叠面核实：仅 4 个配置文件（.gitignore / package.json / next.config.ts / tsconfig.json），其余完全不相交（远端 app/、src/experience/、docs/、tools/、spike/、artifacts/、AGENTS.md 等全部干净并入）
+- git merge --allow-unrelated-histories --no-commit：4 冲突按策略解决——package.json/next.config.ts/tsconfig.json 保留我方（运行时与 bun.lock 权威）、.gitignore 并集（补 dist/ .playwright-mcp/ product-home.png）
+- 首次合并后 dev server 崩溃两因：①冲突标记的 next.config.ts 被热重载（已解决但进程死）；②根级 app/（远端）压制 src/app/（我方）——Next.js 16 优先根级 app/，编译远端页面（依赖未装）→ 500
+- 修复：git mv app reference/app/（唯一迁移动作，运行时强制；其余远端文件原路径保留）；清 .next 缓存 + 重启 dev server → 200 恢复
+- 工具链隔离：tsconfig exclude（reference/src/experience/tools/artifacts/spike/vitest.config.ts）+ eslint ignores 同步追加——我方 tsc/lint/test 门禁不受远端代码污染（其依赖未装于此）
+- 合并提交 5cf57bc（双父：本地线 + 43c2e64）：453 文件并入、3 配置修改
+
+Stage Summary:
+- 合并后全链路验证（真实执行）：dev 200 我方首页正常渲染；bun test tests/ 292 pass / 0 fail；lint 0；tsc 10 处错误与合并前完全一致（examples 2 + mini-services 4 + skills 2 + policy.test 2，全为既有，零新增）
+- 浏览器验收（agent-browser）：首页（状态入口/自由输入/我记住的/模型网关设置）✓；随便看看 → 光速入口卡 ✓；开始探索 → SSE 首轮真实流式回答（时空属性解释，内容连贯）✓；「读给我听」「画成图片」快捷入口在位 ✓；「好了」干净退出 + 9 控件全禁用（GS-04）✓；全程零控制台错误 ✓
+- 待办：push 仍被认证阻塞（无 SSH 密钥/gh CLI/Token），需用户提供 GitHub PAT（Contents: Read and write，限本仓库）；提供后执行 git push origin main（合并提交可直接快进推送，无需 force）
+- 后续同步注意：远端未来改 app/ 下文件的合并会触发 rename 检测/手动解决（我方树中该目录已迁 reference/app/）；远端其余路径（src/experience、docs 等）未来合并无冲突面
