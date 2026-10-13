@@ -12,6 +12,7 @@ import { Coffee, Hammer, SendHorizontal, Shuffle, Sparkles, Telescope } from 'lu
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SettingsPanel } from './settings-panel';
 import {
   formatRelativeTime,
   STATE_ENTRIES,
@@ -56,7 +57,10 @@ export function HomeScreen({
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center px-4 pb-10 pt-14 md:pt-24">
+    <main className="relative flex flex-1 flex-col items-center px-4 pb-10 pt-14 md:pt-24">
+      {/* 模型网关设置（右上角，安静入口） */}
+      <SettingsPanel />
+
       <h1 className="text-center text-3xl font-medium tracking-wide text-stone-800 md:text-5xl">
         现在想要什么？
       </h1>

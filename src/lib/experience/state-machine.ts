@@ -39,6 +39,11 @@ const LEGAL_TRANSITIONS: ReadonlyArray<TransitionRule> = [
   { from: 'WAITING', to: 'ACTIVE' },
   { from: 'ACTIVE', to: 'COMPLETED', toStage: 'COMPLETION' },
   { from: 'WAITING', to: 'COMPLETED', toStage: 'COMPLETION' },
+  // 缺口修复（单测发现的 ENTERING 卡死缺陷）：首轮生成失败会话遗留
+  // ENTERING 视图时，用户 STOP 无处可去 → 会话永久 ACTIVE（GS-04 违背）。
+  // 修复语义：ENTERING / READY 上 STOP 合法（用户主权：任何时刻可停）。
+  { from: 'ENTERING', to: 'COMPLETED', toStage: 'COMPLETION' },
+  { from: 'READY', to: 'COMPLETED', toStage: 'COMPLETION' },
   { from: 'READY', to: 'ENTERING', toStage: 'CURIOSITY' },
   { from: 'ACTIVE', to: 'ENTERING', toStage: 'CURIOSITY' },
   { from: 'WAITING', to: 'ENTERING', toStage: 'CURIOSITY' },

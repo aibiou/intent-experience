@@ -1,0 +1,14 @@
+{
+  "name": "model-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "模型网关 mini-service：对接 LLM 提供方的唯一出入口（端口固定 3031）",
+  "scripts": {
+    "dev": "bun --hot index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "z-ai-web-dev-sdk": "^0.0.18"
+  }
+}

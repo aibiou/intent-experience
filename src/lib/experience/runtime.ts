@@ -398,11 +398,11 @@ export class ExperienceRuntime {
 }
 
 /** 单例（本切片单进程部署）。 */
-import { ZaiLlmGateway } from './llm-gateway';
+import { HttpLlmGateway } from './llm-gateway';
 let runtimeInstance: ExperienceRuntime | null = null;
 export function getRuntime(): ExperienceRuntime {
   if (!runtimeInstance) {
-    runtimeInstance = new ExperienceRuntime(new ZaiLlmGateway());
+    runtimeInstance = new ExperienceRuntime(new HttpLlmGateway());
   }
   return runtimeInstance;
 }

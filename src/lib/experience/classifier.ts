@@ -36,6 +36,16 @@ const STOP_PATTERNS: ReadonlyArray<RegExp> = [
   /结束/,
   /就到这里/,
   /到此/,
+  // 缺口修复（单测发现）：常见停止表达此前落入 UNKNOWN——
+  // "算了" / 行首"停…"（锚定 ^，避免"地球停转""别停"误伤）/ "别说了" 等。
+  /算了/,
+  /^停/,
+  /别说了/,
+  /别讲了/,
+  /不聊了/,
+  /不玩了/,
+  /别继续了/,
+  /退出/,
 ];
 
 const CHANGE_DIRECTION_PATTERNS: ReadonlyArray<RegExp> = [
