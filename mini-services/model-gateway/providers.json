@@ -10,19 +10,31 @@
       "enabled": true,
       "isDefault": true,
       "createdAt": "2026-10-11T13:57:48.385Z",
-      "updatedAt": "2026-10-13T07:48:49.428Z"
+      "updatedAt": "2026-10-13T20:30:03.666Z"
     },
     {
-      "id": "pc_099b856bb0a1b1ec",
-      "name": "newapi",
+      "id": "pc_8247f3efe8f8afc0",
+      "name": "agnes-com-image",
       "kind": "openai-compatible",
-      "baseUrl": "http://localhost:13000/v1",
-      "model": "agnes-3.0-flash",
-      "modality": "text",
-      "enabled": false,
-      "isDefault": false,
-      "createdAt": "2026-10-12T00:36:52.286Z",
-      "updatedAt": "2026-10-12T00:36:53.997Z"
+      "baseUrl": "https://apihub.agnes-ai.com/v1",
+      "model": "agnes-image-2.5-flash",
+      "modality": "image",
+      "enabled": true,
+      "isDefault": true,
+      "createdAt": "2026-10-11T13:57:48.418Z",
+      "updatedAt": "2026-10-13T20:30:03.667Z"
+    },
+    {
+      "id": "pc_6339f56507b16e2b",
+      "name": "agnes-com-video",
+      "kind": "openai-compatible",
+      "baseUrl": "https://apihub.agnes-ai.com/v1",
+      "model": "agnes-video-2.5-flash",
+      "modality": "video",
+      "enabled": true,
+      "isDefault": true,
+      "createdAt": "2026-10-11T13:57:48.442Z",
+      "updatedAt": "2026-10-13T20:30:03.667Z"
     },
     {
       "id": "pc_94c8ae48ebf4cee9",
@@ -31,10 +43,22 @@
       "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
       "model": "doubao-seed-2-0-lite-260428",
       "modality": "text",
-      "enabled": false,
+      "enabled": true,
       "isDefault": false,
       "createdAt": "2026-10-13T07:03:24.300Z",
-      "updatedAt": "2026-10-13T07:03:32.077Z"
+      "updatedAt": "2026-10-13T20:30:03.667Z"
+    },
+    {
+      "id": "pc_7473458bdd18c240",
+      "name": "volcengine-voice",
+      "kind": "openai-compatible",
+      "baseUrl": "https://openspeech.bytedance.com",
+      "model": "seed-audio-1.0",
+      "modality": "voice",
+      "enabled": true,
+      "isDefault": true,
+      "createdAt": "2026-10-13T07:37:49.686Z",
+      "updatedAt": "2026-10-13T20:30:03.667Z"
     }
   ]
 }

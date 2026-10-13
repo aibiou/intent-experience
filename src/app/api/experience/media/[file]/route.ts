@@ -2,7 +2,8 @@
  * GET /api/experience/media/<file> —— 媒体产物提供（只读）。
  *
  * 产物由 media-gateway 落盘 data/media/；Content-Type 由扩展名映射
- * （仅 png / wav 白名单——文件名先过严格字符校验，杜绝路径穿越）。
+ * （png / jpg / webp / mp3 / wav / ogg / mp4 白名单——文件名先过
+ * 严格字符校验，杜绝路径穿越）。
  * 产物不可变（id 含时间戳），可长缓存。
  */
 
@@ -12,7 +13,12 @@ import path from 'node:path';
 
 const MIME_BY_EXT: Readonly<Record<string, string>> = {
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.mp3': 'audio/mpeg',
   '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+  '.mp4': 'video/mp4',
 };
 
 export async function GET(

@@ -366,7 +366,13 @@ function MediaBlock({ media }: { media: TurnMedia }) {
   if (media.status === 'pending') {
     return (
       <MediaPending
-        label={media.modality === 'voice' ? '正在合成语音，马上就好…' : '正在生成图片，马上就好…'}
+        label={
+          media.modality === 'voice'
+            ? '正在合成语音，马上就好…'
+            : media.modality === 'video'
+              ? '正在生成视频，可能需要一两分钟…'
+              : '正在生成图片，马上就好…'
+        }
       />
     );
   }
@@ -374,13 +380,26 @@ function MediaBlock({ media }: { media: TurnMedia }) {
     return (
       <div className="rounded-2xl border border-dashed border-stone-300 px-4 py-3">
         <p className="text-sm text-stone-500">
-          {media.modality === 'voice' ? '这段语音' : '这张图片'}
+          {media.modality === 'voice'
+            ? '这段语音'
+            : media.modality === 'video'
+              ? '这个视频'
+              : '这张图片'}
           {media.message ? `没能生成：${media.message}` : '没能生成出来'}
         </p>
       </div>
     );
   }
-  // 未接入（视频）：诚实说明——不假装支持。
+  if (media.modality === 'video' && media.url) {
+    return (
+      <figure className="overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_1px_2px_rgba(87,83,78,0.05)]">
+        <video controls preload="metadata" src={media.url} className="w-full">
+          你的浏览器不支持视频播放。
+        </video>
+      </figure>
+    );
+  }
+  // 视频无产物（如未配置视频提供方）：诚实说明——不假装支持。
   if (media.modality === 'video') {
     return (
       <div className="rounded-2xl border border-dashed border-stone-300 px-4 py-3">

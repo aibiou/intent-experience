@@ -50,7 +50,7 @@ export interface TurnMedia {
 /** 会话恢复时 GET /api/experience/session 附带的媒体产物。 */
 interface SessionMediaRecord {
   turn: number;
-  modality: 'image' | 'voice';
+  modality: 'image' | 'voice' | 'video';
   url: string;
   promptUsed: string;
   mime: string;

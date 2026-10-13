@@ -25,6 +25,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
 interface ProviderSummary {
@@ -45,10 +52,26 @@ interface ProviderForm {
   baseUrl: string;
   apiKey: string;
   model: string;
+  modality: string;
   isDefault: boolean;
 }
 
-const EMPTY_FORM: ProviderForm = { name: '', baseUrl: '', apiKey: '', model: '', isDefault: false };
+/** 模态（一条提供方记录只服务一个模态；默认按模态各自独立）。 */
+const MODALITY_LABEL: Record<string, string> = {
+  text: '文本',
+  image: '图像',
+  video: '视频',
+  voice: '语音',
+};
+
+const EMPTY_FORM: ProviderForm = {
+  name: '',
+  baseUrl: '',
+  apiKey: '',
+  model: '',
+  modality: 'text',
+  isDefault: false,
+};
 
 /** 浏览器 → 网关：相对路径 + 端口参数（网关转发规则）。 */
 function gwUrl(path: string): string {
@@ -107,13 +130,14 @@ export function SettingsPanel() {
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
       e.preventDefault();
-      const trimmed: ProviderForm = {
-        name: form.name.trim(),
-        baseUrl: form.baseUrl.trim(),
-        apiKey: form.apiKey.trim(),
-        model: form.model.trim(),
-        isDefault: form.isDefault,
-      };
+          const trimmed: ProviderForm = {
+            name: form.name.trim(),
+            baseUrl: form.baseUrl.trim(),
+            apiKey: form.apiKey.trim(),
+            model: form.model.trim(),
+            modality: form.modality,
+            isDefault: form.isDefault,
+          };
       if (!trimmed.name || !trimmed.baseUrl || !trimmed.apiKey || !trimmed.model) {
         toast({ description: '名称、接口地址、密钥、模型都要填。' });
         return;
@@ -129,7 +153,7 @@ export function SettingsPanel() {
             baseUrl: trimmed.baseUrl,
             apiKey: trimmed.apiKey,
             model: trimmed.model,
-            modality: 'text',
+            modality: trimmed.modality,
             enabled: true,
             isDefault: trimmed.isDefault,
           }),
@@ -140,8 +164,8 @@ export function SettingsPanel() {
         }
         toast({
           description: trimmed.isDefault
-            ? `已保存「${trimmed.name}」并设为默认提供方。`
-            : `已保存「${trimmed.name}」。`,
+            ? `已保存「${trimmed.name}」并设为${MODALITY_LABEL[trimmed.modality] ?? trimmed.modality}模态默认提供方。`
+            : `已保存「${trimmed.name}」（${MODALITY_LABEL[trimmed.modality] ?? trimmed.modality}模态）。`,
         });
         setForm(EMPTY_FORM);
         await refresh();
@@ -176,9 +200,12 @@ export function SettingsPanel() {
         baseUrl: provider.baseUrl,
         apiKey: '',
         model: provider.model,
+        modality: provider.modality,
         isDefault: true,
       });
-      toast({ description: `把「${provider.name}」的密钥再填一次即可设为默认（编辑需要重输密钥）。` });
+      toast({
+        description: `把「${provider.name}」的密钥再填一次即可设为${MODALITY_LABEL[provider.modality] ?? provider.modality}模态默认（编辑需要重输密钥）。`,
+      });
     },
     []
   );
@@ -224,8 +251,8 @@ export function SettingsPanel() {
         <DialogHeader>
           <DialogTitle>模型网关</DialogTitle>
           <DialogDescription>
-            体验引擎的模型调用全部经本机网关（独立服务）。密钥只保存在网关的本地文件里，
-            不会出现在网页代码中。
+            体验引擎的模型调用全部经本机网关（独立服务）。提供方按模态（文本/图像/视频/语音）
+            分别配置、各有默认；密钥只保存在网关的本地文件里，不会出现在网页代码中。
           </DialogDescription>
         </DialogHeader>
 
@@ -254,6 +281,7 @@ export function SettingsPanel() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-stone-800">{p.name}</span>
+                    <Badge variant="outline">{MODALITY_LABEL[p.modality] ?? p.modality}</Badge>
                     {p.isDefault && <Badge variant="secondary">默认</Badge>}
                     {!p.enabled && <Badge variant="outline">已停用</Badge>}
                   </div>
@@ -322,6 +350,23 @@ export function SettingsPanel() {
                 maxLength={80}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="gw-modality">模态（这条提供方服务什么）</Label>
+              <Select
+                value={form.modality}
+                onValueChange={(v) => setForm((f) => ({ ...f, modality: v }))}
+              >
+                <SelectTrigger id="gw-modality" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text">文本（对话）</SelectItem>
+                  <SelectItem value="image">图像（画一张）</SelectItem>
+                  <SelectItem value="video">视频</SelectItem>
+                  <SelectItem value="voice">语音（读给我听）</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="gw-baseurl">接口地址（Base URL）</Label>
@@ -351,7 +396,7 @@ export function SettingsPanel() {
                 checked={form.isDefault}
                 onCheckedChange={(v) => setForm((f) => ({ ...f, isDefault: v }))}
               />
-              设为默认提供方
+              设为{MODALITY_LABEL[form.modality] ?? form.modality}模态默认
             </label>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}

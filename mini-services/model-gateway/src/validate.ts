@@ -10,13 +10,18 @@
  * - enabled / isDefault 可选布尔（缺省 enabled=true, isDefault=false）
  */
 
-import type { ProviderConfigRecord } from './config-store';
+import {
+  isProviderModality,
+  type ProviderConfigRecord,
+  type ProviderModality,
+} from './config-store';
 
 export interface ProviderInputValue {
   name: string;
   baseUrl: string;
   apiKey: string; // 可为空串（新增时空=暂无私钥；更新时空=保留现有密钥）
   model: string;
+  modality: ProviderModality; // 模态绑定（缺省 text）
   enabled: boolean;
   isDefault: boolean;
 }
@@ -32,7 +37,8 @@ export function validateProviderInput(
   if (input === null || typeof input !== 'object' || Array.isArray(input)) {
     return { ok: false, message: '请求体必须是 JSON 对象' };
   }
-  const { name, baseUrl, apiKey, model, enabled, isDefault } = input as Record<string, unknown>;
+  const { name, baseUrl, apiKey, model, modality, enabled, isDefault } =
+    input as Record<string, unknown>;
 
   if (typeof name !== 'string' || name.trim().length === 0) {
     return { ok: false, message: 'name 不能为空（提供方显示名必填）' };
@@ -45,6 +51,12 @@ export function validateProviderInput(
   }
   if (typeof model !== 'string' || model.trim().length === 0) {
     return { ok: false, message: 'model 不能为空（模型名必填）' };
+  }
+  if (modality !== undefined && !isProviderModality(modality)) {
+    return {
+      ok: false,
+      message: `modality 必须是 text / image / video / voice 之一（收到：${String(modality)}）`,
+    };
   }
 
   const trimmedBaseUrl = baseUrl.trim();
@@ -71,6 +83,7 @@ export function validateProviderInput(
       baseUrl: trimmedBaseUrl,
       apiKey: typeof apiKey === 'string' ? apiKey.trim() : '',
       model: model.trim(),
+      modality: isProviderModality(modality) ? modality : 'text',
       enabled: enabled ?? true,
       isDefault: isDefault ?? false,
     },

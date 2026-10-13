@@ -124,7 +124,7 @@ export type TurnEvent =
       type: 'generation';
       status: 'completed';
       turn: number;
-      modality: Exclude<GenerationModality, 'video'>;
+      modality: GenerationModality;
       url: string;
       promptUsed: string;
       mime: string;
