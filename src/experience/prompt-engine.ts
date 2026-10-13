@@ -215,13 +215,15 @@ export async function distillVisualPrompt(
     sections.push(`创作描述：${input.designText.trim().slice(0, 700)}`);
   }
   if (input.aspectRatio !== undefined) {
-    const aspectLabel =
-      input.aspectRatio === '9:16'
-        ? '竖版构图（9:16）'
-        : input.aspectRatio === '1:1'
-          ? '方形构图（1:1）'
-          : '横版构图（16:9）';
-    sections.push(`画幅要求：${aspectLabel}`);
+    // Agnes 官方 8 种宽高比均注入构图方向标签。
+    const vertical = ['9:16', '2:3', '3:4'];
+    const square = ['1:1'];
+    const aspectLabel = square.includes(input.aspectRatio)
+      ? '方形构图'
+      : vertical.includes(input.aspectRatio)
+        ? '竖版构图'
+        : '横版构图';
+    sections.push(`画幅要求：${aspectLabel}（${input.aspectRatio}）`);
   }
   if (input.modality === 'video' && input.seconds !== undefined) {
     sections.push(`视频时长：约 ${input.seconds} 秒（节奏与之匹配）`);

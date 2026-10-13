@@ -77,12 +77,18 @@ export function humanizeGenerationFailure(
   return `${modalityLabel}生成没有成功——可以换个说法再试一次。`;
 }
 
-/** 创作参数（前端透传——画幅 / 视频时长 / 参考图；缺省用
- * 提供方默认，不改变既有生成行为）。 */
+/** 画幅类型（Agnes 官方支持 8 种宽高比；项目 UI 默认暴露
+ * 3 种常用值，但后端全量接受——前端白名单逐步开放）。 */
+export type AspectRatio =
+  | '16:9' | '9:16' | '1:1'
+  | '3:4' | '4:3' | '2:3' | '3:2' | '21:9';
+
+/** 创作参数（前端透传——画幅 / 视频时长 / 参考图 / 高级参数；
+ * 缺省用提供方默认，不改变既有生成行为）。 */
 export interface GenerationOptions {
-  /** 画幅（视频 aspect_ratio 直传；图像映射为
-   * OpenAI images 契约的 size 三档）。 */
-  aspectRatio?: '16:9' | '9:16' | '1:1';
+  /** 画幅（视频 aspect_ratio 直传；图像映射为 Agnes 官方
+   * size 档位 + ratio 组合——docs/agnes-image-25-flash）。 */
+  aspectRatio?: AspectRatio;
   /** 视频时长（官方契约 "4"–"12" 秒）。 */
   seconds?: '4' | '6' | '8' | '12';
   /** 参考图（dataURI 数组，≤3 张——图生图：Agnes
@@ -91,20 +97,26 @@ export interface GenerationOptions {
   /** 语音音色（speaker ID——豆包语音 2.0 音色库；
    * 不传即提供方默认音色）。 */
   voice?: string;
+  /** 图像尺寸档位（Agnes 官方 size 参数——1K/2K/3K/4K；
+   * 缺省 "2K"，与既有像素量级一致）。 */
+  imageTier?: '1K' | '2K' | '3K' | '4K';
+  /** 视频首帧图片 URL（keyframe 模式——Agnes 官方
+   * first_frame 参数，与 lastFrame 至少提供一个）。 */
+  firstFrame?: string;
+  /** 视频尾帧图片 URL（keyframe 模式——Agnes 官方
+   * last_frame 参数，与 firstFrame 至少提供一个）。 */
+  lastFrame?: string;
+  /** 视频参考音频 URL 数组（reference 模式——Agnes 官方
+   * audios 参数，Flash 最多 3 段）。 */
+  referenceAudios?: string[];
+  /** 随机种子（视频官方 seed 参数——可复现结果）。 */
+  seed?: number;
 }
 
-// 画幅 → 图像尺寸（OpenAI images 兼容契约——聚合
-// 提供方普遍接受的三档；不发送即提供方默认）。
-const IMAGE_SIZES: Record<string, string> = {
-  // Seedream 4.5 输出下限为 2K 档（总像素 ≥ 3686400）；
-  // 取值对应方舟 2K 档位映射（16:9=2816x1584、9:16=1584x2816、
-  // 1:1=2048x2048），保证横/竖/方画幅均满足像素下限。
-  // 其他提供方若拒绝大尺寸，generateImage 已有 400 → 无 size
-  // 降级链兜底，不影响出图。
-  '16:9': '2816x1584',
-  '9:16': '1584x2816',
-  '1:1': '2048x2048',
-};
+// 画幅 → Agnes 官方 ratio（docs/agnes-image-25-flash：
+// size 档位 + ratio 组合，替代历史精确像素写法。
+// 档位默认 2K——与既有像素量级一致，保证出图质量不降）。
+const DEFAULT_IMAGE_TIER = '2K';
 
 /** 端点基地址（剥离 chat-completions 后缀——生成端点
  * 与对话端点共享同一 API Base）。 */
@@ -569,10 +581,11 @@ export async function generateImage(
   _onProgress?: (progress: number) => void,
   options?: GenerationOptions,
 ): Promise<GenerationArtifact> {
-  const size =
-    options?.aspectRatio !== undefined
-      ? IMAGE_SIZES[options.aspectRatio]
-      : undefined;
+  // Agnes 官方契约（docs/agnes-image-25-flash）：size 用档位
+  // （1K/2K/3K/4K），ratio 指定宽高比；response_format 放
+  // extra_body 内（官方警告：勿放顶层）。
+  const hasRatio = options?.aspectRatio !== undefined;
+  const tier = options?.imageTier ?? DEFAULT_IMAGE_TIER;
   const refs = options?.referenceImages ?? [];
   // 参考图透传日志（CR-61 实证链——确认 dataURI 参考图确实到达
   // 生成网关；仅打长度与来源，不含敏感内容）。
@@ -583,25 +596,30 @@ export async function generateImage(
   }
   // 三段调用形态：带画幅 + 带参考图 → 仅参考图（画幅被拒）→
   // 裸调用（参考图也被拒——保底出图，文生图契约兜底）。
+  // extra_body 始终含 response_format:"url"（官方推荐——
+  // 图生图时叠加 image 数组）。
   const call = (withSize: boolean, withRefs: boolean) =>
     callProvider(config, '/images/generations', {
       model: config.model,
       prompt,
       n: 1,
-      ...(withSize && size !== undefined ? { size } : {}),
-      ...(withRefs && refs.length > 0
-        ? { extra_body: { image: refs } }
+      ...(withSize && hasRatio
+        ? { size: tier, ratio: options!.aspectRatio }
         : {}),
+      extra_body: {
+        response_format: 'url',
+        ...(withRefs && refs.length > 0 ? { image: refs } : {}),
+      },
     });
   let response: Response;
   try {
-    response = await call(size !== undefined, refs.length > 0);
+    response = await call(hasRatio, refs.length > 0);
   } catch (error) {
     // 参数兼容降级：显式画幅被提供方拒绝（400 且非瞬态）
     // → 无画幅重试（仍带参考图——图生图意图优先于画幅）；
     // 再被拒 → 裸重试（丢参考图保底出图）。
     if (
-      size !== undefined &&
+      hasRatio &&
       error instanceof GenerationError &&
       !error.retryable &&
       error.status === 400
@@ -799,31 +817,67 @@ export async function generateVideo(
   // 创作参数：画幅 / 时长由前端透传（缺省 16:9 / 4s 保持
   // 原行为）；自定义参数被 400 拒绝时降级默认参数重试
   // （契约容差——时长/画幅档位可能随提供方收窄）。
+  //
+  // 模式路由（docs/agnes-video-25-flash §生成模式规则）：
+  // - keyframe：有 firstFrame / lastFrame 时启用——首尾帧控制。
+  // - reference：有公开 URL 参考图 / 参考音频时启用——多模态参考。
+  // - text：无媒体输入时默认——纯文本生成。
+  // Flash 限制：images ≤5、audios ≤3、videos 不支持。
   const hasCustomParams =
     options?.aspectRatio !== undefined || options?.seconds !== undefined;
   let useCustomParams = hasCustomParams;
-  // 系列参考模式：有公开 URL 参考图时走 reference 模式——
+
+  // keyframe 模式（首尾帧控制——官方 first_frame / last_frame）。
+  const hasKeyframe =
+    options?.firstFrame !== undefined || options?.lastFrame !== undefined;
+
+  // reference 模式：有公开 URL 参考图时走 reference 模式——
   // 会话内全部分集图作为角色 / 场景参考（≤5），视频连续剧
   // 逐集保持角色一致；无参考图回退 text 模式。dataURI 不
   // 适合视频参考（官方要求公开可访问 URL）——过滤之。
   const videoRefs = (options?.referenceImages ?? []).filter((ref) =>
     ref.startsWith('http'),
   );
-  let useRefs = videoRefs.length > 0;
-  const createTask = () =>
-    callProvider(config, '/videos', {
+  // reference 模式参考音频（官方 audios 参数——Flash ≤3 段）。
+  const videoAudios = (options?.referenceAudios ?? []).filter((ref) =>
+    ref.startsWith('http'),
+  );
+  let useRefs = videoRefs.length > 0 || videoAudios.length > 0;
+  let useKeyframe = hasKeyframe;
+
+  // seed 参数（官方 seed integer——可复现结果）。
+  const seed = options?.seed;
+
+  const createTask = () => {
+    // 模式优先级：keyframe > reference > text（互斥——
+    // 官方 §生成模式规则：keyframe 不允许 images/audios；
+    // reference 不允许 first_frame/last_frame）。
+    let mode: 'text' | 'keyframe' | 'reference' = 'text';
+    let extraFields: Record<string, unknown> = {};
+    if (useKeyframe) {
+      mode = 'keyframe';
+      if (options?.firstFrame) extraFields.first_frame = options.firstFrame;
+      if (options?.lastFrame) extraFields.last_frame = options.lastFrame;
+    } else if (useRefs) {
+      mode = 'reference';
+      // 参考图 ≤5、参考音频 ≤3（Flash 限制）。
+      if (videoRefs.length > 0) extraFields.images = videoRefs.slice(0, 5);
+      if (videoAudios.length > 0) extraFields.audios = videoAudios.slice(0, 3);
+    }
+    return callProvider(config, '/videos', {
       model: config.model,
       prompt,
-      ...(useRefs
-        ? { mode: 'reference', images: videoRefs.slice(0, 5) }
-        : { mode: 'text' }),
+      mode,
       seconds: useCustomParams && options?.seconds !== undefined ? options.seconds : '4',
       size: '720P',
       aspect_ratio:
         useCustomParams && options?.aspectRatio !== undefined
           ? options.aspectRatio
           : '16:9',
+      ...(seed !== undefined ? { seed } : {}),
+      ...extraFields,
     });
+  };
   const retryDelays = [...VIDEO_CREATE_RETRY_DELAYS_MS];
   // 瞬态失败退避重试：限速 / 队列满时
   // 等待比立即失败更接近成功。
@@ -833,13 +887,17 @@ export async function generateVideo(
       response = await createTask();
       break;
     } catch (error) {
-      // 参数拒绝降级：自定义画幅 / 时长 / 参考模式被 400 拒绝
-      // → 先降参考模式（保底文本生成），再降参数；逐级保出图。
+      // 参数拒绝降级：自定义画幅 / 时长 / keyframe / 参考模式被 400 拒绝
+      // → 先降 keyframe（保底参考或文本），再降参考模式，再降参数；逐级保出图。
       if (
         error instanceof GenerationError &&
         !error.retryable &&
         error.status === 400
       ) {
+        if (useKeyframe) {
+          useKeyframe = false;
+          continue;
+        }
         if (useRefs) {
           useRefs = false;
           continue;

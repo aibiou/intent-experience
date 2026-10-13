@@ -464,17 +464,26 @@ async function* withGeneration(
 }
 
 /**
- * 创作参数抽取（专业生产能力——画幅 / 视频时长随请求
- * 透传到生成网关）：白名单校验，非法值静默忽略——
+ * 创作参数抽取（专业生产能力——画幅 / 视频时长 / 参考图 /
+ * 高级参数随请求透传到生成网关）：白名单校验，非法值静默忽略——
  * 参数是增强项，绝不影响对话主轴。
  */
-const ASPECT_RATIO_VALUES = new Set(['16:9', '9:16', '1:1']);
+// Agnes 官方 8 种宽高比（docs/agnes-image-25-flash / agnes-video-25-flash）。
+const ASPECT_RATIO_VALUES = new Set([
+  '16:9', '9:16', '1:1', '3:4', '4:3', '2:3', '3:2', '21:9',
+]);
 const VIDEO_SECONDS_VALUES = new Set(['4', '6', '8', '12']);
+const IMAGE_TIER_VALUES = new Set(['1K', '2K', '3K', '4K']);
 
 export function extractCreationParams(body: {
   aspect_ratio?: unknown;
   seconds?: unknown;
   reference_images?: unknown;
+  image_tier?: unknown;
+  first_frame?: unknown;
+  last_frame?: unknown;
+  reference_audios?: unknown;
+  seed?: unknown;
 }): GenerationOptions {
   const options: GenerationOptions = {};
   if (
@@ -485,6 +494,13 @@ export function extractCreationParams(body: {
   }
   if (typeof body.seconds === 'string' && VIDEO_SECONDS_VALUES.has(body.seconds)) {
     options.seconds = body.seconds as GenerationOptions['seconds'];
+  }
+  // 图像尺寸档位（Agnes 官方 size 参数——1K/2K/3K/4K）。
+  if (
+    typeof body.image_tier === 'string' &&
+    IMAGE_TIER_VALUES.has(body.image_tier)
+  ) {
+    options.imageTier = body.image_tier as GenerationOptions['imageTier'];
   }
   // 参考图（图生图）：dataURI 白名单校验——仅 data:image/、
   // 解码后 ≤1.5MB、至多 3 张；非法项静默丢弃。
@@ -507,6 +523,26 @@ export function extractCreationParams(body: {
       })
       .slice(0, 3);
     if (refs.length > 0) options.referenceImages = refs;
+  }
+  // 视频首帧 / 尾帧 URL（keyframe 模式——官方 first_frame / last_frame）。
+  if (typeof body.first_frame === 'string' && body.first_frame.startsWith('http')) {
+    options.firstFrame = body.first_frame;
+  }
+  if (typeof body.last_frame === 'string' && body.last_frame.startsWith('http')) {
+    options.lastFrame = body.last_frame;
+  }
+  // 视频参考音频 URL（reference 模式——官方 audios，Flash ≤3 段）。
+  if (Array.isArray(body.reference_audios)) {
+    const audios = body.reference_audios
+      .filter((item): item is string =>
+        typeof item === 'string' && item.startsWith('http'),
+      )
+      .slice(0, 3);
+    if (audios.length > 0) options.referenceAudios = audios;
+  }
+  // 随机种子（视频官方 seed 参数——可复现结果）。
+  if (typeof body.seed === 'number' && Number.isInteger(body.seed)) {
+    options.seed = body.seed;
   }
   return options;
 }

@@ -30,6 +30,10 @@ export interface LlmRequest {
   creation?: CreationLlmSummary;
   /** 取消信号（可选——增量流式形态经此中止上游连接；S5A v1.2.0）。 */
   signal?: AbortSignal;
+  /** 图像 URL 列表（可选——Agnes 3.0 Flash 多模态输入：
+   * 用户可在对话中附带图片 URL，模型理解图像内容后
+   * 生成回应。docs/agnes-30-flash §图像 URL 输入）。 */
+  imageUrls?: string[];
 }
 
 /** 创作对象 LLM 摘要（九分量的紧凑形态——结构化字段
@@ -133,6 +137,15 @@ export interface ProviderLlmConfig {
   temperature: number;
   apiKey: string;
   systemPrompt: string;
+  /** 最大输出 Token 数（Agnes 3.0 Flash 官方 max_tokens 参数；
+   * 缺省 undefined——由提供方默认决定）。 */
+  maxTokens?: number;
+  /** 核采样参数（Agnes 3.0 Flash 官方 top_p 参数；
+   * 缺省 undefined——由提供方默认决定）。 */
+  topP?: number;
+  /** Thinking 模式（Agnes 3.0 Flash 官方 chat_template_kwargs.enable_thinking；
+   * true 时启用更充分的任务拆解与推理——缺省 false）。 */
+  enableThinking?: boolean;
 }
 
 /** 自定义提供方缺省值（预设未覆盖时——S5B-SEMANTIC-FREEZE-01 v1.1.0）。 */
@@ -198,7 +211,7 @@ export class ProviderLlmGateway implements LlmGateway {
 
   async propose(request: LlmRequest): Promise<LlmProposal> {
     this.calls += 1;
-    const body = {
+    const body: Record<string, unknown> = {
       model: this.config.model,
       messages: [
         { role: 'system', content: this.config.systemPrompt },
@@ -206,6 +219,33 @@ export class ProviderLlmGateway implements LlmGateway {
       ],
       temperature: this.config.temperature,
     };
+    // Agnes 3.0 Flash 官方可选参数（docs/agnes-30-flash）。
+    if (this.config.maxTokens !== undefined) {
+      body.max_tokens = this.config.maxTokens;
+    }
+    if (this.config.topP !== undefined) {
+      body.top_p = this.config.topP;
+    }
+    if (this.config.enableThinking === true) {
+      body.chat_template_kwargs = { enable_thinking: true };
+    }
+    // 多模态图像 URL 输入（docs/agnes-30-flash §图像 URL 输入）：
+    // 有 imageUrls 时 user content 改为数块格式
+    // （text + image_url），让模型理解图像内容。
+    const userText = renderProviderUserMessage(request);
+    const imageUrls = request.imageUrls ?? [];
+    if (imageUrls.length > 0) {
+      const content: Array<Record<string, unknown>> = [
+        { type: 'text', text: userText },
+      ];
+      for (const url of imageUrls) {
+        content.push({ type: 'image_url', image_url: { url } });
+      }
+      (body.messages as Array<Record<string, unknown>>)[1] = {
+        role: 'user',
+        content,
+      };
+    }
     let response: Response;
     try {
       response = await fetch(this.requestUrl, {
@@ -216,11 +256,29 @@ export class ProviderLlmGateway implements LlmGateway {
         },
         body: JSON.stringify(body),
       });
-    } catch {
-      // 错误信息仅含 provider / 调用计数——不含 key、不含请求体。
-      throw new Error(
-        `llm provider upstream network failure (provider=${this.config.provider}, call=${this.calls})`,
+    } catch (error) {
+      // 网络故障：自动重试一次（上游波动 / 冷启动 / 瞬态超时）。
+      this.calls += 1;
+      console.warn(
+        `[ProviderLlmGateway] propose connect failed, retrying once (provider=${this.config.provider}, call=${this.calls - 1}):`,
+        (error as Error)?.message ?? error,
       );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      try {
+        response = await fetch(this.requestUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.config.apiKey}`,
+          },
+          body: JSON.stringify(body),
+        });
+      } catch (retryError) {
+        // 错误信息仅含 provider / 调用计数——不含 key、不含请求体。
+        throw new Error(
+          `llm provider upstream network failure (provider=${this.config.provider}, call=${this.calls}): ${(retryError as Error)?.message ?? ''}`,
+        );
+      }
     }
     if (!response.ok) {
       throw new Error(
@@ -261,7 +319,7 @@ export class ProviderLlmGateway implements LlmGateway {
    */
   async *proposeStream(request: LlmRequest): AsyncIterable<string> {
     this.calls += 1;
-    const body = {
+    const body: Record<string, unknown> = {
       model: this.config.model,
       messages: [
         { role: 'system', content: this.config.systemPrompt },
@@ -270,6 +328,33 @@ export class ProviderLlmGateway implements LlmGateway {
       temperature: this.config.temperature,
       stream: true,
     };
+    // Agnes 3.0 Flash 官方可选参数（docs/agnes-30-flash）。
+    if (this.config.maxTokens !== undefined) {
+      body.max_tokens = this.config.maxTokens;
+    }
+    if (this.config.topP !== undefined) {
+      body.top_p = this.config.topP;
+    }
+    if (this.config.enableThinking === true) {
+      body.chat_template_kwargs = { enable_thinking: true };
+    }
+    // 多模态图像 URL 输入（docs/agnes-30-flash §图像 URL 输入）：
+    // 有 imageUrls 时 user content 改为数块格式
+    // （text + image_url），让模型理解图像内容。
+    const userText = renderProviderUserMessage(request);
+    const imageUrls = request.imageUrls ?? [];
+    if (imageUrls.length > 0) {
+      const content: Array<Record<string, unknown>> = [
+        { type: 'text', text: userText },
+      ];
+      for (const url of imageUrls) {
+        content.push({ type: 'image_url', image_url: { url } });
+      }
+      (body.messages as Array<Record<string, unknown>>)[1] = {
+        role: 'user',
+        content,
+      };
+    }
     let response: Response;
     try {
       response = await fetch(this.requestUrl, {
@@ -281,12 +366,43 @@ export class ProviderLlmGateway implements LlmGateway {
         body: JSON.stringify(body),
         signal: request.signal,
       });
-    } catch {
-      // 取消（信号中止）与网络故障同形上抛——运行期按信号
-      // 状态区分（取消产出 cancelled 事件，故障映射流中断）。
-      throw new Error(
-        `llm provider upstream network failure (provider=${this.config.provider}, call=${this.calls})`,
+    } catch (error) {
+      // 取消（信号中止）不重试——运行期按信号状态区分
+      // （取消产出 cancelled 事件）。
+      if (request.signal?.aborted) {
+        throw new Error(
+          `llm provider upstream cancelled (provider=${this.config.provider}, call=${this.calls})`,
+        );
+      }
+      // 网络故障：自动重试一次（上游波动 / 冷启动 / 瞬态超时）。
+      // 仅在连接阶段重试——SSE 读取阶段不重试（部分内容已
+      // 产出，重试会导致内容重复）。重试间隔 1 秒（退避）。
+      this.calls += 1;
+      console.warn(
+        `[ProviderLlmGateway] stream connect failed, retrying once (provider=${this.config.provider}, call=${this.calls - 1}):`,
+        (error as Error)?.message ?? error,
       );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      try {
+        response = await fetch(this.requestUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.config.apiKey}`,
+          },
+          body: JSON.stringify(body),
+          signal: request.signal,
+        });
+      } catch (retryError) {
+        if (request.signal?.aborted) {
+          throw new Error(
+            `llm provider upstream cancelled (provider=${this.config.provider}, call=${this.calls})`,
+          );
+        }
+        throw new Error(
+          `llm provider upstream network failure (provider=${this.config.provider}, call=${this.calls}): ${(retryError as Error)?.message ?? ''}`,
+        );
+      }
     }
     if (!response.ok) {
       throw new Error(

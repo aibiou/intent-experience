@@ -14,6 +14,8 @@
  *   task_status=SUCCESS 时 data[0].url / data[0].video_result。
  */
 
+import type { AspectRatio } from './generation-gateway';
+
 /** 视频提供方契约类别。 */
 export type VideoProvider = 'agnes' | 'zhipu';
 
@@ -35,14 +37,20 @@ export function videoProviderOf(config: {
   return 'agnes';
 }
 
-/** 画幅 → 智谱 size（"宽x高" 像素）。缺省用提供方默认。 */
-export function zhipuSizeOf(ratio: '16:9' | '9:16' | '1:1'): string {
+/** 画幅 → 智谱 size（"宽x高" 像素）。缺省用提供方默认。
+ * 智谱仅支持 3 种画幅——其余映射到最接近的值。 */
+export function zhipuSizeOf(ratio: AspectRatio): string {
   switch (ratio) {
     case '9:16':
+    case '2:3':
+    case '3:4':
       return '1080x1920';
     case '1:1':
       return '1080x1080';
     case '16:9':
+    case '4:3':
+    case '3:2':
+    case '21:9':
     default:
       return '1920x1080';
   }
@@ -57,7 +65,7 @@ export function buildZhipuVideoCreate(
   model: string,
   prompt: string,
   options?: {
-    aspectRatio?: '16:9' | '9:16' | '1:1';
+    aspectRatio?: AspectRatio;
     seconds?: '4' | '6' | '8' | '12';
   },
 ): Record<string, unknown> {

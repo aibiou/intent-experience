@@ -12,7 +12,7 @@ import {
   type SessionState,
 } from './_components/experience-screen';
 import { EntranceScreen } from './_components/entrance-screen';
-import type { ExperienceSeed } from '../src/experience/catalog';
+import type { ExperienceSeed, ExperienceCategory } from '../src/experience/catalog';
 
 const RECENTS_KEY = 'intent-experience.recents';
 // 服务端作品库（/api/works）落地后——展示上限放开；
@@ -92,6 +92,7 @@ export default function HomePage() {
   const [phase, setPhase] = useState<'home' | 'entrance' | 'experience'>('home');
   // Screen 03 第一体验入口屏：暂存的策展体验种子（点卡片 / 惊喜进入）。
   const [entranceSeed, setEntranceSeed] = useState<ExperienceSeed | null>(null);
+  const [experienceCategory, setExperienceCategory] = useState<ExperienceCategory | undefined>();
   const [session, setSession] = useState<SessionState | null>(null);
   const [initialInput, setInitialInput] = useState<string | undefined>();
   const [initialRefs, setInitialRefs] = useState<string[] | undefined>();
@@ -195,7 +196,7 @@ export default function HomePage() {
     setPhase('entrance');
   }, []);
 
-  const start = useCallback(async (input: string) => {
+  const start = useCallback(async (input: string, category?: ExperienceCategory) => {
     try {
       const response = await fetch('/api/session/start', { method: 'POST' });
       const data = await response.json();
@@ -209,6 +210,7 @@ export default function HomePage() {
       setInitialInput(input);
       setInitialRefs(undefined);
       setResume(false);
+      setExperienceCategory(category);
       setPhase('experience');
     } catch {
       // 启动失败时留在首页
@@ -299,7 +301,7 @@ export default function HomePage() {
     return (
       <EntranceScreen
         seed={entranceSeed}
-        onPick={(prompt) => void start(prompt)}
+        onPick={(prompt) => void start(prompt, entranceSeed.category)}
         onBack={() => setPhase('home')}
       />
     );
@@ -314,6 +316,7 @@ export default function HomePage() {
         resume={resume}
         mode={mode}
         providerLabel={providerLabel}
+        category={experienceCategory}
         onSessionUpdate={setSession}
         onRecent={handleRecent}
         onExit={() => setPhase('home')}
