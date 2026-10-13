@@ -1,0 +1,10 @@
+{
+  "name": "adr-0002-spike-cancellation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ADR-0002 一次性工程验证 Spike（S-1/S-2/S-3）；非常驻产品代码，验证后归档",
+  "scripts": {
+    "start": "sh run.sh"
+  }
+}

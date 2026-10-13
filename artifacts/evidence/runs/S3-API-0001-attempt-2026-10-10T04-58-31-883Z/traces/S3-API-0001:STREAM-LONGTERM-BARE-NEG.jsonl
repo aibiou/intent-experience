@@ -1,0 +1,2 @@
+{"caseId":"S3-API-0001:STREAM-LONGTERM-BARE-NEG","event":"trace_started","at":"2026-10-10T04:57:30.439Z","form":"inprocess","sourceClause":"S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.2（裸记住请求不识别为记忆写入）；黄金 G08-NEG 不变式；授权 §5.7（未知情况升级而非由系统决定）","servers":[]}
+{"caseId":"S3-API-0001:STREAM-LONGTERM-BARE-NEG","event":"trace_completed","at":"2026-10-10T04:57:30.443Z","startedAt":"2026-10-10T04:57:30.439Z","durationMs":3,"result":"PASS","pass":true}

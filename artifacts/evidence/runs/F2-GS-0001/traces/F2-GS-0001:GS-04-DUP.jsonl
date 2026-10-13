@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:GS-04-DUP","event":"trace_started","at":"2026-10-08T15:21:20.008Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-04 负向：重复 STOP"}
+{"caseId":"F2-GS-0001:GS-04-DUP","event":"trace_completed","at":"2026-10-08T15:21:20.392Z","startedAt":"2026-10-08T15:21:20.007Z","durationMs":385,"result":"PASS","pass":true}

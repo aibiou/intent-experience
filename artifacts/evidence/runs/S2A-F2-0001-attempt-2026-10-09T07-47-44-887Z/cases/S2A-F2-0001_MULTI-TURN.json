@@ -1,0 +1,143 @@
+{
+  "caseIdNamespace": "S2A-F2-0001:MULTI-TURN",
+  "sourceClause": "S2A-F2-SEMANTIC-FREEZE-01 §4 变更 1；08 §11/§12/§28（局部补丁 / 补丁形状 / 版本化历史）；D-04 选项 A（operation 值域收敛）",
+  "scope": "多轮修改：add（结构化）+ modify tune（非结构性登记）+ add 累积；版本单调、user_changes 累积、不重新生成整个作品",
+  "precondition": "CREATION-CHAIN 基线（WAITING/CREATION v6，创作 v1 USER_FEEDBACK）",
+  "inputFault": "三轮创作修改输入（声明 CREATE；首轮显式声明 expectedCreationVersion=1，次轮缺省（默认当前版本），三轮显式声明 =3）",
+  "expected": {
+    "rounds": "三轮修改均接受（声明 CREATE）：\"再加两个障碍\" → v2（add obstacle×2，obstacle_count=2，objects=[player,exit,obstacle,obstacle_2_2]）；\"把出口放远一点\" → v3（modify tune，非结构性——结构保持，变更事实经 userChanges 登记）；\"再加一个障碍\" → v4（obstacle_count=3，objects 追加 obstacle_4_1）",
+    "invariants": "创作版本单调 1→2→3→4；user_changes 累积 3 条（版本 [2,3,4]）；player/exit 始终保留于 objects[0..1]（局部补丁，不重新生成整个作品——08 §11）；每轮预览内容逐字节等于 create 语料；决策追踪 llm_used=false；头 reason=creation_modification",
+    "finalState": "WAITING/CREATION v12；创作 v4 USER_FEEDBACK"
+  },
+  "actual": {
+    "baseline": "vundefined undefined / state v6",
+    "rounds": [
+      {
+        "rawInput": "再加两个障碍",
+        "headerReason": "creation_modification",
+        "headerStateVersion": 7,
+        "policyVersion": "policy_v1.2.0",
+        "creationVersion": 2,
+        "phase": "USER_FEEDBACK",
+        "objects": [
+          "player",
+          "exit",
+          "obstacle",
+          "obstacle_2_2"
+        ],
+        "obstacleCount": 2,
+        "userChanges": 1,
+        "userChangeVersions": [
+          2
+        ],
+        "lastPatch": {
+          "operation": "add",
+          "target": "obstacle",
+          "change": {
+            "count": 2
+          },
+          "summary": "再加两个障碍"
+        },
+        "stateVersion": 8,
+        "stateStatus": "WAITING/CREATION",
+        "contentMatchesFixture": true,
+        "decisionLlmUsed": false
+      },
+      {
+        "rawInput": "把出口放远一点",
+        "headerReason": "creation_modification",
+        "headerStateVersion": 9,
+        "policyVersion": "policy_v1.2.0",
+        "creationVersion": 3,
+        "phase": "USER_FEEDBACK",
+        "objects": [
+          "player",
+          "exit",
+          "obstacle",
+          "obstacle_2_2"
+        ],
+        "obstacleCount": 2,
+        "userChanges": 2,
+        "userChangeVersions": [
+          2,
+          3
+        ],
+        "lastPatch": {
+          "operation": "modify",
+          "target": "exit",
+          "change": {
+            "kind": "tune"
+          },
+          "summary": "把出口放远一点"
+        },
+        "stateVersion": 10,
+        "stateStatus": "WAITING/CREATION",
+        "contentMatchesFixture": true,
+        "decisionLlmUsed": false
+      },
+      {
+        "rawInput": "再加一个障碍",
+        "headerReason": "creation_modification",
+        "headerStateVersion": 11,
+        "policyVersion": "policy_v1.2.0",
+        "creationVersion": 4,
+        "phase": "USER_FEEDBACK",
+        "objects": [
+          "player",
+          "exit",
+          "obstacle",
+          "obstacle_2_2",
+          "obstacle_4_1"
+        ],
+        "obstacleCount": 3,
+        "userChanges": 3,
+        "userChangeVersions": [
+          2,
+          3,
+          4
+        ],
+        "lastPatch": {
+          "operation": "add",
+          "target": "obstacle",
+          "change": {
+            "count": 1
+          },
+          "summary": "再加一个障碍"
+        },
+        "stateVersion": 12,
+        "stateStatus": "WAITING/CREATION",
+        "contentMatchesFixture": true,
+        "decisionLlmUsed": false
+      }
+    ],
+    "finalCreation": "v4 USER_FEEDBACK",
+    "finalState": "WAITING/CREATION v12",
+    "patchAppliedEvents": 3,
+    "versionMonotonic": true,
+    "objectsPreserved": true,
+    "obstacleCount": 3
+  },
+  "invariants": [
+    "S2a 范围边界（S2A-F2-SEMANTIC-FREEZE-01 §2）：创作子状态机轴外承载于持久创作对象，体验阶段轴不变；创作状态会话内持久（跨 USER_ACTION / RESPONSE_COMPLETED 周期存活）；补丁 operation 值域 {add, remove, modify}（REPLACE / TUNE / REBALANCE / RENAME / RESTYLE 作 modify 子型）；CREATION_COMPLETE 经 STOP 执行路径在创作域登记",
+    "S1 范围边界保持：CREATE/SEARCH 禁用旧词表项（CREATE 为 PD-21 关闭切片启用动作）；WHAT_IF 仅单次模拟；S2b 保留操作（SIMPLIFY / DEEPEN / REFRAME）识别后升级拒绝，不静默执行",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；创作修改轮次经 expectedCreationVersion 双重前置校验——陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12 同族）；失败写入不消耗任何版本号（OBL-01 纪律）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "补丁应用是局部变更（08 §11：不重新生成整个作品；版本单调 + user_changes 累积）；修改仅在 USER_FEEDBACK 轮应用（13 §21：存在未预览补丁不得 COMPLETE——补丁必经 PREVIEW）",
+    "创作 ASK 纪律（08 §16）：输入与既有轴触发器冲突时不自动判定——至多一个高价值澄清问题；创作子状态不推进",
+    "完成语义（08 §27 / 13 §22/§23.2）：完成信号词表识别后立即结束，不自动推荐、不自动继续；创作完成经 STOP 路径登记（USER_FEEDBACK → COMPLETE + creation_completed 事件；决策追踪 reason 区分\"创作完成\"与\"停止体验\"——D-05 选项 A）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）；创作修改轮次决策追踪 llm_used=false（确定性规则，非模型）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/S2A-F2-0001:MULTI-TURN.jsonl",
+    "traceSha256": "0e736ad91d0b6f835dbc500eab97ea9300b0e63a91dcb86b0ee1bbd263cee8f2",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

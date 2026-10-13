@@ -1,0 +1,107 @@
+{
+  "runId": "F1-E2E-0001",
+  "obligation": "P3-S1-IMPL-AUTH-01 §3 F-1（Next.js Route Handler 流式 + AbortSignal 取消端到端动态证据）",
+  "startedAt": "2026-10-08T14:19:51.063Z",
+  "finishedAt": "2026-10-08T14:19:54.798Z",
+  "durationMs": 3735,
+  "cases": [
+    {
+      "caseId": "F1-E2E-0001:F1-STREAM-01-INPROC",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "F1-E2E-0001:F1-STREAM-02-HTTP",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "F1-E2E-0001:F1-ABORT-01-INPROC",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "F1-E2E-0001:F1-ABORT-02-HTTP",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "F1-E2E-0001:F1-ABORT-03-PRECHUNK",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "F1-E2E-0001:F1-STOP-01-INPROC",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "F1-E2E-0001:F1-NEG-01-OUTOFSCOPE-HTTP",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F1-E2E-0001:F1-NEG-02-BADJSON-HTTP",
+      "result": "PASS"
+    },
+    {
+      "caseId": "F1-E2E-0001:F1-NEG-03-METHOD-HTTP",
+      "result": "FAIL"
+    }
+  ],
+  "allCasesPass": false,
+  "assertions": [
+    {
+      "id": "A3",
+      "description": "全部 9 案例记录齐备且 12 字段完整（E5 §4）",
+      "passed": false
+    },
+    {
+      "id": "A4",
+      "description": "全部 9 案例轨迹文件齐备且非空",
+      "passed": true
+    },
+    {
+      "id": "A5",
+      "description": "流式顺序与内容：分块按序（0..N-1）、内容逐字节等于合成语料、以 done 结束（进程内 + HTTP 两形态）",
+      "passed": false
+    },
+    {
+      "id": "A6",
+      "description": "进程内流中取消：收到 2 分块后 abort，零后续分块，cancellation 登记于下标 2，其后无任何事件",
+      "passed": false
+    },
+    {
+      "id": "A7",
+      "description": "HTTP 流中取消：客户端断开后服务端 request.signal 触发，审计汇登记 cancellation（下标 2），其后无任何事件；服务器断开后存活",
+      "passed": false
+    },
+    {
+      "id": "A8",
+      "description": "取消先于第一个分块：零内容分块，cancellation 登记于下标 0",
+      "passed": false
+    },
+    {
+      "id": "A9",
+      "description": "策略 STOP：单一 stopped 事件、零内容分块（S1 硬边界终止路径）",
+      "passed": false
+    },
+    {
+      "id": "A10",
+      "description": "负向拒绝：CREATE→400 ACTION_OUT_OF_S1_SCOPE（不产出流）；非法 JSON→400 INVALID_JSON_BODY；GET→405 METHOD_NOT_ALLOWED",
+      "passed": false
+    },
+    {
+      "id": "A11",
+      "description": "无真实提供方调用：产品运行时源码静态扫描无 fetch/网络/LLM 提供方/凭据引用；流式内容逐字节等于合成 fixture（A5 已证）",
+      "passed": true
+    },
+    {
+      "id": "A1",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段）",
+      "passed": true
+    },
+    {
+      "id": "A2",
+      "description": "环境锁定：engines.node === \"v24.21.0\"（F-2 精确锁定）且执行于 Node v24.21.0；Next.js 16.4.0 / React 19.3.0 已记录",
+      "passed": false
+    }
+  ],
+  "allAssertionsPass": false,
+  "allPassed": false,
+  "exitCode": 1,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2–G4）或产品状态为 PASS（E5 §2）。"
+}

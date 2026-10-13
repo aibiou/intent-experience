@@ -1,0 +1,61 @@
+{
+  "caseIdNamespace": "S3-API-0001:OBSERVABILITY",
+  "sourceClause": "S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.1/§1.2（只读快照——currentBranchId 会话级不变式）；API 契约 §2.3（Query 与 Command 分离——只读路由不改变任何状态）；07 §22（检索不改变体验）",
+  "scope": "只读观测路由底层快照：GET /api/memory 底层（短期记忆记录——STOP 完成路径登记，字段齐备）/ GET /api/experience/{id}/simulation 底层（currentBranchId===null，分支记录持久——sourceInput 可查）；连续查询零事件登记（只读纪律）",
+  "precondition": "WHY → STOP 链 + WHAT_IF → STOP 链（记忆与分支记录均存在）",
+  "inputFault": "无输入（只读查询）",
+  "expected": {
+    "memory": "GET /api/memory 底层快照：记录 ×2（两条链各经 STOP 完成路径登记短期记忆——topic=\"为什么\" / topic=\"如果摩擦力为零会怎样\"，memoryClass=short_term，source=session_observation，confidence=0.7，lifecycle=REMEMBERED）",
+    "simulation": "GET /api/experience/{id}/simulation 底层快照：currentBranchId===null（STOP 会话级清空），分支记录 ×1（rounds ×1，sourceInput=用户输入——持久化范围 = 分支记录全部分量）",
+    "readOnly": "连续查询零事件登记（events 长度不变——查询不改变任何状态——Query 与 Command 分离）"
+  },
+  "actual": {
+    "whyOk": true,
+    "stopAOk": true,
+    "whatIfOk": true,
+    "stopBOk": true,
+    "memory": [
+      {
+        "topic": "为什么",
+        "memoryClass": "short_term",
+        "source": "session_observation",
+        "confidence": 0.7,
+        "lifecycle": "REMEMBERED"
+      },
+      {
+        "topic": "如果摩擦力为零会怎样",
+        "memoryClass": "short_term",
+        "source": "session_observation",
+        "confidence": 0.7,
+        "lifecycle": "REMEMBERED"
+      }
+    ],
+    "simulation": {
+      "currentBranchId": null,
+      "branches": 1,
+      "rounds": 1,
+      "sourceInput": "如果摩擦力为零会怎样"
+    },
+    "queriesEqual": true,
+    "eventsDelta": 0
+  },
+  "invariants": [
+    "纯暴露层不变式（S3B-SEMANTIC-FREEZE-01 v1.0.0 §3 变更 4 / D-3 选项 A）：API 面扩展不改变任何运行时语义、决策追踪、事件契约——同一运行时实例（证据形态经 options.runtime 注入构造的运行时，进程内证据不经服务器单例）",
+    "请求形态判定（S3b）：会话上下文三要素齐备（request_id + session_id + user_input 均非空字符串）→ S2/S3 执行形态（真实运行路径）；否则为 S1 fixture 形态（semanticAction 直送——向后兼容，行为不变）",
+    "执行形态路由（S3b）：experience_id + state_version 齐备 → 既有体验直接提交（含跨会话分支操作——会话绑定放宽仅限分支操作路径，运行时内校验三前提）；缺省 → resolveIntent（记忆操作 → NDJSON 单行结果 + done；升级 → 400 INVALID_ACTION；start_experience → startExperience + submitExperienceEvent → NDJSON 流）",
+    "长期记忆识别纪律（S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.2）：识别仅在全部既有优先级层与记忆操作词表未命中后调用（仅认领会成为 UNKNOWN 的输入）；B 类须记住标记与偏好内容双命中——裸记住请求保持 UNKNOWN 升级纪律（黄金 G08-NEG 不变式）",
+    "跨会话分支操作三前提（S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.4）：WHAT_IF 分类 + 分支操作词识别；输入会话 SESSION_ACTIVE；宿主会话 SESSION_ENDED——放宽仅限分支操作路径（内容轮保持严格会话绑定）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据；默认仅合成数据（ADR-0002 §3 证据沙箱硬边界）"
+  ],
+  "evidence": {
+    "trace": "traces/S3-API-0001:OBSERVABILITY.jsonl",
+    "traceSha256": "a526233ae6a29fbd91b732536a12ef4746b3bdc0139ef6bde0ca8bcdcf3ef4c4",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 评测包 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

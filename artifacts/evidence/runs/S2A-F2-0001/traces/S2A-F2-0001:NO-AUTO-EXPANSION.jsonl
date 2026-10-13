@@ -1,0 +1,2 @@
+{"caseId":"S2A-F2-0001:NO-AUTO-EXPANSION","event":"trace_started","at":"2026-10-09T07:47:48.283Z","form":"inprocess","sourceClause":"S2A-F2-SEMANTIC-FREEZE-01 §4 变更 4；08 §7（最小可玩物）；13 §23.4（不自动扩张）","servers":[]}
+{"caseId":"S2A-F2-0001:NO-AUTO-EXPANSION","event":"trace_completed","at":"2026-10-09T07:47:49.026Z","startedAt":"2026-10-09T07:47:48.283Z","durationMs":743,"result":"PASS","pass":true}

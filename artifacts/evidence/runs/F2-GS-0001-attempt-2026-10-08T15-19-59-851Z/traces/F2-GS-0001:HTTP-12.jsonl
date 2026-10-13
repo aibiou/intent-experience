@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:HTTP-12","event":"trace_started","at":"2026-10-08T15:18:12.610Z","form":"http","sourceClause":"F-1 回归（HTTP 形态）：P3-S1-IMPL-AUTH-01 §3 F-1"}
+{"caseId":"F2-GS-0001:HTTP-12","event":"trace_completed","at":"2026-10-08T15:18:13.008Z","startedAt":"2026-10-08T15:18:12.610Z","durationMs":398,"result":"PASS","pass":true}

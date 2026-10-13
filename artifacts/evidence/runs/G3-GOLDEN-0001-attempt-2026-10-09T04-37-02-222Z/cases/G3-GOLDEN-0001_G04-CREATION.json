@@ -1,0 +1,21 @@
+{
+  "caseIdNamespace": "G3-GOLDEN-0001:G04-CREATION",
+  "sourceClause": "P2 Exit Gate §8 G04 Creation；Evaluation System V1 §5 G04；E2 Stage 5（最小 Creation Branch）；acceptance-mapping §B（G04 DEFERRED TO S2，PD-05/PD-06）",
+  "scope": "S2 范围（S1 冻结排除完整 Creation；E2 最小 Creation 安排于 S2）",
+  "precondition": "P2 Exit Gate §8 黄金语料完整性声明（本运行不执行）",
+  "inputFault": "不适用（范围外；S1 范围已冻结 PD-05/PD-06/PD-07）",
+  "expected": "黄金案例四维度证据（Normal / Negative / Boundary / Failure-Recovery；Expected / Observed / Evidence Location / Evaluator）",
+  "actual": "NOT RUN——Normal / Negative / Boundary / Failure-Recovery 四维度证据待 S2/P2 关闭切片创建并执行（最小 Creation 实现后）",
+  "invariants": [
+    "DEFERRED 经产品负责人批准（E5 §2 词汇表）；不计为通过",
+    "S1 范围冻结（PD-05/PD-06/PD-07）；本登记不扩大 S1 范围"
+  ],
+  "evidence": {
+    "deferralAuthority": "PD-19（产品负责人 2026-10-09 裁决；decision-register OBL-03）",
+    "trackedObligation": "OBL-03（decision-register v0.16.0）",
+    "closureSlice": "S2/P2 关闭切片（最小实现 + 四维度黄金证据）"
+  },
+  "result": "DEFERRED",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无缺陷——范围外延期（PD-19）；关闭切片须创建最小实现并执行四维度黄金证据"
+}

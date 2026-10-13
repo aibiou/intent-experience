@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB11-TOOL","event":"trace_started","at":"2026-10-08T15:59:57.857Z","form":"static+in-process","sourceClause":"P2-EVIDENCE-4.0 EB-11（Tool Authorization Boundary：LLM 不得直接执行工具）"}
+{"caseId":"F3-EB-0001:EB11-TOOL","event":"trace_completed","at":"2026-10-08T15:59:58.245Z","startedAt":"2026-10-08T15:59:57.857Z","durationMs":388,"result":"FAIL","pass":false}

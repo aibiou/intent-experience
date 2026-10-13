@@ -1,0 +1,804 @@
+{
+  "runId": "OBL02-LATENCY-0001",
+  "method": {
+    "id": "OBL-02-LATENCY-METHOD-01",
+    "version": "1.0.0",
+    "source": "docs/product/baseline/obl-02-latency-measurement-method-v1.md"
+  },
+  "window": {
+    "startedAt": "2026-10-09T10:35:11.418Z",
+    "finishedAt": "2026-10-09T10:39:29.537Z",
+    "durationMs": 258115
+  },
+  "environment": {
+    "os": "Darwin 25.6.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": {
+      "model": "Apple M1",
+      "logicalProcessors": 8
+    },
+    "memory": {
+      "totalBytes": 8589934592
+    },
+    "node": "v24.21.0",
+    "nodeExecutable": "/Users/pg014/.nvm/versions/node/v24.21.0/bin/node",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "typescript": "7.0.2"
+  },
+  "strata": {
+    "inproc_direct_answer": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 329.24,
+        "p50Ms": 329.28,
+        "p95Ms": 330.93,
+        "minMs": 326.73,
+        "maxMs": 331.1
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 41.15,
+        "p50Ms": 41.3,
+        "p95Ms": 41.52,
+        "minMs": 40.28,
+        "maxMs": 41.92
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 8,
+        "p50Ms": 8,
+        "p95Ms": 8,
+        "minMs": 8,
+        "maxMs": 8
+      },
+      "chunkIntervalsMs": {
+        "count": 210,
+        "meanMs": 41.15,
+        "p50Ms": 41.28,
+        "p95Ms": 41.44,
+        "minMs": 39.66,
+        "maxMs": 41.67
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "inproc_why": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 370.33,
+        "p50Ms": 370.51,
+        "p95Ms": 371.3,
+        "minMs": 366.91,
+        "maxMs": 371.3
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 41.25,
+        "p50Ms": 41.3,
+        "p95Ms": 41.67,
+        "minMs": 40.32,
+        "maxMs": 41.77
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 9,
+        "p50Ms": 9,
+        "p95Ms": 9,
+        "minMs": 9,
+        "maxMs": 9
+      },
+      "chunkIntervalsMs": {
+        "count": 240,
+        "meanMs": 41.13,
+        "p50Ms": 41.25,
+        "p95Ms": 41.4,
+        "minMs": 39.49,
+        "maxMs": 41.73
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "inproc_what_if_simulate": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 575.7,
+        "p50Ms": 575.68,
+        "p95Ms": 577.21,
+        "minMs": 573.69,
+        "maxMs": 577.97
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 41.21,
+        "p50Ms": 41.22,
+        "p95Ms": 42.08,
+        "minMs": 39.82,
+        "maxMs": 44.02
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 14,
+        "p50Ms": 14,
+        "p95Ms": 14,
+        "minMs": 14,
+        "maxMs": 14
+      },
+      "chunkIntervalsMs": {
+        "count": 390,
+        "meanMs": 41.11,
+        "p50Ms": 41.22,
+        "p95Ms": 41.35,
+        "minMs": 39.22,
+        "maxMs": 41.82
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "inproc_change_direction": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 370.15,
+        "p50Ms": 370.1,
+        "p95Ms": 371.58,
+        "minMs": 367.7,
+        "maxMs": 371.8
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 41.04,
+        "p50Ms": 41.21,
+        "p95Ms": 41.34,
+        "minMs": 40.23,
+        "maxMs": 41.76
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 9,
+        "p50Ms": 9,
+        "p95Ms": 9,
+        "minMs": 9,
+        "maxMs": 9
+      },
+      "chunkIntervalsMs": {
+        "count": 240,
+        "meanMs": 41.13,
+        "p50Ms": 41.21,
+        "p95Ms": 41.33,
+        "minMs": 39.58,
+        "maxMs": 42.27
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "inproc_stop": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 0.04,
+        "p50Ms": 0.03,
+        "p95Ms": 0.08,
+        "minMs": 0.02,
+        "maxMs": 0.19
+      },
+      "ttfbMs": null,
+      "ttfbNote": "STOP 路径无内容分块（空语料）——TTFB 登记为 N/A（方法 §1：首内容分块延迟对该类别不适用）",
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "minMs": 0,
+        "maxMs": 0
+      },
+      "chunkIntervalsMs": {
+        "count": 0
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "stopped"
+      ]
+    },
+    "inproc_create": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 374.99,
+        "p50Ms": 376.54,
+        "p95Ms": 379.3,
+        "minMs": 368.72,
+        "maxMs": 380.68
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 41.62,
+        "p50Ms": 41.42,
+        "p95Ms": 42.41,
+        "minMs": 40.28,
+        "maxMs": 42.87
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 9,
+        "p50Ms": 9,
+        "p95Ms": 9,
+        "minMs": 9,
+        "maxMs": 9
+      },
+      "chunkIntervalsMs": {
+        "count": 240,
+        "meanMs": 41.66,
+        "p50Ms": 41.7,
+        "p95Ms": 42.34,
+        "minMs": 40.12,
+        "maxMs": 42.47
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "inproc_correction": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 377.09,
+        "p50Ms": 377.28,
+        "p95Ms": 379.76,
+        "minMs": 373.48,
+        "maxMs": 380.16
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 41.77,
+        "p50Ms": 42.11,
+        "p95Ms": 42.36,
+        "minMs": 40.45,
+        "maxMs": 42.41
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 9,
+        "p50Ms": 9,
+        "p95Ms": 9,
+        "minMs": 9,
+        "maxMs": 9
+      },
+      "chunkIntervalsMs": {
+        "count": 240,
+        "meanMs": 41.91,
+        "p50Ms": 42.2,
+        "p95Ms": 42.34,
+        "minMs": 39.39,
+        "maxMs": 42.74
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "http_direct_answer": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 336.77,
+        "p50Ms": 337.02,
+        "p95Ms": 339.38,
+        "minMs": 331.8,
+        "maxMs": 341.17
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 42.16,
+        "p50Ms": 42.22,
+        "p95Ms": 42.61,
+        "minMs": 41.15,
+        "maxMs": 42.86
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 8,
+        "p50Ms": 8,
+        "p95Ms": 8,
+        "minMs": 8,
+        "maxMs": 8
+      },
+      "chunkIntervalsMs": {
+        "count": 210,
+        "meanMs": 42.01,
+        "p50Ms": 42.31,
+        "p95Ms": 42.86,
+        "minMs": 39.65,
+        "maxMs": 43.63
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "http_why": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 378.7,
+        "p50Ms": 378.74,
+        "p95Ms": 381.48,
+        "minMs": 373.91,
+        "maxMs": 383.45
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 42.3,
+        "p50Ms": 42.46,
+        "p95Ms": 42.65,
+        "minMs": 41.43,
+        "maxMs": 42.74
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 9,
+        "p50Ms": 9,
+        "p95Ms": 9,
+        "minMs": 9,
+        "maxMs": 9
+      },
+      "chunkIntervalsMs": {
+        "count": 240,
+        "meanMs": 41.97,
+        "p50Ms": 42.17,
+        "p95Ms": 42.77,
+        "minMs": 39.5,
+        "maxMs": 43.34
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "http_what_if_simulate": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 588.98,
+        "p50Ms": 588.86,
+        "p95Ms": 592.76,
+        "minMs": 582.79,
+        "maxMs": 595.88
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 42.07,
+        "p50Ms": 42.43,
+        "p95Ms": 42.53,
+        "minMs": 40.46,
+        "maxMs": 42.58
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 14,
+        "p50Ms": 14,
+        "p95Ms": 14,
+        "minMs": 14,
+        "maxMs": 14
+      },
+      "chunkIntervalsMs": {
+        "count": 390,
+        "meanMs": 42.02,
+        "p50Ms": 42.3,
+        "p95Ms": 42.76,
+        "minMs": 39.27,
+        "maxMs": 43.66
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "http_change_direction": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 378.45,
+        "p50Ms": 378.51,
+        "p95Ms": 380.83,
+        "minMs": 374.27,
+        "maxMs": 381.01
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 42.2,
+        "p50Ms": 42.43,
+        "p95Ms": 42.58,
+        "minMs": 41,
+        "maxMs": 42.74
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 9,
+        "p50Ms": 9,
+        "p95Ms": 9,
+        "minMs": 9,
+        "maxMs": 9
+      },
+      "chunkIntervalsMs": {
+        "count": 240,
+        "meanMs": 41.96,
+        "p50Ms": 42.19,
+        "p95Ms": 42.69,
+        "minMs": 39.66,
+        "maxMs": 43.22
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "http_stop": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "minMs": 0,
+        "maxMs": 0
+      },
+      "ttfbMs": null,
+      "ttfbNote": "STOP 路径无内容分块（空语料）——TTFB 登记为 N/A（方法 §1：首内容分块延迟对该类别不适用）",
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "minMs": 0,
+        "maxMs": 0
+      },
+      "chunkIntervalsMs": {
+        "count": 0
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "stopped"
+      ]
+    },
+    "http_create": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 378.53,
+        "p50Ms": 378.48,
+        "p95Ms": 381.27,
+        "minMs": 374.29,
+        "maxMs": 381.6
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 42.01,
+        "p50Ms": 42.33,
+        "p95Ms": 42.5,
+        "minMs": 39.65,
+        "maxMs": 42.79
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 9,
+        "p50Ms": 9,
+        "p95Ms": 9,
+        "minMs": 9,
+        "maxMs": 9
+      },
+      "chunkIntervalsMs": {
+        "count": 240,
+        "meanMs": 42,
+        "p50Ms": 42.41,
+        "p95Ms": 42.62,
+        "minMs": 39.63,
+        "maxMs": 42.71
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "http_correction": {
+      "sampleCount": 30,
+      "wallClockMs": {
+        "count": 30,
+        "meanMs": 379,
+        "p50Ms": 378.95,
+        "p95Ms": 381.59,
+        "minMs": 375.19,
+        "maxMs": 382.47
+      },
+      "ttfbMs": {
+        "count": 30,
+        "meanMs": 42.04,
+        "p50Ms": 42.31,
+        "p95Ms": 42.52,
+        "minMs": 40.75,
+        "maxMs": 43.34
+      },
+      "ttfbNote": null,
+      "chunkCount": {
+        "count": 30,
+        "meanMs": 9,
+        "p50Ms": 9,
+        "p95Ms": 9,
+        "minMs": 9,
+        "maxMs": 9
+      },
+      "chunkIntervalsMs": {
+        "count": 240,
+        "meanMs": 42.04,
+        "p50Ms": 42.39,
+        "p95Ms": 42.66,
+        "minMs": 39.29,
+        "maxMs": 42.96
+      },
+      "contentMatchFixture": {
+        "true": 30,
+        "false": 0
+      },
+      "terminals": [
+        "done"
+      ]
+    },
+    "inproc_fault_recovery": {
+      "sampleCount": 30,
+      "failure": {
+        "codeOk": 30,
+        "retryableOk": 30,
+        "roundTripMs": {
+          "count": 30,
+          "meanMs": 0.24,
+          "p50Ms": 0.21,
+          "p95Ms": 0.32,
+          "minMs": 0.18,
+          "maxMs": 0.63
+        }
+      },
+      "recovery": {
+        "wallClockMs": {
+          "count": 30,
+          "meanMs": 334.9,
+          "p50Ms": 335.21,
+          "p95Ms": 337.68,
+          "minMs": 329.23,
+          "maxMs": 338.35
+        },
+        "ttfbMs": {
+          "count": 30,
+          "meanMs": 41.87,
+          "p50Ms": 42.26,
+          "p95Ms": 42.55,
+          "minMs": 40.36,
+          "maxMs": 42.99
+        },
+        "chunkCount": {
+          "count": 30,
+          "meanMs": 8,
+          "p50Ms": 8,
+          "p95Ms": 8,
+          "minMs": 8,
+          "maxMs": 8
+        },
+        "chunkIntervalsMs": {
+          "count": 210,
+          "meanMs": 41.85,
+          "p50Ms": 42.21,
+          "p95Ms": 42.35,
+          "minMs": 39.78,
+          "maxMs": 42.43
+        },
+        "terminals": [
+          "done"
+        ],
+        "contentMatchFixture": {
+          "true": 30,
+          "false": 0
+        }
+      }
+    },
+    "http_fault_recovery": {
+      "sampleCount": 30,
+      "failure": {
+        "codeOk": 30,
+        "retryableOk": 30,
+        "roundTripMs": {
+          "count": 30,
+          "meanMs": 5.79,
+          "p50Ms": 5.75,
+          "p95Ms": 6.38,
+          "minMs": 4.84,
+          "maxMs": 6.74
+        }
+      },
+      "recovery": {
+        "wallClockMs": {
+          "count": 30,
+          "meanMs": 339.06,
+          "p50Ms": 338.99,
+          "p95Ms": 341.95,
+          "minMs": 333.88,
+          "maxMs": 344.22
+        },
+        "ttfbMs": {
+          "count": 30,
+          "meanMs": 41.72,
+          "p50Ms": 42.26,
+          "p95Ms": 42.41,
+          "minMs": 39.7,
+          "maxMs": 42.53
+        },
+        "chunkCount": {
+          "count": 30,
+          "meanMs": 8,
+          "p50Ms": 8,
+          "p95Ms": 8,
+          "minMs": 8,
+          "maxMs": 8
+        },
+        "chunkIntervalsMs": {
+          "count": 210,
+          "meanMs": 42.24,
+          "p50Ms": 42.28,
+          "p95Ms": 43.08,
+          "minMs": 39.6,
+          "maxMs": 43.43
+        },
+        "terminals": [
+          "done"
+        ],
+        "contentMatchFixture": {
+          "true": 30,
+          "false": 0
+        }
+      }
+    }
+  },
+  "totals": {
+    "strata": 16,
+    "samples": 480,
+    "normalPathSamples": 420,
+    "faultRecoverySamples": 60,
+    "forms": 2,
+    "requestCategories": 7,
+    "paths": 2
+  },
+  "cases": {
+    "total": 16,
+    "pass": 15,
+    "fail": 1
+  },
+  "assertions": [
+    {
+      "id": "A1",
+      "description": "样本纪律（方法 §5）：16 分层全部执行且每分层 ≥ 30 提交",
+      "passed": true
+    },
+    {
+      "id": "A2",
+      "description": "执行形态分层（方法 §2）：进程内 / HTTP 分别登记（各 8 分层：7 类别 + 1 故障恢复），不合并、不计算跨形态混合均值",
+      "passed": true
+    },
+    {
+      "id": "A3",
+      "description": "请求类别分层（方法 §4）：7 类语义动作独立登记，策略动作与类别期望逐样本一致（无混合平均值）",
+      "passed": true
+    },
+    {
+      "id": "A4",
+      "description": "路径分层（方法 §1/§4）：故障恢复路径单列；每次首次尝试均失败（LLM_UNAVAILABLE / 503，retryable=true），每次重试均全链路完成；进程内形态 llm_request_started=2 / completed=1",
+      "passed": true
+    },
+    {
+      "id": "A5",
+      "description": "指标完整性（方法 §1）：每正常路径样本含 wallClockMs>0 / terminal / chunkCount；TTFB 对有内容分块类别为数值，对 STOP（空语料）登记为 N/A",
+      "passed": false
+    },
+    {
+      "id": "A6",
+      "description": "分块间隔一致性：每样本 chunkIntervalsMs.length === max(0, chunkCount − 1)",
+      "passed": true
+    },
+    {
+      "id": "A7",
+      "description": "环境分层登记（方法 §2）：Node v24.21.0 精确锁定；OS / CPU / 内存 / Next.js / React / TypeScript 版本齐备",
+      "passed": true
+    },
+    {
+      "id": "A8",
+      "description": "运行窗口登记（方法 §5）：Run ID / git HEAD / 窗口起止 / 持续时长齐备（同一窗口不切换运行时版本）",
+      "passed": true
+    },
+    {
+      "id": "A9",
+      "description": "模型分层（方法 §3）：模型维度登记 N/A（synthetic gateway）；运行时代码无真实提供方出口（静态扫描 src/experience 核心模块无 fetch / https 出口）",
+      "passed": true
+    },
+    {
+      "id": "A10",
+      "description": "披露纪律（方法 §6）：汇总含披露声明（参考值不构成指标宣称）；无统计阈值键 / 无“达标”宣称（PB-03 / PD-08）",
+      "passed": true
+    },
+    {
+      "id": "A11",
+      "description": "内容保真（ADR-0002 §3 合成数据边界）：全部 480 样本流内容逐字节等于对应语义动作合成语料（STOP 为空语料）",
+      "passed": true
+    },
+    {
+      "id": "A12",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致（两遍：写入 → 独立重算）",
+      "passed": true
+    }
+  ],
+  "disclosure": "内部参考值 / 参考统计量（方法 §5 样本纪律满足：每分层 ≥30 提交）——不构成任何延迟指标宣称（方法 §6）；无统计阈值（PB-03 / PD-08：无真实用户基线不编造阈值）；任何指标宣称须同时满足方法批准 + 样本纪律 + 形态/环境/类别分层注明；公开发布须另行满足 E3 统计 Gate（人群、观察窗口、分子/分母、数据源、阈值、批准人）。",
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置 G5 或任何产品 Gate 状态为 PASS（E5 §2）。G5 第 9 项（延迟结果）是否关闭由独立评测人（角色 5）经逐项裁决作出。",
+  "allAssertionsPass": false,
+  "allCasesPass": false,
+  "allPassed": false,
+  "exitCode": 1
+}

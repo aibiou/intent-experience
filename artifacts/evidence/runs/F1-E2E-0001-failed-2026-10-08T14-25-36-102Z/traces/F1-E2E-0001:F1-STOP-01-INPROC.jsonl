@@ -1,0 +1,6 @@
+{"caseId":"F1-E2E-0001:F1-STOP-01-INPROC","event":"trace_started","at":"2026-10-08T14:23:16.453Z","form":"in-process","sourceClause":"C3 §7 STOP（策略动作）；S1 硬边界（STOP/CHANGE）；S1 §26；E5 §5 必测维度（边界条件）"}
+{"caseId":"F1-E2E-0001:F1-STOP-01-INPROC","event":"request-completed","at":"2026-10-08T14:23:16.453Z","form":"in-process","status":200,"eventCount":0}
+{"caseId":"F1-E2E-0001:F1-STOP-01-INPROC","event":"trace_completed","at":"2026-10-08T14:23:16.456Z","startedAt":"2026-10-08T14:23:16.453Z","durationMs":3,"result":"FAIL","pass":false}
+{"caseId":"F1-E2E-0001:F1-STOP-01-INPROC","event":"trace_started","at":"2026-10-08T14:24:31.975Z","form":"in-process","sourceClause":"C3 §7 STOP（策略动作）；S1 硬边界（STOP/CHANGE）；S1 §26；E5 §5 必测维度（边界条件）"}
+{"caseId":"F1-E2E-0001:F1-STOP-01-INPROC","event":"request-completed","at":"2026-10-08T14:24:31.976Z","form":"in-process","status":200,"eventCount":1}
+{"caseId":"F1-E2E-0001:F1-STOP-01-INPROC","event":"trace_completed","at":"2026-10-08T14:24:31.977Z","startedAt":"2026-10-08T14:24:31.975Z","durationMs":2,"result":"PASS","pass":true}

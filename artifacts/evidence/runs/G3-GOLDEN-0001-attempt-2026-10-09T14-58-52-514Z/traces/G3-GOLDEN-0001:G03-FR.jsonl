@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G03-FR","event":"trace_started","at":"2026-10-09T14:57:56.024Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G03 Failure/Recovery；S1-12 陈旧版本写入拒绝（STATE_VERSION_CONFLICT，不覆盖最新状态）","goldenCase":"G03","dimension":"FAILURE_RECOVERY"}
+{"caseId":"G3-GOLDEN-0001:G03-FR","event":"trace_completed","at":"2026-10-09T14:57:56.624Z","startedAt":"2026-10-09T14:57:56.024Z","durationMs":600,"result":"PASS","pass":true}

@@ -1,0 +1,62 @@
+{
+  "caseIdNamespace": "S4A-F1-0001:ZERO-REGRESSION",
+  "sourceClause": "S4A-SEMANTIC-FREEZE-01 v1.0.0 §2 优先级链 + §4 不变式（零回归）；policy_v2.3.0 变更 1–2",
+  "scope": "S4 零回归不变式——41 组既有证据输入（全部既有优先级层 + 记忆域 + 升级面代表）分类与 S4 前一致；优先级层插入位置静态字节序验证；captureLastResponse 应用验证；冻结表扩展与 POLICY_VERSION 验证",
+  "precondition": "分类器纯函数 + 已提交产品源码字节",
+  "inputFault": "无（回归面验证：S4 前已存在的输入面零变化）",
+  "expected": {
+    "regressionInputs": "42 组既有证据输入分类与 S4 前一致（全部既有优先级层 + 记忆域 + 升级面代表——零既有输入行为变化）",
+    "layerInsertion": "CONTINUE / REPEAT 检查位于 QUESTION_MARKERS 检查之后、记忆操作识别之前（优先级层插入全部既有层之后——静态字节序验证）",
+    "capture": "captureLastResponse 应用于提交成功路径（上一完成轮响应登记——REPEAT 数据源）",
+    "policyTable": "resolvePolicy：CONTINUE → CONTINUE / REPEAT → REPEAT（policy_v2.3.0 冻结表扩展；POLICY_VERSION=policy_v2.3.0）"
+  },
+  "actual": {
+    "regressionTotal": 42,
+    "regressionMismatches": [],
+    "layerOrder": {
+      "questionMarkersIndex": 5443,
+      "continueIndex": 5763,
+      "repeatIndex": 5879,
+      "memoryOpIndex": 6174,
+      "ltmIndex": 6574,
+      "continueAfterQuestionMarkers": true,
+      "repeatAfterContinue": true,
+      "memoryOpAfterRepeat": true,
+      "ltmAfterMemoryOp": true
+    },
+    "captureApplied": true,
+    "frozenMapContinue": true,
+    "frozenMapRepeat": true,
+    "continuePolicy": {
+      "semanticAction": "CONTINUE",
+      "policyAction": "CONTINUE"
+    },
+    "repeatPolicy": {
+      "semanticAction": "REPEAT",
+      "policyAction": "REPEAT"
+    },
+    "policyVersion": "policy_v2.3.0"
+  },
+  "invariants": [
+    "S4 范围边界（S4A-SEMANTIC-FREEZE-01 v1.0.0 §1/§2）：REPEAT / CONTINUE 为策略动作（14 §8 恒等映射，policy_v2.3.0 变更 1–2——C3 G-1 空缺版本化关闭）；CONTINUE 幂等确认回合（无状态变更，state_version 不变，done 事件）；REPEAT 呈现层重放上一完成轮响应（state_version 不变；内容逐字节等于上一完成轮——呈现层重放，不重新生成）",
+    "优先级链（S4A §2；policy_v2.3.0 变更 1）：STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER > CONTINUE > REPEAT > UNKNOWN（升级）——CONTINUE / REPEAT 识别层插入全部既有优先级层之后，仅认领全部既有层未命中的输入（零既有输入行为变化——零黄金回归面）",
+    "词表（S4A §3）：CONTINUE=/继续当前体验/、/继续/、/往下进行/、/接着来/；REPEAT=/重复上一/、/重复上一条/、/再说一遍/、/重新表达/、/再表达一次/（确定性规则词表——碰撞纪律：同一输入多词表命中时按优先级链裁决）",
+    "状态不变式（S4A §4）：REPEAT / CONTINUE 轮次不登记状态变更事件（纯呈现 / 确认语义——completionCommit=false；失败写入不消耗版本号——OBL-01 纪律；陈旧版本拒绝 STATE_VERSION_CONFLICT 且不覆盖——S1-12 同族）",
+    "REPEAT 前置条件：上一完成轮响应存在（呈现层重放数据源——内容轮次 chunk 数 > 0 方登记；空轮次 STOP / CONTINUE 不覆盖上一内容轮记录）；无上一完成轮时 REPEAT 按 INVALID_STATE_TRANSITION 拒绝（不静默执行未定义语义——C3 纪律）",
+    "交互事件（C6 §14 命名模式）：CONTINUE → continue_requested；REPEAT → repeat_requested（结构校验非封闭枚举）",
+    "决策追踪（C6 §22/§23）：REPEAT / CONTINUE 轮次为确定性系统回合——llm_used=false、user_override=true、reason.primary=explicit_user_direction；state_after.state_version === state_before.state_version（无状态变更留痕）",
+    "P-01 STOP 永远优先；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
+  ],
+  "evidence": {
+    "trace": "traces/S4A-F1-0001:ZERO-REGRESSION.jsonl",
+    "traceSha256": "66efc04bb3028872fda1073d7e145b6f81034e7a9165a76f0824d18b30f00a78",
+    "form": "in-process",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

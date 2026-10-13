@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G10-N","event":"trace_started","at":"2026-10-10T04:47:59.052Z","form":"in-process","sourceClause":"S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A（policy_v2.2.0 变更 1–5）：ADOPT_BRANCH 显式回流——第五分支操作","goldenCase":"G10","dimension":"NORMAL"}
+{"caseId":"G3-GOLDEN-0001:G10-N","event":"trace_completed","at":"2026-10-10T04:48:00.481Z","startedAt":"2026-10-10T04:47:59.052Z","durationMs":1429,"result":"PASS","pass":true}

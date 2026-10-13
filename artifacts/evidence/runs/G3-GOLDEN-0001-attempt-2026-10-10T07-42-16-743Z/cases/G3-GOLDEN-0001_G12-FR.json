@@ -1,0 +1,62 @@
+{
+  "caseIdNamespace": "G3-GOLDEN-0001:G12-FR",
+  "sourceClause": "P2 Exit Gate §8 G12 故障恢复；S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.4（跨会话操作路径）；S1-12（版本冲突不消耗版本）；OBL-01（失败写入纪律）；G10-FR 故障恢复纪律（陈旧版本拒绝 → 当前版本重试）",
+  "scope": "P2 G3 黄金套件——S3a 新增跨会话分支黄金案例（跨会话采用陈旧版本拒绝 → 当前版本重试成功）",
+  "precondition": "会话 A WHAT_IF 轮 + STOP（持久分支记录存在）；会话 B SESSION_ACTIVE",
+  "inputFault": "陈旧 expected_state_version（STOP 前版本）跨会话采用 → 冲突 → 当前版本重试",
+  "expected": {
+    "failure": "陈旧 expected_state_version（STOP 前版本）跨会话采用 → STATE_VERSION_CONFLICT（retryable=false——不覆盖、不消耗版本，S1-12 同族）；state_version_conflict ×1（expected_state_version / current_state_version 留痕）",
+    "noSideEffects": "冲突拒绝后体验状态版本不变（失败写入不消耗版本号——OBL-01 纪律）；分支记录未被修改（adopted 保持 false）",
+    "recovery": "携带当前版本跨会话重试采用成功（simulation_adopted ×1——采用结果仍标记为模拟来源）；采用轮结果流呈现分支最新模拟轮模拟内容为新一轮模拟上下文"
+  },
+  "actual": {
+    "staleResult": "STATE_VERSION_CONFLICT",
+    "staleRetryable": false,
+    "conflictEvents": 1,
+    "conflictExpectedVersion": 4,
+    "conflictCurrentVersion": 5,
+    "stateVersionAfterStale": 5,
+    "branchAdoptedAfterStale": false,
+    "retryAccepted": true,
+    "retryPolicyReason": "simulation_branch_operation",
+    "retryPolicyVersion": "policy_v2.3.0",
+    "retryContentPresentsAdoptedContent": true,
+    "simulationAdoptedEvents": [
+      {
+        "branch_id": "branch_synthetic_0001",
+        "source_round": 1,
+        "separation_invariant": "simulation_result_is_not_fact"
+      }
+    ],
+    "finalState": {
+      "experienceId": "experience_synthetic_0001",
+      "sessionId": "session_synthetic_0050",
+      "status": "COMPLETED",
+      "stage": "COMPLETION",
+      "waitingForUser": false,
+      "candidateId": "candidate_synthetic_0001",
+      "lastSemanticAction": "WHAT_IF",
+      "updatedAt": "2026-10-10T07:39:55.422Z",
+      "stateVersion": 6
+    }
+  },
+  "invariants": [
+    "P2 G3 黄金套件不变式（P2 Exit Gate §8）：每个黄金案例覆盖 Normal/Negative/Boundary/Failure-Recovery 四维度",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "旧 operation 不得提交（generation epoch 守卫 + 版本双重检查，S1-10；CC02 H03）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "失败不消耗版本号（EB-02）；取消的 generation 不提交（CC02 H02）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
+  ],
+  "evidence": {
+    "trace": "traces/G3-GOLDEN-0001:G12-FR.jsonl",
+    "traceSha256": "51a65d645116aa2be7fb50d84813dc727d8e82c6cae833465429c5477ce6c151",
+    "form": "in-process",
+    "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
+  },
+  "result": "FAIL",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "本案例未通过——按 ADR-0002 §5 如实登记，不得重跑至通过为止；缺陷须在关闭切片处置"
+}

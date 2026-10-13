@@ -1,0 +1,99 @@
+{
+  "runId": "E5-TRIAL-0001",
+  "startedAt": "2026-10-08T13:55:00.907Z",
+  "completedAt": "2026-10-08T13:55:00.949Z",
+  "executor": {
+    "executedBy": "工程负责人角色（代理，Codex 履行，PD-15 委托）",
+    "independentEvaluator": "独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 任命生效，保留审阅与否决权）"
+  },
+  "scope": "E5 证据管线试运行（合成 fixtures）：验证版本绑定、案例记录、trace 与哈希清单的完整性与可审计性；不是产品运行时行为验证（G2–G4 动态执行属实施授权后）",
+  "assertions": [
+    {
+      "id": "A1",
+      "description": "run-metadata 版本矩阵完整（决策/契约/S1 规范/代码/环境/回归基线各组齐备）",
+      "passed": true,
+      "contracts": 7,
+      "s1Docs": 7
+    },
+    {
+      "id": "A2a",
+      "description": "C1–C7 契约指纹核验（运行时计算哈希 = 基线登记；C4 分节指纹见契约 §18）",
+      "passed": true,
+      "mismatches": []
+    },
+    {
+      "id": "A2b",
+      "description": "归档完整性核验（36 项 reference 哈希 = SHA256SUMS）",
+      "passed": true,
+      "total": 36,
+      "verified": 36,
+      "failed": 0
+    },
+    {
+      "id": "A3",
+      "description": "案例记录完整（4 案例，E5 §4 全字段，writeCaseRecord 校验通过）",
+      "passed": true,
+      "cases": [
+        {
+          "caseId": "GS-01",
+          "result": "PASS"
+        },
+        {
+          "caseId": "GS-02",
+          "result": "PASS"
+        },
+        {
+          "caseId": "GS-05",
+          "result": "PASS"
+        },
+        {
+          "caseId": "GS-05-NEG-STALE-RETRY",
+          "result": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "A4",
+      "description": "trace 完整（每案例事件序列可还原：input → semantic → policy → state → result）",
+      "passed": true,
+      "traces": [
+        "artifacts/evidence/runs/E5-TRIAL-0001/traces/GS-01.jsonl",
+        "artifacts/evidence/runs/E5-TRIAL-0001/traces/GS-02.jsonl",
+        "artifacts/evidence/runs/E5-TRIAL-0001/traces/GS-05.jsonl",
+        "artifacts/evidence/runs/E5-TRIAL-0001/traces/GS-05-NEG-STALE-RETRY.jsonl"
+      ]
+    },
+    {
+      "id": "A6",
+      "description": "失败路径按预期登记（陈旧写入拒绝 + write_audit 记录 + 状态未被覆盖）",
+      "passed": true,
+      "gs05": "PASS",
+      "negRetry": "PASS"
+    }
+  ],
+  "cases": [
+    {
+      "caseId": "GS-01",
+      "result": "PASS",
+      "record": "/Users/pg014/Documents/Codex/intent-experience/artifacts/evidence/runs/E5-TRIAL-0001/cases/E5-TRIAL-0001_GS-01.json"
+    },
+    {
+      "caseId": "GS-02",
+      "result": "PASS",
+      "record": "/Users/pg014/Documents/Codex/intent-experience/artifacts/evidence/runs/E5-TRIAL-0001/cases/E5-TRIAL-0001_GS-02.json"
+    },
+    {
+      "caseId": "GS-05",
+      "result": "PASS",
+      "record": "/Users/pg014/Documents/Codex/intent-experience/artifacts/evidence/runs/E5-TRIAL-0001/cases/E5-TRIAL-0001_GS-05.json"
+    },
+    {
+      "caseId": "GS-05-NEG-STALE-RETRY",
+      "result": "PASS",
+      "record": "/Users/pg014/Documents/Codex/intent-experience/artifacts/evidence/runs/E5-TRIAL-0001/cases/E5-TRIAL-0001_GS-05-NEG-STALE-RETRY.json"
+    }
+  ],
+  "allPassed": true,
+  "exitCode": 0,
+  "note": "退出码 0 仅表示本试运行中的断言通过；不设置任何 Golden Case / Gate / 产品状态为 PASS（E5 §2）"
+}

@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G03-NEG","event":"trace_started","at":"2026-10-10T00:38:56.174Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G03 Negative；P-01 STOP 优先于 WHAT_IF","goldenCase":"G03","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G03-NEG","event":"trace_completed","at":"2026-10-10T00:38:56.177Z","startedAt":"2026-10-10T00:38:56.173Z","durationMs":4,"result":"PASS","pass":true}

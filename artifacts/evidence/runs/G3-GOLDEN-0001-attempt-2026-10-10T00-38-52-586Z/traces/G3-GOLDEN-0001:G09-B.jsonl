@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G09-B","event":"trace_started","at":"2026-10-10T00:37:34.094Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 优先级链；policy_v2.0.0 变更 4 冻结优先级链；分类器确定性规则词表（GS-01 确定性）","goldenCase":"G09","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G09-B","event":"trace_completed","at":"2026-10-10T00:37:34.096Z","startedAt":"2026-10-10T00:37:34.094Z","durationMs":2,"result":"PASS","pass":true}

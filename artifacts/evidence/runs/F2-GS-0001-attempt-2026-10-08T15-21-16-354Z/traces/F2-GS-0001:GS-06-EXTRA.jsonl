@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:GS-06-EXTRA","event":"trace_started","at":"2026-10-08T15:20:05.842Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-06 负向：额外字段；S1 §16 提案结构"}
+{"caseId":"F2-GS-0001:GS-06-EXTRA","event":"trace_completed","at":"2026-10-08T15:20:05.842Z","startedAt":"2026-10-08T15:20:05.842Z","durationMs":0,"result":"PASS","pass":true}

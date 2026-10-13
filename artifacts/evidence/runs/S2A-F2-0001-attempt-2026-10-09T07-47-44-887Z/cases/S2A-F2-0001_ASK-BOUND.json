@@ -1,0 +1,50 @@
+{
+  "caseIdNamespace": "S2A-F2-0001:ASK-BOUND",
+  "sourceClause": "S2A-F2-SEMANTIC-FREEZE-01 §4 变更 1；08 §16（冲突判据：至多一个澄清问题）",
+  "scope": "创作 ASK 纪律：输入同时命中修改意图与既有轴触发词时不自动判定——单块澄清问题流，创作版本/阶段不变",
+  "precondition": "CREATION-CHAIN 基线（创作 v1 USER_FEEDBACK）",
+  "inputFault": "\"换玩法，加两个障碍\"（ADD 意图 + \"换\" 轴冲突词；通用分类器判 UNKNOWN）",
+  "expected": {
+    "input": "\"换玩法，加两个障碍\"：同时命中修改意图（ADD obstacle×2）与既有轴触发词（\"换\" → CHANGE_DIRECTION 轴）——通用分类器判 UNKNOWN（\"换\" 单字不构成通用 CHANGE_DIRECTION 模式），创作解释按冲突判据（08 §16）不自动判定",
+    "askRound": "CREATE 伞形动作 + 澄清问题流（单块，fixtureId=creation_ask）：至多一个澄清问题；体验状态 ACTIVE/CREATION v7 → 流完成 WAITING/CREATION v8",
+    "invariants": "创作版本与阶段不变（v1 USER_FEEDBACK——澄清不修改作品）；无 creation_patch_applied 事件；决策追踪 llm_used=false；头 reason=creation_ask_clarification"
+  },
+  "actual": {
+    "ok": true,
+    "headerReason": "creation_ask_clarification",
+    "headerStateVersion": 7,
+    "chunkCount": 1,
+    "content": "你的输入同时涉及修改当前作品与CHANGE_DIRECTION意图。请确认：要把它作为当前作品的修改，还是作为CHANGE_DIRECTION处理？（创作 ASK 纪律：至多一个澄清问题，08 §16）",
+    "finalState": "WAITING/CREATION v8",
+    "creationVersion": 1,
+    "creationPhase": "USER_FEEDBACK",
+    "userChanges": 0,
+    "patchAppliedEvents": 0,
+    "decisionLlmUsed": false,
+    "decisionReasonSecondary": "creation ASK: at most one clarifying question (08 §16); creation phase and creation version unchanged",
+    "baseline": "vundefined undefined / state v6"
+  },
+  "invariants": [
+    "S2a 范围边界（S2A-F2-SEMANTIC-FREEZE-01 §2）：创作子状态机轴外承载于持久创作对象，体验阶段轴不变；创作状态会话内持久（跨 USER_ACTION / RESPONSE_COMPLETED 周期存活）；补丁 operation 值域 {add, remove, modify}（REPLACE / TUNE / REBALANCE / RENAME / RESTYLE 作 modify 子型）；CREATION_COMPLETE 经 STOP 执行路径在创作域登记",
+    "S1 范围边界保持：CREATE/SEARCH 禁用旧词表项（CREATE 为 PD-21 关闭切片启用动作）；WHAT_IF 仅单次模拟；S2b 保留操作（SIMPLIFY / DEEPEN / REFRAME）识别后升级拒绝，不静默执行",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；创作修改轮次经 expectedCreationVersion 双重前置校验——陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12 同族）；失败写入不消耗任何版本号（OBL-01 纪律）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "补丁应用是局部变更（08 §11：不重新生成整个作品；版本单调 + user_changes 累积）；修改仅在 USER_FEEDBACK 轮应用（13 §21：存在未预览补丁不得 COMPLETE——补丁必经 PREVIEW）",
+    "创作 ASK 纪律（08 §16）：输入与既有轴触发器冲突时不自动判定——至多一个高价值澄清问题；创作子状态不推进",
+    "完成语义（08 §27 / 13 §22/§23.2）：完成信号词表识别后立即结束，不自动推荐、不自动继续；创作完成经 STOP 路径登记（USER_FEEDBACK → COMPLETE + creation_completed 事件；决策追踪 reason 区分\"创作完成\"与\"停止体验\"——D-05 选项 A）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）；创作修改轮次决策追踪 llm_used=false（确定性规则，非模型）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/S2A-F2-0001:ASK-BOUND.jsonl",
+    "traceSha256": "abd393fb726beea442e7a0f24734c324512886b75ffd751a5018320e529d0277",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "FAIL",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "本案例未通过——按 ADR-0002 §5 如实登记，不得重跑至通过为止；缺陷须在下一迭代处置"
+}

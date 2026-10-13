@@ -1,0 +1,49 @@
+{
+  "caseIdNamespace": "F3-EB-0001:EB05-STALE-LATE",
+  "sourceClause": "P2-EVIDENCE-4.0 EB-05（Stale Result Rejection：P2 强制测试——旧请求晚于新请求返回）",
+  "scope": "G4 工程边界",
+  "precondition": "DIRECT_ANSWER 生成在途（ACTIVE v3，generation G1）",
+  "inputFault": "CHANGE 提交新状态后，旧 generation 完成提交迟到达",
+  "expected": {
+    "requiredTest": "人为制造\"旧请求晚于新请求返回\"（EB-05 P2 强制测试）",
+    "rejection": "STALE_GENERATION——旧 A 响应不得覆盖新 B 状态",
+    "identityFields": "state_write_rejected 携带 attempted_generation_id / active_generation_id（迟到达归属可追踪）",
+    "statePreserved": "最终状态 = 新方向完成版本（v5 WAITING），无旧 generation 写入"
+  },
+  "actual": {
+    "lateCommitResult": "STALE_GENERATION",
+    "lateCurrentStateVersion": 5,
+    "rejectedWrites": [
+      {
+        "attempted": "gen_synthetic_0001",
+        "active": "gen_synthetic_0002",
+        "reason": "superseded_generation"
+      }
+    ],
+    "oldGenerationId": "gen_synthetic_0001",
+    "finalState": "WAITING/UNDERSTANDING v5",
+    "changeCompleted": true
+  },
+  "invariants": [
+    "S1 范围边界：CREATE/SEARCH 禁用；WHAT_IF 仅单次模拟不建立持久/多轮分支；不持久化跨会话 Memory（PD-05/PD-06/PD-07）",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "旧 operation 不得提交（generation epoch 守卫 + 版本双重检查，S1-10；CC02 H03）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）",
+    "工程边界（P2-EVIDENCE-4.0）：重试是工程恢复机制而非产品决策机制（EB-06）；超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/F3-EB-0001:EB05-STALE-LATE.jsonl",
+    "traceSha256": "1f328e0688396948fb9986dd30aa82f53df707de45e33cd03cd279b602a091cd",
+    "form": "in-process",
+    "httpEventLog": null,
+    "httpDecisionTraceLog": null,
+    "httpAuditLog": null
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

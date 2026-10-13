@@ -1,0 +1,2 @@
+{"caseId":"S3-API-0001:CROSS-SESSION-CONTENT-NEG","event":"trace_started","at":"2026-10-10T04:58:33.738Z","form":"inprocess","sourceClause":"S3B-SEMANTIC-FREEZE-01 v1.0.0 §1.4（放宽范围仅限分支操作路径——内容轮保持严格会话绑定）；OBL-01（失败写入不消耗版本号）","servers":[]}
+{"caseId":"S3-API-0001:CROSS-SESSION-CONTENT-NEG","event":"trace_completed","at":"2026-10-10T04:58:34.456Z","startedAt":"2026-10-10T04:58:33.738Z","durationMs":718,"result":"PASS","pass":true}

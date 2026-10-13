@@ -1,0 +1,22 @@
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":0,"totalChunks":9,"content":"为什么推荐这条路线","at":"2026-10-08T14:25:37.131Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":1,"totalChunks":9,"content":"：因为当前路况","at":"2026-10-08T14:25:37.175Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":2,"totalChunks":9,"content":"（合成数据）","at":"2026-10-08T14:25:37.217Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":3,"totalChunks":9,"content":"显示北山街拥堵","at":"2026-10-08T14:25:37.260Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":4,"totalChunks":9,"content":"，而杨公堤","at":"2026-10-08T14:25:37.304Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":5,"totalChunks":9,"content":"畅通且风景","at":"2026-10-08T14:25:37.347Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":6,"totalChunks":9,"content":"更契合你的","at":"2026-10-08T14:25:37.389Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":7,"totalChunks":9,"content":"首体验目标。","at":"2026-10-08T14:25:37.432Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":8,"totalChunks":9,"content":"（流式结束）","at":"2026-10-08T14:25:37.474Z"}
+{"type":"done","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":9,"totalChunks":9,"content":null,"at":"2026-10-08T14:25:37.475Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":0,"totalChunks":9,"content":"为什么推荐这条路线","at":"2026-10-08T14:25:37.768Z"}
+{"type":"chunk","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":1,"totalChunks":9,"content":"：因为当前路况","at":"2026-10-08T14:25:37.810Z"}
+{"type":"cancelled","policyAction":"EXPLAIN","semanticAction":"WHY","fixtureId":"synthetic/why/v1","index":2,"totalChunks":9,"content":null,"at":"2026-10-08T14:25:37.818Z"}
+{"type":"chunk","policyAction":"ANSWER","semanticAction":"DIRECT_ANSWER","fixtureId":"synthetic/direct-answer/v1","index":0,"totalChunks":8,"content":"你问的是","at":"2026-10-08T14:25:38.169Z"}
+{"type":"chunk","policyAction":"ANSWER","semanticAction":"DIRECT_ANSWER","fixtureId":"synthetic/direct-answer/v1","index":1,"totalChunks":8,"content":"今天杭州的天气","at":"2026-10-08T14:25:38.212Z"}
+{"type":"chunk","policyAction":"ANSWER","semanticAction":"DIRECT_ANSWER","fixtureId":"synthetic/direct-answer/v1","index":2,"totalChunks":8,"content":"。根据合成语料","at":"2026-10-08T14:25:38.256Z"}
+{"type":"chunk","policyAction":"ANSWER","semanticAction":"DIRECT_ANSWER","fixtureId":"synthetic/direct-answer/v1","index":3,"totalChunks":8,"content":"（非真实数据）","at":"2026-10-08T14:25:38.298Z"}
+{"type":"chunk","policyAction":"ANSWER","semanticAction":"DIRECT_ANSWER","fixtureId":"synthetic/direct-answer/v1","index":4,"totalChunks":8,"content":"：晴，气温","at":"2026-10-08T14:25:38.342Z"}
+{"type":"chunk","policyAction":"ANSWER","semanticAction":"DIRECT_ANSWER","fixtureId":"synthetic/direct-answer/v1","index":5,"totalChunks":8,"content":"22 到 28 摄氏度","at":"2026-10-08T14:25:38.384Z"}
+{"type":"chunk","policyAction":"ANSWER","semanticAction":"DIRECT_ANSWER","fixtureId":"synthetic/direct-answer/v1","index":6,"totalChunks":8,"content":"。这是首体验直答。","at":"2026-10-08T14:25:38.427Z"}
+{"type":"chunk","policyAction":"ANSWER","semanticAction":"DIRECT_ANSWER","fixtureId":"synthetic/direct-answer/v1","index":7,"totalChunks":8,"content":"（流式结束）","at":"2026-10-08T14:25:38.470Z"}
+{"type":"done","policyAction":"ANSWER","semanticAction":"DIRECT_ANSWER","fixtureId":"synthetic/direct-answer/v1","index":8,"totalChunks":8,"content":null,"at":"2026-10-08T14:25:38.471Z"}

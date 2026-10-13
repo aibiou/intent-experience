@@ -1,0 +1,2 @@
+{"caseId":"S2A-F3-0001:NO-MEMORY","event":"trace_started","at":"2026-10-09T09:02:45.276Z","form":"inprocess","sourceClause":"S2A-F3-SEMANTIC-FREEZE-01 §1 元素 8 / §5（S2A-F3-NO-MEMORY 案例大纲）；PD-07（不持久化跨会话 Memory）；G07-B 黄金断言同族","servers":[]}
+{"caseId":"S2A-F3-0001:NO-MEMORY","event":"trace_completed","at":"2026-10-09T09:02:48.669Z","startedAt":"2026-10-09T09:02:45.276Z","durationMs":3393,"result":"PASS","pass":true}

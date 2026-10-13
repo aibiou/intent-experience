@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB06-RETRY","event":"trace_started","at":"2026-10-08T15:59:56.248Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-06（Retry Boundary：重试是工程恢复机制而非产品决策机制）"}
+{"caseId":"F3-EB-0001:EB06-RETRY","event":"trace_completed","at":"2026-10-08T15:59:56.252Z","startedAt":"2026-10-08T15:59:56.248Z","durationMs":4,"result":"FAIL","pass":false}

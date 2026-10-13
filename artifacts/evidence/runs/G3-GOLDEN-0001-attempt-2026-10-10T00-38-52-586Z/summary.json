@@ -1,0 +1,400 @@
+{
+  "runId": "G3-GOLDEN-0001",
+  "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）",
+  "startedAt": "2026-10-10T00:37:16.213Z",
+  "finishedAt": "2026-10-10T00:37:40.490Z",
+  "durationMs": 24276,
+  "goldenCases": [
+    {
+      "goldenCase": "G01",
+      "dimensions": [
+        "NORMAL",
+        "NEGATIVE",
+        "BOUNDARY",
+        "FAILURE_RECOVERY"
+      ]
+    },
+    {
+      "goldenCase": "G02",
+      "dimensions": [
+        "NORMAL",
+        "NEGATIVE",
+        "BOUNDARY",
+        "FAILURE_RECOVERY"
+      ]
+    },
+    {
+      "goldenCase": "G03",
+      "dimensions": [
+        "NORMAL",
+        "NEGATIVE",
+        "BOUNDARY",
+        "FAILURE_RECOVERY"
+      ]
+    },
+    {
+      "goldenCase": "G04",
+      "dimensions": [
+        "NORMAL",
+        "NEGATIVE",
+        "BOUNDARY",
+        "FAILURE_RECOVERY"
+      ]
+    },
+    {
+      "goldenCase": "G05",
+      "dimensions": [
+        "NORMAL",
+        "NEGATIVE",
+        "BOUNDARY",
+        "FAILURE_RECOVERY"
+      ]
+    },
+    {
+      "goldenCase": "G06",
+      "dimensions": [
+        "NORMAL",
+        "NEGATIVE",
+        "BOUNDARY",
+        "FAILURE_RECOVERY"
+      ]
+    },
+    {
+      "goldenCase": "G07",
+      "dimensions": [
+        "NORMAL",
+        "NEGATIVE",
+        "BOUNDARY",
+        "FAILURE_RECOVERY"
+      ]
+    },
+    {
+      "goldenCase": "G08",
+      "dimensions": [
+        "NORMAL",
+        "NEGATIVE",
+        "BOUNDARY",
+        "FAILURE_RECOVERY"
+      ]
+    },
+    {
+      "goldenCase": "G09",
+      "dimensions": [
+        "NORMAL",
+        "NEGATIVE",
+        "BOUNDARY",
+        "FAILURE_RECOVERY"
+      ]
+    },
+    {
+      "goldenCase": "G10",
+      "dimensions": [
+        "NORMAL",
+        "NEGATIVE",
+        "BOUNDARY",
+        "FAILURE_RECOVERY"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "caseId": "G3-GOLDEN-0001:G01-N",
+      "goldenCase": "G01",
+      "dimension": "NORMAL",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G01-NEG",
+      "goldenCase": "G01",
+      "dimension": "NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G01-B",
+      "goldenCase": "G01",
+      "dimension": "BOUNDARY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G01-FR",
+      "goldenCase": "G01",
+      "dimension": "FAILURE_RECOVERY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G02-N",
+      "goldenCase": "G02",
+      "dimension": "NORMAL",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G02-NEG",
+      "goldenCase": "G02",
+      "dimension": "NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G02-B",
+      "goldenCase": "G02",
+      "dimension": "BOUNDARY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G02-FR",
+      "goldenCase": "G02",
+      "dimension": "FAILURE_RECOVERY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G03-N",
+      "goldenCase": "G03",
+      "dimension": "NORMAL",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G03-NEG",
+      "goldenCase": "G03",
+      "dimension": "NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G03-B",
+      "goldenCase": "G03",
+      "dimension": "BOUNDARY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G03-FR",
+      "goldenCase": "G03",
+      "dimension": "FAILURE_RECOVERY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G05-N",
+      "goldenCase": "G05",
+      "dimension": "NORMAL",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G05-NEG",
+      "goldenCase": "G05",
+      "dimension": "NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G05-B",
+      "goldenCase": "G05",
+      "dimension": "BOUNDARY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G05-FR",
+      "goldenCase": "G05",
+      "dimension": "FAILURE_RECOVERY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G06-N",
+      "goldenCase": "G06",
+      "dimension": "NORMAL",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G06-NEG",
+      "goldenCase": "G06",
+      "dimension": "NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G06-B",
+      "goldenCase": "G06",
+      "dimension": "BOUNDARY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G06-FR",
+      "goldenCase": "G06",
+      "dimension": "FAILURE_RECOVERY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G04-N",
+      "goldenCase": "G04",
+      "dimension": "NORMAL",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G04-NEG",
+      "goldenCase": "G04",
+      "dimension": "NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G04-B",
+      "goldenCase": "G04",
+      "dimension": "BOUNDARY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G04-FR",
+      "goldenCase": "G04",
+      "dimension": "FAILURE_RECOVERY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G07-N",
+      "goldenCase": "G07",
+      "dimension": "NORMAL",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G07-NEG",
+      "goldenCase": "G07",
+      "dimension": "NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G07-B",
+      "goldenCase": "G07",
+      "dimension": "BOUNDARY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G07-FR",
+      "goldenCase": "G07",
+      "dimension": "FAILURE_RECOVERY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G08-N",
+      "goldenCase": "G08",
+      "dimension": "NORMAL",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G08-NEG",
+      "goldenCase": "G08",
+      "dimension": "NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G08-B",
+      "goldenCase": "G08",
+      "dimension": "BOUNDARY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G08-FR",
+      "goldenCase": "G08",
+      "dimension": "FAILURE_RECOVERY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G09-N",
+      "goldenCase": "G09",
+      "dimension": "NORMAL",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G09-NEG",
+      "goldenCase": "G09",
+      "dimension": "NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G09-B",
+      "goldenCase": "G09",
+      "dimension": "BOUNDARY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G09-FR",
+      "goldenCase": "G09",
+      "dimension": "FAILURE_RECOVERY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G10-N",
+      "goldenCase": "G10",
+      "dimension": "NORMAL",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G10-NEG",
+      "goldenCase": "G10",
+      "dimension": "NEGATIVE",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G10-B",
+      "goldenCase": "G10",
+      "dimension": "BOUNDARY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "G3-GOLDEN-0001:G10-FR",
+      "goldenCase": "G10",
+      "dimension": "FAILURE_RECOVERY",
+      "result": "FAIL"
+    }
+  ],
+  "executedCases": 40,
+  "allExecutedCasesPass": false,
+  "deferredCases": [],
+  "assertions": [
+    {
+      "id": "A2",
+      "description": "环境锁定：engines.node === \"24.21.0\"（F-2 精确锁定）且执行于 Node v24.21.0；lockfileVersion 3",
+      "passed": true
+    },
+    {
+      "id": "A3",
+      "description": "全部 40 案例记录齐备且 12 字段完整（E5 §4；40 执行；PD-19 延期义务已履行——G04/G07/G08 关闭切片执行，无 DEFERRED 登记）",
+      "passed": false
+    },
+    {
+      "id": "A4",
+      "description": "全部 40 执行案例轨迹齐备且非空（trace_started + 案例事实 + trace_completed）",
+      "passed": true
+    },
+    {
+      "id": "A5",
+      "description": "黄金维度覆盖：G01–G10 各具备 NORMAL/NEGATIVE/BOUNDARY/FAILURE_RECOVERY 四维度（P2 Exit Gate §8；G04/G07/G08 为 PD-21 关闭切片最小实现；G09 为 S2b 新增黄金案例；G10 为 S2 分支回流新增黄金案例——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A）",
+      "passed": true
+    },
+    {
+      "id": "A6",
+      "description": "G04/G05/G06/G07 in-flight generation / stale response 必测维度已覆盖且通过（G04-NEG 生成中 CREATE、G05-N 生成中 CHANGE、G05-NEG 旧 generation 迟到达拒绝、G06-FR 生成中客户端中止、G07-NEG 生成中 CORRECTION）",
+      "passed": true
+    },
+    {
+      "id": "A7",
+      "description": "跨迭代回归基线绑定：F2-GS-0001 / F3-EB-0001 基线运行存在；本运行期望逐项冻结自该基线",
+      "passed": true
+    },
+    {
+      "id": "A8",
+      "description": "PD-19 延期义务履行：G04/G07/G08 最小实现（PD-21 关闭切片）四维度黄金证据齐备且无 DEFERRED 登记（完整语义仍 DEFERRED TO S2，acceptance-mapping §B）",
+      "passed": true
+    },
+    {
+      "id": "A9",
+      "description": "全部 40 执行案例 PASS（本运行断言；不设置 G3 为 PASS——G3 判定属独立评测）",
+      "passed": false
+    },
+    {
+      "id": "A1",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段，含黄金语料定义与回归基线绑定）",
+      "passed": true
+    },
+    {
+      "id": "A10",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
+      "passed": true
+    }
+  ],
+  "allAssertionsPass": false,
+  "allPassed": false,
+  "exitCode": 1,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置 G3 或任何产品 Gate 状态为 PASS（E5 §2）。G3 Gate 判定由独立评测人经逐项裁决作出；G04/G07/G08 以 PD-21 关闭切片最小形态执行（完整语义 DEFERRED TO S2，acceptance-mapping §B），是否接受为关闭条件属产品负责人与评测人共同裁决。"
+}

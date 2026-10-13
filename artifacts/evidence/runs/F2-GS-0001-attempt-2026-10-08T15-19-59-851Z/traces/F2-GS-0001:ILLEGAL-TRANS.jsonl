@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:ILLEGAL-TRANS","event":"trace_started","at":"2026-10-08T15:18:06.913Z","form":"in-process","sourceClause":"S1-04（非法 transition = reject）；状态机 §7/§23；S1 §28 INVALID_STATE_TRANSITION"}
+{"caseId":"F2-GS-0001:ILLEGAL-TRANS","event":"trace_completed","at":"2026-10-08T15:18:06.916Z","startedAt":"2026-10-08T15:18:06.913Z","durationMs":3,"result":"PASS","pass":true}

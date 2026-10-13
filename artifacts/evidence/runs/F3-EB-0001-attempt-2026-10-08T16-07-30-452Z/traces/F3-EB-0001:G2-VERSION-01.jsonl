@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:G2-VERSION-01","event":"trace_started","at":"2026-10-08T16:06:21.669Z","form":"in-process","sourceClause":"P2-EVIDENCE-8.1 §B.1（版本）；EB-02（State Version）；S1 §12；C6 §25"}
+{"caseId":"F3-EB-0001:G2-VERSION-01","event":"trace_completed","at":"2026-10-08T16:06:22.432Z","startedAt":"2026-10-08T16:06:21.669Z","durationMs":763,"result":"PASS","pass":true}

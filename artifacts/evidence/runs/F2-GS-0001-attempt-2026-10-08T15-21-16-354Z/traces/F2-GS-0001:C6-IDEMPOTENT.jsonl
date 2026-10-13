@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:C6-IDEMPOTENT","event":"trace_started","at":"2026-10-08T15:20:09.491Z","form":"in-process","sourceClause":"C6 §27 Idempotency（相同 event_id 不得产生两条逻辑事实）"}
+{"caseId":"F2-GS-0001:C6-IDEMPOTENT","event":"trace_completed","at":"2026-10-08T15:20:09.494Z","startedAt":"2026-10-08T15:20:09.491Z","durationMs":3,"result":"FAIL","pass":false}

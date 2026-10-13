@@ -1,0 +1,3 @@
+{"caseId":"F1-E2E-0001:F1-STREAM-01-INPROC","event":"trace_started","at":"2026-10-08T14:25:36.676Z","form":"in-process","sourceClause":"S1 §26 GS-01/GS-02（首体验流式输出）；C5 API Contract V1（接口）；P3-S1-REVIEW-005 F-1（Route Handler 流式 + AbortSignal 取消，选项 A：进程内形态）"}
+{"caseId":"F1-E2E-0001:F1-STREAM-01-INPROC","event":"request-completed","at":"2026-10-08T14:25:37.058Z","form":"in-process","status":200,"eventCount":10,"durationMs":381}
+{"caseId":"F1-E2E-0001:F1-STREAM-01-INPROC","event":"trace_completed","at":"2026-10-08T14:25:37.061Z","startedAt":"2026-10-08T14:25:36.674Z","durationMs":387,"result":"PASS","pass":true}

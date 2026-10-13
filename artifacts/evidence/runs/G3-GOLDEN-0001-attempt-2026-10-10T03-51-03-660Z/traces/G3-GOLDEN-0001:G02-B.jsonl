@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G02-B","event":"trace_started","at":"2026-10-10T00:38:54.345Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G02 Boundary；相邻重复输入；版本链 +1 不变式","goldenCase":"G02","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G02-B","event":"trace_completed","at":"2026-10-10T00:38:55.089Z","startedAt":"2026-10-10T00:38:54.345Z","durationMs":744,"result":"PASS","pass":true}

@@ -1,0 +1,41 @@
+{
+  "caseIdNamespace": "G3-GOLDEN-0001:G03-FR",
+  "sourceClause": "P2 Exit Gate §8 G03 Failure/Recovery；S1-12 陈旧版本写入拒绝（STATE_VERSION_CONFLICT，不覆盖最新状态）",
+  "scope": "P2 G3 黄金套件——S1 已实现黄金子集",
+  "precondition": "WHAT_IF 体验已启动（v2）",
+  "inputFault": "陈旧 expected_state_version=1 → 当前版本重试",
+  "expected": {
+    "failure": "STATE_VERSION_CONFLICT（陈旧版本写入拒绝；不覆盖最新状态，S1-12）",
+    "recovery": "携带当前版本重试 → SIMULATE 成功（事实/推断/假设分离；阶段 SIMULATION）"
+  },
+  "actual": {
+    "staleResult": "STATE_VERSION_CONFLICT",
+    "stateAfterStale": "v2",
+    "recoveryPolicy": "SIMULATE",
+    "recoveryContent": "单次模拟提案（合成数据）：事实——当前路况显示北山街拥堵；推断——若改走杨公堤预计节省约十分钟；假设——如果世界突然失去摩擦力，上述推断将不成立，车辆无法制动。本提案为单次模拟，不建立分支状态。（流式结束）",
+    "hasFact": true,
+    "hasInference": true,
+    "hasHypothesis": true,
+    "finalState": "WAITING/SIMULATION v4",
+    "conflictEvents": 1
+  },
+  "invariants": [
+    "P2 G3 黄金套件不变式（P2 Exit Gate §8）：每个黄金案例覆盖 Normal/Negative/Boundary/Failure-Recovery 四维度",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "旧 operation 不得提交（generation epoch 守卫 + 版本双重检查，S1-10；CC02 H03）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "失败不消耗版本号（EB-02）；取消的 generation 不提交（CC02 H02）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
+  ],
+  "evidence": {
+    "trace": "traces/G3-GOLDEN-0001:G03-FR.jsonl",
+    "traceSha256": "c955e4a757380929a77b5c7a0dce30cf683e98927c6a99aa87060cce6aee2913",
+    "form": "in-process",
+    "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G3 Gate 逐项判定属独立评测范畴（角色 5）；G04/G07/G08 完整语义 DEFERRED TO S2（acceptance-mapping §B）"
+}

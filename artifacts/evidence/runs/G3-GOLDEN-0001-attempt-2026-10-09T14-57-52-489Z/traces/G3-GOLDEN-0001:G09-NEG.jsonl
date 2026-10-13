@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G09-NEG","event":"trace_started","at":"2026-10-09T14:49:06.255Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 非创作会话升级路径；policy_v2.0.0 变更 5；C3 升级纪律（model on F-2/F-3 创作会话路由保护）","goldenCase":"G09","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G09-NEG","event":"trace_completed","at":"2026-10-09T14:49:06.643Z","startedAt":"2026-10-09T14:49:06.255Z","durationMs":388,"result":"PASS","pass":true}

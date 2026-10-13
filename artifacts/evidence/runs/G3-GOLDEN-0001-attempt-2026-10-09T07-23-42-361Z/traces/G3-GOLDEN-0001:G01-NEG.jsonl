@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G01-NEG","event":"trace_started","at":"2026-10-09T04:37:02.558Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G01 负向；CC04（显式回答不被预设探索体验覆盖）；S1-05（分类为确定性规则，模型异常不存在于分类路径，用户意图不被改写）","goldenCase":"G01","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G01-NEG","event":"trace_completed","at":"2026-10-09T04:37:03.262Z","startedAt":"2026-10-09T04:37:02.558Z","durationMs":704,"result":"PASS","pass":true}

@@ -1,0 +1,2 @@
+{"caseId":"S2A-F3-0001:RESTORE","event":"trace_started","at":"2026-10-09T09:10:32.432Z","form":"inprocess","sourceClause":"S2A-F3-SEMANTIC-FREEZE-01 §3 变更 4 / §4 变更 2（D-04 选项 A）；08 §28（版本化与 RESTORE_PREVIOUS_VERSION）；S1-12 单调版本化不变式；OBL-01 纪律","servers":[]}
+{"caseId":"S2A-F3-0001:RESTORE","event":"trace_completed","at":"2026-10-09T09:10:33.921Z","startedAt":"2026-10-09T09:10:32.432Z","durationMs":1489,"result":"PASS","pass":true}

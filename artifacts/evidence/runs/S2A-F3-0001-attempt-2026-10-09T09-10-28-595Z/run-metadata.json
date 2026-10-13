@@ -1,0 +1,426 @@
+{
+  "runId": "S2A-F3-0001",
+  "obligation": "P3-S2-IMPL-AUTH-01 v1.2.0 §2/§6：F-3——G07 完整 Correction 语义（S2A-F3-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：MODIFY 用户面别名登记 + 纠正目标确定性定位 + 创作会话路由保护 + RESTORE_PREVIOUS_VERSION 恢复子型 + 纠正域事件词表）",
+  "authorization": {
+    "id": "P3-S2-IMPL-AUTH-01",
+    "version": "1.2.0",
+    "issued": "2026-10-09",
+    "note": "产品负责人签署生效（AUTHORIZED）；§4 修订：F-3 语义冻结文本于首个动态证据运行（S2A-F3-0001）前完成版本化冻结 + C1/C2/C3 Steward 确认（G1 式纪律）"
+  },
+  "obligationTraceability": {
+    "F-3 (G07 Correction)": {
+      "semanticFreeze": "docs/product/p3-s1/s2a-f3-semantic-freeze-staged.md（S2A-F3-SEMANTIC-FREEZE-01 v1.0.0 FROZEN，2026-10-09 产品负责人签署）",
+      "frozenDecisions": {
+        "D-01": "选项 A（MODIFY 别名登记 + 创作会话路由保护：RESTORE 预检 → 创作修改族预检 → 命中创作族 CREATE 伞形 / 冲突判据 ASK / 未命中通用 CORRECTION）",
+        "D-02": "选项 A（纠正目标确定性规则派生——指代词表 + 默认当前候选 / 创作分量映射；无新增模型调用）",
+        "D-03": "选项 A（创作域经 F-2 补丁机制承载不重建；非创作域经重评估链路完整化——目标登记 + 纠正历史事件登记）",
+        "D-04": "选项 A（RESTORE_PREVIOUS_VERSION 登记为 CORRECTION 用户面恢复子型，不新增轴触发器；创作域经创作存储回滚提交——版本单调 +1，新版本内容 = 目标历史版本内容）",
+        "D-05": "选项 A（纠正域事件 correction_applied / correction_restored；C6 §14 命名模式）"
+      },
+      "implementationFiles": [
+        "src/experience/correction.ts（纠正域：MODIFY/RESTORE/指代词表 + isRestoreIntent + deriveCorrectionTarget）",
+        "src/experience/classifier.ts（MODIFY 别名登记 + RESTORE 子型 correctionIntent 标记）",
+        "src/experience/creation.ts（CreationOperation=restore + 版本快照历史 + TARGET_SYNONYMS 导出）",
+        "src/experience/events.ts（纠正域事件词表常量）",
+        "src/experience/runtime.ts（创作会话路由保护 + correction_applied / correction_restored 事件 + restore_previous_version / creation_restore 决策追踪 reason）",
+        "src/experience/policy.ts（POLICY_VERSION=policy_v1.3.0）"
+      ],
+      "evidenceCases": [
+        "S2A-F3-0001:MODIFY-ALIAS=PASS",
+        "S2A-F3-0001:CORRECTION-FULL=FAIL",
+        "S2A-F3-0001:CREATION-INERT=FAIL",
+        "S2A-F3-0001:RESTORE=PASS",
+        "S2A-F3-0001:STALE-REJECT=FAIL",
+        "S2A-F3-0001:NONCREATION-INERT=PASS",
+        "S2A-F3-0001:NO-MEMORY=PASS",
+        "S2A-F3-0001:INPROC-REGRESSION=FAIL"
+      ],
+      "assertions": [
+        "A1=PASSED",
+        "A2=FAILED",
+        "A3=FAILED",
+        "A4=PASSED",
+        "A5=FAILED",
+        "A6=PASSED",
+        "A7=PASSED",
+        "A8=FAILED",
+        "A9=PASSED",
+        "A10=PASSED",
+        "A11-PREFLIGHT=PASSED"
+      ],
+      "goldenRegression": "G3-GOLDEN-0001 PASSED（32/32 案例；断言已同步 policy_v1.3.0）"
+    }
+  },
+  "environmentLicense": {
+    "id": "E5-SCOPED-LICENSE-01",
+    "version": "1.0.0",
+    "decision": "PD-17",
+    "status": "superseded-by-implementation-authorization"
+  },
+  "productDecisions": {
+    "register": "docs/product/baseline/product-owner-decisions-v1.md",
+    "keys": [
+      "PD-01",
+      "PD-02",
+      "PD-03",
+      "PD-04",
+      "PD-05",
+      "PD-06",
+      "PD-07",
+      "PD-08",
+      "PD-09",
+      "PD-10",
+      "PD-11",
+      "PD-12",
+      "PD-13",
+      "PD-14",
+      "PD-15",
+      "PD-16",
+      "PD-17",
+      "PD-21",
+      "PD-22",
+      "PD-23"
+    ],
+    "note": "PD-23：S2 范围裁决（选项 B 两切片：S2a = 全 G04 Creation / 全 G07 Correction / WHAT_IF 全分支 / Minimal Memory）；PD-21/PD-22 见 G07 处置与 P2 关闭裁定"
+  },
+  "contracts": {
+    "baseline": "docs/product/baseline/contract-authority-baseline-v1.md",
+    "entries": [
+      {
+        "id": "C1",
+        "name": "Core Schema（核心结构）",
+        "version": "core_schema_v1.0.0",
+        "source": "docs/product/reference/12｜Core Schema Specification V1（核心数据结构规范 V1）.md",
+        "registeredHash": "e6350ae427f6ccb75ea317345398932b2bc6fddd3b3b57af52296ba58ca2e20c",
+        "registeredNote": null,
+        "computedHash": "e6350ae427f6ccb75ea317345398932b2bc6fddd3b3b57af52296ba58ca2e20c",
+        "match": true
+      },
+      {
+        "id": "C2",
+        "name": "State Machine（状态机）",
+        "version": "state_machine_v1.0.0",
+        "source": "docs/product/reference/13｜State Machine Specification V1（状态机规范 V1）.md",
+        "registeredHash": "feb1130cacc0d628b983a5f46815c46fdb99e35245c797cdad476f29ba3499a1",
+        "registeredNote": null,
+        "computedHash": "feb1130cacc0d628b983a5f46815c46fdb99e35245c797cdad476f29ba3499a1",
+        "match": true
+      },
+      {
+        "id": "C3",
+        "name": "Action & Policy（动作与策略）",
+        "version": "action_policy_v1.0.0（基线赋予）",
+        "source": "docs/product/reference/14｜Action & Policy Contract V1（动作与策略契约 V1）.md",
+        "registeredHash": "15139925ae66c023b93e9c2adff3699a4812a1baedb228ebf2dc555db8c46c3f",
+        "registeredNote": null,
+        "computedHash": "15139925ae66c023b93e9c2adff3699a4812a1baedb228ebf2dc555db8c46c3f",
+        "match": true
+      },
+      {
+        "id": "C4",
+        "name": "LLM Contract（大模型契约，正式文件）",
+        "version": "C4-LLM-Contract-v1.0.0",
+        "source": "docs/product/contracts/C4-LLM-Contract-v1.0.0.md",
+        "registeredHash": null,
+        "registeredNote": "§1–§17 全节 SHA-256 范围指纹已登记于 C4-LLM-Contract-v1.0.0.md §18（K-4/K-5，CR-10/CR-11 关闭）",
+        "computedHash": "db3c522c4cafca91b5cf67a864d96b64955b316cdd3767596f4724dded6c03ab",
+        "match": null
+      },
+      {
+        "id": "C5",
+        "name": "API（接口）",
+        "version": "api_v1.0.0",
+        "source": "docs/product/reference/16｜API Contract V1（接口契约 V1）.md",
+        "registeredHash": "2470f0a33d38c0561fcf7b10e4d006b69f75eb4327e33ba48c365a71f21f82eb",
+        "registeredNote": null,
+        "computedHash": "2470f0a33d38c0561fcf7b10e4d006b69f75eb4327e33ba48c365a71f21f82eb",
+        "match": true
+      },
+      {
+        "id": "C6",
+        "name": "Event & Analytics（事件与分析）",
+        "version": "analytics_v1.0.0",
+        "source": "docs/product/reference/17｜Event & Analytics Contract V1（事件与数据分析契约 V1）.md",
+        "registeredHash": "474d73c488744cf22fba2ce2013bfc63b2d7ac6129bf758c4fc46f30a5372671",
+        "registeredNote": null,
+        "computedHash": "474d73c488744cf22fba2ce2013bfc63b2d7ac6129bf758c4fc46f30a5372671",
+        "match": true
+      },
+      {
+        "id": "C7",
+        "name": "Evaluation（评测与验收）",
+        "version": "evaluation_v1.0.0",
+        "source": "docs/product/reference/18｜Evaluation System V1（评测与验收体系 V1）.md",
+        "registeredHash": "ec07d4e68a9f5afaa6eea0c6a3a160619b2950083d0a2ca5c30d4b6f7cf563b0",
+        "registeredNote": null,
+        "computedHash": "ec07d4e68a9f5afaa6eea0c6a3a160619b2950083d0a2ca5c30d4b6f7cf563b0",
+        "match": true
+      }
+    ],
+    "p3s1Candidates": {
+      "source": "SRC-21 / SRC-22 / SRC-24（P3-S1-C01～C09）",
+      "status": "FREEZE CANDIDATE，未获责任人批准；与已批准契约不一致时暂停并升级决策"
+    }
+  },
+  "s1Specifications": [
+    "P3-S1-CC02｜C01～C09 Cross-Contract Consistency Matrix（跨契约一致性矩阵）.md",
+    "P3-S1-C07～C08｜LLM Gateway & Validator Contracts（大模型网关与验证器契约）.md",
+    "P3-S1｜Runtime Vertical Slice Specification（运行时首个完整产品切片规范）.md",
+    "P3-S1-CC01｜Cross-Contract Consistency Specification（跨契约一致性规范）.md",
+    "P3-S1-C01～C04｜Runtime Core Foundation Contracts（运行时核心底座契约）.md",
+    "P3-S1-C07～C09｜LLM Gateway、Validator & Runtime Contracts（大模型网关、验证器与运行时契约）.md",
+    "P3-S1-C05～C06｜Semantic Action & Policy Contracts（语义动作与策略契约）.md"
+  ],
+  "stateMachine": {
+    "contract": "C2",
+    "version": "state_machine_v1.2.0",
+    "implemented": [
+      "L0 Session（§4）",
+      "L2 Experience 状态机（§7）",
+      "L2 阶段机（§14/§15）",
+      "Forbidden Transitions（§23）",
+      "创造状态机 V1（13 §16——轴外子状态机；S2A-F2-SEMANTIC-FREEZE-01 §4 变更 1）",
+      "CORRECTION 操作序列契约化（S2A-F3-SEMANTIC-FREEZE-01 §4 变更 1：定位目标（确定性派生）→ 取消在途 generation（旧候选拒绝）→ 重评估纠正候选（LLM 提案 → 验证）→ 版本化提交（S1-12；expected_state_version 陈旧 → STATE_VERSION_CONFLICT）→ 纠正域事件登记；序列任一步失败不消耗版本号、不修改已提交状态）",
+      "RESTORE 语义（§4 变更 2：不新增体验轴触发器；创作域经创作存储回滚提交——创作版本单调 +1（新版本内容 = 目标历史版本内容；user_changes 登记 restore 条目；expectedCreationVersion + expectedStateVersion 双重前置校验）；创作子状态机不推进；非创作域 CORRECTION 迁移 + 重评估（decision-trace reason=restore_previous_version）；版本指针回滚非法（违反 S1-12 单调不变式））"
+    ]
+  },
+  "policy": {
+    "contract": "C3",
+    "version": "policy_v1.3.0",
+    "frozenMappingsImplemented": {
+      "DIRECT_ANSWER": "ANSWER",
+      "WHY": "EXPLAIN",
+      "WHAT_IF": "SIMULATE",
+      "CHANGE_DIRECTION": "CHANGE_EXPERIENCE",
+      "STOP": "STOP",
+      "CREATE": "CREATE（PD-21 关闭切片启用；F-2 起承载完整 G04 创作语义；F-3 起创作会话内 MODIFY 别名输入经路由保护回创作解释）",
+      "CORRECTION": "EXPLAIN（G07 完整语义 F-3 起完整化：定位目标 / 局部修改 / 重生成 / 历史版本化；MODIFY 用户面别名 + RESTORE 恢复子型；策略映射不变）"
+    },
+    "frozenMapAuthority": "S1 规范 §14 Policy Rules（acceptance-mapping §A/C 批准范围）+ S2A-F3-SEMANTIC-FREEZE-01 §3 变更文本（policy_v1.3.0）",
+    "semanticGapRegister": "docs/product/baseline/c3-semantic-gap-register-v1.md（G-1…G-7 已登记，未由编码者补写；冻结点之外一律拒绝并升级）"
+  },
+  "api": {
+    "contract": "C5",
+    "version": "api_v1.0.0",
+    "routes": [
+      "POST /api/session/start",
+      "POST /api/intent/resolve",
+      "POST /api/experience/start",
+      "GET /api/experience/{id}/state",
+      "POST /api/experience/{id}/event（event.semantic_action 声明校验 + expected_state_version；创作修改 / 恢复轮经 expected_creation_version 双重前置校验——工程实现字段，迭代记录登记）",
+      "POST /api/experience/stream"
+    ],
+    "errorContract": "S1 §28（INVALID_REQUEST / INVALID_STATE_TRANSITION / STATE_VERSION_CONFLICT / INVALID_ACTION / POLICY_REJECTED / LLM_SCHEMA_INVALID / LLM_UNAVAILABLE / REQUEST_DUPLICATE / INTERNAL_ERROR）；HTTP 状态码映射为工程实现（400/405/409/500/503），记录于迭代记录"
+  },
+  "event": {
+    "contract": "C6",
+    "version": "analytics_v1.0.0",
+    "implemented": [
+      "Event Envelope（C6 §7）",
+      "Event Identity（C6 §6）",
+      "Event Source Rules（C6 §8）",
+      "Event Ordering（C6 §25：每体验 sequence_number）",
+      "Event Idempotency（C6 §27：event_id 去重）",
+      "Decision Trace（C6 §22）",
+      "LLM/Policy/State 追踪分离（C6 §23）",
+      "S1 §23 最低事件集（15 项，C6 权威名 + 名称调和表）",
+      "创作域事件（S2A-F2：creation_started / creation_phase_transitioned / creation_patch_applied / creation_completed / creation_ended——C6 §14 命名模式）",
+      "纠正域事件（S2A-F3：correction_applied / correction_restored——C6 §14 命名模式 <domain>_<past_participle>；D-05 选项 A）"
+    ]
+  },
+  "engineeringBoundaries": {
+    "contract": "P2-EVIDENCE-4.0",
+    "evidence": "EB-02（失败写入不消耗版本号——STALE-REJECT / RESTORE 陈旧拒绝）；EB-06（重试是工程恢复机制——本迭代无重试路径改动）；EB-07（超时不自行决定新方向）；EB-13（完成不属于 LLM 自主权限）；EB-14（分析只能观察）；EB-16（版本可追溯——本版本矩阵 + A2/A14）",
+    "seamBoundary": "本迭代无注入缝改动（注入缝属 F-1；SEAM-INERT 不变式由 S2A-OBL-01-0001 证据保持，本运行进程内形态默认合成网关）",
+    "s2ScopeItems": {
+      "memory": "Minimal Memory 属 S2a 后续迭代 F-5（短期记忆 only，6 个月自动删除，无长期画像——PD-23 裁决）",
+      "deepenSimplifyReframe": "DEEPEN/SIMPLIFY/REFRAME 属 S2b（PD-23 裁决；识别后 INVALID_ACTION 升级拒绝——S2A-F2-0001 DEFERRED-OP 案例）",
+      "correction": "G07 完整 Correction 语义属 S2a F-3（policy_v1.3.0）——本迭代已实施（S2A-F3-0001）",
+      "whatIf": "WHAT_IF 全分支属 S2a F-4（policy_v1.4.0）"
+    }
+  },
+  "correctionSemantics": {
+    "aliasRegistration": "MODIFY 登记为 CORRECTION 用户面别名（授权 §2(2)；08 §10 修改类型族，与创作修改族同源——单一词表两处路由）；不新增顶层 SemanticAction / PolicyAction（PD-23 §5）；分类优先级层不变（STOP > CHANGE_DIRECTION > CORRECTION > CREATE > WHY > WHAT_IF > DIRECT_ANSWER）",
+    "targetDerivation": "确定性规则派生（D-02 选项 A）：指代词表（刚才 / 那个 / 上一步 / 上一个 / 上一版 / 上一个版本 → 上一候选）+ 创作分量映射（TARGET_SYNONYMS 同义词表）+ 默认当前候选；无新增模型调用（合成网关无真实语义提取能力——E5 环境约束）",
+    "domainCarriage": "创作域 G07 经 F-2 补丁机制承载（D-03 选项 A：不重建）；非创作域经重评估链路完整化（目标登记 + 纠正历史事件登记；重评估候选替换即\"局部修改\"在非结构化理解状态的忠实派生——不重放会话历史）",
+    "routingProtection": "创作会话路由保护（D-01 选项 A）：活跃创作会话内 CORRECTION 分类输入先经 RESTORE 预检（D-04 词表，创作版本 >1），再经创作修改族预检（复用 interpretCreationInput 词表族与 08 §16 冲突判据）——命中创作 ADD/REMOVE/MODIFY 族 → 创作解释（CREATE 伞形 + 补丁轮次，F-2 机制不变）；命中冲突判据 → ASK（至多一个澄清问题）；未命中 → 通用 CORRECTION 路径（F-2 变更 3 保持：重评估创作子状态，不推进子状态机）",
+    "restoreSubtype": "RESTORE_PREVIOUS_VERSION 登记为 CORRECTION 用户面恢复子型（D-04 选项 A；词表：刚才那个更好 / 退回刚才那个 / 撤销刚才修改）：创作域经创作存储回滚提交（版本单调 +1——S1-12 不变式：版本指针永不回退；新版本内容 = 目标历史版本内容；user_changes 登记 restore 条目含恢复来源版本号；correction_restored 事件）；非创作域经意图登记 + 重评估（decision-trace reason=restore_previous_version）；版本指针回滚非法",
+    "events": "纠正域事件（D-05 选项 A）：correction_applied（correction_target / correction_summary / corrected_candidate_id / semantic_action=CORRECTION）与 correction_restored（restored_from_version / restored_to_version / creation_id / semantic_action=CORRECTION）；创作域常规修改轮次仍由 F-2 creation_patch_applied 登记（不重复建设）",
+    "crossSession": "纠正不持久化跨会话（PD-07——纠正域事件均为会话内事实登记，无 memory 层事件；NO-MEMORY 案例零 memory 事件断言）"
+  },
+  "evaluation": {
+    "contract": "C7",
+    "version": "evaluation_v1.0.0",
+    "note": "G5 16 项评测包仍 NOT RUN；独立评测人须先审阅本运行 staged 材料（review/README.md）"
+  },
+  "code": {
+    "gitHead": "3bae4d54f708d76c52d036f8bd8ccbf71b9e9063",
+    "workTreeClean": false,
+    "uncommittedEntries": [
+      "M tools/evidence/package.json",
+      "?? tools/evidence/src/s2a-f3.mjs"
+    ],
+    "runtimeFiles": {
+      "package.json": "fa7665b1ea2c862dce091db47f4336e9591d022f3f35f7ae15d932607067f8dc",
+      "package-lock.json": "3bb63eefad5d1c37990b359e3d0b337ad1d4331da9ec7f5536b18acfd859ed86",
+      "tsconfig.json": "11530e52621c1c4c42c1f69c7c8f632aa397b101b17656fdeb9d00e2679c6b61",
+      "tsconfig.core.json": "6df46831678573b0f924650df0aeb521fb9000fdc3c092d2b5e8e0988894c04e",
+      "next.config.ts": "313bbd12b7c02687533a9834c38c1052cd8037ad0b47b26713cbaa19e6fbad74",
+      "app/layout.tsx": "20fef2d253247770bfa0ffad80371b804c60b2ae1b65c258d5164a1683b7d44e",
+      "app/page.tsx": "6c8303bd92af6cf73be2eb46e8f37f4b029cebee05216519eea6b877119172c7",
+      "app/api/experience/stream/route.ts": "e549b14180c3939fe7e0e0345e295923b8a1e3f7aa964d67d8e2cecef8b21320",
+      "app/api/session/start/route.ts": "3f032c8de37847d10607b4103f30251689035ca57ec08583285b22812e6329a7",
+      "app/api/intent/resolve/route.ts": "88d452b7122ec6e317d6c01c8f27ca72ab8ef8bd0c713d2fe490c2b89aacda9f",
+      "app/api/experience/start/route.ts": "388db9999ca45a25dd9e016c283cd4f3711110e1b98f76a4fa6b106da03a8026",
+      "app/api/experience/[experienceId]/state/route.ts": "ac786e52885b91168997c4b6a685f70fd480c24c8c9e5001a7373e4103ffb8ac",
+      "app/api/experience/[experienceId]/event/route.ts": "325ff8e6b73c0ef3b140767135b1017a56a41b1d29531f74be1694051d1e14d2",
+      "src/experience/policy.ts": "b9e2ae492328f56a149feab02aad2dcc7e2855e566a75f713bbbba56db7f32d5",
+      "src/experience/chunks.ts": "733a16552bc0fdd120bd2e202ee17de26078307f9c79821fe2599f3915fc89ec",
+      "src/experience/stream.ts": "a2931765e29382e81f755be747a8dbb9097b94d3a42103a9d8ba87c988281010",
+      "src/experience/audit.ts": "1da20af50e24cde6e4638a78f22e05ec847fa153c0a4655b86134474291ddf0b",
+      "src/experience/http.ts": "d26961966a134880732b9ae22a9368c821ce6680fff2c1df4349d0a7f731b13d",
+      "src/experience/session.ts": "d7a21131bfb848730643ca7808e71a714e4a757e917cf1103f23c549d68589ae",
+      "src/experience/state-machine.ts": "79a5cba41afcd6c9288e903acc12400871a7c178330aaa3844f00c1235447da7",
+      "src/experience/state-store.ts": "625f747f39f589c8d3d99bf00a61dd58a89c5876e9b21cd2c1f59a346189e863",
+      "src/experience/classifier.ts": "b4a1b008f0b258d882804f34b4f2dd2ffe73c5131b95c279b808fcc1419edbec",
+      "src/experience/correction.ts": "72897fcf8b3d8a64ceb9d6600a228cd2c447f772cc79c2aa8e46ab63a9d4674c",
+      "src/experience/validator.ts": "46850fea758853531f6687551b8f96280772c7fe4c019ac76559ec93fdc4646a",
+      "src/experience/events.ts": "525a41e1db2453f6727e21086088b2bce9f20fd71ced19cc195ebaf4d5721e92",
+      "src/experience/decision-trace.ts": "6606aa6e01c100b0217bafd7b49810a174e3dd7cda36a15668ebf0b42506f0c8",
+      "src/experience/llm-gateway.ts": "858dea8a666c6bed47142f39b32695418e88d564d54096b8373ed80f955a1601",
+      "src/experience/creation.ts": "28f14267903c219cbcdfc98588c396c1fcc1506a9f3a59baee3183398548a5ca",
+      "src/experience/runtime.ts": "8579fbb2dc7c12a5200317d2a6bbb6a5169debfabe31ffe8882be3fafa1efd2b",
+      "src/experience/server-runtime.ts": "b6b3f83166d085e72013661915f2f79398f961081310bd35c5ad4d10412f5700",
+      "src/experience/fixtures/direct-answer.ts": "d2183d5f8fe5075540980462cf3774fba8fcc4c1f0740032654ba27331ed264c",
+      "src/experience/fixtures/why.ts": "8e597e2d9c4082ee4a80e19557c82d3be54ed917f3dbfd68bb8a4752787757e0",
+      "src/experience/fixtures/change-direction.ts": "8db3861f3a0693492054d4aeb9d73ed42a3fb561bcc7f45ed8de0fc47ed6468a",
+      "src/experience/fixtures/simulate.ts": "77d51cfad3fb9beef78a367e767b0eb3aea582f9a9d7a189f98468ad14d55643",
+      "src/experience/fixtures/create.ts": "e84eba657c582b8947d10988ed9389ab5eb56563f8d07de97ef7f81f486b7b99",
+      "src/experience/fixtures/correction.ts": "27393524ebcb51cf2f26e32fa163e3c2a787f0cfe2cf9b11fc242dbe7db03f68",
+      "tools/evidence/src/s2a-f3.mjs": "65a0d65fc27347f7b4c13c0eddce95ceb07943e0c54aa7ac6cfa2758f867f3d8"
+    },
+    "typecheckCommand": "npm run typecheck:core",
+    "buildCommand": "npm run build (next build, Turbopack)",
+    "typecheckExitCode": 0,
+    "buildExitCode": 0,
+    "changedFiles": [
+      "src/experience/correction.ts",
+      "src/experience/classifier.ts",
+      "src/experience/creation.ts",
+      "src/experience/events.ts",
+      "src/experience/policy.ts",
+      "src/experience/runtime.ts",
+      "tools/evidence/src/golden.mjs",
+      "tools/evidence/src/s2a-f3.mjs",
+      "tools/evidence/package.json"
+    ]
+  },
+  "prompt": {
+    "value": "synthetic-fixture",
+    "reason": "无真实 LLM 提供方调用（E5 §2 排除项；ADR-0002 §3 硬边界）"
+  },
+  "model": {
+    "value": "synthetic-fixture",
+    "reason": "同上；LLM 网关为合成实现（经 LlmGateway 接口）"
+  },
+  "corpus": {
+    "fixtures": [
+      {
+        "fixtureId": "synthetic/why/v1",
+        "file": "src/experience/fixtures/why.ts",
+        "sha256": "8e597e2d9c4082ee4a80e19557c82d3be54ed917f3dbfd68bb8a4752787757e0"
+      },
+      {
+        "fixtureId": "synthetic/create/v1",
+        "file": "src/experience/fixtures/create.ts",
+        "sha256": "e84eba657c582b8947d10988ed9389ab5eb56563f8d07de97ef7f81f486b7b99"
+      },
+      {
+        "fixtureId": "synthetic/correction/v1",
+        "file": "src/experience/fixtures/correction.ts",
+        "sha256": "27393524ebcb51cf2f26e32fa163e3c2a787f0cfe2cf9b11fc242dbe7db03f68"
+      },
+      {
+        "fixtureId": "synthetic/change-direction/v1",
+        "file": "src/experience/fixtures/change-direction.ts",
+        "sha256": "8db3861f3a0693492054d4aeb9d73ed42a3fb561bcc7f45ed8de0fc47ed6468a"
+      },
+      {
+        "fixtureId": "synthetic/direct-answer/v1",
+        "file": "src/experience/fixtures/direct-answer.ts",
+        "sha256": "d2183d5f8fe5075540980462cf3774fba8fcc4c1f0740032654ba27331ed264c"
+      },
+      {
+        "fixtureId": "synthetic/simulate/v1",
+        "file": "src/experience/fixtures/simulate.ts",
+        "sha256": "77d51cfad3fb9beef78a367e767b0eb3aea582f9a9d7a189f98468ad14d55643"
+      },
+      {
+        "fixtureId": "synthetic/stop/v1",
+        "file": "（运行时内联构造：STOP 无内容分块）",
+        "sha256": null
+      },
+      {
+        "fixtureId": "creation_ask",
+        "file": "（运行时内联构造：ASK 轮单块澄清问题）",
+        "sha256": null
+      }
+    ],
+    "realUserData": false,
+    "privacyGuardrail": "隐私六要素批准前不得收集或保存任何真实用户数据（evidence-execution-plan §3；本运行仅合成数据）"
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "nodeLock": "v24.21.0",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "typescript": "7.0.2",
+    "lockfileVersion": 3,
+    "platform": "darwin",
+    "arch": "arm64",
+    "sqlite": {},
+    "httpServers": "（本运行无 HTTP 服务器——进程内形态直接加载已提交 .ts 源字节）"
+  },
+  "packages": {
+    "product": {
+      "name": "intent-experience-runtime",
+      "version": "0.1.0",
+      "engines": {
+        "node": "24.21.0"
+      }
+    }
+  },
+  "priorIterations": {
+    "f1": {
+      "runId": "F1-E2E-0001",
+      "result": "PASSED（9/9 案例、12/12 断言、退出码 0）"
+    },
+    "f2": {
+      "runId": "F2-GS-0001",
+      "result": "PASSED（40/40 案例、24/24 断言、退出码 0）"
+    },
+    "f3": {
+      "runId": "F3-EB-0001",
+      "result": "PASSED（26/26 案例、28/28 断言、退出码 0）"
+    },
+    "g3": {
+      "runId": "G3-GOLDEN-0001",
+      "result": "PASSED（golden 再生验证，policy_v1.3.0 断言同步后 32/32）"
+    },
+    "s2a": {
+      "f1": {
+        "runId": "S2A-OBL-01-0001",
+        "result": "PASSED（7/7 案例、12/12 断言、退出码 0）"
+      },
+      "f2": {
+        "runId": "S2A-F2-0001",
+        "result": "PASSED（10/10 案例、16/16 断言、退出码 0）"
+      }
+    }
+  },
+  "startedAt": "2026-10-09T09:02:35.387Z",
+  "finishedAt": "2026-10-09T09:02:50.196Z",
+  "durationMs": 14808,
+  "executor": "tools/evidence/src/s2a-f3.mjs",
+  "executorSha256": "65a0d65fc27347f7b4c13c0eddce95ceb07943e0c54aa7ac6cfa2758f867f3d8"
+}

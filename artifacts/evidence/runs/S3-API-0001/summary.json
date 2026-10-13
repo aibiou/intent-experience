@@ -1,0 +1,164 @@
+{
+  "runId": "S3-API-0001",
+  "obligation": "S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划——D-3 选项 A：既有端点 semanticAction 枚举扩展（纯暴露层——同一 ExperienceRuntime 单例，不改变任何运行时语义）；S3A/S3B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施",
+  "startedAt": "2026-10-10T04:58:29.078Z",
+  "finishedAt": "2026-10-10T04:58:37.001Z",
+  "durationMs": 7923,
+  "cases": [
+    {
+      "caseId": "STREAM-EXECUTION",
+      "result": "PASS"
+    },
+    {
+      "caseId": "STREAM-LONGTERM-A",
+      "result": "PASS"
+    },
+    {
+      "caseId": "STREAM-LONGTERM-BARE-NEG",
+      "result": "PASS"
+    },
+    {
+      "caseId": "STREAM-S1-FORM",
+      "result": "PASS"
+    },
+    {
+      "caseId": "CROSS-SESSION-ADOPT",
+      "result": "PASS"
+    },
+    {
+      "caseId": "CROSS-SESSION-CONTENT-NEG",
+      "result": "PASS"
+    },
+    {
+      "caseId": "VERSION-CONFLICT",
+      "result": "PASS"
+    },
+    {
+      "caseId": "OBSERVABILITY",
+      "result": "PASS"
+    }
+  ],
+  "allCasesPass": true,
+  "assertions": [
+    {
+      "id": "A1",
+      "description": "STREAM-EXECUTION：执行形态 WHAT_IF 全链路——三要素请求 → 真实运行路径（resolveIntent → startExperience → submitExperienceEvent）→ NDJSON 流（submission 首行 accepted=true / policy_v2.2.0 / WHAT_IF→SIMULATE / state_version=3 ACTIVE/SIMULATION；chunk ×17 逐字节等于 simulate 语料；done；state_updated v4 WAITING/SIMULATION waiting_for_user=true）；模拟域首轮分支自动 CREATE（currentBranchId=分支 1，rounds ×1，sourceInput=用户输入）；信封零违规；session_started ×1 / experience_started ×1",
+      "passed": true,
+      "detail": {
+        "streamExecution": true
+      }
+    },
+    {
+      "id": "A2",
+      "description": "STREAM-LONGTERM-A：执行形态 A 类显式长期记忆写入——\"我喜欢古典音乐\" → resolveIntent action=memory_operation → NDJSON 两行（submission 含 memory_operation{kind=record_long_term，executed=true，memoryClass=long_term} + done）；记录 topic=\"我喜欢古典音乐\" / memoryClass=long_term / source=explicit / confidence=1.0 / lifecycle=REMEMBERED；memory_recorded ×1（properties：memory_class=long_term / source=explicit / confidence=1 / recognition_path=explicit_preference）；零 experience_started（记忆操作不创建体验轴）",
+      "passed": true,
+      "detail": {
+        "streamLongtermA": true
+      }
+    },
+    {
+      "id": "A3",
+      "description": "STREAM-LONGTERM-BARE-NEG：执行形态裸记住请求负向——\"记住这个\"（G08-NEG 对抗语料）→ 400 INVALID_ACTION（UNKNOWN 升级——未知情况升级而非由系统决定）；零记忆写入（快照 records=0，零 memory_recorded 事件）",
+      "passed": true,
+      "detail": {
+        "streamLongtermBareNeg": true
+      }
+    },
+    {
+      "id": "A4",
+      "description": "STREAM-S1-FORM：S1 fixture 形态向后兼容——{ semanticAction }（三要素不齐备）→ 既有路径不变（WHY → EXPLAIN，chunk ×9 逐字节等于 why 语料 + done）——API 面扩展不改变既有形态行为（D-3 选项 A 纯暴露层）",
+      "passed": true,
+      "detail": {
+        "streamS1Form": true
+      }
+    },
+    {
+      "id": "A5",
+      "description": "CROSS-SESSION-ADOPT：跨会话分支操作（执行形态既有体验提交）——会话 A 执行形态 WHAT_IF → STOP（COMPLETED——会话结束）；会话 B（SESSION_ACTIVE）经 experience_id + state_version 定位持久体验，\"如果采用分支一的结论呢\" → 200 NDJSON 流（accepted=true，experience_id / session_id 归属正确，selected_action=SIMULATE，reason=simulation_branch_operation，policy_v2.2.0——确定性系统回合 llm_used=false）；分支 adopted=true / lifecycle=ACTIVE / rounds ×1；currentBranchId 保持 null（跨会话采用不恢复主线指针——会话级不变式）；simulation_adopted ×1（source_round=1，separation_invariant=simulation_result_is_not_fact）；体验轴保持 COMPLETED",
+      "passed": true,
+      "detail": {
+        "crossSessionAdopt": true
+      }
+    },
+    {
+      "id": "A6",
+      "description": "CROSS-SESSION-CONTENT-NEG：跨会话内容轮负向——WHY 内容输入经执行形态既有体验提交 → 400 INVALID_REQUEST（experience/session mismatch——S3B §1.4：放宽范围仅限分支操作路径，内容轮保持严格会话绑定）；体验状态版本不变（拒绝不提交——失败写入不消耗版本号）",
+      "passed": true,
+      "detail": {
+        "crossSessionContentNeg": true
+      }
+    },
+    {
+      "id": "A7",
+      "description": "VERSION-CONFLICT：执行形态陈旧 state_version 提交 → 错误响应（STATE_VERSION_CONFLICT，retryable=false——不覆盖、不消耗版本，S1-12 同族）；state_version_conflict ×1（expected_state_version=2 / current_state_version=4 留痕）；冲突后版本不变（v4）；携带当前版本重试成功（accepted=true，state_version=5——合法提交恰好 +1）",
+      "passed": true,
+      "detail": {
+        "versionConflict": true
+      }
+    },
+    {
+      "id": "A8",
+      "description": "OBSERVABILITY：只读观测路由底层快照——GET /api/memory 底层：记录 ×2（两条链各经 STOP 完成路径登记——topic=\"为什么\" / \"如果摩擦力为零会怎样\"，memoryClass=short_term，source=session_observation，confidence=0.7，lifecycle=REMEMBERED）；GET /api/experience/{id}/simulation 底层：currentBranchId===null（STOP 会话级清空），分支记录 ×1（rounds ×1，sourceInput=用户输入——持久化范围 = 分支记录全部分量）；连续查询快照逐字节一致且零事件登记（Query 与 Command 分离——只读不改变任何状态）",
+      "passed": true,
+      "detail": {
+        "observability": true
+      }
+    },
+    {
+      "id": "A9",
+      "description": "全部 8 案例记录齐备且 12 字段完整（E5 §4；8 执行；无 DEFERRED 登记）",
+      "passed": true,
+      "detail": {
+        "recordFiles": 8,
+        "expected": 8,
+        "allCasesPass": true
+      }
+    },
+    {
+      "id": "A10",
+      "description": "全部 8 案例轨迹文件齐备且非空",
+      "passed": true,
+      "detail": {
+        "traceFiles": 8
+      }
+    },
+    {
+      "id": "A11-PREFLIGHT",
+      "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配（失败为 FATAL，不计入断言池）",
+      "passed": true,
+      "detail": {
+        "typecheckExitCode": 0,
+        "buildExitCode": 0,
+        "referenceVerified": "36/36",
+        "fingerprintsAllMatch": true
+      }
+    },
+    {
+      "id": "A12",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + 静态边界发现 + obligationTraceability：S3b 暴露层 → 案例 / 断言映射）",
+      "passed": true,
+      "detail": {
+        "missingSections": [],
+        "staticFindings": {
+          "executionFormDetection": true,
+          "runtimeInjection": true,
+          "s1FormPreserved": true,
+          "serverRuntimeSingleton": true
+        }
+      }
+    },
+    {
+      "id": "A13",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
+      "passed": true,
+      "detail": {
+        "verified": 18,
+        "failed": []
+      }
+    }
+  ],
+  "allAssertionsPass": true,
+  "allPassed": true,
+  "exitCode": 0,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2/G4/G8）或产品状态为 PASS（E5 §2）。S3b 暴露层证据本运行已执行；G5 独立评测 NOT RUN（独立评测人须先审阅本运行 staged 材料）。"
+}

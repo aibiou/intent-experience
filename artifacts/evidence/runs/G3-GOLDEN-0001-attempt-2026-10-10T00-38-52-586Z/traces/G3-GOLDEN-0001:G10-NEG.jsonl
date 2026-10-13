@@ -1,0 +1,3 @@
+{"caseId":"G3-GOLDEN-0001:G10-NEG","event":"trace_started","at":"2026-10-10T00:37:36.581Z","form":"in-process","sourceClause":"S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 词表边界（优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH，均须分支作用域 + 可解析序号，否则通用 SIMULATE 执行路径）；OBL-01 失败写入不消耗版本号","goldenCase":"G10","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G10-NEG","event":"executor-error","at":"2026-10-10T00:37:37.980Z","error":"ReferenceError: jsonEquals is not defined"}
+{"caseId":"G3-GOLDEN-0001:G10-NEG","event":"trace_completed","at":"2026-10-10T00:37:37.983Z","startedAt":"2026-10-10T00:37:36.580Z","durationMs":1403,"result":"FAIL","pass":false}

@@ -1,0 +1,25 @@
+{
+  "caseIdNamespace": "E5-TRIAL-0001:GS-01",
+  "sourceClause": "P3-S1｜Runtime Vertical Slice Specification §26 GS-01；Evaluation System V1 Golden Cases / Direct Answer；API V1 Case 01",
+  "scope": "S1 核心（Golden Subset）；E5 证据管线试运行（非产品运行时验证）",
+  "precondition": "无活跃生成；状态版本任意；输入为合成 fixture（标记 simulated）",
+  "inputFault": "用户输入（合成）：\"直接告诉我答案。\"（合成 fixture，标记 simulated）",
+  "expected": "策略动作 = ANSWER；直接回答，不强迫进入探索体验；无状态转换",
+  "actual": "{\"policyAction\":\"ANSWER\",\"stateTransition\":null,\"generationCancelled\":false,\"matchedExpectedPolicyAction\":true}；结果判定：全部预期检查通过",
+  "invariants": [
+    "DIRECT_ANSWER → ANSWER（C3 §8 默认映射）",
+    "不应继续生成体验或隐式推荐",
+    "模型异常时不得改写用户意图"
+  ],
+  "evidence": {
+    "runDir": "artifacts/evidence/runs/E5-TRIAL-0001",
+    "trace": "artifacts/evidence/runs/E5-TRIAL-0001/traces/GS-01.jsonl",
+    "traceSha256": "b19dae6b06c0b59fa390601e0f225c75946eba516f781cf23b4a61783de0dfc3",
+    "decisionTrace": "见 trace 事件 policy_decision_recorded（C3 §25 字段结构）",
+    "fixture": "tools/evidence/fixtures/gs01-direct-answer.json",
+    "simulated": true
+  },
+  "result": "PASS",
+  "evaluator": "工程负责人角色（代理，Codex 履行，PD-15 委托）；独立复核人：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 任命生效，保留审阅与否决权）；同一案例实现作者与独立评测者分离（G5 隔离声明 §2）",
+  "defectsFollowUp": "无"
+}

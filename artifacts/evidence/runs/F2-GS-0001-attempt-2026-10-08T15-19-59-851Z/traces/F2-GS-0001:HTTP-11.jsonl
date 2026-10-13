@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:HTTP-11","event":"trace_started","at":"2026-10-08T15:18:12.160Z","form":"http","sourceClause":"S1 §11/§21；GS-03；S1-10（中断控制器经真实 HTTP）"}
+{"caseId":"F2-GS-0001:HTTP-11","event":"trace_completed","at":"2026-10-08T15:18:12.610Z","startedAt":"2026-10-08T15:18:12.160Z","durationMs":450,"result":"PASS","pass":true}

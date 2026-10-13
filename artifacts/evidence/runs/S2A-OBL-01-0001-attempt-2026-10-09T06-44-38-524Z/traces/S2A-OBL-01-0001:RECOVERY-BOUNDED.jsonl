@@ -1,0 +1,2 @@
+{"caseId":"S2A-OBL-01-0001:RECOVERY-BOUNDED","event":"trace_started","at":"2026-10-09T06:22:13.851Z","form":"http","sourceClause":"P3-S2-IMPL-AUTH-01 §2 OBL-01 / EB-07（有界恢复 + 用户控制保留，不因故障自行决定新方向）","servers":["S2"]}
+{"caseId":"S2A-OBL-01-0001:RECOVERY-BOUNDED","event":"trace_completed","at":"2026-10-09T06:22:14.288Z","startedAt":"2026-10-09T06:22:13.851Z","durationMs":437,"result":"FAIL","pass":false}

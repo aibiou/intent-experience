@@ -1,0 +1,2 @@
+{"caseId":"S2A-OBL-01-0001:SEAM-INERT","event":"trace_started","at":"2026-10-09T06:46:00.500Z","form":"http","sourceClause":"P3-S2-IMPL-AUTH-01 §2 OBL-01 / CR-18 选项 A（仅证据/测试环境启用，默认合成模式不变）/ ADR-0002 §3（无真实提供方调用）","servers":["S3"]}
+{"caseId":"S2A-OBL-01-0001:SEAM-INERT","event":"trace_completed","at":"2026-10-09T06:46:00.929Z","startedAt":"2026-10-09T06:46:00.499Z","durationMs":430,"result":"PASS","pass":true}

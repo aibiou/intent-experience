@@ -1,0 +1,140 @@
+# P3-S3 实施迭代记录：S3a 长期记忆启用 + S3b 跨会话分支持久化与 API 暴露层（CR-28 D-1…D-5 全项 A）
+
+**编号：** P3-S3-IMPL-ITER
+**版本：** 1.0.0（2026-10-10：S3 义务完成登记——实施完成（产品提交 `f8b374f`：9 文件 +802/−64——src/experience/{classifier,http,memory,policy,runtime,simulation}.ts 六文件修改 + app/api/memory/route.ts 与 app/api/experience/[experienceId]/simulation/route.ts 两只读观测路由新增 + .gitignore）；黄金套件扩展（G11 长期记忆案例组 + G12 跨会话分支持久化案例组——G01–G12 × 四维度 = 48 案例）；S3 动态证据五运行全绿（G3-GOLDEN-0001 48/48 案例、10/10 断言；S2A-F5-0001 14/14 案例、19/19 断言；S2A-F4-0001 10/10 案例、17/17 断言；S2B-0001 7/7 案例、14/14 断言；S3-API-0001 8/8 案例、13/13 断言——均退出码 0，SHA256SUMS 独立重算一致）；失败尝试 7 次 + FATAL 1 次按 ADR-0002 §5 如实归档留存（均为执行器侧缺陷，产品运行时零缺陷）；执行器元数据校正迭代 1 次（版本矩阵现行口径 + 黄金基线字符串同步 48/48——再生产物 `bed768d`））
+**状态：** S3 义务 EVIDENCE PRODUCED（时点状态，2026-10-10：CR-28 D-1…D-5 全项 A 实施履行；G5 独立评测 **NOT RUN**——属角色 5 独立评测人（用户本人，PD-15）逐项裁决，本记录不设置任何 Gate 为 PASS，E5 §2；现行 Gate 状态见 P3-S1-READINESS-01）
+**义务来源：** S3-SCOPE-PROPOSAL-01 v1.0.0（CR-28——产品负责人 2026-10-10 确认全项 A：D-1 长期记忆启用 / D-2 跨会话分支持久化 / D-3 HTTP API 面扩展 / D-4 首页文案更正 / D-5 分批）；S3A-SEMANTIC-FREEZE-01 v1.0.0（长期记忆——§3 变更 1–4）；S3B-SEMANTIC-FREEZE-01 v1.0.0（跨会话分支持久化——§3 变更 1–4）；产品负责人 standing authorization 2026-10-10（"持续推进产品，完成，需要我签署和授权的，允许"——覆盖 S3a 核心能力与 S3b 暴露层实施路径）
+**记录日期：** 2026-10-10
+
+## 1. 实施内容（授权范围内）
+
+| 项 | 记录 |
+|---|---|
+| 产品源码变更 | 九文件（+802/−64）：`src/experience/memory.ts`（S3a 增量——MemoryClass 二态 short_term \| long_term / MemorySource 三态（+ explicit）/ candidateLongTerm 候选标记 / recognizeLongTermMemoryExpression 显式表达识别（A 类偏好词直接命中 / B 类记住标记 + 偏好内容双命中——"记住这个"裸标记不识别，G08-NEG 纪律）/ executeLongTermMemoryWrite 经 Runtime 单一写入者（存储层门槛 memoryClass=long_term 须 source=explicit——long_term_requires_explicit 拒绝）/ 存储层六类不默认长期记住清单不变（07 §7））；`src/experience/classifier.ts`（recognizeLongTermMemoryExpression 接入分类优先级层——全部既有层未命中后调用，仅认领会成为 UNKNOWN 的输入，不改变优先级层——长期记忆永远不是最高优先级，L6 位于短期记忆之后）；`src/experience/policy.ts`（POLICY_VERSION = 'policy_v2.2.0' + S3A 变更 1–4 / S3B 变更 3–4 文档注释——长期记忆启用 / 优先级链与保留删除纪律 / 事件属性扩展 / 单一写入者；分支记录全量跨会话持久化 / 跨会话分支操作路径）；`src/experience/runtime.ts`（UNKNOWN + longTermMemory 路由 executeLongTermMemoryWrite（record_long_term——确定性系统回合，llm_used=false，reasonPrimary=explicit_user_direction）；跨会话分支操作三前提校验 + executeBranchOperation（WHAT_IF 分类 + 分支操作词识别 / 输入会话 SESSION_ACTIVE / 宿主会话 SESSION_ENDED——放宽仅限分支操作路径，内容轮保持严格会话绑定）；getSimulation 跨会话只读加载（恢复不登记新事件）；currentBranchId 会话级不变式（会话结束清空，不跨会话自动恢复激活分支）；getMemory / getSimulation API 底层）；`src/experience/simulation.ts`（分支记录持久化范围 = 全部分量（id / 内容 / 生命周期 / adopted / version / rounds / 模拟轮内容——D-2 选项 A）；getSimulation 对已结束宿主会话可查）；`src/experience/http.ts`（S3b 暴露层——执行形态三要素请求（request_id + session_id + user_input）经同一 getServerRuntime 单例执行真实运行路径（resolveIntent → startExperience → submitExperienceEvent）；NDJSON 流（submission 首行 + chunk ×N + done + state_updated）；S1 fixture 形态（{ semanticAction }）向后兼容——既有路径行为不变；StreamRequestInput.runtime 注入缝）；`app/api/memory/route.ts`（新增——GET /api/memory 只读观测路由：记忆域快照查询——record_id / session_id / experience_id / topic / intent_signal / memory_class / candidate_long_term / lifecycle / source / confidence / interest_signal）；`app/api/experience/[experienceId]/simulation/route.ts`（新增——GET /api/experience/{id}/simulation 只读观测路由：模拟域快照——分支记录全量分量 + 模拟历史 + current_branch_id；错误路径 {code, message, retryable}）；`.gitignore`（browser automation state / demo screenshots 排除——非产品或证据产物） |
+| 黄金套件扩展 | `tools/evidence/src/golden.mjs`：G11 长期记忆案例组新增（G11-N 正常路径——A 类"我喜欢古典音乐"显式长期偏好写入（source=explicit，confidence=1.0，memoryClass=long_term，recognition_path=explicit_preference）/ G11-NEG 负向——裸记住请求"记住这个"保持 UNKNOWN 升级（G08-NEG 对抗语料纪律）+ 存储层门槛（long_term + 非 explicit 来源拒绝）/ G11-B 边界——B 类"请记住我一直用深色模式"记住标记 + 偏好内容双命中（recognition_path=remember_request）/ G11-FR 故障恢复——C 类候选标记不自动升级（candidateLongTerm=true 保持 short_term））；G12 跨会话分支持久化案例组新增（G12-N 正常路径——WHAT_IF 轮分支状态 STOP 会话结束后全量持久（getSimulation 成功，currentBranchId===null）+ 会话 B 跨会话 ADOPT_BRANCH（adopted=true——S3B §1.4 三前提）/ G12-NEG 负向——跨会话内容轮拒绝（放宽仅限分支操作路径）+ 已结束会话内容操作拒绝（INVALID_STATE_TRANSITION）/ G12-B 边界——currentBranchId 会话级指针清空不跨会话自动恢复激活分支 + 对照短期记忆跨会话存活（六类数据状态区分纪律）/ G12-FR 故障恢复——陈旧 state_version 提交拒绝后当前版本重试成功）；案例 40 → 48（G01–G12 × NORMAL / NEGATIVE / BOUNDARY / FAILURE_RECOVERY 四维度）；policy 版本矩阵同步 policy_v2.2.0；G12-FR 取证时序修正（拒绝后立即取证——分支记录未被修改，adopted 保持 false——拒绝先于任何写入，后续重试为合法采用）。G3-GOLDEN-0001 再生验证 48/48 案例 PASS、10/10 断言、退出码 0（SHA256SUMS 98 文件独立重算一致） |
+| 证据执行器 | `tools/evidence/src/s2a-f5.mjs`（RUN_ID `S2A-F5-0001`，Node v24.21.0 精确锁定）：S2 时代负向不变式（SESSION-SCOPED-NEG / LONGTERM-DISABLED）经 CR-28 D-1/D-2 选项 A 裁决取代——案例组扩展为 14 案例（CROSS-SESSION / LIFECYCLE / CORRECT-WITHDRAW / BRANCH-PERSISTENCE / LONGTERM-GATED / CURRENT-INTENT-OVERRIDE / RETRIEVAL-READONLY / SINGLE-WRITER / WRITE-FILTER / LT-EXPLICIT-A / LT-REMEMBER-B / LT-BARE-NEG / LT-CANDIDATE-C / LT-GATE-NEG）、断言 12 → 19（A1–A19）；版本矩阵记录现行 state_machine_v1.5.0（轴外记忆子状态机契约化冻结于 state_machine_v1.4.0 §4 变更 1——provenance 注记承载，与 s2a-f4 现行口径一致）；`tools/evidence/src/s2a-f4.mjs`：黄金回归基线链补记 S3a 再生成基线 48/48（G11 并入——历史绑定链 F-4 实施时 32/32 → 2026-10-09 前置 36/36 → ADOPT 迭代 40/40 → S3a 迭代 48/48 完整在录）；`tools/evidence/src/s2b.mjs`：黄金回归绑定基线同步（policy_v2.1.0/40 案例 → policy_v2.2.0/48 案例——S3a 迭代后回归基线；A11 绑定检查 + 断言值 + 版本矩阵 + carriedForward 文本 15 处同步）；`tools/evidence/src/s3-api.mjs`（新增——RUN_ID `S3-API-0001`，执行形态 HTTP 取证：真实 HTTP 服务器 + NDJSON 流断言，8 案例 + 13 断言 A1–A13）；`tools/evidence/package.json`：npm scripts `s2a-f5` / `s2a-f4` / `s2b` / `s3-api` 注册 |
+| 案例形态 | 进程内形态（s2a-f5 / s2a-f4 / s2b——`module.registerHooks` 加载已提交 `.ts` 源字节，直接对真实已提交运行时取证）+ HTTP 执行形态（s3-api——真实 HTTP 服务器经同一 getServerRuntime 单例，NDJSON 流逐行断言；S1 fixture 形态向后兼容对照） |
+| 实施作者与执行 | 实施由工程负责人角色（代理，Codex）完成：实施（产品 9 文件）+ 执行器扩展（4 执行器 + 1 新增）+ 执行器元数据校正（版本矩阵现行口径 + 黄金基线字符串）+ 证据运行与治理登记 |
+
+实施提交：`f8b374f`（`feat(s3)`：产品 9 文件）；执行器提交：`87681c3`（`evidence`：S3 回归扩展执行器 6 文件 +2882/−185）；执行器元数据校正提交：`e6780c8`（`evidence`：s2a-f5 / s2a-f4 版本矩阵与黄金基线字符串校正）；证据产物提交：`2b2bbf5`（`evidence`：五运行首次生成 728 文件）+ `bed768d`（`evidence`：S2A-F5 / S2A-F4 再生产物 112 文件——执行器元数据校正后重跑）。
+
+## 2. 动态证据（五运行，2026-10-10）
+
+**结果：五运行全部退出码 0**（G3-GOLDEN-0001 48/48 案例、10/10 断言；S2A-F5-0001 14/14 案例、19/19 断言；S2A-F4-0001 10/10 案例、17/17 断言；S2B-0001 7/7 案例、14/14 断言；S3-API-0001 8/8 案例、13/13 断言；SHA256SUMS 分别为 98 / 30 / 22 / 16 / 18 项，独立重算全部一致——G3-E-3 双遍。退出码 0 只表示本运行中的断言通过，不设置任何 Gate 为 PASS——见 §5）。
+
+**G3-GOLDEN-0001**（2026-10-10T04:48:32→04:49:01 UTC，约 29s，含 typecheck + next build 预检）——G01–G12 × 四维度 48 案例全 PASS；本迭代新增案例组：
+
+| 案例组 | 覆盖维度 | 结果 |
+|---|---|---|
+| G11 长期记忆（N/NEG/B/FR） | 正常路径——A 类显式长期偏好写入（source=explicit / confidence=1.0 / memoryClass=long_term / recognition_path=explicit_preference）；负向——裸记住请求 UNKNOWN 升级（G08-NEG 纪律）+ 存储层门槛（long_term_requires_explicit）；边界——B 类记住标记 + 偏好内容双命中（recognition_path=remember_request）；故障恢复——C 类候选标记不自动升级（candidateLongTerm=true 保持 short_term） | PASS ×4 |
+| G12 跨会话分支持久化（N/NEG/B/FR） | 正常路径——分支状态 STOP 会话结束后全量持久（getSimulation 成功，currentBranchId===null）+ 会话 B 跨会话 ADOPT_BRANCH（adopted=true——三前提）；负向——跨会话内容轮拒绝（放宽仅限分支操作路径）+ 已结束会话内容操作拒绝（INVALID_STATE_TRANSITION）；边界——currentBranchId 会话级指针清空不跨会话自动恢复 + 对照短期记忆跨会话存活（六类数据状态区分）；故障恢复——陈旧 state_version 拒绝后当前版本重试成功（拒绝后立即取证：adopted 保持 false——拒绝先于任何写入） | PASS ×4 |
+
+断言 A1–A10：A1 run-metadata 完整（E5 §3 版本矩阵 policy_v2.2.0 / state_machine_v1.5.0）；A2 环境锁定（Node v24.21.0）；A3 全部 48 案例记录齐备且 12 字段完整（E5 §4）；A4 全部 48 轨迹齐备且非空；A5 黄金维度覆盖 G01–G12 四维度；A6 G04–G07 in-flight / stale response 必测维度；A7 跨迭代回归基线绑定（F2-GS-0001 / F3-EB-0001）；A8 PD-19 延期义务履行（G04/G07/G08 最小实现四维度齐备无 DEFERRED）；A9 全部 48 案例 PASS（本运行断言）；A10 SHA256SUMS 独立重算一致（98 项）。
+
+**S2A-F5-0001**（2026-10-10T05:22:26→05:22:35 UTC，约 10s——执行器元数据校正后再生；首次通过运行 04:43:07→04:43:16 已前置归档）——14 案例全 PASS、19/19 断言：
+
+| 案例 | 覆盖维度 | 结果 |
+|---|---|---|
+| CROSS-SESSION | 跨会话持久化——会话 A WHY 探索 → STOP 完成 → 短期记忆登记（memory_recorded 先于 session_ended）；会话 B 同主题 WHY 探索 → memory_signals ×1 注入（RECALL 经检索触发，IN_USE，lastRecalledAt 刷新）；记忆记录跨会话归属不变；会话 B 零 memory 域事件（检索只读） | PASS |
+| LIFECYCLE | 生命周期迁移 + 规范衰减参数——REMEMBERED→IN_USE→DECAYING→EXPIRED 全链路（Day 5 / 14 / 19 锚点 k = ln(0.9/0.63)/3——07 §11 示例形态采纳为规范参数）；保留期路径 Day 179 未到期 → Day 180 整 EXPIRED（retention_expired + 删除审计） | PASS |
+| CORRECT-WITHDRAW | 用户显式纠正 / 撤回——"记忆纠正：量子计算原理"（UNKNOWN + memoryIntent=correct 经 Runtime 单一写入者：主题更正、来源 user_correction、置信度 0.95、兴趣重置锚点、memory_corrected 留痕）；"别再给我这个"（withdraw → EXPIRED + memory_withdrawn 留痕 + 删除审计）；重复撤回幂等（no_memory_target）；对已 EXPIRED 记录直接撤回幂等拒绝 | PASS |
+| BRANCH-PERSISTENCE | 分支记录跨会话持久化（S3B §1.1/§1.4/§1.5——取代 S2 时代 SESSION-SCOPED-NEG 负向不变式）——WHAT_IF 轮分支状态 STOP 会话结束后全量持久（getSimulation 成功：currentBranchId===null——会话级指针清空不跨会话自动恢复，分支记录 ×1 轮次 ×1）；已结束会话上的旧体验内容操作拒绝（INVALID_STATE_TRANSITION——07 §3）；会话 B 对已结束会话 A 的体验"如果采用分支一"→ ADOPT_BRANCH 成功（adopted=true——三前提）；跨会话内容轮（WHY——非分支操作）→ 拒绝（放宽仅限分支操作路径）；对照：短期记忆跨会话存活（六类数据状态区分纪律） | PASS |
+| LONGTERM-GATED | 长期记忆写入路径启用（取代 S2 时代 LONGTERM-DISABLED 负向不变式）——静态：memory.ts 含 EXPLICIT / LONG_TERM / long_term 标识符，MemoryLifecycle 联合恰为四态、MemorySource 联合恰为三态、MemoryClass 联合恰为二态；动态：全流程后记录 source ∈ 三态集合、lifecycle ∈ 四态集合、memoryClass ∈ {short_term, long_term}；A/B 类经 resolveIntent 路由为 memory_operation（record_long_term——source=explicit，confidence=1.0）；裸记住请求保持 UNKNOWN 升级（零写入——G08-NEG 不变式） | PASS |
+| CURRENT-INTENT-OVERRIDE | Current Intent 覆盖 L5（07 §12）——会话 B 同主题 WHY：memory_signals ×1 注入，提交行为与无记忆时完全一致（selected_action=EXPLAIN，内容逐字节等于 why 语料——策略动作由当前意图决定，记忆仅注入上下文，GS-04）；会话 C WHAT_IF（无 2 字窗口交集）：memory_signals ×0（07 §20 相关性过滤） | PASS |
+| RETRIEVAL-READONLY | 检索不改变体验（负向；07 §22）——会话 B 的 L5 检索零 memory 域事件；零 session_started / experience_started（检索不触发产品动作）；state_transitioned 恰为 WHY 流自身两次；连续两次 getMemory() 快照逐字节一致 | PASS |
+| SINGLE-WRITER | 模型 state_update 拒绝（GS-06 / CC02 H01/H05）——越权网关提案（非空 state_update_proposal：memory_record 键）→ POLICY_REJECTED（llm_state_mutation_forbidden）→ llm_output_rejected + state_write_rejected 事件留痕；记忆快照 records=0；体验状态版本不变（拒绝不提交——OBL-01 / S1-12）；决策追踪 reasonPrimary=proposal_rejected | PASS |
+| WRITE-FILTER | 07 §7 写入侧过滤（负向）——六类不默认长期记住清单（临时情绪 / 一次性兴趣 / 一次性任务 / 当前环境 / 单次拒绝 / 推测人格）全部 recorded=false, reason=write_filter；运行时级——"为什么一次性兴趣"经 WHY 优先级层分类 → STOP 完成路径写入被过滤（快照 records=0，零 memory_recorded） | PASS |
+| LT-EXPLICIT-A | A 类显式长期偏好表达（S3A §1.1）——"我喜欢古典音乐"（偏好词直接命中，全部优先级层与记忆操作词表未命中后识别）→ resolveIntent action=memory_operation，memoryOperation.kind=record_long_term，executed=true，memoryClass=long_term；记录 topic="我喜欢古典音乐"，source=explicit，confidence=1.0，lifecycle=REMEMBERED，candidateLongTerm=false；memory_recorded 事件 properties：memory_class=long_term / source=explicit / confidence=1 / recognition_path=explicit_preference（事件属性扩展——C6 §14 不新增事件名）；记忆操作不创建新体验 | PASS |
+| LT-REMEMBER-B | B 类记住请求（S3A §1.1/§1.2——记住标记 + 偏好内容双命中）——"请记住我一直用深色模式" → resolveIntent action=memory_operation，record_long_term；记录 topic="我一直用深色模式"，memoryClass=long_term，source=explicit，confidence=1.0；memory_recorded 事件 properties.recognition_path=remember_request | PASS |
+| LT-BARE-NEG | 裸记住请求不识别为记忆写入（负向——S3A §1.2 双命中纪律）——"记住这个"（G08-NEG 对抗语料）→ resolveIntent action=escalate（UNKNOWN 升级）；"记住这个想法"（标记命中但余下内容非偏好表达）→ 同样升级；分类器级对照"记住我喜欢古典音乐"识别为 longTermMemory；零记忆写入 | PASS |
+| LT-CANDIDATE-C | C 类再探索候选标记（S3A §1.1——候选 ≠ 已保存；V1 不允许仅凭行为自动升级为永久用户画像）——会话 A WHY→STOP：短期记录 ×1（short_term，candidateLongTerm=false，interestSignal=0.90 锚点）；会话 B 同主题 WHY→STOP：再探索而非新记录（records 仍 ×1，interestSignal=1.05→上限 1.0，candidateLongTerm=true——C 类候选标记）；记录保持 short_term（不自动升级为 long_term）；memory_recorded ×2（再探索轮次 properties.reexploration=true 留痕） | PASS |
+| LT-GATE-NEG | 长期记忆存储层门槛（负向——S3A §1.1/§1.6）——直接 MemoryStore 写入：memoryClass=long_term 且 source=session_observation → recorded=false, reason=long_term_requires_explicit；source=user_correction → 同样拒绝；正向对照：source=explicit + memoryClass=long_term → 写入成功（confidence=1.0）；短期记忆（memoryClass 缺省）经 session_observation 写入不受门槛影响（既有语义不变）；存储 records=2 | PASS |
+
+断言 A1–A19：A1 CROSS-SESSION；A2 LIFECYCLE；A3 CORRECT-WITHDRAW；A4 BRANCH-PERSISTENCE；A5 LONGTERM-GATED；A6 CURRENT-INTENT-OVERRIDE；A7 RETRIEVAL-READONLY；A8 SINGLE-WRITER；A9 WRITE-FILTER；A10 LT-EXPLICIT-A；A11 LT-REMEMBER-B；A12 LT-BARE-NEG；A13 LT-CANDIDATE-C；A14 LT-GATE-NEG；A15 全部 14 案例记录齐备且 12 字段完整（E5 §4；PD-19 延期义务已履行——F-5 关闭切片执行，无 DEFERRED 登记）；A16 全部 14 轨迹齐备且非空；A17-PREFLIGHT 预检与完整性（typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配——失败为 FATAL）；A18 run-metadata 完整（E5 §3 版本矩阵全部字段 + F-5 记忆语义专项 memorySemantics + obligationTraceability：F-5 → 案例 / 断言映射；policy 版本 policy_v2.2.0——S3a 语义启用；state_machine 版本 state_machine_v1.5.0——现行，S2B-SEMANTIC-FREEZE-01 §4 变更 1–3，轴外记忆子状态机契约化冻结于 state_machine_v1.4.0 §4 变更 1 延续不变；黄金回归基线 G3-GOLDEN-0001 48/48 案例）；A19 SHA256SUMS 独立重算一致（30 项，G3-E-3 双遍）。
+
+**S2A-F4-0001**（2026-10-10T05:23:26→05:23:43 UTC，约 17s——执行器元数据校正后再生；首次通过运行 04:43:24→04:43:41 已前置归档）——10 案例全 PASS、17/17 断言（S3 回归：S2 时代 D-04 失效不变式经 CR-28 D-2 选项 A 取代——INPROC-REGRESSION 扩展跨会话持久验证；BRANCH-ADOPT 案例组经 S2-BRANCH-REFLOW-DEF-01 已在录）：
+
+| 案例 | 覆盖维度 | 结果 |
+|---|---|---|
+| MULTI-ROUND | 多轮模拟持久化——两轮 WHAT_IF 各一次合法提交两次版本化提交（版本链 2→3→4→5→6，每次合法提交恰好 +1，S1-12）；simulation_recorded ×2（round 1/2 同一分支，branch_created [true, false]，separation_invariant=simulation_result_is_not_fact） | PASS |
+| SEPARATION | 四元分离——每轮 simulation_recorded properties 含 fact / inference / hypothesis / simulation 四元字段（E8-G2-CC07 字段化承载），逐字段等于语料分段（由已提交语料字节机械派生）；simulation ≠ fact | PASS |
+| NO-NEW-EXPERIENCE | G03-N 不变式——多轮模拟 + 分支操作轮不创建新 Session / Experience | PASS |
+| STAGE-PRESERVED | 阶段迁移序列 CURIOSITY → UNDERSTANDING → SIMULATION（轮 1/2，13 §15.3）→ CREATION（CREATE 衔接，13 §15.5）→ COMPLETION（STOP 完成）；WHAT_IF 轮次保持 SIMULATION 阶段（体验阶段轴不变） | PASS |
+| STALE-REJECT | 陈旧 expected_state_version（3 vs 4）模拟提交 → STATE_VERSION_CONFLICT（retryable=false）；状态逐字节不变；无新 simulation_recorded；拒绝事实经 state_version_conflict 事件登记；失败写入不消耗版本号（OBL-01）；携带当前版本重试成功 | PASS |
+| STOP-PRIORITY | 分类器优先级静态断言——STOP 永远优先于 WHAT_IF（P-01）；同层解释顺序 WHY > WHAT_IF（PD-12）；动态声明校验——声明 WHAT_IF 但输入含 STOP / WHY 标记 → INVALID_REQUEST（客户端不能注入策略动作） | PASS |
+| NONCREATION-INERT | 非模拟场景（WHY → EXPLAIN）行为与前置版本一致——唯一差异为 policy_version=policy_v2.2.0（版本化变更文本同步——F-4 语义经 policy_v1.4.0 冻结、policy_v2.2.0 延续）；模拟域零事件 | PASS |
+| INPROC-REGRESSION | 全链路——WHY → 模拟轮 1/2 → 分支操作 RETURN → 模拟轮 3（RETURN 后首轮自动 CREATE 新分支）→ CREATE 衔接 → 完成信号（STOP）；信封全量有效、sequence_number 严格单调；终态 COMPLETED/COMPLETION；**模拟域跨会话持久（STOP 后 getSimulation 成功——currentBranchId===null 会话级指针清空，分支记录 ×2 与模拟历史全量保留——S3B §1.1/§1.5 取代 S2 时代 D-04 失效不变式）** | PASS |
+| BRANCH-LIFECYCLE | 轴外分支子状态机全生命周期——CREATE → 累积 → RETURN → 自动 CREATE → SWITCH（RETURNED 恢复 ACTIVE）→ ABANDONED → 负向切换已放弃分支 INVALID_STATE_TRANSITION → RETURN → 负向无激活分支 RETURN INVALID_STATE_TRANSITION（拒绝轮零版本消耗） | PASS |
+| BRANCH-ADOPT | 显式回流操作 ADOPT_BRANCH（第五分支操作，policy_v2.2.0 变更 1–5）——采用分支 1（adopted=true 附加，生命周期 ACTIVE 不变，主线当前上下文不变；simulation_adopted ×1，properties 含 branch_id / source_round / adopted_content 摘要 / separation_invariant）；负向采用不存在序号 INVALID_STATE_TRANSITION（拒绝先于任何写入——OBL-01）；RETURN 后无激活分支上下文采用（adopted 幂等保持 true） | PASS |
+
+断言 A1–A17：A1 MULTI-ROUND；A2 SEPARATION；A3 NO-NEW-EXPERIENCE；A4 STAGE-PRESERVED；A5 STALE-REJECT；A6 STOP-PRIORITY；A7 NONCREATION-INERT；A8 INPROC-REGRESSION；A9 BRANCH-LIFECYCLE；A10 BRANCH-ADOPT；A11 全部 10 案例记录齐备且 12 字段完整（E5 §4；PD-19 延期义务已履行，无 DEFERRED 登记）；A12 全部 10 轨迹齐备且非空；A13-PREFLIGHT 预检与完整性；A14 run-metadata 完整（E5 §3 版本矩阵 + F-4 模拟语义专项 simulationSemantics + obligationTraceability）；A15 环境锁定（Node v24.21.0）；A16 F-4 版本矩阵义务绑定（policy_v2.2.0 现行——F-4 语义冻结于 policy_v1.4.0 §3 变更 1/2 经 policy_v2.2.0 延续不变；state_machine_v1.5.0 现行——F-4 契约化冻结于 state_machine_v1.3.0 §4 变更 1/2 延续不变；frozenDecisions D-01…D-05 齐备；黄金回归绑定 G3-GOLDEN-0001 历史绑定链在录）；A17 SHA256SUMS 独立重算一致（22 项，G3-E-3 双遍）。
+
+**S2B-0001**（2026-10-10T04:56:24→04:56:35 UTC，约 11s）——7 案例全 PASS、14/14 断言（S3 回归重跑——黄金回归绑定新基线 policy_v2.2.0 / 48 案例；S2b 语义动作 / SEARCH 能力 / First Experience 呈现 / 优先级链行为在 policy_v2.2.0 下零碰撞）：DIRECTIONAL-DEEPEN / DIRECTIONAL-SIMPLIFY / DIRECTIONAL-REFRAME（方向性操作正常路径——合成模式结构保持、版本 +1、user_changes 权威登记）/ ESCALATION-NOG（非创作会话升级拒绝——INVALID_ACTION）/ SEARCH-CAPABILITY（三面只读检索 + VERIFY 类输入经既有 WHY / DIRECT_ANSWER 解释层路由 + 只读不变式 + 静态边界）/ FIRST-EXPERIENCE（六阶段呈现模型 + 视图→呈现阶段映射 + 生命周期游走）/ PRIORITY-CHAIN（冻结优先级链 8 组碰撞核验 + 运行时 STOP 优先证明）。断言 A1–A14：A1 run-metadata 完整（E5 §3 版本矩阵 + frozenDecisions D-01…D-05 + 附列项 VERIFY + 黄金回归绑定 G3-GOLDEN-0001 48/48 @ policy_v2.2.0 / state_machine_v1.5.0——失败为 FATAL）；A2 环境锁定；A3 案例记录齐备（E5 §4 12 字段）；A4 轨迹齐备；A5 案例面五组覆盖；A6–A10 逐案例不变式；A11 黄金回归绑定；A12 案例记录形式校验 + 进程内形态守卫；A13-PREFLIGHT；A14 SHA256SUMS 独立重算一致（16 项，G3-E-3 双遍）。
+
+**S3-API-0001**（2026-10-10T04:58:29→04:58:37 UTC，约 8s——首次执行；首次通过运行 04:57:26→04:57:34 经描述串修正后前置归档）——HTTP 执行形态 8 案例全 PASS、13/13 断言：
+
+| 案例 | 覆盖维度 | 结果 |
+|---|---|---|
+| STREAM-EXECUTION | 执行形态 WHAT_IF 全链路——三要素请求（request_id + session_id + user_input）→ 真实运行路径（resolveIntent → startExperience → submitExperienceEvent）→ NDJSON 流（submission 首行 accepted=true / policy_v2.2.0 / WHAT_IF→SIMULATE + chunk ×17 逐字节等于 simulate 语料 + done + state_updated） | PASS |
+| STREAM-LONGTERM-A | 执行形态 A 类显式长期记忆写入——"我喜欢古典音乐" → resolveIntent action=memory_operation → NDJSON 两行（submission 含 memory_operation{kind=record_long_term，executed=true，memoryClass=long_term}）→ 记忆快照记录 ×1（source=explicit，confidence=1.0） | PASS |
+| STREAM-LONGTERM-BARE-NEG | 执行形态裸记住请求负向——"记住这个"（G08-NEG 对抗语料）→ 400 INVALID_ACTION（UNKNOWN 升级——未知情况升级而非由系统决定）；零记忆写入（快照 records=0，零 memory_recorded 事件） | PASS |
+| STREAM-S1-FORM | S1 fixture 形态向后兼容——{ semanticAction }（三要素不齐备）→ 既有路径不变（WHY → EXPLAIN，chunk ×9 逐字节等于 why 语料 + done）——API 面扩展不改变既有形态行为（D-3 选项 A 纯暴露层） | PASS |
+| CROSS-SESSION-ADOPT | 跨会话分支操作（执行形态既有体验提交）——会话 A 执行形态 WHAT_IF → STOP（COMPLETED——会话结束）；会话 B（SESSION_ACTIVE）经 experience_id + state_version 定位持久体验，"如果采用分支一的结论呢" → 200 NDJSON 流（accepted=true，selected_action=SIMULATE，reason=simulation_branch_operation，policy_version=policy_v2.2.0——确定性系统回合，llm_used=false；ADOPT_BRANCH 词表识别——S3B §1.4 三前提） | PASS |
+| CROSS-SESSION-CONTENT-NEG | 跨会话内容轮负向——WHY 内容输入经执行形态既有体验提交 → 400 INVALID_REQUEST（experience/session mismatch——S3B §1.4：放宽范围仅限分支操作路径，内容轮保持严格会话绑定）；体验状态版本不变（拒绝不提交——失败写入不消耗版本号） | PASS |
+| VERSION-CONFLICT | 执行形态陈旧 state_version 提交 → 错误响应（STATE_VERSION_CONFLICT，retryable=false——不覆盖、不消耗版本，S1-12 同族）；state_version_conflict ×1（expected_state_version=2 / current_state_version=3） | PASS |
+| OBSERVABILITY | 只读观测路由底层快照——GET /api/memory 底层（记录 ×2——两条链各经 STOP 完成路径登记，topic="为什么" / "如果摩擦力为零会怎样"，memoryClass=short_term，source=session_observation，confidence=0.7，lifecycle=REMEMBERED）+ GET /api/experience/{id}/simulation 底层（分支记录全量分量 + 模拟历史 + current_branch_id） | PASS |
+
+断言 A1–A13：A1 STREAM-EXECUTION；A2 STREAM-LONGTERM-A；A3 STREAM-LONGTERM-BARE-NEG；A4 STREAM-S1-FORM；A5 CROSS-SESSION-ADOPT；A6 CROSS-SESSION-CONTENT-NEG；A7 VERSION-CONFLICT；A8 OBSERVABILITY；A9 全部 8 案例记录齐备且 12 字段完整（E5 §4；无 DEFERRED 登记）；A10 全部 8 轨迹齐备且非空；A11-PREFLIGHT 预检与完整性；A12 run-metadata 完整（E5 §3 版本矩阵全部字段 + 静态边界发现 + obligationTraceability：S3b 暴露层 → 案例 / 断言映射——含 git 绑定 commit `5af5592` 与 API 路由清单）；A13 SHA256SUMS 独立重算一致（18 项，G3-E-3 双遍）。
+
+**材料位置：** `artifacts/evidence/runs/{G3-GOLDEN-0001, S2A-F5-0001, S2A-F4-0001, S2B-0001, S3-API-0001}/`（cases/ E5 §4 记录、traces/ 案例 JSONL、run-metadata.json E5 §3 版本矩阵（含执行器与运行时文件逐文件哈希）、summary.json、SHA256SUMS、review/README.md 独立评测人审阅包（staged））；全部尝试归档按 ADR-0002 §5 只追加留存（同目录 `-attempt-<stamp>` 前缀，§3 逐条登记）。
+
+## 3. 执行尝试记录（ADR-0002 §5：失败如实登记，不重跑至通过为止而不留失败记录）
+
+本迭代共 7 次失败尝试 + 1 次 FATAL（先于运行目录创建、无运行产物）+ 4 次通过运行的前置归档（再生产物——ADR-0002 §5 只追加纪律）。**全部失败均为执行器侧案例断言 / 基线 / 元数据缺陷，产品运行时零缺陷**（与 S1/S2 时代一致）。
+
+| 尝试 | 时间（UTC） | 结果 | 缺陷根因与处置 |
+|---|---|---|---|
+| G3-GOLDEN-0001 尝试 1 | 2026-10-10T03:50 | 退出码 1——40 案例、6 FAIL（G04-N / G07-N / G09-N / G10-N / G10-B / G10-FR） | 执行器侧案例预期缺陷（产品运行时行为正确）：G04/G07/G09/G10 案例组通过条件仍断言 policy_v2.1.0（冻结于 ADOPT 迭代），而产品经 S3a 实施已升 policy_v2.2.0——期望未随版本化变更同步。修复（期望同步 policy_v2.2.0 + G11/G12 案例组并入后案例 40→48）后归档留存 `G3-GOLDEN-0001-attempt-2026-10-10T04-43-51-277Z/`；同目录另归档 S3a 扩维前最后一次 40 案例全绿运行 `G3-GOLDEN-0001-attempt-2026-10-10T03-51-03-660Z/`（ADOPT 时代基线保留——前置归档，非失败尝试） |
+| G3-GOLDEN-0001 尝试 2 | 2026-10-10T04:43 | 退出码 1——48 案例、4 FAIL（G11-N / G12-N / G12-NEG / G12-FR） | 执行器侧案例预期缺陷：G11-N 的 recognition_path 期望写 explicit_a（产品发射 explicit_preference——A 类偏好词直接命中形态）；G12 组 setupChain 复用固定默认 requestId 触发请求幂等拒绝（REQUEST_DUPLICATE——request-id 幂等为产品正确行为，执行器多 setupChain 调用须显式区分 id）。修复后归档留存 `G3-GOLDEN-0001-attempt-2026-10-10T04-47-42-104Z/` |
+| G3-GOLDEN-0001 尝试 3 | 2026-10-10T04:47 | 退出码 1——48 案例、1 FAIL（G12-FR） | 执行器侧取证时序缺陷：branchAdoptedAfterStale 实际值在对象构造时（重试采用成功之后）才采集，观测到 adopted=true；G12-FR 语义要求"拒绝后立即取证"（拒绝先于任何写入——adopted 保持 false，后续重试为合法采用）。修复（拒绝提交后立即采集 simulationAfterStale 快照并引用该常量）后归档留存 `G3-GOLDEN-0001-attempt-2026-10-10T04-48-35-438Z/` |
+| G3-GOLDEN-0001 尝试 4 | 2026-10-10T04:48 | 退出码 0——48/48 案例 PASS、10/10 断言 | ——（提交 `2b2bbf5`；SHA256SUMS 98 文件独立重算一致） |
+| S2A-F5-0001 尝试 1 | 2026-10-10T03:50 | 退出码 1——9 案例、2 FAIL（SESSION-SCOPED-NEG / LONGTERM-DISABLED） | 执行器侧负向不变式陈旧：两案例为 S2 时代负向不变式（分支记录会话级失效 / 长期记忆写入路径不存在），经 CR-28 D-1/D-2 选项 A 裁决（2026-10-10）取代——S3a/S3b 语义启用后两不变式反转。修复（负向案例组替换为 LT-EXPLICIT-A / LT-REMEMBER-B / LT-BARE-NEG / LT-CANDIDATE-C / LT-GATE-NEG 正向 + 负向案例组，案例 9→14、断言 12→19）后归档留存 `S2A-F5-0001-attempt-2026-10-10T04-36-38-550Z/` |
+| S2A-F5-0001 尝试 2 | 2026-10-10T04:36 | FATAL——ENOENT（runtimeFiles 路径构造附中文描述串）；部分案例记录 3 FAIL（BRANCH-PERSISTENCE TypeError adopt.submission.header / LT-EXPLICIT-A / LT-REMEMBER-B recognition_path 描述串 explicit_a / remember_b） | 执行器侧路径构造缺陷（run-metadata 运行时文件清单路径拼接附中文描述串致 ENOENT——先于 summary.json 写入，无汇总产物）；案例记录 3 FAIL 同批处置：BRANCH-PERSISTENCE 案例经 adopt.submission.header 访问模拟域快照结构错误（应为 simulation 快照分支记录分量）；两 LT 案例描述串与产品发射值不符（explicit_preference / remember_request——通过条件本身正确）。修复后归档留存 `S2A-F5-0001-attempt-2026-10-10T04-41-45-293Z/`（部分产物：案例记录 / 轨迹 / 日志在录，无 summary.json——FATAL 事实经本表登记） |
+| S2A-F5-0001 尝试 3 | 2026-10-10T04:41 | 退出码 1——14 案例、1 FAIL（BRANCH-PERSISTENCE——stateVersionUnchanged 取证时序） | 执行器侧取证时序缺陷（同 G12-FR 模式）：stateVersionUnchanged 实际值在重试提交后采集，观测到版本已推进；语义要求拒绝后立即取证（拒绝先于任何写入——版本不变）。修复（拒绝提交后立即采集快照并引用常量）后归档留存 `S2A-F5-0001-attempt-2026-10-10T04-43-10-669Z/` |
+| S2A-F5-0001 尝试 4 | 2026-10-10T04:43 | 退出码 0——14/14 案例 PASS、19/19 断言 | ——（提交 `2b2bbf5`；SHA256SUMS 30 文件独立重算一致） |
+| S2A-F5-0001 再生产 | 2026-10-10T05:22 | 退出码 0——14/14 案例 PASS、19/19 断言 | 执行器元数据校正（`e6780c8`：版本矩阵 stateMachine.version 陈旧记录 state_machine_v1.4.0（F-5 义务契约化冻结版本），与 s2a-f4 建立的"版本矩阵记录现行版本 + provenance 注记"口径不一致——校正为 state_machine_v1.5.0（现行，S2B-SEMANTIC-FREEZE-01 §4 变更 1–3），冻结版本以 provenance 注记承载（A18 断言描述与 implemented 清单）；goldenRegression 基线字符串 40/40→48/48）。04:43 通过运行按 ADR-0002 §5 前置归档 `S2A-F5-0001-attempt-2026-10-10T05-22-28-693Z/`（前置归档，非失败尝试）后重跑——元数据已校正（sm=state_machine_v1.5.0）——（提交 `bed768d`） |
+| S2A-F4-0001 尝试 1 | 2026-10-10T04:43 | 退出码 0——10/10 案例 PASS、17/17 断言（首次即通过；S2 时代 D-04 失效不变式经 CR-28 D-2 取代后 INPROC-REGRESSION 扩展零碰撞） | ——（提交 `2b2bbf5`；SHA256SUMS 22 文件独立重算一致；ADOPT 时代通过运行前置归档 `S2A-F4-0001-attempt-2026-10-10T04-43-27-487Z/`） |
+| S2A-F4-0001 再生产 | 2026-10-10T05:23 | 退出码 0——10/10 案例 PASS、17/17 断言 | 执行器元数据校正（`e6780c8`：黄金回归基线链补记 S3a 再生成基线 48/48（G11 并入）——历史绑定链完整在录）。04:43 通过运行前置归档 `S2A-F4-0001-attempt-2026-10-10T05-23-28-507Z/` 后重跑——（提交 `bed768d`） |
+| S2B-0001 尝试 1 | 2026-10-10T04:56 前 | FATAL——黄金回归绑定失败（先于运行目录创建，无运行产物） | 执行器侧基线陈旧：A11 绑定检查冻结于 ADOPT 迭代基线（"须在 policy_v2.1.0 / state_machine_v1.5.0 通过（40/40）"），而黄金套件经 S3a 迭代已升 policy_v2.2.0 / 48 案例——绑定基线未随黄金套件版本化变更新同步。修复（绑定检查同步 policy_v2.2.0 / 48 案例 + 断言值 / 版本矩阵 / carriedForward 文本 15 处同步）后按 ADR-0002 §5 经本表登记 FATAL 事实（无产物可归档）；ADOPT 时代通过运行前置归档 `S2B-0001-attempt-2026-10-10T04-56-27-942Z/`（前置归档，非失败尝试） |
+| S2B-0001 尝试 2 | 2026-10-10T04:56 | 退出码 0——7/7 案例 PASS、14/14 断言 | ——（提交 `2b2bbf5`；SHA256SUMS 16 文件独立重算一致） |
+| S3-API-0001 尝试 1 | 2026-10-10T04:57 | 退出码 0——8/8 案例 PASS、13/13 断言（首次执行即通过；通过条件全部正确） | 执行器侧描述串缺陷：断言 A2 描述文本与审阅包文本写 recognition_path=explicit_a，产品实际发射 explicit_preference（A 类偏好词直接命中形态——通过条件正确，仅描述串陈旧）。修正后按 ADR-0002 §5 前置归档首次通过运行 `S3-API-0001-attempt-2026-10-10T04-58-31-883Z/`（前置归档，非失败尝试）后重跑 |
+| S3-API-0001 尝试 2 | 2026-10-10T04:58 | 退出码 0——8/8 案例 PASS、13/13 断言 | ——（提交 `2b2bbf5`；SHA256SUMS 18 文件独立重算一致） |
+
+## 4. 实施侧事实核验记录（实施按冻结文本执行；零产品缺陷——失败尝试 7 次 + FATAL 1 次均为执行器侧缺陷）
+
+1. D-1 长期记忆启用核验（S3A-SEMANTIC-FREEZE-01 §3 变更 1–4；07 号契约 §5）：A/B 类经显式表达保存——A 类"我喜欢古典音乐"（偏好词直接命中）与 B 类"请记住我一直用深色模式"（记住标记 + 偏好内容双命中）均经 resolveIntent 路由为 memory_operation（record_long_term——确定性系统回合，llm_used=false），记录 source=explicit / confidence=1.0 / memoryClass=long_term / lifecycle=REMEMBERED，memory_recorded 事件 properties 增 memory_class / source / confidence / recognition_path（C6 §14 属性扩展不新增事件名）；C 类仅 candidate_long_term_preference 候选标记（再探索 interestSignal 上限 1.0，candidateLongTerm=true，记录保持 short_term——候选 ≠ 已保存，V1 不允许仅凭行为自动升级为永久用户画像）；裸记住请求（"记住这个"——G08-NEG 对抗语料）保持 UNKNOWN 升级、零写入；存储层门槛（long_term_requires_explicit——long_term 写入须 source=explicit，session_observation / user_correction 来源直接拒绝）；长期记忆永远不是最高优先级（记忆操作识别仅在分类优先级层全部未命中后调用——L6 位于短期记忆之后，STOP / CHANGE_DIRECTION / CORRECTION / CREATE / 方向性操作 / WHY / WHAT_IF / DIRECT_ANSWER 优先）；默认保留 6 个月后自动删除（MEMORY_RETENTION_MS=180 天复用——Day 179 未到期 → Day 180 整 EXPIRED + 删除审计；规范衰减参数 k = ln(0.9/0.63)/3 经 07 §11 示例形态采纳）；写入经 Runtime 单一写入者（模型 state_update 提案 → POLICY_REJECTED llm_state_mutation_forbidden + 事件留痕）；WITHDRAW / CORRECT 主权复用既有生命周期与事件（memory_withdrawn / memory_corrected 留痕 + 删除审计）。
+2. D-2 跨会话分支持久化核验（S3B-SEMANTIC-FREEZE-01 §3 变更 1–4）：持久化范围 = 分支记录全部分量（id / 内容 / 生命周期 / adopted / version / rounds / 模拟轮内容——WHAT_IF 轮分支状态 STOP 会话结束后 getSimulation 成功，分支记录 ×1 轮次 ×1 与模拟历史全量保留）；主线上下文 currentBranchId 会话级不变式（会话结束清空===null，不跨会话自动恢复激活分支——恢复为只读加载，不登记新事件）；跨会话分支操作三前提（WHAT_IF 分类 + 分支操作词识别 / 输入会话 SESSION_ACTIVE / 宿主会话 SESSION_ENDED——放宽仅限分支操作路径）；跨会话内容轮保持严格会话绑定（WHY 内容输入经既有体验提交 → 400 INVALID_REQUEST——体验/会话不匹配）；已结束会话上的旧体验内容操作拒绝（INVALID_STATE_TRANSITION——07 §3）；新会话可对持久分支记录执行分支操作（会话 B 对已结束会话 A 的体验"如果采用分支一"→ ADOPT_BRANCH 成功，adopted=true）；六类数据状态区分纪律成立（Session State / Current State 会话级失效而 Short-term Memory 与轴外分支记录跨会话持久——BRANCH-PERSISTENCE 对照组 + G12-B 边界案例）。
+3. D-3 HTTP API 面扩展核验（S3B-SEMANTIC-FREEZE-01 §3 变更 1–2；D-3 选项 A 纯暴露层）：既有端点 semanticAction 枚举扩展——执行形态三要素请求（request_id + session_id + user_input）经同一 getServerRuntime 单例执行真实运行路径（resolveIntent → startExperience → submitExperienceEvent），不改变任何运行时语义；WHAT_IF 分支操作经用户输入负载携带分支操作词（"如果采用分支一的结论呢"→ ADOPT_BRANCH 词表识别），与进程内识别完全一致；NDJSON 流形态（submission 首行 accepted / policy_decision{policy_version, semantic_action, selected_action} / state_version / state + chunk ×N 逐字节等于语料 + done + state_updated）；错误语义（400 INVALID_ACTION——UNKNOWN 升级；400 INVALID_REQUEST——experience/session mismatch；STATE_VERSION_CONFLICT——retryable=false，不覆盖、不消耗版本）；S1 fixture 形态（{ semanticAction }）向后兼容——既有路径行为不变（WHY → EXPLAIN chunk ×9 逐字节等于 why 语料）；只读观测路由（GET /api/memory / GET /api/experience/{id}/simulation——底层快照查询，只读，不改变状态）。
+4. D-4 首页文案更正核验：app/page.tsx 过时表述（"no Feed, no Creation, no full Memory; CREATE / SEARCH disabled"——S1 时代切片描述）已更正为 S2 已实施范围 + S3 范围注记（无语义变更——纯文案；产品提交 `f8b374f` 在录）。
+5. 版本推进核验：WHAT_IF 多轮版本链 v2→v3→v4→v5→v6 单调（每次合法提交恰好 +1，S1-12——MULTI-ROUND）；CREATE 衔接 +1（STAGE-PRESERVED）；STOP 完成路径 +1（S2B FIRST-EXPERIENCE 终态 v11——完成路径消耗 +1 与 s2a-f2 COMPLETION 契约一致）；失败写入不消耗版本号（STALE-REJECT / VERSION-CONFLICT / CROSS-SESSION-CONTENT-NEG——拒绝先于任何写入，OBL-01）；ADOPT_BRANCH 负向拒绝轮零版本消耗（BRANCH-ADOPT——版本保持）；记忆记录操作不改变体验状态版本链（S3A-SEMANTIC-FREEZE-01 §3 变更 4 版本不变式——记忆域经自身记录与事件日志留痕）。
+
+## 5. 明确非结论（不得据此宣告任何产品 Gate）
+
+- 五运行退出码 0 与全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2/G3/G4/G5/G8）或产品状态为 PASS（E5 §2）。
+- G3-GOLDEN-0001 48/48 与 S2A-F5 / S2A-F4 / S2B / S3-API 各运行动态证据均为本运行断言——G3 Gate 判定、S2b 持续有效性、S3 独立评测属独立评测人（角色 5）逐项裁决（staged 审阅包：各运行目录 review/README.md）。
+- CR-28 状态 RULED→IMPLEMENTED 登记于 decision-register v0.29.0——IMPLEMENTED 仅表示"裁决范围内的实施完成且动态证据产出"，**不表示 G5 独立评测通过**；S3 独立评测（G5）NOT RUN，属角色 5。
+- 已提交证据保持冻结不改写（ADR-0002 §5）；失败尝试与前置归档全部留存在录。
+- C3 行为语义空缺不得由编码者补写——新语义空缺出现须另行版本化裁决。
+
+## 6. 后续义务
+
+- S3 独立评测（角色 5）：**NOT RUN**——属独立评测人（用户本人，PD-15）逐项裁决；staged 审阅包五份（`artifacts/evidence/runs/{G3-GOLDEN-0001, S2A-F5-0001, S2A-F4-0001, S2B-0001, S3-API-0001}/review/README.md`）；独立评测人对本记录与全部运行产物保留否决权。类比 S2 时代 G5 评测包范围定义（S2-G5-EVAL-DEF-01——16 项框架经产品负责人裁决复用），S3 时代 G5 评测包范围是否另行定义属产品负责人裁决事项。
+- OBL-02（延迟测量）：任何延迟指标宣称前须满足方法第 5 节样本纪律并注明分层（方法 v1.0.0 已经产品负责人按 E3 批准）——本迭代未作任何延迟宣称。
+- 语义版本化：policy_v2.2.0 / state_machine_v1.5.0 为现行契约版本；后续语义变更须另行版本化裁决与冻结文本签发。
+- 长期记忆治理面（保留期限 / 存储位置 / 访问控制 / 加密 / 删除机制与产品/安全负责人批准）：**确定前不得收集或保存任何真实用户数据**（当前全部为合成数据 / 已批准脱敏 fixtures——ADR-0002 §3 边界）；V1 不允许仅凭行为自动升级为永久用户画像（C 类候选纪律）。
+
+## 7. 签署
+
+- 执行：工程负责人角色（代理，Codex），2026-10-10。
+- 独立评测：独立评测负责人（用户本人，角色 5，PD-15）——**NOT RUN（待角色 5 逐项裁决签署）**。
+- 本记录由执行方起草；独立评测人保留审阅与否决权。

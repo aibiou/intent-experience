@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB10-MEMORY","event":"trace_started","at":"2026-10-08T15:59:57.848Z","form":"static+in-process","sourceClause":"P2-EVIDENCE-4.0 EB-10（Memory Write Boundary）；PD-07（S1 不持久化跨会话 Memory）"}
+{"caseId":"F3-EB-0001:EB10-MEMORY","event":"trace_completed","at":"2026-10-08T15:59:57.857Z","startedAt":"2026-10-08T15:59:57.848Z","durationMs":9,"result":"PASS","pass":true}

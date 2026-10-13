@@ -1,0 +1,2 @@
+{"caseId":"S3-API-0001:STREAM-S1-FORM","event":"trace_started","at":"2026-10-10T04:57:30.445Z","form":"inprocess","sourceClause":"S3B-SEMANTIC-FREEZE-01 v1.0.0 §3 变更 4（纯暴露层——既有形态行为不变）；S1 §14（WHY → EXPLAIN 映射）；C5 API 契约（向后兼容）","servers":[]}
+{"caseId":"S3-API-0001:STREAM-S1-FORM","event":"trace_completed","at":"2026-10-10T04:57:30.834Z","startedAt":"2026-10-10T04:57:30.444Z","durationMs":390,"result":"PASS","pass":true}

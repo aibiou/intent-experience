@@ -1,0 +1,4 @@
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"trace_started","at":"2026-10-08T14:19:54.350Z","form":"http","sourceClause":"P3-S1-REVIEW-005 F-1（AbortSignal 取消传播，HTTP 形态）；E5 §5 必测维度（故障条件：客户端断开）；C5 API Contract V1"}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"abort-issued","at":"2026-10-08T14:19:54.445Z","form":"http","afterChunks":2}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"executor-error","at":"2026-10-08T14:19:54.753Z","error":"SyntaxError: Unexpected token 'h', \"hunks\":9,\"\"... is not valid JSON"}
+{"caseId":"F1-E2E-0001:F1-ABORT-02-HTTP","event":"trace_completed","at":"2026-10-08T14:19:54.755Z","startedAt":"2026-10-08T14:19:54.350Z","durationMs":405,"result":"FAIL","pass":false}

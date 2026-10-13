@@ -1,0 +1,2 @@
+{"caseId":"S2A-F2-0001:CREATION-CHAIN","event":"trace_started","at":"2026-10-09T07:46:44.089Z","form":"inprocess","sourceClause":"S2A-F2-SEMANTIC-FREEZE-01 v1.0.0 §3/§4 变更 1/变更 4；08 §4/§6/§8/§9（进入条件 / 上下文继承 / 创作对象模型 / 九分量）；13 §16（创造状态机 V1）","servers":[]}
+{"caseId":"S2A-F2-0001:CREATION-CHAIN","event":"trace_completed","at":"2026-10-09T07:46:44.877Z","startedAt":"2026-10-09T07:46:44.089Z","durationMs":788,"result":"FAIL","pass":false}

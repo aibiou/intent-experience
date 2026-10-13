@@ -1,0 +1,77 @@
+{
+  "caseIdNamespace": "OBL02-LATENCY-0001:HTTP_CHANGE_DIRECTION",
+  "sourceClause": "OBL-02-LATENCY-METHOD-01 v1.0.0 §1（测量对象：提交接受→流完成 / TTFB / 分块间隔）/ §2（环境分层：执行形态 HTTP 形态（Next.js 路由端到端））/ §3（模型分层：N/A synthetic）/ §4（请求类别分层：CHANGE_DIRECTION 独立登记）/ §5（样本窗口与采集纪律：每分层 ≥30 提交）/ §6（披露：参考值不构成指标宣称）",
+  "scope": "延迟测量（HTTP 形态（Next.js 路由端到端） / CHANGE_DIRECTION / 正常路径）：提交接受→流完成墙钟时间、TTFB、分块间隔；每分层 30 提交连续执行窗口",
+  "precondition": "启动链（Session → 意图解析 → 体验启动，意图输入：换个话题）完成后直接测量目标动作",
+  "inputFault": "合成输入「换个话题」× 30（声明语义动作 CHANGE_DIRECTION；分类器确定性规则校验声明一致性）",
+  "expected": {
+    "policyAction": "CHANGE_EXPERIENCE",
+    "policyActionOnEverySample": true,
+    "terminal": "done",
+    "contentMatchFixture": "全部样本流内容逐字节等于合成语料 CHANGE_DIRECTION fixture",
+    "sampleCount": "≥ 30（方法 §5 样本纪律）",
+    "metrics": "每样本含 wallClockMs / ttfbMs（STOP 类别 TTFB 为 N/A）/ chunkCount / chunkIntervalsMs",
+    "separation": "本形态本类别独立登记，不与任何其他形态 / 类别 / 路径混合（方法 §2/§4）"
+  },
+  "actual": {
+    "sampleCount": 30,
+    "policyActionMatch": 30,
+    "policyVersion": "policy_v1.4.0",
+    "terminals": [
+      "done"
+    ],
+    "contentMatchFixture": {
+      "true": 30,
+      "false": 0
+    },
+    "wallClockMs": {
+      "count": 30,
+      "meanMs": 378.45,
+      "p50Ms": 378.51,
+      "p95Ms": 380.83,
+      "minMs": 374.27,
+      "maxMs": 381.01
+    },
+    "ttfbMs": {
+      "count": 30,
+      "meanMs": 42.2,
+      "p50Ms": 42.43,
+      "p95Ms": 42.58,
+      "minMs": 41,
+      "maxMs": 42.74
+    },
+    "ttfbNote": null,
+    "chunkCount": {
+      "count": 30,
+      "meanMs": 9,
+      "p50Ms": 9,
+      "p95Ms": 9,
+      "minMs": 9,
+      "maxMs": 9
+    },
+    "chunkIntervalsMs": {
+      "count": 240,
+      "meanMs": 41.96,
+      "p50Ms": 42.19,
+      "p95Ms": 42.69,
+      "minMs": 39.66,
+      "maxMs": 43.22
+    }
+  },
+  "invariants": [
+    "分类权威：客户端声明语义动作与分类器结果一致（不一致即 INVALID_REQUEST，本运行全部一致）",
+    "事件为不可变事实（C6 §5）；版本化单写者路径（PD-16）",
+    "合成语保真：流内容逐字节等于 fixture（ADR-0002 §3 合成数据边界）",
+    "分层纪律：形态 / 类别 / 路径分别登记，不计算混合平均值（方法 §2/§4/§5）",
+    "无统计阈值（PB-03 / PD-08）；本案例结果不构成延迟指标宣称（方法 §6）"
+  ],
+  "evidence": {
+    "trace": "traces/http_change_direction.jsonl",
+    "samples": 30,
+    "runId": "OBL02-LATENCY-0001",
+    "method": "OBL-02-LATENCY-METHOD-01 v1.0.0"
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本运行）"
+}
