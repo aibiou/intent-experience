@@ -1,14 +1,23 @@
 /**
- * 持久层（S1 切片）——Prisma/SQLite 之上的薄存储。
+ * 持久层（S1 + S2a 切片）——Prisma/SQLite 之上的薄存储。
  *
  * 单一写入者纪律的落地点：
  * - commitTurn 使用 updateMany + stateVersion 条件守卫做原子的
  *   check-and-set：版本不匹配 → 0 行更新 → stale 写入被拒绝（GS-05）。
  * - 事件账本只追加：commitTurn 内先取事件数作 seq 基，同一事务写入。
  * - 本文件不包含任何业务语义：业务语义全部在 runtime.ts。
+ *
+ * S2a 扩展：
+ * - ExperienceState 新增轴外域（creation / simulation）：createSession
+ *   初始化空域，loadSession 对遗留行防御性回填（无域字段旧状态 → 空域，
+ *   不崩溃不丢历史）；
+ * - MemoryRecord（F-5 唯一跨会话域）：loadMemoryRecords / saveMemoryRecords
+ *   提供 ISO 字符串 ↔ Prisma 行映射；写入仅由 runtime 调用（单一写入者）。
  */
 
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import type { MemoryDeletionAudit, MemoryLifecycle, MemoryRecord, MemorySource } from './memory';
 import { initialExperienceView } from './state-machine';
 import type { ExperienceState, SessionSummary } from './types';
 
@@ -44,7 +53,7 @@ function toRow(session: {
 }): SessionRow {
   return {
     ...session,
-    state: session.state as ExperienceState,
+    state: session.state as unknown as ExperienceState,
   };
 }
 
@@ -64,6 +73,9 @@ export async function createSession(input: {
     variables: {},
     history: [],
     completion: { done: false, exitReason: null },
+    // S2a 轴外域（D-02/D-04）：创作域空态起步；分支域结构恒在。
+    creation: null,
+    simulation: { rounds: [], branches: [], currentBranchId: null, roundCounter: 0, branchCounter: 0 },
   };
   const session = await db.experienceSession.create({
     data: {
@@ -90,7 +102,25 @@ export async function loadSession(sessionId: string): Promise<SessionRow | null>
   const session = await db.experienceSession.findUnique({
     where: { id: sessionId },
   });
-  return session ? toRow(session) : null;
+  if (!session) return null;
+  return toRow(withS2aDomains(session));
+}
+
+/**
+ * 遗留行防御性回填（S1 旧会话无 creation / simulation 域字段）：
+ * 缺失 → 空域；已有 → 保留。不改写任何既有字段（历史只读）。
+ * 仅补齐类型要求的域字段，保证运行时不需要 nullish 判断。
+ */
+function withS2aDomains(session: {
+  state: unknown;
+} & Omit<SessionRow, 'state'>): { state: unknown } & Omit<SessionRow, 'state'> {
+  const raw = session.state as Partial<ExperienceState> | null;
+  const patched: Partial<ExperienceState> = raw ? { ...raw } : {};
+  if (patched.creation === undefined) patched.creation = null;
+  if (patched.simulation === undefined) {
+    patched.simulation = { rounds: [], branches: [], currentBranchId: null, roundCounter: 0, branchCounter: 0 };
+  }
+  return { ...session, state: patched };
 }
 
 /**
@@ -108,7 +138,11 @@ export async function commitTurn(params: {
 }): Promise<boolean> {
   const newVersion = params.expectedVersion + 1;
   const updated = await db.$transaction(async (tx) => {
-    const count = await tx.experienceSession.updateMany({
+    // GS-05 修复（单测发现的既有缺陷）：updateMany 返回 BatchPayload
+    // （{ count }），直接拿返回值与 0 比较恒为 false——stale 写入从未
+    // 真正被拒绝（状态未更新但事件被追加且返回 true）。解构 count 后
+    // 条件守卫才真正生效。
+    const { count } = await tx.experienceSession.updateMany({
       where: { id: params.sessionId, stateVersion: params.expectedVersion, status: 'ACTIVE' },
       data: {
         state: params.newState as unknown as object,
@@ -165,6 +199,81 @@ export async function appendCancellationEvent(
   await appendAuditEvent(sessionId, 'GENERATION_CANCELLED', { generation, at: new Date().toISOString() }, stateVersion);
 }
 
+// ---------------------------------------------------------------------------
+// S2a F-5：记忆域持久化（唯一跨会话域；写入仅由 runtime 单一写入者调用）
+// ---------------------------------------------------------------------------
+
+type MemoryRow = {
+  id: string;
+  topic: string;
+  intentSignal: string;
+  lifecycle: string;
+  source: string;
+  confidence: number;
+  interestSignal: number;
+  corrections: number;
+  createdAt: Date;
+  updatedAt: Date;
+  lastRecalledAt: Date | null;
+  withdrawnAt: Date | null;
+  expiredAt: Date | null;
+  deletionAudit: unknown;
+};
+
+function rowToMemoryRecord(row: MemoryRow): MemoryRecord {
+  return {
+    recordId: row.id,
+    topic: row.topic,
+    intentSignal: row.intentSignal,
+    lifecycle: row.lifecycle as MemoryLifecycle,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    source: row.source as MemorySource,
+    confidence: row.confidence,
+    interestSignal: row.interestSignal,
+    corrections: row.corrections,
+    lastRecalledAt: row.lastRecalledAt ? row.lastRecalledAt.toISOString() : null,
+    withdrawnAt: row.withdrawnAt ? row.withdrawnAt.toISOString() : null,
+    expiredAt: row.expiredAt ? row.expiredAt.toISOString() : null,
+    deletionAudit: (row.deletionAudit as MemoryDeletionAudit | null) ?? null,
+  };
+}
+
+/** 全量记忆记录（本地单用户小表；写入侧过滤保证量级有界）。 */
+export async function loadMemoryRecords(): Promise<MemoryRecord[]> {
+  const rows = await db.memoryRecord.findMany({ orderBy: { updatedAt: 'asc' } });
+  return rows.map(rowToMemoryRecord);
+}
+
+/** 按记录 id upsert（新记录 create / 变更记录 update；EXPIRED 保留供审计）。 */
+export async function saveMemoryRecords(records: readonly MemoryRecord[]): Promise<void> {
+  if (records.length === 0) return;
+  for (const record of records) {
+    const data = {
+      topic: record.topic,
+      intentSignal: record.intentSignal,
+      lifecycle: record.lifecycle,
+      source: record.source,
+      confidence: record.confidence,
+      interestSignal: record.interestSignal,
+      corrections: record.corrections,
+      updatedAt: new Date(record.updatedAt),
+      lastRecalledAt: record.lastRecalledAt ? new Date(record.lastRecalledAt) : null,
+      withdrawnAt: record.withdrawnAt ? new Date(record.withdrawnAt) : null,
+      expiredAt: record.expiredAt ? new Date(record.expiredAt) : null,
+      deletionAudit:
+        record.deletionAudit === null
+          ? Prisma.JsonNull
+          : (JSON.parse(JSON.stringify(record.deletionAudit)) as Prisma.InputJsonObject),
+    };
+    await db.memoryRecord.upsert({
+      where: { id: record.recordId },
+      create: { id: record.recordId, createdAt: new Date(record.createdAt), ...data },
+      update: data,
+    });
+  }
+}
+
 /** 最近的会话列表（首页"最近探索"）。 */
 export async function recentSessions(limit = 6): Promise<SessionSummary[]> {
   const sessions = await db.experienceSession.findMany({
@@ -172,7 +281,7 @@ export async function recentSessions(limit = 6): Promise<SessionSummary[]> {
     take: limit,
   });
   return sessions.map((s) => {
-    const state = s.state as ExperienceState;
+    const state = s.state as unknown as ExperienceState;
     return {
       id: s.id,
       topic: s.topic,

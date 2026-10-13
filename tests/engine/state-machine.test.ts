@@ -58,8 +58,8 @@ describe('state-machine：初始视图与版本', () => {
     expect(initialExperienceView()).toEqual({ status: 'ENTERING', stage: 'CURIOSITY' });
   });
 
-  it('STATE_MACHINE_VERSION 冻结值', () => {
-    expect(STATE_MACHINE_VERSION).toBe('state_machine_v1.0.0-slice');
+  it('STATE_MACHINE_VERSION 冻结值（S2a——创作/纠正/分支为轴外域不占轴）', () => {
+    expect(STATE_MACHINE_VERSION).toBe('state_machine_v1.3.0-s2a');
   });
 });
 

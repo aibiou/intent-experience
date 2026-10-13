@@ -85,13 +85,20 @@ export function buildUserPrompt(policyAction: PolicyAction, userText: string, tu
     case 'EXPLAIN':
       return `用户：「${userText}」\n\n用户在问"为什么"。先自然衔接用户的话（确认或修正其理解），再解释背后的机制，默认指向你上一轮讲的内容。`;
     case 'SIMULATE':
+      // S2a F-4（D-05）：四元分离标记为硬性格式要求——deriveSimulationSeparation
+      // 依赖这些标记做确定性切分（事实/推断/假设/提案四段，E8-G2-CC07）。
       return [
         `用户：「${userText}」`,
         '',
-        '这是一个 What-if 模拟请求。请基于当前体验主题做思想实验：',
-        '- 用一个具体的画面推演会发生什么',
-        '- 明确区分：哪些是已知事实、哪些是合理推断、哪些是假设（模拟结果不得表现为事实）',
-        '- 讲完就停',
+        '这是一个 What-if 模拟请求。请基于当前体验主题做思想实验，并严格按以下四段格式输出（每段标记必须一字不差地出现，标记单独占一行）：',
+        '事实——',
+        '（这一段：与问题直接相关的已知事实，两句以内）',
+        '推断——',
+        '（这一段：由事实合理推出的会发生什么，用一个具体画面推演）',
+        '假设——',
+        '（这一段：这个模拟里未经证实的前提假设，明确标注这是假设）',
+        '。本提案',
+        '（这一段：模拟推演的正文结论；模拟结果不得表现为事实，讲完就停）',
       ].join('\n');
     default:
       return `用户：「${userText}」\n\n请基于当前体验上下文回应。`;
@@ -107,5 +114,62 @@ export function buildCorrectionPrompt(userText: string): string {
     '- 把用户的纠正当作权威事实，重新解释',
     '- 不为之前的错误辩解，简单承认后修正',
     '- 修正后的解释必须与用户的纠正一致',
+  ].join('\n');
+}
+
+/**
+ * 创作首建提示（S2a F-2；08 §6/§7——最小构建纪律）。
+ * 不问类型配置，直接给可感知的最小初稿；基于继承上下文（五项）。
+ */
+export function buildCreationFirstPrompt(inherited: InheritedCreationContext, userText: string): string {
+  const lines = [
+    `用户：「${userText}」`,
+    '',
+    `用户想把这次探索的理解变成一个作品（目标：${inherited.newGoal}）。`,
+    '',
+    '继承的探索上下文（作品必须建立在这些之上）：',
+    `- 主题：${inherited.theme}`,
+  ];
+  if (inherited.understood.length > 0) {
+    lines.push(`- 用户已经理解：${inherited.understood.join('；')}`);
+  }
+  if (inherited.attempted.length > 0) {
+    lines.push(`- 用户已经尝试：${inherited.attempted.join('；')}`);
+  }
+  lines.push(
+    '',
+    '请直接给出这个作品的最小初稿（第一版）。纪律：',
+    '- 不要问任何配置类问题，直接给出初稿',
+    '- 最小但可感知：用户能立刻看出这个作品是什么、长什么样',
+    '- 用自然段落描述作品本身（可以是设定、结构、内容或玩法描述），4-6 个短段落',
+    '- 在合适的位置用一行括号标注关键分量（如（障碍：xxx）（出口：xxx）），方便后续局部修改',
+    '- 讲完就停，结尾不要追问',
+  );
+  return lines.join('\n');
+}
+
+/**
+ * 创作补丁提示（S2a F-2；08 §11——局部修改纪律）。
+ * 只改用户要求的部分，其余保持原样；输出修改后的完整新草稿全文。
+ */
+export function buildCreationPatchPrompt(creation: CreationObject, patch: CreationPatch): string {
+  const operationText: Record<CreationPatch['operation'], string> = {
+    add: patch.change.count && patch.change.count > 1 ? `增加（×${patch.change.count}）` : '增加',
+    remove: patch.change.count && patch.change.count > 1 ? `减少（×${patch.change.count}）` : '减少',
+    modify: `修改（${patch.change.kind ?? 'tune'}）`,
+    restore: `恢复到第 ${patch.change.restoreFromVersion ?? Math.max(1, creation.version - 1)} 版`,
+  };
+  return [
+    `用户要求（目标分量：${patch.target}）：「${patch.summary}」`,
+    `操作类型：${operationText[patch.operation]}`,
+    '',
+    `当前作品草稿（第 ${creation.version} 版）：`,
+    creation.content,
+    '',
+    '请输出修改后的完整新草稿。纪律：',
+    '- 只改用户要求修改的部分，其余内容逐字保持原样',
+    '- 不添加用户没要求的新内容',
+    '- 不解释你做了什么，直接输出新草稿全文',
+    '- 保持原文的段落结构与分量标注格式',
   ].join('\n');
 }

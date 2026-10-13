@@ -23,6 +23,12 @@ export interface CreationDomain {
   /** 会话内存活标记：完成/取代/终止后置 false（历史保留）。 */
   active: boolean;
   endedReason?: string; // completed | superseded_by_create | direction_changed | stopped_by_user
+  /**
+   * 各版本内容快照（index = version - 1；runtime 维护）。
+   * RESTORE 恢复轮次的内容回填数据源（08 §28：新版本内容 = 目标
+   * 历史版本内容）——真实 LLM 适配下唯一确定性回填来源。
+   */
+  contentHistory: string[];
 }
 
 /** 分支域初始空态。 */

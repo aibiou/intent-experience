@@ -41,7 +41,7 @@ model ExperienceEvent {
   sessionId    String
   session      ExperienceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   seq          Int // 会话内单调序号
-  type         String // SESSION_STARTED | POLICY_DECIDED | CONTENT_DELIVERED | STATE_UPDATED | EXPERIENCE_COMPLETED | DIRECTION_CHANGED | GENERATION_CANCELLED
+  type         String // SESSION_STARTED | POLICY_DECIDED | CONTENT_DELIVERED | STATE_UPDATED | EXPERIENCE_COMPLETED | DIRECTION_CHANGED | GENERATION_CANCELLED | TURN_FAILED | CREATION_PREVIEWED | CREATION_PATCHED | CREATION_ASKED | BRANCH_OPERATION | SIMULATION_RECORDED | MEMORY_OPERATION
   payload      Json?
   stateVersion Int
   createdAt    DateTime @default(now())

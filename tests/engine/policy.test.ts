@@ -5,12 +5,12 @@ import type { PolicyAction } from '../../src/lib/experience/policy';
 import type { SemanticAction } from '../../src/lib/experience/classifier';
 
 /**
- * 策略解析（policy.ts）——S1 冻结映射表（policy_v1.0.0-slice）。
+ * 策略解析（policy.ts）——S2a 冻结映射表（policy_v2.0.0-s2a）。
  * 锁：每个语义动作 → 策略动作的单目标映射（任何改动 policy 的人都会被抓住）、
  * 范围外动作一律 ACTION_OUT_OF_SLICE_SCOPE 拒绝（不发明语义）、
  * 冻结性（键集合与值域精确锁定，防悄悄增删）。
- * 契约依据：S1 §14 + PD-21 最小关闭切片；P-01（STOP 硬边界）；P-04 / P-05（策略不生成
- * 事实内容、LLM 不选最终 Action——resolvePolicy 为纯函数，无模型调用）。
+ * 契约依据：S1 §14 + PD-21 + S2a F-2（CREATE 启用）/ F-3 / F-4；P-01（STOP 硬边界）；
+ * P-04 / P-05（策略不生成事实内容、LLM 不选最终 Action——resolvePolicy 为纯函数，无模型调用）。
  */
 
 /** SemanticAction 闭集全成员（classifier.ts 类型定义的运行时镜像）。 */
@@ -34,11 +34,12 @@ const ALL_SEMANTIC_ACTIONS: ReadonlyArray<SemanticAction> = [
 const FROZEN_MAP: Readonly<Record<string, PolicyAction>> = {
   DIRECT_ANSWER: 'ANSWER', // GS-01：用户要求直接答案时直接回答，不强迫探索
   WHY: 'EXPLAIN', // GS-02：基于当前上下文解释“为什么”
-  WHAT_IF: 'SIMULATE', // 基础单次模拟提案（PD-06：不建立持久/多轮分支）
+  WHAT_IF: 'SIMULATE', // S2a F-4：多轮模拟持久化 + 分支记录（首轮自动建分支）
   CHANGE_DIRECTION: 'CHANGE_EXPERIENCE', // P-02 硬边界：取消旧操作
   STOP: 'STOP', // P-01 硬边界：永远优先，确定性执行，不调用模型
-  CORRECTION: 'EXPLAIN', // G07 最小形态：纠正落到合法动作 EXPLAIN
+  CORRECTION: 'EXPLAIN', // S2a F-3：G07 完整语义（创作会话内修改族走 CREATE 伞形——路由在 runtime）
   CONTINUE: 'ANSWER', // 切片适配：Screen 04 “继续” = 下一层理解
+  CREATE: 'CREATE', // S2a F-2：完整 G04 Creation 语义启用（此前表外拒绝）
 };
 
 describe('policy：冻结表单目标映射（逐条锁定）', () => {
@@ -86,7 +87,7 @@ describe('policy：冻结表单目标映射（逐条锁定）', () => {
     });
   });
 
-  it('WHAT_IF → SIMULATE（基础单次模拟）', () => {
+  it('WHAT_IF → SIMULATE（S2a F-4：多轮模拟持久化 + 分支记录）', () => {
     expect(resolvePolicy('WHAT_IF')).toEqual({
       ok: true,
       semanticAction: 'WHAT_IF',
@@ -101,11 +102,19 @@ describe('policy：冻结表单目标映射（逐条锁定）', () => {
       policyAction: 'ANSWER',
     });
   });
+
+  it('CREATE → CREATE（S2a F-2：完整 G04 Creation 语义启用）', () => {
+    expect(resolvePolicy('CREATE')).toEqual({
+      ok: true,
+      semanticAction: 'CREATE',
+      policyAction: 'CREATE',
+    });
+  });
 });
 
 describe('policy：范围外动作拒绝（诚实边界，不发明语义）', () => {
-  it('本切片禁用的已知动作（CREATE / DEEPEN / SIMPLIFY / REFRAME / REPEAT）一律 ACTION_OUT_OF_SLICE_SCOPE', () => {
-    const outOfSlice: ReadonlyArray<SemanticAction> = ['CREATE', 'DEEPEN', 'SIMPLIFY', 'REFRAME', 'REPEAT'];
+  it('本切片禁用的已知动作（DEEPEN / SIMPLIFY / REFRAME / REPEAT——S2b 预留）一律 ACTION_OUT_OF_SLICE_SCOPE', () => {
+    const outOfSlice: ReadonlyArray<SemanticAction> = ['DEEPEN', 'SIMPLIFY', 'REFRAME', 'REPEAT'];
     for (const action of outOfSlice) {
       expect(resolvePolicy(action)).toEqual({
         ok: false,
@@ -129,17 +138,17 @@ describe('policy：范围外动作拒绝（诚实边界，不发明语义）', (
   });
 
   it('拒绝结果回显语义动作（升级路径可追踪是谁被拒）', () => {
-    const r = resolvePolicy('CREATE');
+    const r = resolvePolicy('DEEPEN');
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.code).toBe('ACTION_OUT_OF_SLICE_SCOPE');
-      expect(r.semanticAction).toBe('CREATE');
+      expect(r.semanticAction).toBe('DEEPEN');
     }
   });
 });
 
 describe('policy：冻结性断言（防悄悄增删映射表条目）', () => {
-  it('可解析键集合精确等于冻结表 7 键（多一条少一条都会被抓）', () => {
+  it('可解析键集合精确等于冻结表 8 键（多一条少一条都会被抓）', () => {
     const resolvedOk = ALL_SEMANTIC_ACTIONS.filter((action) => resolvePolicy(action).ok);
     expect(resolvedOk.sort()).toEqual(
       [
@@ -150,25 +159,27 @@ describe('policy：冻结性断言（防悄悄增删映射表条目）', () => {
         'STOP',
         'CORRECTION',
         'CONTINUE',
+        'CREATE',
       ].sort()
     );
   });
 
-  it('全部 13 个语义动作中恰好 7 个在表内、6 个在表外', () => {
+  it('全部 13 个语义动作中恰好 8 个在表内、5 个在表外', () => {
     const okCount = ALL_SEMANTIC_ACTIONS.filter((action) => resolvePolicy(action).ok).length;
     const rejectedCount = ALL_SEMANTIC_ACTIONS.filter((action) => !resolvePolicy(action).ok).length;
-    expect(okCount).toBe(7);
-    expect(rejectedCount).toBe(6);
+    expect(okCount).toBe(8);
+    expect(rejectedCount).toBe(5);
     expect(okCount + rejectedCount).toBe(ALL_SEMANTIC_ACTIONS.length);
   });
 
-  it('映射目标值域封闭于 5 个合法策略动作（防拼写错误引入新动作）', () => {
+  it('映射目标值域封闭于 6 个合法策略动作（防拼写错误引入新动作）', () => {
     const legalPolicyActions: ReadonlyArray<PolicyAction> = [
       'ANSWER',
       'EXPLAIN',
       'SIMULATE',
       'CHANGE_EXPERIENCE',
       'STOP',
+      'CREATE',
     ];
     for (const action of ALL_SEMANTIC_ACTIONS) {
       const r = resolvePolicy(action);
@@ -178,8 +189,8 @@ describe('policy：冻结性断言（防悄悄增删映射表条目）', () => {
     }
   });
 
-  it('POLICY_VERSION 精确冻结为 policy_v1.0.0-slice', () => {
-    expect(POLICY_VERSION).toBe('policy_v1.0.0-slice');
+  it('POLICY_VERSION 精确冻结为 policy_v2.0.0-s2a', () => {
+    expect(POLICY_VERSION).toBe('policy_v2.0.0-s2a');
   });
 });
 

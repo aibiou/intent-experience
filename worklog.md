@@ -150,6 +150,31 @@ Stage Summary:
 - 关键决策/发现（只报告不修改）：①applyCreationPatchMeta 与参考 applyCreationPatch 的关键差异——只登记不写 content（真实 LLM 适配：内容由 runtime 经 LLM 局部修改后另行写入，本函数只管版本与权威历史）；②replace 子型在冻结词表下不可达（"换成/替换"必含"换"字→恒命中 CHANGE_DIRECTION 冲突轴走澄清问题），与参考实现行为一致，已如实锁定并注明；③extractCount 词表首命中不做算术（"12"→2）、rename 正则捕获"改名"后全部文本（"改名叫做传送门"→to="叫做传送门"）——确定性表的真实行为，如实记录；④下一个任务（6-b/6-c）注意：CreationPhaseEvent/CreationObject 类型与 runtime 编排对接时，补丁应用轨道（applyCreationPatchMeta+LLM 写 content）与阶段迁移轨道（nextCreationPhase）分离，completed 仅可自 USER_FEEDBACK 发出
 
 ---
+Task ID: 6-c
+Agent: Z.ai Code (主控)
+Task: S2a 契约层收尾 + runtime 编排 + 记忆持久化 + 全量回归与端到端验证
+
+Work Log:
+- 恢复上下文：检查发现上次会话截断前已完成部分契约升级（types/policy/classifier/prisma schema 已到 S2a 形态，policy.test 7 处失败未同步）；6-a/6-b 四个纯逻辑模块已在
+- 测试同步：policy.test.ts 更新为 8 键冻结表（CREATE→CREATE 启用、13 动作 8 进 5 出、值域 6 动作、policy_v2.0.0-s2a）；state-machine.test.ts 版本断言 → state_machine_v1.3.0-s2a
+- 6-c-2：types.ts CreationDomain 增 contentHistory: string[]（RESTORE 内容回填的唯一确定性数据源——放域层而非 6-a 的 creation.ts，零改动已测模块）
+- 6-c-3：store.ts——createSession 初始化 creation:null + simulation 空域；loadSession 对遗留行防御回填（withS2aDomains）；记忆持久化 loadMemoryRecords/saveMemoryRecords（ISO 字符串 ↔ Prisma 行映射、upsert by recordId、deletionAudit 经 Prisma.JsonNull/InputJsonObject）；db push 确认 MemoryRecord 表已同步
+- 【严重既有缺陷发现并修复（GS-05）】：store.commitTurn 的 `const count = await updateMany(...); if (count === 0)` ——count 是 BatchPayload 对象，与 0 比较恒 false，S1 起 stale 写入从未真正被拒绝（状态未更新但事件被追加且返回 true）。TS2367 恰好暴露。修复：解构 `{ count }`。git show HEAD 证实缺陷存在于 S1 提交
+- 6-c-4：prompt-engine.ts——SIMULATE 提示加四元分离硬性格式（事实——/推断——/假设——/。本提案，deriveSimulationSeparation 依赖的标记）；新增 buildCreationFirstPrompt（最小构建纪律：不问配置、可感知初稿、分量括号标注）与 buildCreationPatchPrompt（局部修改纪律：只改要求部分、输出完整新草稿）
+- 6-c-5：runtime.ts 完整 S2a 编排——①创作会话输入路由（对齐参考 runtime.ts:449-532：UNKNOWN/CORRECTION 层经 interpretCreationInput——完成信号→STOP 路径登记（D-05）、修改意图→CREATE 伞形、冲突→ASK；RESTORE 预检先判且 version>1）；②首建轮（EXPERIENCE_STARTED→CREATE 触发器→继承五项→LLM 最小构建→子状态机链 CREATE_INTENT→…→PREVIEW 同轮→CREATION_PREVIEW，superseded_by_create 取代登记）；③补丁轮（PREVIEW→feedback_started→USER_FEEDBACK→patch_applied→PREVIEW；RESTORE 走 contentHistory 字节级回填不调 LLM；applyCreationPatchMeta 登记+LLM 内容分离）；④ASK 轮（确定性问题、子状态不推进）；⑤STOP 轮创作完成登记（完成必经反馈轮：PREVIEW→USER_FEEDBACK→completed→COMPLETE；预览在途按终止登记；exitReason=creation_completed + CREATION_COMPLETED 内容轮）；⑥分支操作轮（interpretBranchOperation→validate→apply，四操作确定性 BRANCH_NOTICE；UI 需以"如果…"前缀发送——与参考 UI 一致）；⑦WHAT_IF 自 CREATION 非法（冻结契约）→冲突 ASK 或诚实边界；⑧记忆读写（loadMemorySignals 懒到期+RECALL+滑窗注入提示、内容轮后 recordMemory 观察、withdraw/correct 确定性 MEMORY_NOTICE 轮）
+- 分支路由设计验证：查证参考 UI（experience-screen.tsx:1415）发送"如果采用分支N"——分支操作输入以"如果"前缀落 WHAT_IF 层，我方无需改分类器优先级链（零黄金回归）
+- 环境处置：dev server 重启加载重新生成的 Prisma client（memoryRecord 模型在旧进程 undefined）；db:push 确认 schema 已同步
+
+Stage Summary:
+- 测试：bun test 246 pass / 0 fail（+2 policy 用例）；bunx tsc --noEmit experience 模块零错误；lint 退出码 0
+- 端到端（curl SSE 全链路）：FIRST_LAYER→SIMULATION_RESULT（四元分离标记 ✓ + branch_0001 自动创建 + stage→SIMULATION）→RETURN 分支操作 BRANCH_NOTICE ✓→CREATION_PREVIEW v1（stage→CREATION）→add×2 补丁 v2→"退回刚才那个"RESTORE v3【字节级 === v1 ✓ + op=restore rf=1】→"就这样"creation_completed + COMPLETED + 终态零续行（GS-04）→ 旧版本写入 VERSION_CONFLICT（GS-05 修复后真实验效）
+- 记忆域端到端：蜂鸟主题写入→"别再推荐蜂鸟相关的东西"撤回（EXPIRED + withdrawnAt + deletionAudit{reason:"withdrawn"}）→沙漠夜空写入→"记忆纠正：高原的夜空"更正（topic 更新 + corrections=1）；IN_USE/再探索 interest=1 均观察到
+- 浏览器验证（agent-browser 经 81）：自由输入→体验流→"做成一个极光观测小游戏"→CREATION_PREVIEW 渲染→"再加两个障碍"补丁渲染→"就这样"→"作品完成"结束层 + 全控件禁用 + 回到首页 + 零 console 错误 + footer 正常 + 移动端 390px 无溢出
+- 事件账本：SESSION_STARTED→POLICY_DECIDED→CONTENT_DELIVERED→SIMULATION_RECORDED→BRANCH_OPERATION→CREATION_PREVIEWED→CREATION_PATCHED×2→EXPERIENCE_COMPLETED 全程留痕
+- 诚实边界（只报告）：①"撤销刚才的修改"（含"的"）不命中冻结 RESTORE 词表（/撤销刚才修改/）落 modify/tune——冻结契约词表行为，如实记录不改；②RESTORE 无 contentHistory 防御路径保底当前内容（正常流不可达）；③UI 对新 kind（CREATION_*/BRANCH_NOTICE/MEMORY_NOTICE）走默认卡片渲染不崩溃但无专项样式；④SIMULATION_RESULT 四段标记原样透出到前端（6-d 需解析渲染）；⑤创作/补丁轮 kind 徽标与分支面板、快捷动作未做——6-d 范围
+- 下一步（6-d）：UI 升级——创作卡（版本徽章/分量标注渲染）、模拟四段解析渲染、分支徽章与分支面板、快捷动作（采用分支N/回到主线）、记忆设置入口；然后 6-e 全链路验收
+
+---
 Task ID: 6-b
 Agent: general-purpose
 Task: S2a 切片——simulation.ts + memory.ts 纯逻辑模块 + 单测（WHAT_IF 完整分支域 + Minimal Memory）
