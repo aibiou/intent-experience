@@ -515,6 +515,12 @@ export function ExperienceScreen({
         id: creationId(),
         modality,
         prompt,
+        // 画面语义标题 = 实际生成用的提示词（蒸馏词 / 安全兜底词）。
+        // 缺省回退主题句（旧事件 / 直接创作路径无 promptUsed 时
+        // 作品墙展示仍不空白——CR-60）。
+        ...(typeof event.promptUsed === 'string' && event.promptUsed.length > 0
+          ? { caption: event.promptUsed }
+          : {}),
         ...(typeof event.url === 'string' ? { url: event.url } : {}),
         ...(typeof event.dataUri === 'string' ? { dataUri: event.dataUri } : {}),
         ...(typeof event.mime === 'string' ? { mime: event.mime } : {}),

@@ -36,6 +36,9 @@ function workEntries(works: Array<Record<string, unknown>>): CreationEntry[] {
       workId: String(work.id),
       modality: work.modality as CreationEntry['modality'],
       prompt: typeof work.prompt === 'string' ? work.prompt : '',
+      ...(typeof work.caption === 'string' && work.caption.length > 0
+        ? { caption: work.caption }
+        : {}),
       url: String(work.assetUrl),
       ...(typeof work.mime === 'string' ? { mime: work.mime } : {}),
       at: typeof work.createdAt === 'string' ? work.createdAt : new Date().toISOString(),
@@ -50,6 +53,9 @@ async function postWork(entry: CreationEntry): Promise<string | null> {
       body: JSON.stringify({
         modality: entry.modality,
         prompt: entry.prompt,
+        ...(entry.caption !== undefined && entry.caption.length > 0
+          ? { caption: entry.caption }
+          : {}),
         ...(entry.url !== undefined && !entry.url.startsWith('/api/works/') ? { url: entry.url } : {}),
         ...(entry.dataUri !== undefined ? { dataUri: entry.dataUri } : {}),
         ...(entry.mime !== undefined ? { mime: entry.mime } : {}),

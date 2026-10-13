@@ -22,6 +22,7 @@ export async function GET(): Promise<Response> {
     id: record.id,
     modality: record.modality,
     prompt: record.prompt,
+    ...(record.caption !== undefined ? { caption: record.caption } : {}),
     mime: record.mime,
     bytes: record.bytes,
     source: record.source,

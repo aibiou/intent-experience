@@ -8,6 +8,9 @@ export interface CreationEntry {
   id: string;
   modality: 'image' | 'voice' | 'video';
   prompt: string;
+  /** 画面语义标题（实际生成用的蒸馏提示词 / 安全兜底词——
+   * 有画面信息；旧作品与直接创作无此字段 → 展示回退 prompt）。 */
+  caption?: string;
   url?: string;
   dataUri?: string;
   mime?: string;

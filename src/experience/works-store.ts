@@ -22,6 +22,9 @@ export interface WorkRecord {
   id: string;
   modality: WorkModality;
   prompt: string;
+  /** 画面语义标题（实际生成用的蒸馏提示词 / 安全兜底词——CR-60；
+   * 旧记录无此字段 → 展示回退 prompt）。 */
+  caption?: string;
   mime: string;
   /** 资产字节数（0 = 未落地，仅 remoteUrl 回源）。 */
   bytes: number;
@@ -38,6 +41,7 @@ export interface WorkRecord {
 export interface SaveWorkInput {
   modality: WorkModality;
   prompt: string;
+  caption?: unknown;
   mime?: unknown;
   url?: unknown;
   dataUri?: unknown;
@@ -119,6 +123,11 @@ function decodeDataUri(
 export async function saveWork(input: SaveWorkInput): Promise<WorkRecord> {
   const modality = normalizeModality(input.modality);
   const prompt = typeof input.prompt === 'string' ? input.prompt : '';
+  // 画面语义标题（trim 非空才存——空 / 非字符串不落盘）。
+  const caption =
+    typeof input.caption === 'string' && input.caption.trim().length > 0
+      ? input.caption.trim()
+      : undefined;
   const run = async (): Promise<WorkRecord> => {
     const records = readIndexSync();
     const id = newWorkId();
@@ -142,6 +151,7 @@ export async function saveWork(input: SaveWorkInput): Promise<WorkRecord> {
           id,
           modality,
           prompt,
+          ...(caption !== undefined ? { caption } : {}),
           mime,
           bytes: decoded.bytes.byteLength,
           source: 'inline',
@@ -187,6 +197,7 @@ export async function saveWork(input: SaveWorkInput): Promise<WorkRecord> {
           id,
           modality,
           prompt,
+          ...(caption !== undefined ? { caption } : {}),
           mime,
           bytes: bytes.byteLength,
           source: 'url',
@@ -200,6 +211,7 @@ export async function saveWork(input: SaveWorkInput): Promise<WorkRecord> {
         id,
         modality,
         prompt,
+        ...(caption !== undefined ? { caption } : {}),
         mime,
         bytes: 0,
         source: 'url',
