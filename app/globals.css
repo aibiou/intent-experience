@@ -1513,7 +1513,41 @@ a:hover {
 }
 
 .config-provider {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.config-provider-label {
   font-weight: 600;
+}
+
+.config-provider-id {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.config-item.is-enabled {
+  border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 5%, transparent);
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+
+.config-preset-button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.config-preset-name {
+  font-weight: 600;
+}
+
+.config-preset-id {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-faint);
 }
 
 .config-model {
@@ -2290,6 +2324,26 @@ a:hover {
 .recent-chip:hover {
   border-color: var(--accent);
   color: var(--accent-ink);
+}
+
+/* V1.1 §1.4：最近探索最多一条——CTA 提示「继续探索 →」。
+   放宽单条 chip 宽度（非胶囊簇），让主题行有呼吸空间。 */
+.recent-chip.recent-chip-last {
+  max-width: 420px;
+  border-radius: 14px;
+  padding: 8px 14px;
+}
+.recent-chip-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  margin-left: auto;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
 }
 
 .creations {
