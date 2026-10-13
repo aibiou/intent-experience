@@ -12,6 +12,7 @@ import type { AuditSink } from './audit';
 import type { LlmGateway } from './llm-gateway';
 import type { StreamEvent } from './stream';
 import type { RuntimeError } from './runtime-errors';
+import type { MemoryRecord } from './memory';
 
 export interface IntentRecord {
   intentId: string;
@@ -75,6 +76,17 @@ export interface RuntimeOptions {
   auditSink?: AuditSink;
   /** LLM 网关注入点（证据经同一接口注入脚本化提案以测试拒绝路径）。 */
   gateway?: LlmGateway;
+  /**
+   * 初始记忆记录（持久化恢复——跨进程重启记忆保留，
+   * CR-52；进程内证据形态不注入，行为零变化——
+   * 黄金回归不变式）。
+   */
+  initialMemoryRecords?: MemoryRecord[];
+  /**
+   * 记忆持久化回调（HTTP 形态注入——记忆每次变更后
+   * 调用；进程内证据形态不注入，零落盘行为）。
+   */
+  memoryPersist?: (records: MemoryRecord[]) => void;
 }
 
 /** 内部簿记：在途生成（死会话归位用）。 */

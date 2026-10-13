@@ -47,6 +47,7 @@ import {
   type LlmRequest,
 } from './llm-gateway';
 import { getEnabledProviderConfig, hasEnabledPersistedConfigSync } from './config-store';
+import { readMemoryIndexSync, writeMemoryIndex } from './memory-persistence';
 import { allFixtures } from './chunks';
 import { createServerEventSink, serverEventLogPath } from './events';
 import {
@@ -165,6 +166,15 @@ export function getServerRuntime(): ExperienceRuntime {
       decisionTraceSink: createServerDecisionTraceSink(serverDecisionTraceLogPath()),
       auditSink: createServerAuditSink(serverAuditLogPath()),
       ...(gateway ? { gateway } : {}),
+      // 记忆持久化（CR-52——跨进程重启记忆保留）：
+      // 启动时从 data/memory/index.json 恢复（文件缺失 /
+      // 损坏 → 空数组——不静默损坏运行时）；记忆每次
+      // 变更后经写队列原子落盘（写失败仅丢当次持久化——
+      // 内存态仍为运行时准）。
+      initialMemoryRecords: readMemoryIndexSync(),
+      memoryPersist: (records) => {
+        void writeMemoryIndex(records).catch(() => undefined);
+      },
     });
   }
   return globalStore.__experienceRuntime;
