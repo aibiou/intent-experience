@@ -428,6 +428,12 @@ async function* withGeneration(
         modality: intent.modality,
         ...(artifact.url !== undefined ? { url: artifact.url } : {}),
         ...(artifact.dataUri !== undefined ? { dataUri: artifact.dataUri } : {}),
+        // 实际生成用的提示词（蒸馏成功 = 蒸馏词；失败 = 安全兜底词；
+        // 直接创作 = 增稠结果）——作品持久化 caption 的数据源，
+        // 保证作品墙标题有画面语义（CR-60）。
+        ...(typeof finalPrompt === 'string' && finalPrompt.length > 0
+          ? { promptUsed: finalPrompt }
+          : {}),
         mime: artifact.mime,
         at: new Date().toISOString(),
       };

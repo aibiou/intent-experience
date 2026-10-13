@@ -138,6 +138,7 @@ interface LightboxState {
   src: string;
   modality: CreationEntry['modality'];
   prompt: string;
+  caption?: string;
 }
 
 export function HomeScreen({
@@ -309,7 +310,12 @@ export function HomeScreen({
   const openCreation = (creation: CreationEntry) => {
     const src = creationSrc(creation);
     if (src === undefined || creation.modality === 'voice') return;
-    setLightbox({ src, modality: creation.modality, prompt: creation.prompt });
+    setLightbox({
+      src,
+      modality: creation.modality,
+      prompt: creation.prompt,
+      ...(creation.caption !== undefined ? { caption: creation.caption } : {}),
+    });
   };
 
   return (
@@ -586,7 +592,11 @@ export function HomeScreen({
                       onClick={() => openCreation(creation)}
                       title="点击放大查看"
                     >
-                      <img src={src} alt={creation.prompt} loading="lazy" />
+                      <img
+                        src={src}
+                        alt={creation.caption ?? creation.prompt}
+                        loading="lazy"
+                      />
                     </button>
                   )}
                   {creation.modality === 'video' && src !== undefined && (
@@ -609,8 +619,11 @@ export function HomeScreen({
                     </div>
                   )}
                   <div className="creation-hover">
-                    <p className="creation-prompt" title={creation.prompt}>
-                      {creation.prompt}
+                    <p
+                      className="creation-prompt"
+                      title={creation.caption !== undefined ? `${creation.prompt}\n（画面：${creation.caption}）` : creation.prompt}
+                    >
+                      {creation.caption ?? creation.prompt}
                     </p>
                     <div className="creation-meta">
                       <span className={`gen-tag gen-tag-${creation.modality}`}>
@@ -743,7 +756,10 @@ export function HomeScreen({
             {lightbox.modality === 'video' ? (
               <video controls autoPlay src={lightbox.src} />
             ) : (
-              <img src={lightbox.src} alt={lightbox.prompt} />
+              <img src={lightbox.src} alt={lightbox.caption ?? lightbox.prompt} />
+            )}
+            {lightbox.caption !== undefined && (
+              <p className="lightbox-caption">{lightbox.caption}</p>
             )}
             <p className="lightbox-prompt">{lightbox.prompt}</p>
             <div
