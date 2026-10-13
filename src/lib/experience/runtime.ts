@@ -379,6 +379,16 @@ export class ExperienceRuntime {
     expectedVersion: number
   ): AsyncGenerator<TurnEvent> {
     void session;
+    // 前置视图迁移校验（先于任何记忆变异——被拒绝的轮次不得留下副作用）：
+    // 纯状态机检查（零写入），失败即整轮拒绝（OBL-01 同族纪律——
+    // 记忆写入与轮次提交必须同为"全成或全不成"，不允许"轮次被拒但记忆已变"）。
+    const acting = transitionExperience(state.view, 'USER_ACTION');
+    if (!acting.ok) {
+      yield { type: 'error', code: 'INVALID_INPUT', message: '当前状态无法执行记忆操作' };
+      return;
+    }
+    state.view = acting.next;
+
     const records = await store.loadMemoryRecords();
     const now = new Date().toISOString();
     const searchText = memoryIntent === 'correct' ? (extractCorrectedTopic(raw) ?? raw) : raw;
@@ -412,13 +422,6 @@ export class ExperienceRuntime {
       }
     }
     await store.saveMemoryRecords(saved);
-
-    const acting = transitionExperience(state.view, 'USER_ACTION');
-    if (!acting.ok) {
-      yield { type: 'error', code: 'INVALID_INPUT', message: '当前状态无法执行记忆操作' };
-      return;
-    }
-    state.view = acting.next;
 
     const turnNumber = state.turn + 1;
     state.history.push({

@@ -2,10 +2,11 @@
 
 /**
  * Screen 04/05｜体验屏——分层内容 + 系统安静等待。
- * 头部：主题 + 阶段指示 + 轮次；内容区（max-h 滚动 + 自定义滚动条）；
+ * 头部：主题 + 阶段指示 + 轮次；分支面板（S2a）；内容区（max-h 滚动 + 自定义滚动条）；
  * 底部输入："直接问……" + 快捷动作（为什么/继续/我大概懂了/换一个/好了）。
  * 生成中输入保持可用（新输入会中止在途轮次）；停止是成功路径——
  * done{ended, user_stop} → 干净的结束层：只有"这次探索到这里"，零推荐。
+ * creation_completed（D-05）→ 结束层文案区分："作品完成"——同样是零推荐收束。
  */
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -16,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { ExperienceStage } from '@/lib/experience/types';
 import type { ExperienceSessionState } from './use-experience-session';
+import { BranchPanel } from './branch-panel';
 import { ThinkingIndicator } from './thinking-indicator';
 import { TurnItem } from './turn-item';
 
@@ -28,6 +30,12 @@ const STAGE_LABELS: Record<ExperienceStage, string> = {
 };
 
 const QUICK_ACTIONS = ['为什么？', '继续', '我大概懂了', '换一个', '好了'] as const;
+
+/** 阶段化输入提示（创作阶段：局部修改的入口语——08 §13）。 */
+const STAGE_PLACEHOLDERS: Partial<Record<ExperienceStage, string>> = {
+  SIMULATION: '提一个"如果……"，看看会怎样……',
+  CREATION: '想改哪里，直接说……',
+};
 
 interface ExperienceScreenProps {
   session: ExperienceSessionState;
@@ -59,6 +67,7 @@ export function ExperienceScreen({ session, onSend, onRetry, onBackHome }: Exper
   };
 
   const showEndOverlay = session.ended && !session.readOnly && session.exitReason !== 'direction_changed';
+  const isCreationCompleted = session.exitReason === 'creation_completed';
   const showRetry =
     !session.readOnly &&
     !session.ended &&
@@ -93,6 +102,18 @@ export function ExperienceScreen({ session, onSend, onRetry, onBackHome }: Exper
         ) : null}
       </header>
 
+      {/* S2a：模拟分支面板（有分支记录才出现；安静折叠） */}
+      {session.branches.length > 0 ? (
+        <div className="mt-4">
+          <BranchPanel
+            branches={session.branches}
+            currentBranchId={session.currentBranchId}
+            disabled={inputLocked}
+            onSend={onSend}
+          />
+        </div>
+      ) : null}
+
       {/* 内容区——分层内容 + 安静等待 */}
       <div
         ref={scrollRef}
@@ -100,7 +121,7 @@ export function ExperienceScreen({ session, onSend, onRetry, onBackHome }: Exper
         aria-live="polite"
       >
         {session.turns.map((item) => (
-          <TurnItem key={item.key} item={item} />
+          <TurnItem key={item.key} item={item} totalBranches={session.branches.length} />
         ))}
 
         {session.generating && session.turns.every((t) => t.kind !== undefined) ? (
@@ -162,7 +183,11 @@ export function ExperienceScreen({ session, onSend, onRetry, onBackHome }: Exper
             <Input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={session.sessionId ? '直接问……' : '正在准备……'}
+              placeholder={
+                session.sessionId
+                  ? (STAGE_PLACEHOLDERS[session.stage] ?? '直接问……')
+                  : '正在准备……'
+              }
               aria-label="直接问"
               maxLength={500}
               disabled={inputLocked}
@@ -200,8 +225,14 @@ export function ExperienceScreen({ session, onSend, onRetry, onBackHome }: Exper
               transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
               className="flex flex-col items-center gap-5 px-6 text-center"
             >
-              <p className="text-2xl font-medium text-stone-800 md:text-3xl">这次探索到这里</p>
-              <p className="text-sm text-stone-400">你想继续的时候随时回来</p>
+              <p className="text-2xl font-medium text-stone-800 md:text-3xl">
+                {isCreationCompleted ? '作品完成' : '这次探索到这里'}
+              </p>
+              <p className="text-sm text-stone-400">
+                {isCreationCompleted
+                  ? '你的每一步修改都完整保留在这次体验里'
+                  : '你想继续的时候随时回来'}
+              </p>
               <Button
                 type="button"
                 onClick={onBackHome}

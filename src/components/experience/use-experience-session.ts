@@ -11,6 +11,15 @@
  *   被中止的轮次永不提交（后端契约保证），前端亦丢弃其待定气泡
  * - VERSION_CONFLICT：经 session 端点同步最新状态 + 软提示，不自动重试
  * - 停止是成功路径：done{ended:true} → ended 态，由呈现层给干净的结束屏
+ *
+ * S2a（6-d）：从 SSE state 事件 / 会话恢复中提取轴外域的呈现视图——
+ * - 分支域：branches（序号 = 记录顺序 + 1，与后端 resolveTarget 一致）、currentBranchId；
+ * - 创作域：version / active（版本徽章数据源）；
+ * - 轮次徽章推导（纯呈现层，不触碰引擎语义）：
+ *   · 创作版本游标：CREATION_PREVIEW → 重置为 1；CREATION_PATCHED → +1
+ *     （历史顺序游走，superseded 重建创作时游标自然重置）；
+ *   · 分支归属拉链：第 i 条 SIMULATION_RESULT ↔ simulation.rounds[i]
+ *     （每个成功的 SIMULATE 轮恰好登记一条轮次记录——1:1 顺序对应）。
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -18,6 +27,7 @@ import { toast } from '@/hooks/use-toast';
 import { streamExperienceEvents } from './sse';
 import type {
   ExperienceStage,
+  ExperienceState,
   ExperienceView,
   TurnEvent,
   TurnKind,
@@ -27,6 +37,23 @@ import type {
 /** content 事件可能出现的全部 kind（含升级/边界通知）。 */
 export type ContentKind = TurnKind | 'ESCALATION_NOTICE' | 'BOUNDARY_NOTICE';
 
+/** 分支域的呈现视图（序号从 1 起——与后端分支记录顺序一致）。 */
+export interface BranchLite {
+  ordinal: number;
+  branchId: string;
+  lifecycle: 'ACTIVE' | 'RETURNED' | 'ABANDONED';
+  adopted: boolean;
+  version: number;
+  roundsCount: number;
+}
+
+/** 创作域的呈现视图。 */
+export interface CreationLite {
+  version: number;
+  active: boolean;
+  conceptTheme: string;
+}
+
 /** 呈现层的一条轮次记录（pending = 已有 userText、尚无内容）。 */
 export interface DisplayTurn {
   key: string;
@@ -34,6 +61,10 @@ export interface DisplayTurn {
   userText: string;
   kind?: ContentKind;
   content?: string;
+  /** 创作轮的版本徽章（CREATION_PREVIEW / CREATION_PATCHED；推导游标）。 */
+  creationVersion?: number;
+  /** 模拟轮的归属分支序号（SIMULATION_RESULT；轮次拉链推导）。 */
+  branchOrdinal?: number;
 }
 
 /** GET /api/experience/session 返回的会话形状。 */
@@ -48,6 +79,8 @@ export interface LoadedSession {
     view: ExperienceView;
     turn: number;
     history: TurnRecord[];
+    simulation: ExperienceState['simulation'];
+    creation: ExperienceState['creation'];
   };
   updatedAt: string;
 }
@@ -63,6 +96,11 @@ export interface ExperienceSessionState {
   ended: boolean;
   exitReason: string | null;
   readOnly: boolean;
+  /** S2a 分支域呈现视图（无模拟时为空数组）。 */
+  branches: BranchLite[];
+  currentBranchId: string | null;
+  /** S2a 创作域呈现视图（无创作时 null）。 */
+  creation: CreationLite | null;
 }
 
 export interface StartInput {
@@ -94,6 +132,90 @@ function historyToTurns(history: TurnRecord[]): DisplayTurn[] {
     kind: h.kind,
     content: h.content,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// S2a 轴外域呈现视图推导（纯函数——只读 state，不碰引擎语义）
+// ---------------------------------------------------------------------------
+
+function deriveBranches(state: Pick<ExperienceState, 'simulation'>): {
+  branches: BranchLite[];
+  currentBranchId: string | null;
+} {
+  const { simulation } = state;
+  return {
+    branches: simulation.branches.map((branch, index) => ({
+      ordinal: index + 1,
+      branchId: branch.branchId,
+      lifecycle: branch.lifecycle,
+      adopted: branch.adopted,
+      version: branch.version,
+      roundsCount: branch.rounds.length,
+    })),
+    currentBranchId: simulation.currentBranchId,
+  };
+}
+
+function deriveCreation(state: Pick<ExperienceState, 'creation'>): CreationLite | null {
+  if (!state.creation) return null;
+  return {
+    version: state.creation.creation.version,
+    active: state.creation.active,
+    conceptTheme: state.creation.creation.concept.theme,
+  };
+}
+
+/**
+ * 轮次徽章推导（呈现层拉链——live 与 restore 共用一条路径）：
+ * - 创作版本：历史顺序游走，CREATION_PREVIEW 重置 1、CREATION_PATCHED 递增；
+ * - 分支归属：第 i 条 SIMULATION_RESULT ↔ 第 i 条模拟轮次记录。
+ */
+function enrichTurns(
+  turns: DisplayTurn[],
+  history: TurnRecord[],
+  simulation: ExperienceState['simulation'] | undefined
+): DisplayTurn[] {
+  const creationVersionByTurn = new Map<number, number>();
+  let creationVersion = 0;
+  for (const h of history) {
+    if (h.kind === 'CREATION_PREVIEW') {
+      creationVersion = 1;
+    } else if (h.kind === 'CREATION_PATCHED') {
+      creationVersion += 1;
+    }
+    if (creationVersion > 0) {
+      creationVersionByTurn.set(h.turn, creationVersion);
+    }
+  }
+
+  const branchOrdinalByTurn = new Map<number, number>();
+  if (simulation) {
+    const ordinalOfBranchId = new Map<string, number>();
+    simulation.branches.forEach((branch, index) => {
+      ordinalOfBranchId.set(branch.branchId, index + 1);
+    });
+    let roundIndex = 0;
+    for (const h of history) {
+      if (h.kind !== 'SIMULATION_RESULT') continue;
+      const round = simulation.rounds[roundIndex];
+      roundIndex += 1;
+      if (!round) continue;
+      const ordinal = ordinalOfBranchId.get(round.branchId);
+      if (ordinal !== undefined) {
+        branchOrdinalByTurn.set(h.turn, ordinal);
+      }
+    }
+  }
+
+  return turns.map((t) =>
+    t.kind === undefined
+      ? t
+      : {
+          ...t,
+          creationVersion: creationVersionByTurn.get(t.turn),
+          branchOrdinal: branchOrdinalByTurn.get(t.turn),
+        }
+  );
 }
 
 export function useExperienceSession(options?: {
@@ -135,13 +257,21 @@ export function useExperienceSession(options?: {
       if (!res.ok) throw new Error('sync failed');
       const data = (await res.json()) as { session: LoadedSession };
       const loaded = data.session;
+      const { branches, currentBranchId } = deriveBranches(loaded.state);
       apply((prev) => ({
         ...prev,
         topic: loaded.topic,
         stage: loaded.state.view.stage,
         turn: loaded.state.turn,
         expectedStateVersion: loaded.stateVersion,
-        turns: historyToTurns(loaded.state.history),
+        turns: enrichTurns(
+          historyToTurns(loaded.state.history),
+          loaded.state.history,
+          loaded.state.simulation
+        ),
+        branches,
+        currentBranchId,
+        creation: deriveCreation(loaded.state),
         generating: false,
         ended: loaded.status === 'COMPLETED' || prev.ended,
         exitReason: loaded.status === 'COMPLETED' ? loaded.exitReason : prev.exitReason,
@@ -178,14 +308,20 @@ export function useExperienceSession(options?: {
             ),
           }));
           break;
-        case 'state':
+        case 'state': {
+          const { branches, currentBranchId } = deriveBranches(event.state);
           apply((prev) => ({
             ...prev,
             stage: event.view.stage,
             turn: event.state.turn,
             expectedStateVersion: event.stateVersion,
+            turns: enrichTurns(prev.turns, event.state.history, event.state.simulation),
+            branches,
+            currentBranchId,
+            creation: deriveCreation(event.state),
           }));
           break;
+        }
         case 'done':
           apply((prev) => ({
             ...prev,
@@ -249,6 +385,9 @@ export function useExperienceSession(options?: {
         ended: false,
         exitReason: null,
         readOnly: false,
+        branches: [],
+        currentBranchId: null,
+        creation: null,
       };
       sessionRef.current = draft;
       setSession(draft);
@@ -263,7 +402,7 @@ export function useExperienceSession(options?: {
                 ? error.message
                 : '刚才没接上，我们再试一次。',
           });
-          cbRef.current.onStartFailed?.(options.origin);
+          cbRef.current?.onStartFailed?.(options.origin);
         })
         .finally(() => {
           if (abortRef.current === controller) abortRef.current = null;
@@ -277,17 +416,25 @@ export function useExperienceSession(options?: {
     abortInFlight();
     const completed = loaded.status === 'COMPLETED';
     retryRef.current = null;
+    const { branches, currentBranchId } = deriveBranches(loaded.state);
     const restored: ExperienceSessionState = {
       sessionId: loaded.id,
       topic: loaded.topic,
       stage: loaded.state.view.stage,
       turn: loaded.state.turn,
       expectedStateVersion: loaded.stateVersion,
-      turns: historyToTurns(loaded.state.history),
+      turns: enrichTurns(
+        historyToTurns(loaded.state.history),
+        loaded.state.history,
+        loaded.state.simulation
+      ),
       generating: false,
       ended: completed,
       exitReason: completed ? null : loaded.exitReason,
       readOnly: completed,
+      branches,
+      currentBranchId,
+      creation: deriveCreation(loaded.state),
     };
     sessionRef.current = restored;
     setSession(restored);
@@ -363,7 +510,7 @@ export function useExperienceSession(options?: {
   /** direction_changed = 会话结束（S3B 语义）→ 交还页面回到首页。 */
   useEffect(() => {
     if (session && session.exitReason === 'direction_changed' && !session.readOnly) {
-      cbRef.current.onDirectionChanged?.();
+      cbRef.current?.onDirectionChanged?.();
     }
   }, [session]);
 

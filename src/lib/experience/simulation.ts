@@ -212,6 +212,39 @@ export function deriveSimulationSeparation(content: string): SimulationSeparatio
   };
 }
 
+/**
+ * 呈现层四段视图（UI 解析渲染用——6-d）：
+ * 事实 / 推断 / 假设三段 + 提案正文段（「。本提案」标记之后的正文）。
+ * - parsed=false（四段标记均未命中）→ 调用方回退整文渲染；
+ * - proposal 缺尾标记时回退完整内容（与 simulation 字段一致）；
+ * - 纯派生：不改 deriveSimulationSeparation 的任何契约行为。
+ */
+export interface SimulationPresentation {
+  fact: string;
+  inference: string;
+  hypothesis: string;
+  /** 提案正文（尾标记后的部分；缺标记回退全文）。 */
+  proposal: string;
+  /** 三段标记至少命中一段（UI 分段渲染的条件）。 */
+  parsed: boolean;
+}
+
+export function deriveSimulationPresentation(content: string): SimulationPresentation {
+  const separation = deriveSimulationSeparation(content);
+  const tailStart = content.indexOf(PROPOSAL_TAIL_MARKER);
+  const proposal =
+    tailStart >= 0
+      ? content.slice(tailStart + PROPOSAL_TAIL_MARKER.length).trim()
+      : '';
+  return {
+    fact: separation.fact.trim(),
+    inference: separation.inference.trim(),
+    hypothesis: separation.hypothesis.trim(),
+    proposal: proposal || content.trim(),
+    parsed: Boolean(separation.fact || separation.inference || separation.hypothesis),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // 分支操作前置校验与应用（D-02 / D-03 / S2-BRANCH-REFLOW-DEF-01）
 // ---------------------------------------------------------------------------

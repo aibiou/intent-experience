@@ -39,7 +39,7 @@ function parseFrame(frame: string): TurnEvent | null {
  */
 export async function streamExperienceEvents(
   url: string,
-  body: Record<string, unknown>,
+  body: object,
   onEvent: (event: TurnEvent) => void,
   signal: AbortSignal
 ): Promise<void> {

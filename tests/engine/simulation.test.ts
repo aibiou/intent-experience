@@ -3,6 +3,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   applyBranchOperation,
   deriveSimulationSeparation,
+  deriveSimulationPresentation,
   interpretBranchOperation,
   recordSimulationRound,
   validateBranchOperation,
@@ -113,6 +114,77 @@ describe('simulation：四元分离派生（E8-G2-CC07）', () => {
   it('确定性：同输入重复解析结果一致', () => {
     const content = '事实——X。推断——Y。假设——Z。本提案W。';
     expect(deriveSimulationSeparation(content)).toEqual(deriveSimulationSeparation(content));
+  });
+});
+
+describe('simulation：呈现层四段视图（deriveSimulationPresentation——6-d）', () => {
+  it('完整四段：三段取自分离、proposal 取尾标记后的正文', () => {
+    const content =
+      '事实——雨声会掩盖环境噪声。推断——掩蔽效应降低警觉需求。假设——这可能是原因。本提案以三十分钟雨声场景模拟放松过程，观察入睡曲线。';
+    const view = deriveSimulationPresentation(content);
+    expect(view.fact).toBe('雨声会掩盖环境噪声。');
+    expect(view.inference).toBe('掩蔽效应降低警觉需求。');
+    // 尾标记「。本提案」含句号：假设段末尾句号归尾标记（与既有契约测试行为一致）
+    expect(view.hypothesis).toBe('这可能是原因');
+    expect(view.proposal).toBe('以三十分钟雨声场景模拟放松过程，观察入睡曲线。');
+    expect(view.parsed).toBe(true);
+  });
+
+  it('proposal 含换行正文：尾标记后内容整体保留（trim 首尾空白）', () => {
+    const content = '事实——A。推断——B。假设——C。本提案\n\n第一段推演。\n\n第二段推演。';
+    const view = deriveSimulationPresentation(content);
+    expect(view.proposal).toBe('第一段推演。\n\n第二段推演。');
+  });
+
+  it('缺尾标记：proposal 回退完整内容（与 simulation 字段一致）', () => {
+    const content = '事实——A。推断——B。假设——C。但没有提案尾标记的正文直接续写。';
+    const view = deriveSimulationPresentation(content);
+    expect(view.proposal).toBe(content);
+    expect(view.parsed).toBe(true);
+  });
+
+  it('仅命中部分段标记：parsed=true、缺失段为空串', () => {
+    const content = '假设——只有假设段。本提案其余略。';
+    const view = deriveSimulationPresentation(content);
+    expect(view.fact).toBe('');
+    expect(view.inference).toBe('');
+    expect(view.hypothesis).toBe('只有假设段');
+    expect(view.proposal).toBe('其余略。');
+    expect(view.parsed).toBe(true);
+  });
+
+  it('无任何标记：parsed=false、proposal 回退全文（UI 回退整文渲染的条件）', () => {
+    const content = '  这里是没有分段标记的普通内容。  ';
+    const view = deriveSimulationPresentation(content);
+    expect(view.fact).toBe('');
+    expect(view.inference).toBe('');
+    expect(view.hypothesis).toBe('');
+    expect(view.proposal).toBe('这里是没有分段标记的普通内容。');
+    expect(view.parsed).toBe(false);
+  });
+
+  it('空内容：全空串 + parsed=false + proposal 空串（|| 回退不吐空白）', () => {
+    expect(deriveSimulationPresentation('')).toEqual({
+      fact: '',
+      inference: '',
+      hypothesis: '',
+      proposal: '',
+      parsed: false,
+    });
+  });
+
+  it('与 deriveSimulationSeparation 的一致性：三段字段恒等（仅 trim 差异）', () => {
+    const content = '事实—— X 。推断—— Y 。假设—— Z 。本提案正文。';
+    const separation = deriveSimulationSeparation(content);
+    const view = deriveSimulationPresentation(content);
+    expect(view.fact).toBe(separation.fact.trim());
+    expect(view.inference).toBe(separation.inference.trim());
+    expect(view.hypothesis).toBe(separation.hypothesis.trim());
+  });
+
+  it('确定性：同输入重复派生结果一致', () => {
+    const content = '事实——X。推断——Y。假设——Z。本提案W。';
+    expect(deriveSimulationPresentation(content)).toEqual(deriveSimulationPresentation(content));
   });
 });
 

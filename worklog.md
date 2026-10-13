@@ -190,3 +190,42 @@ Stage Summary:
 - 产物：4 个新文件（src/lib/experience/{simulation,memory}.ts + tests/engine/{simulation,memory}.test.ts），零修改现有文件（git status 证实仅新增）；纯逻辑零 DB 零网络零 Prisma import；TypeScript 严格类型
 - 关键决策（与参考实现的差异，规格优先）：①deriveSimulationSeparation 缺标记容错修正——参考实现 markerStart+len 无守卫，缺"事实——"标记时会从下标 3 切出错位垃圾片段；我方按规格"sectionOf：start>=0 && end>start 才截取"对标记缺失保持 -1 使该段为空串（完整四段输入行为与参考逐字节一致，仅缺标记边界面修正）；②Store 类去状态化——参考为进程内 Map 存储（S3a 跨会话形态），我方按 S2a 规格改纯函数（branches/records/state → 新数组新状态），持久化交给 6-c 接线会话 state JSON / Prisma 记忆表；③MemoryRecord 去掉 sessionId/experienceId/memoryClass/candidateLongTerm（S3a 范围外），MemorySource 仅 session_observation|user_correction；④withdrawMemory 不设 expiredAt（撤回留痕字段独立于到期字段，与参考一致）；⑤检索信号 interestSignal 取 RECALL 迁移前的读时点衰减值（参考语义：读时快照）
 - 交接注意（6-c）：SimulationDomainState.roundCounter/branchCounter 从 0 起、编号自 1 起（sim_round_0001/branch_0001）；记忆 recordId 建议由 runtime 注入（默认 memory_ 四位补零仅测试/兜底）；apply 前必须先 validate（apply 未命中目标回退 branches[0] 属契约不可达路径）
+
+---
+Task ID: 6-d
+Agent: Z.ai Code (主控)
+Task: S2a UI 升级——创作卡 / 模拟四段解析 / 分支面板与快捷动作 / 记忆查看入口
+
+Work Log:
+- simulation.ts 新增 deriveSimulationPresentation（呈现层四段视图：事实/推断/假设 + proposal 尾段；缺标记 parsed=false 回退整文；标记保持模块私有）；simulation.test.ts +8 用例（含尾标记吞句号行为与 deriveSimulationSeparation 一致性锁定）——254 单测全绿
+- use-experience-session.ts 扩展：state 事件/恢复提取分支域（branches 序号=记录顺序+1、currentBranchId）与创作域（version/active）；轮次徽章纯呈现层推导——创作版本游标（CREATION_PREVIEW→1、CREATION_PATCHED→+1，superseded 重建自然重置）+ 模拟轮次拉链（第 i 条 SIMULATION_RESULT ↔ rounds[i]，每成功 SIMULATE 轮恰登记一条）；live 与 restore 共用同一路径
+- turn-item.tsx 重写：SIMULATION_RESULT 四段解析卡（SeparationRow 小标签行：事实/推断 stone、假设 rose；提案正文分区；缺标记回退整文）+ 多分支时「分支N」徽章；CREATION_PREVIEW/PATCHED 作品卡（「作品」「第 N 版」「已应用你的修改」徽章 + （分量：值）标注渲染——整段纯标注→chip 行、行内→amber 高亮）；CREATION_ASK 澄清卡（「再确认一下」+ 左暖边）；CREATION_COMPLETED 完成卡；BRANCH_NOTICE/MEMORY_NOTICE 虚线注记卡 + 徽章
+- branch-panel.tsx 新组件：折叠面板（分支列表/生命周期三态徽章/已采纳/当前/轮次计数）；快捷动作发「如果…」前缀普通输入经既有词表路由（回到主线/切换到分支N/采用分支N）——面板零状态写入，Runtime 仍是唯一写入者；ABANDONED 不可操作、已采纳幂等（按钮消失）；明示「推演不自动变成事实」
+- experience-screen.tsx：挂载分支面板；阶段化输入占位（SIMULATION/CREATION）；creation_completed 结束层文案区分（「作品完成」/「每一步修改都完整保留」）
+- 记忆查看入口：/api/experience/memory GET（安全字段：topic/lifecycle/interestSignal/corrections/时间戳；不透出 intentSignal/deletionAudit）+ memory-panel.tsx（首页右上角 Brain 安静入口、生效/失效分区、兴趣 0-1 刻度、更正计数、撤回/更正引导语——只读，操作仍走体验内输入）
+- sse.ts body 参数放宽 Record→object（StartInput 接口无索引签名的 tsc 误报）；use-experience-session cbRef 可选链（tsc 零错误）
+
+Stage Summary:
+- 产物：3 新文件（branch-panel/memory-panel/api/experience/memory）+ 7 修改（turn-item/use-experience-session/experience-screen/home-screen/simulation/simulation.test/sse）
+- 回归：bun test 254/254；lint 0；tsc experience 相关零错误
+- 设计纪律：面板动作=普通输入（分类器→词表路由，UI 无特权直写）；徽章推导=纯呈现层拉链（不碰引擎语义）；记忆端点只读（撤回/更正保持体验内确定性路径）
+
+---
+Task ID: 6-e
+Agent: Z.ai Code (主控)
+Task: S2a 全链路浏览器验收（agent-browser 经 81 入口）+ 验收中发现的真实缺陷修复
+
+Work Log:
+- 首页：渲染 ✓；记忆面板（我记住的）——生效区生命周期徽章/兴趣刻度/更正计数 ✓、失效区「你撤回的」/「自然过期」✓、引导语 ✓
+- 模拟链：WHAT_IF→四段解析卡（事实/推断/假设标签行+提案正文+「模拟结果≠事实」脚注）✓；分支面板出现「分支 1 · 模拟进行中」✓；分支内第二轮同徽章 ✓；「回到主线」→BRANCH_NOTICE ✓；主线新 WHAT_IF 自动建分支2 + 新旧轮次分别带「分支 1」「分支 2」徽章 ✓；「进入」（SWITCH 分支1）✓；「采纳为参考」（ADOPT 分支2）→面板标记 + 幂等（按钮消失）✓
+- 创作链：「做成一个山顶云观测小游戏」→CREATION_PREVIEW（作品/第 1 版/分量标注 chip 行）✓；「再加两个观察点…」→CREATION_PATCHED 第 2 版 + 内容三→五观察点 + v1 卡保留 ✓；「退回刚才那个」→RESTORE 第 3 版（内容=v1 正文，版本单调）✓；「就这样」→CREATION_COMPLETED 卡 + 结束层「作品完成」✓；终态全部控件禁用（零续行 GS-04）✓；恢复已完成会话——全部徽章（模拟/分支/作品 v1→v3）经拉链完整重放 + 分支面板 + 只读态 ✓
+- 记忆链：正常会话内「别再推荐沙漠绿洲相关的东西」→MEMORY_NOTICE + DB 记录 EXPIRED/withdrawnAt/deletionAudit{withdrawn} + 会话 v4 同步提交 ✓；未命中主题→诚实「没有找到」✓
+- 澄清链：创作中「不对，改名叫做星空图鉴」→分类器 CORRECTION + 创作修改词→冲突轴→CREATION_ASK「再确认一下」卡 ✓（确定性零 LLM）
+- 布局：移动端 390px 无横向溢出、footer 正常 ✓；全程无 console/page 错误 ✓
+- 【发现并修复真实缺陷（runtime 记忆轮非原子副作用）】：验收中观察到 ENTERING 视图会话的记忆撤回报「无法执行记忆操作」但记忆实际已被撤回——根因：runMemoryOperationTurn 先 saveMemoryRecords 后才做视图迁移校验，拒绝路径留下持久化副作用（违反"状态未改变"纪律）。修复：视图迁移校验前置到任何记忆变异之前（纯检查零写入）。修复后 DB 证据：记忆变更与轮次提交原子同成（绿洲撤回 + v4 + MEMORY_WITHDRAW 账本）
+- 停止路径野化验证：卡在 ENTERING 的会话（首轮 UNKNOWN 无提交）「好了」→ 干净结束层 ✓（Task 4 修复真实生效）
+
+Stage Summary:
+- 全链路验收通过：模拟四操作（SWITCH/RETURN/ADOPT/自动 CREATE）+ 创作全周期（首建/补丁/恢复/澄清/完成）+ 记忆（写入/撤回/更正计数/衰减呈现）+ 恢复重放 + 移动端 + 零错误
+- S2a 切片（6-a/6-b/6-c/6-d/6-e）至此闭环：纯逻辑模块→契约层→runtime 编排→UI→浏览器验收，254 单测全绿
+- 已知边界（只报告，后续切片裁决）：①matchSeed 关键词过松——「旗云」自由输入被匹配到云种子、topic 显示种子 hook 而非用户原话；②会话首条消息即记忆操作（ENTERING 视图）被拒——现无副作用但错误文案不解释原因；③CREATION_ASK 问题模板透出内部轴名（CORRECTION 意图等）——6-a 冻结模板措辞，属文案质量非正确性；④「撤销刚才的修改」（含"的"）不命中冻结 RESTORE 词表（6-c 已记录）
