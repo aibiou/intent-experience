@@ -140,14 +140,14 @@ export default function Page() {
     [sessionApi]
   );
 
-  /** 最近探索 → 只读恢复历史轮次，继续当前会话。 */
+  /** 最近探索 → 只读恢复历史轮次，继续当前会话（含媒体产物挂回）。 */
   const handleOpenRecent = useCallback(
     async (id: string) => {
       try {
         const res = await fetch(`/api/experience/session?id=${encodeURIComponent(id)}`);
         if (!res.ok) throw new Error('session failed');
-        const data = (await res.json()) as { session: LoadedSession };
-        sessionApi.restore(data.session);
+        const data = (await res.json()) as { session: LoadedSession; media?: LoadedSession['media'] };
+        sessionApi.restore({ ...data.session, media: data.media });
         setPhase('experience');
       } catch {
         toast({ description: '这个会话暂时打不开，稍后再试试。' });

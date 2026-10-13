@@ -5,12 +5,14 @@ import type { PolicyAction } from '../../src/lib/experience/policy';
 import type { SemanticAction } from '../../src/lib/experience/classifier';
 
 /**
- * 策略解析（policy.ts）——S2a 冻结映射表（policy_v2.0.0-s2a）。
+ * 策略解析（policy.ts）——S2b 冻结映射表（policy_v2.1.0-s2b）。
  * 锁：每个语义动作 → 策略动作的单目标映射（任何改动 policy 的人都会被抓住）、
  * 范围外动作一律 ACTION_OUT_OF_SLICE_SCOPE 拒绝（不发明语义）、
  * 冻结性（键集合与值域精确锁定，防悄悄增删）。
- * 契约依据：S1 §14 + PD-21 + S2a F-2（CREATE 启用）/ F-3 / F-4；P-01（STOP 硬边界）；
- * P-04 / P-05（策略不生成事实内容、LLM 不选最终 Action——resolvePolicy 为纯函数，无模型调用）。
+ * 契约依据：S1 §14 + PD-21 + S2a F-2（CREATE 启用）/ F-3 / F-4；S2b（REPEAT 启用
+ * ——重放作为朗读/呈现类生成意图的语义载体，兼覆「再说一遍」纯重放）；
+ * P-01（STOP 硬边界）；P-04 / P-05（策略不生成事实内容、LLM 不选最终
+ * Action——resolvePolicy 为纯函数，无模型调用）。
  */
 
 /** SemanticAction 闭集全成员（classifier.ts 类型定义的运行时镜像）。 */
@@ -40,6 +42,7 @@ const FROZEN_MAP: Readonly<Record<string, PolicyAction>> = {
   CORRECTION: 'EXPLAIN', // S2a F-3：G07 完整语义（创作会话内修改族走 CREATE 伞形——路由在 runtime）
   CONTINUE: 'ANSWER', // 切片适配：Screen 04 “继续” = 下一层理解
   CREATE: 'CREATE', // S2a F-2：完整 G04 Creation 语义启用（此前表外拒绝）
+  REPEAT: 'REPEAT', // S2b：重放启用（此前表外拒绝）——确定性重放，不调用模型
 };
 
 describe('policy：冻结表单目标映射（逐条锁定）', () => {
@@ -113,8 +116,8 @@ describe('policy：冻结表单目标映射（逐条锁定）', () => {
 });
 
 describe('policy：范围外动作拒绝（诚实边界，不发明语义）', () => {
-  it('本切片禁用的已知动作（DEEPEN / SIMPLIFY / REFRAME / REPEAT——S2b 预留）一律 ACTION_OUT_OF_SLICE_SCOPE', () => {
-    const outOfSlice: ReadonlyArray<SemanticAction> = ['DEEPEN', 'SIMPLIFY', 'REFRAME', 'REPEAT'];
+  it('本切片禁用的已知动作（DEEPEN / SIMPLIFY / REFRAME——后续切片）一律 ACTION_OUT_OF_SLICE_SCOPE', () => {
+    const outOfSlice: ReadonlyArray<SemanticAction> = ['DEEPEN', 'SIMPLIFY', 'REFRAME'];
     for (const action of outOfSlice) {
       expect(resolvePolicy(action)).toEqual({
         ok: false,
@@ -148,7 +151,7 @@ describe('policy：范围外动作拒绝（诚实边界，不发明语义）', (
 });
 
 describe('policy：冻结性断言（防悄悄增删映射表条目）', () => {
-  it('可解析键集合精确等于冻结表 8 键（多一条少一条都会被抓）', () => {
+  it('可解析键集合精确等于冻结表 9 键（多一条少一条都会被抓）', () => {
     const resolvedOk = ALL_SEMANTIC_ACTIONS.filter((action) => resolvePolicy(action).ok);
     expect(resolvedOk.sort()).toEqual(
       [
@@ -160,19 +163,20 @@ describe('policy：冻结性断言（防悄悄增删映射表条目）', () => {
         'CORRECTION',
         'CONTINUE',
         'CREATE',
+        'REPEAT',
       ].sort()
     );
   });
 
-  it('全部 13 个语义动作中恰好 8 个在表内、5 个在表外', () => {
+  it('全部 13 个语义动作中恰好 9 个在表内、4 个在表外', () => {
     const okCount = ALL_SEMANTIC_ACTIONS.filter((action) => resolvePolicy(action).ok).length;
     const rejectedCount = ALL_SEMANTIC_ACTIONS.filter((action) => !resolvePolicy(action).ok).length;
-    expect(okCount).toBe(8);
-    expect(rejectedCount).toBe(5);
+    expect(okCount).toBe(9);
+    expect(rejectedCount).toBe(4);
     expect(okCount + rejectedCount).toBe(ALL_SEMANTIC_ACTIONS.length);
   });
 
-  it('映射目标值域封闭于 6 个合法策略动作（防拼写错误引入新动作）', () => {
+  it('映射目标值域封闭于 7 个合法策略动作（防拼写错误引入新动作）', () => {
     const legalPolicyActions: ReadonlyArray<PolicyAction> = [
       'ANSWER',
       'EXPLAIN',
@@ -180,6 +184,7 @@ describe('policy：冻结性断言（防悄悄增删映射表条目）', () => {
       'CHANGE_EXPERIENCE',
       'STOP',
       'CREATE',
+      'REPEAT',
     ];
     for (const action of ALL_SEMANTIC_ACTIONS) {
       const r = resolvePolicy(action);
@@ -189,8 +194,8 @@ describe('policy：冻结性断言（防悄悄增删映射表条目）', () => {
     }
   });
 
-  it('POLICY_VERSION 精确冻结为 policy_v2.0.0-s2a', () => {
-    expect(POLICY_VERSION).toBe('policy_v2.0.0-s2a');
+  it('POLICY_VERSION 精确冻结为 policy_v2.1.0-s2b', () => {
+    expect(POLICY_VERSION).toBe('policy_v2.1.0-s2b');
   });
 });
 

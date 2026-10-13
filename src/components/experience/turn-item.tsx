@@ -11,12 +11,17 @@
  * - CREATION_ASK：澄清问题卡（至多一问——08 §16 ASK 纪律）
  * - CREATION_COMPLETED：作品完成卡（干净收束，零推荐）
  * - BRANCH_NOTICE / MEMORY_NOTICE：系统注记（虚线边框、muted）
+ *
+ * S2b：轮次内嵌媒体（生成事件驱动）——语音朗读播放器 / 图片卡 /
+ * 生成中呼吸指示 / 失败与未接入说明。媒体是体验产物：挂在内容卡之下，
+ * 不改变轮次本身的呈现语义。
  */
 
 import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
+import { AudioLines, ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import type { DisplayTurn } from './use-experience-session';
+import type { DisplayTurn, TurnMedia } from './use-experience-session';
 import { ThinkingIndicator } from './thinking-indicator';
 import { deriveSimulationPresentation } from '@/lib/experience/simulation';
 
@@ -341,6 +346,84 @@ function TextParagraphs({ content, kind }: { content: string; kind: SettledKind 
   );
 }
 
+// ---------------------------------------------------------------------------
+// S2b：轮次内嵌媒体渲染（音频 / 图片 / 生成中 / 失败与未接入说明）
+// ---------------------------------------------------------------------------
+
+function MediaPending({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-2xl border border-stone-200/80 bg-white/70 px-4 py-3">
+      <span className="relative flex size-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/70" />
+        <span className="relative inline-flex size-2 rounded-full bg-amber-500/90" />
+      </span>
+      <p className="text-sm text-stone-500">{label}</p>
+    </div>
+  );
+}
+
+function MediaBlock({ media }: { media: TurnMedia }) {
+  if (media.status === 'pending') {
+    return (
+      <MediaPending
+        label={media.modality === 'voice' ? '正在合成语音，马上就好…' : '正在生成图片，马上就好…'}
+      />
+    );
+  }
+  if (media.status === 'failed') {
+    return (
+      <div className="rounded-2xl border border-dashed border-stone-300 px-4 py-3">
+        <p className="text-sm text-stone-500">
+          {media.modality === 'voice' ? '这段语音' : '这张图片'}
+          {media.message ? `没能生成：${media.message}` : '没能生成出来'}
+        </p>
+      </div>
+    );
+  }
+  // 未接入（视频）：诚实说明——不假装支持。
+  if (media.modality === 'video') {
+    return (
+      <div className="rounded-2xl border border-dashed border-stone-300 px-4 py-3">
+        <p className="text-sm text-stone-500">{media.message}</p>
+      </div>
+    );
+  }
+  if (media.modality === 'voice' && media.url) {
+    return (
+      <figure className="rounded-2xl border border-stone-200/90 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(87,83,78,0.05)]">
+        <figcaption className="mb-2 flex items-center gap-2 text-xs font-medium text-stone-500">
+          <AudioLines className="size-3.5 text-amber-600/80" aria-hidden="true" />
+          读给你听
+        </figcaption>
+        {/* 朗读内容即上方轮次正文（音频元素自带可访问性控件）。 */}
+        <audio controls preload="metadata" src={media.url} className="h-10 w-full">
+          你的浏览器不支持音频播放。
+        </audio>
+      </figure>
+    );
+  }
+  if (media.modality === 'image' && media.url) {
+    return (
+      <figure className="overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_1px_2px_rgba(87,83,78,0.05)]">
+        <a href={media.url} target="_blank" rel="noreferrer" aria-label="查看原图">
+          {/* 生成产物为任意尺寸位图，经产物端点提供（非 Next 静态资源）。 */}
+          <img
+            src={media.url}
+            alt={media.promptUsed ?? '根据这次体验内容生成的图片'}
+            className="w-full object-cover"
+            loading="lazy"
+          />
+        </a>
+        <figcaption className="flex items-start gap-2 px-4 py-2.5 text-xs text-stone-400">
+          <ImageIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+          <span className="line-clamp-2">{media.promptUsed}</span>
+        </figcaption>
+      </figure>
+    );
+  }
+  return null;
+}
+
 export function TurnItem({
   item,
   totalBranches = 1,
@@ -403,6 +486,7 @@ export function TurnItem({
           </div>
         </article>
       )}
+      {item.media ? <MediaBlock media={item.media} /> : null}
     </motion.div>
   );
 }

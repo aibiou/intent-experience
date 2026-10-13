@@ -16,6 +16,7 @@
 
 import type { CreationObject } from './creation';
 import type { SimulationDomainState } from './simulation';
+import type { GenerationModality } from './generation-intent';
 
 /** 创作域（会话内持久——G04；完成后历史保留至会话结束）。 */
 export interface CreationDomain {
@@ -114,6 +115,26 @@ export type TurnEvent =
       stateVersion: number;
       view: ExperienceView;
       state: ExperienceState;
+    }
+  // S2b 媒体生成切片：对话回应照常进行，媒体产物随流追加——
+  // 事件出现在 content/state 之后、done 之前（生成不改变会话状态；
+  // 失败不回滚轮次，媒体是体验产物而非产品状态）。
+  | { type: 'generation'; status: 'started'; turn: number; modality: GenerationModality; prompt: string }
+  | {
+      type: 'generation';
+      status: 'completed';
+      turn: number;
+      modality: Exclude<GenerationModality, 'video'>;
+      url: string;
+      promptUsed: string;
+      mime: string;
+    }
+  | {
+      type: 'generation';
+      status: 'failed' | 'unconfigured';
+      turn: number;
+      modality: GenerationModality;
+      message: string;
     }
   | { type: 'done'; stateVersion: number; ended: boolean; exitReason: string | null }
   | { type: 'error'; code: TurnErrorCode; message: string };

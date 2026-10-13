@@ -229,3 +229,61 @@ Stage Summary:
 - 全链路验收通过：模拟四操作（SWITCH/RETURN/ADOPT/自动 CREATE）+ 创作全周期（首建/补丁/恢复/澄清/完成）+ 记忆（写入/撤回/更正计数/衰减呈现）+ 恢复重放 + 移动端 + 零错误
 - S2a 切片（6-a/6-b/6-c/6-d/6-e）至此闭环：纯逻辑模块→契约层→runtime 编排→UI→浏览器验收，254 单测全绿
 - 已知边界（只报告，后续切片裁决）：①matchSeed 关键词过松——「旗云」自由输入被匹配到云种子、topic 显示种子 hook 而非用户原话；②会话首条消息即记忆操作（ENTERING 视图）被拒——现无副作用但错误文案不解释原因；③CREATION_ASK 问题模板透出内部轴名（CORRECTION 意图等）——6-a 冻结模板措辞，属文案质量非正确性；④「撤销刚才的修改」（含"的"）不命中冻结 RESTORE 词表（6-c 已记录）
+
+---
+Task ID: 7-a
+Agent: general-purpose
+Task: S2b 媒体生成切片——generation-intent.ts 生成意图识别纯逻辑模块 + 单测
+
+Work Log:
+- 读 worklog（3-b 纪律：断言来自实际词表不发明契约、先临时脚本跑通真实实现再落测试；6-c 记录 classifier 现状 S2a 形态）与参考实现 /home/z/intent-experience-repo/src/experience/generation-intent.ts 全文（VIDEO 14 / IMAGE 13 / VOICE 10 词表 + MAKE_VERBS + promptBase 三级回退 + presentation/referential 判定 + CR-56 shouldCompactReplay）；读我方 classifier.test.ts（bun:test + 契约引用头注释 + 表格循环断言）与 classifier.ts 优先级链（本模块只消费 UNKNOWN 层，不在此改）
+- 新建 src/lib/experience/generation-intent.ts（239 行，只新建零修改现有文件，零 import 零依赖）：GenerationModality/GenerationIntent 契约类型 + recognizeGenerationIntent（trim 判定、空输入 null、stripped `/^(.{1,16})的(?:展示|演示)$/` 剥尾缀、regen 逗号后约束 `[，,、\s]+(.+)$`、promptBase 三级回退 regen>stripped>原句、referentialPresentation / presentation 判定、优先级 video>image>voice、语音 readingRequest 引号豁免）+ shouldCompactReplay（CR-56：useContext && !referential && modality!=='voice'）
+- 词表移植：MAKE_VERBS（含"生产"实测缺口词）、VIDEO 14 条、IMAGE 13 条（首条宽松锚 /画.{0,30}/ 如实移植不修复）、VOICE 10 条——与参考逐字一致（源码级提取比对）；扩展 6 条按参考注释风格标注"实测缺口"：VOICE +4（/(?:声音|音频).{0,4}(?:听听|听一下)/、/(?:听听|听一下).{0,4}(?:声音|音频)/、/读.{0,16}给我听/、/念.{0,16}给我听/，经 VOICE_READING_REQUEST_PATTERNS 并入 VOICE_PATTERNS 且在返回处统一走 useContext:true）、IMAGE +2（/(?:图片|图像).{0,4}(?:看看|看一下)/、/(?:看看|看一下).{0,4}(?:图片|图像)/，同时入 presentation 判定）；VIDEO 不扩展（无视频提供方，识别后编排层走诚实"未接入"）
+- 临时差分脚本（/home/z/scratch-7a/，跑完即删）四层验证真实实现：①源码级——从两份源文本提取词表，移植部分逐字一致（MAKE_VERBS 相同、VIDEO 14=14、IMAGE 前 13 条相同、VOICE 前 10 条相同）；②行为级——83 条语料（逐 pattern 专样本 + 参考注释实测案例 + 扩展边界 + 负样本）对我方与参考逐字段 diff，仅 12 处差异且全部由 6 条新词表/2 条 presentation 看看子句解释（6 条新语音样本 null→voice+useContext、2 条新图像样本 null→image+useContext、2 条旧命中+看看子句补 useContext、2 条音频变体）；③覆盖级——提取词表与模块行为全语料模态等价（video/image/voice/null 四态），29 条 pattern 逐条均有命中样本；④契约级——任务规格全部期望断言预演通过
+- 新建 tests/engine/generation-intent.test.ts（37 用例/199 断言）：三词表逐条正样本（每条 pattern 标注源码并配真实输入；子集模式如 给我+动词⊆动词、拍+短片⊆动词+短片 注明）、消费意图负样本（随便看看/听听看法/给我看看视频/想看视频/视频我看看——VIDEO 不扩展不对称如实锁定）、用户痛点四输入（声音我听听→voice+useContext、图片我看看→image+useContext、读给我听→voice+useContext、用图片展现刚才的内容→image+useContext）、优先级（含"画"字输入被 VIDEO 层先判的优先级链锁定）、promptBase 三级回退（16/17 字 stripped 锚定边界、regen 空约束回退、trim+分隔符）、presentation/referential（指代两例、三模态呈现、看看子句跨模态）、引号豁免（把「静夜思」读出来→voice 无 useContext）、非朗读语音无 useContext（发出/说出来/发音——参考真实行为）、shouldCompactReplay 21 例（CR-56 三排除项全覆盖）、确定性
+
+Stage Summary:
+- 产物：2 个新文件（src/lib/experience/generation-intent.ts + tests/engine/generation-intent.test.ts），git status 证实零修改现有文件；纯逻辑零 import 零 DB 零网络；TypeScript strict 零错误
+- 测试：bun test 新文件 37 pass / 0 fail（199 断言）；tests/engine/ 全量 291 pass / 0 fail（原 254 全绿 + 37 新增）；bunx tsc --noEmit 两新文件零错误（仓库其余 10 处报错均为既有：examples/mini-services/skills/policy.test，与本任务无关）；bun run lint 退出码 0
+- 与参考实现的差异决策（规格优先）：①仅 6 条词表扩展 + presentation 看看子句——其余逐字移植（差分脚本证实）；②GenerationModality 字面量顺序按任务契约 'image'|'voice'|'video'（参考为 'image'|'video'|'voice'——联合类型语义等价）；③参考的 resolveDistillDesignText/TranscriptTurn（CR-56 蒸馏文案选择）不移植——不在任务契约内，属编排层后续接线时再议；④引号豁免仅作用于参考的 /读|朗读|念/ 判定分支，4 条新增词表不设引号门槛（任务规格：命中即朗读请求）；⑤如实锁定三处参考真实行为不修复——i1 宽松锚 /画.{0,30}/（"我想看动画片"→image）、presentation 名词表不含头像/壁纸/背景/封面（"头像展现一下"无 useContext）、"来一段视频"被换/再/来再生成词表认领（与 MAKE_VERBS 注释意图有张力、以词表行为为准）
+- 交接注意（7-b/编排接线）：①模块只认领分类器 UNKNOWN 层——接线点在 runtime 对 classifyInput 返回 UNKNOWN 且非记忆操作的输入调用 recognizeGenerationIntent；②video 识别后无提供方——走诚实"未接入"路径；③useContext=true 的提示词材料须由上一轮回答构建（参考 CR-56 的 resolveDistillDesignText 思路：REPEAT 收敛后从转录取原文，不把简短引导回喂）；④referential 的 prompt 由上一轮助手内容解析（蒸馏链路独立）
+
+---
+Task ID: 7-a
+Agent: general-purpose
+Task: S2b 媒体生成切片——generation-intent.ts 生成意图识别纯逻辑模块 + 单测
+
+Work Log:
+- 读 worklog（3-b 测试纪律）与参考仓库 generation-intent.ts（173 行完整词表）；对齐我方 classifier.test.ts 风格
+- 新建 src/lib/experience/generation-intent.ts（零依赖）：GenerationModality/GenerationIntent/recognizeGenerationIntent/shouldCompactReplay；逐条移植参考三个词表（VIDEO 14 条 / IMAGE 13 条 / VOICE 10 条 + MAKE_VERBS + promptBase 三级裁剪 + presentation/referential 判定）
+- 实测缺口扩展（用户真实输入「声音我听听」「图片我看看」曾被回「这句话我还没能理解」）：VOICE +4（声音|音频×听听|听一下、读|念…给我听 16 字间隔——均判朗读请求 useContext=true）；IMAGE +2（图片|图像×看看|看一下——同入 presentation 判定）；VIDEO 不扩展（无提供方，走诚实未接入）
+- 新建 tests/engine/generation-intent.test.ts：37 用例/199 断言（词表逐条正负样本、用户痛点四输入、优先级、promptBase 裁剪、presentation/referential、shouldCompactReplay 七分支）
+- 四层差分验证（源码级词表逐字比对/83 条语料对参考实现逐字段 diff/29 pattern 覆盖/契约预演）后落测试
+
+Stage Summary:
+- 产物：2 新文件，零修改现有文件；bun test 新文件 37 pass；全 engine 套件 291 pass / 0 fail；tsc 新文件零错误；lint 0
+- 偏差决策：仅规格 6 条扩展 + 看看 presentation 子句；不移植 resolveDistillDesignText（编排层后续接线）；引号豁免仅作用于参考 /读|朗读|念/ 分支；如实锁定参考宽松锚 /画.{0,30}/ 与「来一段视频」被换/再/来词表认领的既有行为
+
+---
+Task ID: 7-b/7-c/7-d
+Agent: Z.ai Code (主控)
+Task: S2b 媒体生成切片——后端编排 + 媒体网关 + 前端呈现 + 全链路验收（用户实测「太智障了吧」的根因修复）
+
+Work Log:
+- 根因诊断（用户截图）：听风体验中「声音我听听」「图片我看看」两次被判 UNKNOWN → 两次「这句话我还没能理解」；参考仓库有完整生成意图层（2026-10-10 产品负责人指令）而我方未实现。DB 证实 UNKNOWN 轮零版本零事件（无痕迹）
+- types.ts：TurnEvent 增 generation 事件三态（started / completed{url,promptUsed,mime} / failed|unconfigured）——位置在 state 之后 done 之前
+- policy.ts：REPEAT → 'REPEAT' 启用（第 9 键；v2.1.0-s2b）——朗读/呈现类生成意图的语义载体；BOUNDARY_NOTICES 移除 REPEAT
+- media-gateway.ts（新）：z-ai-web-dev-sdk 图像（1344x768）+ TTS（tongtong 声线，≤1000 字符）双模态；产物落盘 data/media/ + index.json 登记；MediaGatewayError 带 retryable；persist 前中止检查（被取消的生成不落盘）
+- runtime.ts S2b 编排：①生成意图只认领 UNKNOWN / CHANGE_DIRECTION 层（零黄金回归面；创作域路由优先级保持——修改意图仍走补丁）；②路由：useContext → REPEAT（语音=完整重放供 TTS、图像=CR-56 收敛一句引导）、直接创作 → CREATE（作品预览 + 媒体追加）、「换一张图片」再生成特例 → CREATE（避免误触方向变更结束会话）；③runRepeatTurn 确定性重放（无 LLM；REPLAYABLE_KINDS 七种内容轮；无可重放 → 回退内容轮 + 生成注记）；④runGeneration 随流追加（answer 先行；语音=材料 ≤1000 字符、视觉呈现=LLM 蒸馏 40-80 字提示词（失败回退确定性首段）、直接创作=原话短输入增富）；video → 诚实「未接入」；⑤CREATE 首建轮/内容轮尾部挂生成（轮次先提交，媒体失败不回滚）
+- API：GET /api/experience/media/[file]（png/wav 白名单 + 路径穿越守卫 + 不可变长缓存）；session 路由响应附带按 sessionId 过滤的媒体清单
+- 前端：use-experience-session——TurnMedia 类型 + generation 事件挂轮次（按 turn 号）+ 恢复时媒体挂回 + 新输入打断在途媒体降级失败说明；turn-item——「读给你听」音频卡（audio 控件）/ 图片卡（可点开原图 + 蒸馏提示词 caption）/ 生成中呼吸指示 / 失败与未接入虚线说明；experience-screen——媒体快捷入口「读给我听」「画成图片」（发可识别完整表达，UI 无特权直写；有已呈现内容才出现）
+- 修复（验收发现）：page.tsx handleOpenRecent 与 syncFromServer 只取 data.session 丢了顶层 media 字段 → 恢复后音频/图片不显示；两处改为 { ...data.session, media: data.media }
+- policy.test.ts 同步新契约（9 键 / 9 进 4 出 / 7 策略动作 / v2.1.0-s2b）
+
+Stage Summary:
+- 验证（全部真实执行）：bun test 292 pass / 0 fail；lint 0；tsc src 零错误；既有 instrumentation.ts Edge 警告为早前切片遗留（有运行时守卫），与本切片无关
+- API 冒烟（SSE 全链路）：听风种子首轮 ANSWER →「声音我听听」REPEAT 完整重放（DB 证实 turn2 content === turn1 逐字节）+ voice completed（wav 1.5MB，TTS 31s-2min 真实音频）→「图片我看看」compact 收敛引导 + image completed（蒸馏提示词「一人闭目静坐窗边，风声轻拂耳畔，思绪在静谧中暂停…」→ 1344x768 图像内容完全吻合）→「用视频展现刚才的内容」重放 + unconfigured 诚实说明 →「做一个…视频」按分类器分层走 CREATE（作品预览）
+- 浏览器验收（agent-browser）：恢复带媒体会话——音频播放器 + 图片卡经 session API 挂回 ✓；点「读给我听」chip——实时 SSE 生成 2:02 朗读音频 ✓；点「画成图片」chip——30s 内实时图像 + 蒸馏提示词 caption ✓；媒体入口 chip 有内容后才出现 ✓；390px 移动端无横向溢出、按钮可点 ✓；console 零错误 ✓；媒体路由 200 + 正确 Content-Type + 路径穿越 400 ✓
+- 回归：WHY 提问正常回答 ✓；「好了」干净结束层 + 9 控件全禁用（GS-04）✓；292 单测全绿
+- 设计纪律：生成意图只认领 UNKNOWN/CHANGE 层（分类器优先级链零改动）；REPEAT 为确定性重放（无 LLM）；媒体是体验产物不进 ExperienceState（无版本语义，产物索引独立）；对话回应照常进行、媒体随流追加（answer 先行）
+- 已知边界（只报告）：①「画一个头像」类输入走分类器 CREATE（层叠所限，与参考一致——不触发媒体生成）；②恢复时 unconfigured 视频无产物可挂（诚实说明仅流内可见）；③TTS 单次 1000 字符上限（长内容截断朗读）；④媒体产物随会话累积在 data/media（无清理策略——后续切片）

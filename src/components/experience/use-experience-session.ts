@@ -37,6 +37,26 @@ import type {
 /** content 事件可能出现的全部 kind（含升级/边界通知）。 */
 export type ContentKind = TurnKind | 'ESCALATION_NOTICE' | 'BOUNDARY_NOTICE';
 
+/** S2b：轮次内嵌媒体（生成事件驱动的呈现层状态）。 */
+export interface TurnMedia {
+  modality: 'image' | 'voice' | 'video';
+  status: 'pending' | 'completed' | 'failed';
+  url?: string;
+  promptUsed?: string;
+  mime?: string;
+  message?: string;
+}
+
+/** 会话恢复时 GET /api/experience/session 附带的媒体产物。 */
+interface SessionMediaRecord {
+  turn: number;
+  modality: 'image' | 'voice';
+  url: string;
+  promptUsed: string;
+  mime: string;
+  at: string;
+}
+
 /** 分支域的呈现视图（序号从 1 起——与后端分支记录顺序一致）。 */
 export interface BranchLite {
   ordinal: number;
@@ -65,6 +85,8 @@ export interface DisplayTurn {
   creationVersion?: number;
   /** 模拟轮的归属分支序号（SIMULATION_RESULT；轮次拉链推导）。 */
   branchOrdinal?: number;
+  /** S2b：轮次内嵌媒体（音频 / 图片 / 未接入说明）。 */
+  media?: TurnMedia;
 }
 
 /** GET /api/experience/session 返回的会话形状。 */
@@ -83,6 +105,8 @@ export interface LoadedSession {
     creation: ExperienceState['creation'];
   };
   updatedAt: string;
+  /** S2b：该会话的媒体产物（按 turn 号挂回轮次）。 */
+  media?: SessionMediaRecord[];
 }
 
 export interface ExperienceSessionState {
@@ -124,14 +148,34 @@ function stripPending(turns: DisplayTurn[]): DisplayTurn[] {
   return turns.filter((t) => t.kind !== undefined);
 }
 
-function historyToTurns(history: TurnRecord[]): DisplayTurn[] {
-  return history.map((h) => ({
-    key: `h-${h.turn}`,
-    turn: h.turn,
-    userText: h.userText,
-    kind: h.kind,
-    content: h.content,
-  }));
+function historyToTurns(history: TurnRecord[], media?: SessionMediaRecord[]): DisplayTurn[] {
+  const mediaByTurn = new Map<number, SessionMediaRecord[]>();
+  for (const record of media ?? []) {
+    const list = mediaByTurn.get(record.turn) ?? [];
+    list.push(record);
+    mediaByTurn.set(record.turn, list);
+  }
+  return history.map((h) => {
+    const record = mediaByTurn.get(h.turn)?.[0];
+    return {
+      key: `h-${h.turn}`,
+      turn: h.turn,
+      userText: h.userText,
+      kind: h.kind,
+      content: h.content,
+      ...(record
+        ? {
+            media: {
+              modality: record.modality,
+              status: 'completed' as const,
+              url: record.url,
+              promptUsed: record.promptUsed,
+              mime: record.mime,
+            },
+          }
+        : {}),
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -265,7 +309,7 @@ export function useExperienceSession(options?: {
         turn: loaded.state.turn,
         expectedStateVersion: loaded.stateVersion,
         turns: enrichTurns(
-          historyToTurns(loaded.state.history),
+          historyToTurns(loaded.state.history, loaded.media),
           loaded.state.history,
           loaded.state.simulation
         ),
@@ -308,6 +352,33 @@ export function useExperienceSession(options?: {
             ),
           }));
           break;
+        case 'generation': {
+          // S2b：媒体生成事件——挂到对应轮次（content 已先到，turn 号已定）。
+          const setMedia = (t: DisplayTurn): DisplayTurn => {
+            if (t.turn !== event.turn || t.kind === undefined) return t;
+            if (event.status === 'started') {
+              return { ...t, media: { modality: event.modality, status: 'pending' } };
+            }
+            if (event.status === 'completed') {
+              return {
+                ...t,
+                media: {
+                  modality: event.modality,
+                  status: 'completed',
+                  url: event.url,
+                  promptUsed: event.promptUsed,
+                  mime: event.mime,
+                },
+              };
+            }
+            return {
+              ...t,
+              media: { modality: event.modality, status: 'failed', message: event.message },
+            };
+          };
+          apply((prev) => ({ ...prev, turns: prev.turns.map(setMedia) }));
+          break;
+        }
         case 'state': {
           const { branches, currentBranchId } = deriveBranches(event.state);
           apply((prev) => ({
@@ -424,7 +495,7 @@ export function useExperienceSession(options?: {
       turn: loaded.state.turn,
       expectedStateVersion: loaded.stateVersion,
       turns: enrichTurns(
-        historyToTurns(loaded.state.history),
+        historyToTurns(loaded.state.history, loaded.media),
         loaded.state.history,
         loaded.state.simulation
       ),
@@ -452,7 +523,18 @@ export function useExperienceSession(options?: {
       abortRef.current = controller;
       apply((prev) => ({
         ...prev,
-        turns: [...stripPending(prev.turns), { key: nextKey(), turn: prev.turn, userText: trimmed }],
+        turns: [
+          ...stripPending(
+            prev.turns.map((t) =>
+              // S2b：被新输入打断的在途媒体——服务端已随流中止，不落盘；
+              // 呈现层降级为失败说明（轮次本身已提交，保持完整）。
+              t.media?.status === 'pending'
+                ? { ...t, media: { ...t.media, status: 'failed' as const, message: '已被新的输入打断' } }
+                : t
+            )
+          ),
+          { key: nextKey(), turn: prev.turn, userText: trimmed },
+        ],
         generating: true,
       }));
       void streamExperienceEvents(

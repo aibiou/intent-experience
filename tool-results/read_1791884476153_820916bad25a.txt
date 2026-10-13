@@ -1,0 +1,823 @@
+     1→/**
+     2→ * 体验运行时核心（RuntimeCoreBase）——S6 拆分第一阶段：
+     3→ * 状态存储 / 依赖注入 / 记忆与上下文辅助 / 低层事件与追踪辅助。
+     4→ * 由 runtime-generation.ts 与 runtime.ts 继承，成员以 protected 暴露。
+     5→ * 治理约束：合成模式——网关由合成语料提供，不调用任何真实 LLM 提供方；
+     6→ * 所有身份/内容均为合成数据（隐私护栏：真实用户数据禁收，授权 §5.1）。
+     7→ */
+     8→import {
+     9→  POLICY_VERSION,
+    10→  resolvePolicy,
+    11→  type PolicyAction,
+    12→  type SemanticAction,
+    13→} from './policy';
+    14→import { classifyInput } from './classifier';
+    15→import { recognizeGenerationIntent } from './generation-intent';
+    16→import { validateProposal } from './validator';
+    17→import {
+    18→  initialExperienceView,
+    19→  transitionExperience,
+    20→  type ExperienceStage,
+    21→  type ExperienceStatus,
+    22→  type ExperienceTrigger,
+    23→  type ExperienceView,
+    24→} from './state-machine';
+    25→import { createSession, transitionSession, type SessionRecord } from './session';
+    26→import { ExperienceStateStore, type ExperienceState } from './state-store';
+    27→import {
+    28→  loadSessionSnapshot,
+    29→  saveSessionSnapshot,
+    30→  type SessionSnapshot,
+    31→} from './session-snapshot';
+    32→import {
+    33→  CORRECTION_APPLIED_EVENT,
+    34→  CORRECTION_RESTORED_EVENT,
+    35→  MEMORY_CORRECTED_EVENT,
+    36→  MEMORY_EXPIRED_EVENT,
+    37→  MEMORY_RECORDED_EVENT,
+    38→  MEMORY_WITHDRAWN_EVENT,
+    39→  SIMULATION_ADOPTED_EVENT,
+    40→  SIMULATION_RECORDED_EVENT,
+    41→  type EventSink,
+    42→  type ExperienceEvent,
+    43→  EventRecorder,
+    44→} from './events';
+    45→import {
+    46→  nextDecisionId,
+    47→  type DecisionTraceSink,
+    48→} from './decision-trace';
+    49→import { SyntheticLlmGateway, nextProviderProposalId, type CreationLlmSummary, type LlmGateway, type LlmProposal, type LlmRequest } from './llm-gateway';
+    50→import { createExperienceStream, type StreamEvent } from './stream';
+    51→import { allFixtures, loadChunkFixture } from './chunks';
+    52→import {
+    53→  CreationStore,
+    54→  buildMinimalCreation,
+    55→  buildDirectionalPatch,
+    56→  inheritCreationContext,
+    57→  interpretCreationInput,
+    58→  type CreationInterpretation,
+    59→  type CreationObject,
+    60→  type CreationPatch,
+    61→} from './creation';
+    62→import {
+    63→  firstExperiencePresentation,
+    64→  presentationStageFor,
+    65→  type FirstExperiencePresentation,
+    66→  type PresentationStage,
+    67→} from './presentation';
+    68→
+    69→import { searchExperienceContext, type SearchContextResult } from './search';
+    70→import {
+    71→  SimulationStore,
+    72→  deriveSimulationSeparation,
+    73→  interpretBranchOperation,
+    74→  type BranchOperation,
+    75→  type SimulationSnapshot,
+    76→} from './simulation';
+    77→import {
+    78→  MemoryStore,
+    79→  extractCorrectedTopic,
+    80→  type LongTermMemoryExpression,
+    81→  type MemoryOperationResult,
+    82→  type MemoryRecord,
+    83→  type MemorySignal,
+    84→  type MemorySnapshot,
+    85→} from './memory';
+    86→import { deriveCorrectionTarget, isRestoreIntent } from './correction';
+    87→import type { AuditSink } from './audit';
+    88→
+    89→import {
+    90→  errorCodeStatus,
+    91→  runtimeError,
+    92→  type RuntimeErrorCode,
+    93→  type RuntimeError,
+    94→} from './runtime-errors';
+    95→import {
+    96→  INTERACTION_EVENT_BY_SEMANTIC_ACTION,
+    97→  type GenerationRecord,
+    98→  type IntentRecord,
+    99→  type ExperienceRecord,
+   100→  type SubmissionHeader,
+   101→  type StateUpdatedEvent,
+   102→  type RuntimeStreamEvent,
+   103→  type SubmissionResult,
+   104→  type RuntimeOptions,
+   105→} from './runtime-contracts';
+   106→export { errorCodeStatus, runtimeError } from './runtime-errors';
+   107→export type { RuntimeErrorCode, RuntimeError } from './runtime-errors';
+   108→export type { IntentRecord, ExperienceRecord, SubmissionHeader, StateUpdatedEvent, RuntimeStreamEvent, SubmissionResult, RuntimeOptions, GenerationRecord } from './runtime-contracts';
+   109→export { INTERACTION_EVENT_BY_SEMANTIC_ACTION } from './runtime-contracts';
+   110→
+   111→/**
+   112→ * 体验运行时核心基类——持有全运行时共享状态与低层辅助，
+   113→ * execute* 执行语义与生成链路分别位于子类（runtime-generation.ts）
+   114→ * 与门面（runtime.ts）。单进程单例（HTTP 形态）。
+   115→ */
+   116→export class RuntimeCoreBase {
+   117→  protected readonly sessions = new Map<string, SessionRecord>();
+   118→  protected readonly intents = new Map<string, IntentRecord>();
+   119→  protected readonly experiences = new Map<string, ExperienceRecord>();
+   120→  protected readonly store = new ExperienceStateStore();
+   121→  /** 创作状态存储（G04 完整 Creation 语义；S2A-F2-SEMANTIC-FREEZE-01 §4/D-03 选项 A——会话内持久）。 */
+   122→  protected readonly creations = new CreationStore();
+   123→  protected readonly simulations = new SimulationStore();
+   124→  /** 记忆记录存储（S2a F-5；轴外持久对象——D-01 选项 A；跨会话短期记忆）。 */
+   125→  protected readonly memories = new MemoryStore();
+   126→  /** 语义动作历史（创作上下文继承派生用；08 §6 五项。仅登记已提交动作）。 */
+   127→  protected readonly actionHistory = new Map<string, SemanticAction[]>();
+   128→  /** 上一完成轮响应内容（S4 D-1 选项 A——REPEAT 呈现层重放数据源；
+   129→   * 内存映射——运行时为进程内单例（server-runtime），与 sessions /
+   130→   * experiences / store 同生命周期；仅内容轮次（chunk 数 > 0）登记，
+   131→   * 空轮次（STOP / CONTINUE 等）不覆盖上一内容轮记录）。 */
+   132→  protected readonly lastResponseByExperience = new Map<
+   133→    string,
+   134→    { chunks: string[]; fixtureId: string; at: string }
+   135→  >();
+   136→  protected readonly recorder: EventRecorder;
+   137→  protected readonly traceSink: DecisionTraceSink;
+   138→  protected readonly auditSink: AuditSink;
+   139→  protected readonly gateway: LlmGateway;
+   140→  protected readonly userId: string;
+   141→  /** 请求幂等（C6 §27 / API 契约 §2.4）：request_id 去重，重复提交拒绝。 */
+   142→  protected readonly requestIds = new Set<string>();
+   143→  /** 当前生效 generation（每体验单写者视角的 generation epoch）。 */
+   144→  protected readonly activeGenerations = new Map<string, string>();
+   145→  protected readonly generationControllers = new Map<string, AbortController>();
+   146→  /** 对话转录（连续性——提供方上下文携带近几轮用户/助手
+   147→   * 内容，指代（「对应的」「它」）可被模型理解；会话内存活，
+   148→   * 上限 12 轮滚动淘汰）。 */
+   149→  protected readonly transcripts = new Map<string, Array<{ role: 'user' | 'assistant'; text: string }>>();
+   150→  /** 已发出 generation_cancelled 的 generation（事件不重复登记）。 */
+   151→  protected readonly cancellationMarked = new Set<string>();
+   152→  protected counters = { intent: 0, experience: 0, candidate: 0, generation: 0, creation: 0 };
+   153→
+   154→  constructor(options: RuntimeOptions = {}) {
+   155→    this.userId = options.userId ?? 'user_synthetic_001';
+   156→    this.recorder = new EventRecorder(options.eventSink ?? (() => undefined));
+   157→    this.traceSink = options.decisionTraceSink ?? (() => undefined);
+   158→    this.auditSink = options.auditSink ?? (() => undefined);
+   159→    this.gateway = options.gateway ?? new SyntheticLlmGateway(allFixtures());
+   160→  }
+   161→
+   162→  /**
+   163→   * 执行记忆域操作（用户显式撤回 / 纠正）。
+   164→   * 目标派生：当前会话活跃体验的探索主题（07 §13"别再给我这个"
+   165→   * 的"这个" = 当前探索主题），否则最近更新的活跃记录；
+   166→   * 无目标 → 幂等空操作（操作已识别、无留痕对象）。
+   167→   */
+   168→  protected async executeMemoryOperation(input: {
+   169→    sessionId: string;
+   170→    memoryIntent: 'withdraw' | 'correct';
+   171→    rawInput: string;
+   172→    requestId: string;
+   173→    intentId: string;
+   174→  }): Promise<{ result: MemoryOperationResult; events: ExperienceEvent[] }> {
+   175→    const now = new Date().toISOString();
+   176→    const session = this.sessions.get(input.sessionId);
+   177→    let target: MemoryRecord | undefined;
+   178→    if (session?.experienceId) {
+   179→      const experience = this.experiences.get(session.experienceId);
+   180→      const originIntent = experience ? this.intents.get(experience.intentId) : undefined;
+   181→      if (originIntent) {
+   182→        target = this.memories.findByTopic(originIntent.rawInput);
+   183→      }
+   184→    }
+   185→    target ??= this.memories.mostRecentActive() ?? undefined;
+   186→    if (!target) {
+   187→      return {
+   188→        result: { kind: input.memoryIntent, executed: false, reason: 'no_memory_target', recordId: null, lifecycle: null },
+   189→        events: [],
+   190→      };
+   191→    }
+   192→    const identity = { user_id: this.userId, session_id: input.sessionId };
+   193→    const context = {
+   194→      experience_id: session?.experienceId ?? null,
+   195→      intent_id: input.intentId,
+   196→      state_version: null,
+   197→      request_id: input.requestId,
+   198→      decision_id: null,
+   199→    };
+   200→    const source = { layer: 'memory' as const, component: 'memory-store' };
+   201→    if (input.memoryIntent === 'withdraw') {
+   202→      const outcome = this.memories.withdrawMemory(target.recordId, now);
+   203→      if (!outcome.ok) {
+   204→        return {
+   205→          result: { kind: 'withdraw', executed: false, reason: outcome.code, recordId: target.recordId, lifecycle: target.lifecycle },
+   206→          events: [],
+   207→        };
+   208→      }
+   209→      const event = await this.recordEvent(MEMORY_WITHDRAWN_EVENT, {
+   210→        identity,
+   211→        context,
+   212→        source,
+   213→        properties: {
+   214→          record_id: outcome.record.recordId,
+   215→          topic: outcome.record.topic,
+   216→          previous_lifecycle: outcome.previousLifecycle,
+   217→          lifecycle: outcome.record.lifecycle,
+   218→          deletion_audit: outcome.record.deletionAudit,
+   219→        },
+   220→      });
+   221→      return {
+   222→        result: { kind: 'withdraw', executed: true, reason: null, recordId: outcome.record.recordId, lifecycle: outcome.record.lifecycle },
+   223→        events: [event],
+   224→      };
+   225→    }
+   226→    const correctedTopic = extractCorrectedTopic(input.rawInput);
+   227→    const outcome = this.memories.correctMemory(target.recordId, { correctedTopic, now });
+   228→    if (!outcome.ok) {
+   229→      return {
+   230→        result: { kind: 'correct', executed: false, reason: outcome.code, recordId: target.recordId, lifecycle: target.lifecycle },
+   231→        events: [],
+   232→      };
+   233→    }
+   234→    const event = await this.recordEvent(MEMORY_CORRECTED_EVENT, {
+   235→      identity,
+   236→      context,
+   237→      source,
+   238→      properties: {
+   239→        record_id: outcome.record.recordId,
+   240→        topic: outcome.record.topic,
+   241→        previous_lifecycle: outcome.previousLifecycle,
+   242→        lifecycle: outcome.record.lifecycle,
+   243→        corrections: outcome.record.corrections,
+   244→        corrected_topic: correctedTopic,
+   245→      },
+   246→    });
+   247→    return {
+   248→      result: { kind: 'correct', executed: true, reason: null, recordId: outcome.record.recordId, lifecycle: outcome.record.lifecycle },
+   249→      events: [event],
+   250→    };
+   251→  }
+   252→
+   253→  // ---------------------------------------------------------------------
+   254→  // S3a 长期记忆显式表达写入（D-1 选项 A——S3A-SEMANTIC-FREEZE-01
+   255→  // v1.0.0 §1.2；07 §5 A/B 类门槛——经 Runtime 单一写入者）
+   256→  // ---------------------------------------------------------------------
+   257→
+   258→  /**
+   259→   * 执行长期记忆显式表达写入（A/B 类——07 §5）。
+   260→   * 写入门槛由存储层强制（memoryClass='long_term' 仅
+   261→   * source='explicit' 可写入——confidence=1.0）；写入侧
+   262→   * 执行 07 §7 不默认长期记住清单过滤（命中 → 不记录）；
+   263→   * 长期记忆记录同生命周期状态机（用户主权不因记忆类别
+   264→   * 而削弱——WITHDRAW / CORRECT 复用既有路径）。
+   265→   */
+   266→  protected async executeLongTermMemoryWrite(input: {
+   267→    sessionId: string;
+   268→    expression: LongTermMemoryExpression;
+   269→    rawInput: string;
+   270→    requestId: string;
+   271→    intentId: string;
+   272→  }): Promise<{ result: MemoryOperationResult; events: ExperienceEvent[] }> {
+   273→    const now = new Date().toISOString();
+   274→    const session = this.sessions.get(input.sessionId);
+   275→    const write = this.memories.recordMemory({
+   276→      sessionId: input.sessionId,
+   277→      experienceId: session?.experienceId ?? null,
+   278→      topic: input.expression.topic,
+   279→      intentSignal: input.expression.intentSignal,
+   280→      source: 'explicit',
+   281→      memoryClass: 'long_term',
+   282→      now,
+   283→    });
+   284→    if (!write.recorded) {
+   285→      return {
+   286→        result: {
+   287→          kind: 'record_long_term',
+   288→          executed: false,
+   289→          reason: write.reason,
+   290→          recordId: null,
+   291→          lifecycle: null,
+   292→          memoryClass: null,
+   293→        },
+   294→        events: [],
+   295→      };
+   296→    }
+   297→    const event = await this.recordEvent(MEMORY_RECORDED_EVENT, {
+   298→      identity: { user_id: this.userId, session_id: input.sessionId },
+   299→      context: {
+   300→        experience_id: session?.experienceId ?? null,
+   301→        intent_id: input.intentId,
+   302→        state_version: null,
+   303→        request_id: input.requestId,
+   304→        decision_id: null,
+   305→      },
+   306→      source: { layer: 'memory', component: 'memory-store' },
+   307→      properties: {
+   308→        record_id: write.record.recordId,
+   309→        topic: write.record.topic,
+   310→        intent_signal: write.record.intentSignal,
+   311→        lifecycle: write.record.lifecycle,
+   312→        source: write.record.source,
+   313→        confidence: write.record.confidence,
+   314→        memory_class: write.record.memoryClass,
+   315→        recognition_path: input.expression.kind,
+   316→      },
+   317→    });
+   318→    return {
+   319→      result: {
+   320→        kind: 'record_long_term',
+   321→        executed: true,
+   322→        reason: null,
+   323→        recordId: write.record.recordId,
+   324→        lifecycle: write.record.lifecycle,
+   325→        memoryClass: write.record.memoryClass,
+   326→      },
+   327→      events: [event],
+   328→    };
+   329→  }
+   330→
+   331→  /**
+   332→   * L5 记忆信号注入（D-03 选项 A——07 §21 优先级链；07 §20
+   333→   * 检索纪律：以当前意图为检索键，只取相关记录）。
+   334→   * 到期衰减在每次生成请求前应用（懒到期——memory_expired
+   335→   * 事件经 Runtime 事件管道留痕）。
+   336→   */
+   337→  protected async buildLlmContext(rawInput: string, experienceId?: string): Promise<{ raw_input: string; memory_signals: MemorySignal[]; history?: Array<{ role: 'user' | 'assistant'; text: string }> }> {
+   338→    const now = new Date().toISOString();
+   339→    const decay = this.memories.applyDecay(now);
+   340→    for (const record of decay.expired) {
+   341→      await this.recordEvent(MEMORY_EXPIRED_EVENT, {
+   342→        identity: { user_id: this.userId, session_id: record.sessionId },
+   343→        context: {
+   344→          experience_id: record.experienceId,
+   345→          intent_id: null,
+   346→          state_version: null,
+   347→          request_id: null,
+   348→          decision_id: null,
+   349→        },
+   350→        source: { layer: 'memory', component: 'memory-store' },
+   351→        properties: {
+   352→          record_id: record.recordId,
+   353→          topic: record.topic,
+   354→          lifecycle: record.lifecycle,
+   355→          deletion_audit: record.deletionAudit,
+   356→        },
+   357→      });
+   358→    }
+   359→    return {
+   360→      raw_input: rawInput,
+   361→      memory_signals: this.memories.retrieveRelevant(rawInput, now),
+   362→      // 连续性（实测缺口——「对应的」「它」类指代无从理解）：
+   363→      // 近几轮对话转录随上下文携带（纯文本、确定性拼接；
+   364→      // 无转录的路径缺省省略）。
+   365→      ...(experienceId !== undefined
+   366→        ? { history: this.transcripts.get(experienceId)?.slice(-6) ?? [] }
+   367→        : {}),
+   368→      // 多模态生成编排感知（2026-10-11——实测文本模型在生成
+   369→      // 轮次宣称「我无法生成图像」，与下方的实时产物自相矛盾）：
+   370→      // 生成意图命中时向 LLM 声明编排事实，正文自然承接。
+   371→      ...(recognizeGenerationIntent(rawInput) !== null
+   372→        ? {
+   373→            generation_note:
+   374→              '用户的多模态生成请求已由系统编排：对应模态的生成模型正在实时生成产物，将自动展示在本条回答下方。请自然承接用户的创作请求，不要声明你无法生成图片、视频或语音。回答的第一句请直接描述生成的目标画面（主体 + 场景 + 视觉风格，一句完整的话）——它会作为提示词提供给图像 / 视频模型，请让画面主体明确、可供绘制；画面细节从第二句起展开。',
+   375→          }
+   376→        : // 死胡同引导（实测缺口——「生产一个图片猫」这类
+   377→          // 未命中词表的生成表达曾被模型引向 Midjourney 等
+   378→          // 外部工具，与平台能力相悖）：疑似生成表达但未
+   379→          // 识别时，给出可命中的说法而非否认平台能力。
+   380→          /(?:图|图片|图像|插画|头像|壁纸|封面|视频|动画|短片|语音|音频|音乐)/.test(rawInput)
+   381→            ? {
+   382→                generation_note:
+   383→                  '用户可能希望生成媒体内容，但本条输入未命中生成识别。本平台具备图像 / 视频 / 语音生成能力——请顺着用户意图回应，并引导其用可识别的说法触发：图像「画一张…」或「生成一张…的图片」，视频「做一段…视频」，朗读「读出来」。不要声称本平台无法生成媒体，也不要推荐外部工具。',
+   384→              }
+   385→            : {}),
+   386→    };
+   387→  }
+   388→
+   389→  /**
+   390→   * 解释层生成上下文构建（S2b；S2B-SEMANTIC-FREEZE-01
+   391→   * 附列裁决区选项 A——VERIFY 类输入按既有 WHY /
+   392→   * DIRECT_ANSWER 解释层处理，SEARCH 内部能力在这些
+   393→   * 路径内被调用；policy_v2.0.0 变更 2/6）。
+   394→   *
+   395→   * SEARCH 能力集成（D-02/D-03 选项 A）：只读检索当前
+   396→   * 体验内容 / 创作对象 / 会话内上下文——不改变体验、
+   397→   * 不触发产品动作、不产生事件、无外部网络出口；跨会话
+   398→   * 记忆检索属 F-5 记忆域 L5 检索（07 §20），不经
+   399→   * SEARCH 动作（由 buildLlmContext 承载）。
+   400→   */
+   401→  protected async buildGenerationContext(input: {
+   402→    rawInput: string;
+   403→    experienceId: string;
+   404→  }): Promise<{
+   405→    raw_input: string;
+   406→    memory_signals: MemorySignal[];
+   407→    search_context: SearchContextResult;
+   408→  }> {
+   409→    const base = await this.buildLlmContext(input.rawInput, input.experienceId);
+   410→    const current = this.store.get(input.experienceId);
+   411→    const creationRecord = this.creations.get(input.experienceId);
+   412→    const history = this.actionHistory.get(input.experienceId) ?? [];
+   413→    const searchContext = searchExperienceContext({
+   414→      query: input.rawInput,
+   415→      experienceContent: current
+   416→        ? `status=${current.status} stage=${current.stage} version=${current.stateVersion} lastAction=${current.lastSemanticAction ?? ''}`
+   417→        : '',
+   418→      creationObject: creationRecord?.active
+   419→        ? {
+   420→            active: true,
+   421→            theme: creationRecord.creation.concept.theme,
+   422→            goal: creationRecord.creation.goal,
+   423→            version: creationRecord.creation.version,
+   424→          }
+   425→        : undefined,
+   426→      sessionContext: history,
+   427→    });
+   428→    return { ...base, search_context: searchContext };
+   429→  }
+   430→
+   431→  // ---------------------------------------------------------------------
+   432→  // 体验启动（S1 规范 §27：POST /experience/start）
+   433→  // ---------------------------------------------------------------------
+   434→
+   435→  async startExperience(input: {
+   436→    sessionId: string;
+   437→    intentId: string;
+   438→    requestId: string;
+   439→    candidateId?: string;
+   440→  }): Promise<
+   441→    | {
+   442→        ok: true;
+   443→        experienceId: string;
+   444→        experienceVersion: string;
+   445→        stateVersion: number;
+   446→        state: ExperienceState;
+   447→        events: ExperienceEvent[];
+   448→      }
+   449→    | { ok: false; error: RuntimeError }
+   450→  > {
+   451→    if (this.requestIds.has(input.requestId)) {
+   452→      return { ok: false, error: runtimeError('REQUEST_DUPLICATE', `request_id already used: ${input.requestId}`) };
+   453→    }
+   454→    const session = this.sessions.get(input.sessionId);
+   455→    if (!session) {
+   456→      return { ok: false, error: runtimeError('INVALID_REQUEST', `unknown session: ${input.sessionId}`) };
+   457→    }
+   458→    if (session.state !== 'SESSION_ACTIVE') {
+   459→      return {
+   460→        ok: false,
+   461→        error: runtimeError('INVALID_STATE_TRANSITION', `session ${session.state.toLowerCase()} rejects experience start`),
+   462→      };
+   463→    }
+   464→    const intent = this.intents.get(input.intentId);
+   465→    if (!intent || intent.sessionId !== input.sessionId) {
+   466→      return { ok: false, error: runtimeError('INVALID_REQUEST', `unknown intent: ${input.intentId}`) };
+   467→    }
+   468→    if (intent.semanticAction === 'UNKNOWN') {
+   469→      return {
+   470→        ok: false,
+   471→        error: runtimeError('INVALID_ACTION', 'intent semantic action is UNKNOWN (escalated, not implemented)'),
+   472→      };
+   473→    }
+   474→    this.requestIds.add(input.requestId);
+   475→
+   476→    this.counters.experience += 1;
+   477→    this.counters.candidate += 1;
+   478→    const experienceId = `experience_synthetic_${String(this.counters.experience).padStart(4, '0')}`;
+   479→    const candidateId =
+   480→      input.candidateId ?? `candidate_synthetic_${String(this.counters.candidate).padStart(4, '0')}`;
+   481→    const now = new Date().toISOString();
+   482→
+   483→    // L2 体验状态创建（ENTERING / CURIOSITY，版本 1）。
+   484→    const initial = this.store.create({
+   485→      experienceId,
+   486→      sessionId: input.sessionId,
+   487→      status: initialExperienceView().status,
+   488→      stage: initialExperienceView().stage,
+   489→      waitingForUser: false,
+   490→      candidateId,
+   491→      lastSemanticAction: null,
+   492→      updatedAt: now,
+   493→    });
+   494→    this.experiences.set(experienceId, { experienceId, sessionId: input.sessionId, intentId: input.intentId, candidateId });
+   495→    session.experienceId = experienceId;
+   496→
+   497→    const events: ExperienceEvent[] = [];
+   498→    events.push(
+   499→      await this.recordEvent('experience_candidate_generated', {
+   500→        identity: { user_id: this.userId, session_id: input.sessionId },
+   501→        context: { experience_id: experienceId, intent_id: input.intentId, state_version: initial.stateVersion, request_id: input.requestId },
+   502→        source: { layer: 'runtime', component: 'experience-candidate' },
+   503→        properties: { candidate_id: candidateId },
+   504→      }),
+   505→    );
+   506→    events.push(
+   507→      await this.recordEvent('experience_candidate_selected', {
+   508→        identity: { user_id: this.userId, session_id: input.sessionId },
+   509→        context: { experience_id: experienceId, intent_id: input.intentId, state_version: initial.stateVersion, request_id: input.requestId },
+   510→        source: { layer: 'runtime', component: 'experience-candidate' },
+   511→        properties: { candidate_id: candidateId, selection: 'system_selected_first_experience' },
+   512→      }),
+   513→    );
+   514→
+   515→    // 候选选定：ENTERING/CURIOSITY → READY/UNDERSTANDING（版本 2）。
+   516→    const startTransition = transitionExperience(
+   517→      { status: initial.status, stage: initial.stage },
+   518→      'EXPERIENCE_STARTED',
+   519→    );
+   520→    if (!startTransition.ok) {
+   521→      return { ok: false, error: runtimeError('INTERNAL_ERROR', 'initial experience transition failed') };
+   522→    }
+   523→    const committed = await this.store.commit(experienceId, initial.stateVersion, (state) => ({
+   524→      ...state,
+   525→      status: startTransition.next.status,
+   526→      stage: startTransition.next.stage,
+   527→      updatedAt: now,
+   528→    }));
+   529→    if (!committed.ok) {
+   530→      return { ok: false, error: runtimeError('INTERNAL_ERROR', 'initial experience commit failed') };
+   531→    }
+   532→    events.push(
+   533→      await this.recordEvent('experience_started', {
+   534→        identity: { user_id: this.userId, session_id: input.sessionId },
+   535→        context: { experience_id: experienceId, intent_id: input.intentId, state_version: committed.state.stateVersion, request_id: input.requestId },
+   536→        source: { layer: 'runtime', component: 'experience-lifecycle' },
+   537→        properties: {
+   538→          initial_state_version: initial.stateVersion,
+   539→          candidate_id: candidateId,
+   540→          stage: committed.state.stage,
+   541→        },
+   542→      }),
+   543→    );
+   544→    events.push(
+   545→      await this.recordEvent('state_transitioned', {
+   546→        identity: { user_id: this.userId, session_id: input.sessionId },
+   547→        context: { experience_id: experienceId, intent_id: input.intentId, state_version: committed.state.stateVersion, request_id: input.requestId },
+   548→        source: { layer: 'runtime', component: 'state-machine' },
+   549→        properties: {
+   550→          from: { status: initial.status, stage: initial.stage },
+   551→          event: 'EXPERIENCE_STARTED',
+   552→          action: 'START_EXPERIENCE',
+   553→          to: { status: committed.state.status, stage: committed.state.stage },
+   554→          state_version_before: initial.stateVersion,
+   555→          state_version_after: committed.state.stateVersion,
+   556→        },
+   557→      }),
+   558→    );
+   559→
+   560→    // 会话快照（跨重启续讲）：体验建立即落盘。
+   561→    this.snapshotSession(experienceId);
+   562→    return {
+   563→      ok: true,
+   564→      experienceId,
+   565→      experienceVersion: '1.0.0',
+   566→      stateVersion: committed.state.stateVersion,
+   567→      state: committed.state,
+   568→      events,
+   569→    };
+   570→  }
+   571→
+   572→  // ---------------------------------------------------------------------
+   573→  // Query（S1 规范 §27：GET /experience/{id}/state——不改变任何状态）
+   574→  // ---------------------------------------------------------------------
+   575→
+   576→  getExperienceState(
+   577→    experienceId: string,
+   578→  ): { ok: true; state: ExperienceState } | { ok: false; error: RuntimeError } {
+   579→    this.ensureRestored(experienceId);
+   580→    const state = this.store.get(experienceId);
+   581→    if (!state) {
+   582→      return { ok: false, error: runtimeError('INVALID_REQUEST', `unknown experience: ${experienceId}`) };
+   583→    }
+   584→    return { ok: true, state };
+   585→  }
+   586→
+   587→  /** 创作状态查询（S2a F2；只读，不改变任何状态——同 getExperienceState 纪律）。 */
+   588→  getCreation(
+   589→    experienceId: string,
+   590→  ): { ok: true; creation: CreationObject; active: boolean } | { ok: false; error: RuntimeError } {
+   591→    const record = this.creations.get(experienceId);
+   592→    if (!record) {
+   593→      return { ok: false, error: runtimeError('INVALID_REQUEST', `no creation session for experience: ${experienceId}`) };
+   594→    }
+   595→    return { ok: true, creation: record.creation, active: record.active };
+   596→  }
+   597→
+   598→  /**
+   599→   * 模拟域快照查询（S2a F-4——E5 进程内形态取证入口；
+   600→   * D-04 选项 A 会话内持久：分支 / 模拟历史 / 当前激活分支）。
+   601→   */
+   602→  getSimulation(
+   603→    experienceId: string,
+   604→  ): { ok: true; simulation: SimulationSnapshot } | { ok: false; error: RuntimeError } {
+   605→    const snapshot = this.simulations.getSnapshot(experienceId);
+   606→    if (!snapshot) {
+   607→      return { ok: false, error: runtimeError('INVALID_REQUEST', `no simulation context for experience: ${experienceId}`) };
+   608→    }
+   609→    return { ok: true, simulation: snapshot };
+   610→  }
+   611→
+   612→  /**
+   613→   * 记忆域快照查询（S2a F-5——E5 进程内形态取证入口；
+   614→   * 轴外持久对象——D-01 选项 A：跨会话短期记忆记录 /
+   615→   * 生命周期 / 来源与置信度分量 / 删除审计留痕）。
+   616→   * 只读，不改变任何状态——同 getSimulation 纪律。
+   617→   */
+   618→  getMemory(): { ok: true; memory: MemorySnapshot } {
+   619→    return { ok: true, memory: this.memories.getSnapshot() };
+   620→  }
+   621→
+   622→  /**
+   623→   * First Experience 呈现路径查询（S2b；S2B-SEMANTIC-FREEZE-01
+   624→   * D-04 选项 A——只读呈现层：不产生事件、不改变任何状态——
+   625→   * 同 getSimulation / getMemory 纪律；视觉样式不在冻结范围
+   626→   * （E2 §5））。
+   627→   */
+   628→  getFirstExperiencePresentation(
+   629→    experienceId?: string,
+   630→  ): {
+   631→    ok: true;
+   632→    presentation: FirstExperiencePresentation;
+   633→    current: {
+   634→      experienceId: string | null;
+   635→      view: ExperienceView | null;
+   636→      presentationStage: PresentationStage;
+   637→      branchActive: boolean;
+   638→    };
+   639→  } {
+   640→    const presentation = firstExperiencePresentation();
+   641→    if (!experienceId) {
+   642→      return {
+   643→        ok: true,
+   644→        presentation,
+   645→        current: {
+   646→          experienceId: null,
+   647→          view: null,
+   648→          presentationStage: 'CURIOSITY',
+   649→          branchActive: false,
+   650→        },
+   651→      };
+   652→    }
+   653→    const current = this.store.get(experienceId);
+   654→    const view: ExperienceView = current
+   655→      ? { status: current.status, stage: current.stage }
+   656→      : initialExperienceView();
+   657→    const snapshot = this.simulations.getSnapshot(experienceId);
+   658→    const branchActive =
+   659→      snapshot?.currentBranchId != null &&
+   660→      snapshot.branches.find((branch) => branch.branchId === snapshot.currentBranchId)
+   661→        ?.lifecycle === 'ACTIVE';
+   662→    return {
+   663→      ok: true,
+   664→      presentation,
+   665→      current: {
+   666→        experienceId,
+   667→        view: current ? view : null,
+   668→        presentationStage: presentationStageFor(view, branchActive),
+   669→        branchActive,
+   670→      },
+   671→    };
+   672→  }
+   673→
+   674→  // ---------------------------------------------------------------------
+   675→  // S1-09/S1-10/S1-11 核心：提交体验事件（POST /experience/{id}/event）
+   676→  // ---------------------------------------------------------------------
+   677→
+   678→
+   679→  protected async recordEvent(
+   680→    eventType: string,
+   681→    fields: {
+   682→      identity: { user_id: string; session_id: string };
+   683→      context: {
+   684→        experience_id: string | null;
+   685→        intent_id: string | null;
+   686→        state_version: number | null;
+   687→        request_id: string | null;
+   688→        decision_id?: string | null;
+   689→      };
+   690→      source: { layer: 'frontend' | 'input' | 'runtime' | 'policy' | 'llm' | 'tool' | 'memory' | 'analytics'; component: string };
+   691→      properties?: Record<string, unknown>;
+   692→    },
+   693→  ): Promise<ExperienceEvent> {
+   694→    const event = this.recorder.build(eventType, fields);
+   695→    const result = await this.recorder.record(event);
+   696→    if (!result.ok) {
+   697→      // 事件记录失败（信封违规/重复 event_id）：升级而非静默丢弃。
+   698→      throw new Error(`event recording failed: ${result.reason}`);
+   699→    }
+   700→    return event;
+   701→  }
+   702→
+   703→  protected async writeDecisionTrace(input: {
+   704→    decisionId: string;
+   705→    sessionId: string;
+   706→    experienceId: string;
+   707→    semanticAction: SemanticAction;
+   708→    stateBefore: ExperienceView;
+   709→    stateBeforeVersion: number;
+   710→    stateAfter: { status: ExperienceStatus; stage: ExperienceStage; state_version: number } | null;
+   711→    selectedAction: PolicyAction;
+   712→    reasonPrimary: string;
+   713→    reasonSecondary: string | null;
+   714→    llmUsed: boolean;
+   715→    userOverride: boolean;
+   716→    inputEvent: string | null;
+   717→    intentBefore: unknown;
+   718→  }): Promise<void> {
+   719→    const trace = {
+   720→      decision_id: input.decisionId,
+   721→      session_id: input.sessionId,
+   722→      experience_id: input.experienceId,
+   723→      input_event: input.inputEvent,
+   724→      semantic_action: input.semanticAction,
+   725→      intent_before: input.intentBefore,
+   726→      state_before: {
+   727→        status: input.stateBefore.status,
+   728→        stage: input.stateBefore.stage,
+   729→        state_version: input.stateBeforeVersion,
+   730→      },
+   731→      policy: {
+   732→        policy_version: POLICY_VERSION,
+   733→        selected_action: input.selectedAction,
+   734→      },
+   735→      reason: {
+   736→        primary: input.reasonPrimary,
+   737→        secondary: input.reasonSecondary,
+   738→      },
+   739→      execution: {
+   740→        tool_used: false,
+   741→        llm_used: input.llmUsed,
+   742→      },
+   743→      state_after: input.stateAfter,
+   744→      user_override: input.userOverride,
+   745→      at: new Date().toISOString(),
+   746→    };
+   747→    await this.traceSink(trace);
+   748→  }
+   749→
+   750→  /**
+   751→   * 会话快照（跨重启续讲——PD-07 附加层）：体验建立后与每轮
+   752→   * 完成后落盘续讲最小集（状态含版本号 + 转录 + 主题）。
+   753→   * 失败静默——续讲降级为既有死会话指引，不影响主流程。
+   754→   */
+   755→  protected snapshotSession(experienceId: string): void {
+   756→    try {
+   757→      const experience = this.experiences.get(experienceId);
+   758→      const state = this.store.get(experienceId);
+   759→      if (!experience || !state) return;
+   760→      const intent = this.intents.get(experience.intentId);
+   761→      const snapshot: SessionSnapshot = {
+   762→        experienceId,
+   763→        sessionId: experience.sessionId,
+   764→        intentId: experience.intentId,
+   765→        candidateId: experience.candidateId,
+   766→        topic: intent?.rawInput ?? '',
+   767→        state,
+   768→        transcript: this.transcripts.get(experienceId) ?? [],
+   769→        savedAt: new Date().toISOString(),
+   770→      };
+   771→      void saveSessionSnapshot(snapshot);
+   772→    } catch {
+   773→      // 快照失败静默
+   774→    }
+   775→  }
+   776→
+   777→  /** 内存无此体验时按快照重建最小续讲面（会话 / 意图 / 体验
+   778→   * 记录 + 状态含版本号 + 转录）。已存在则空操作。 */
+   779→  protected ensureRestored(experienceId: string): void {
+   780→    if (this.store.get(experienceId) !== undefined) return;
+   781→    const snapshot = loadSessionSnapshot(experienceId);
+   782→    if (!snapshot) return;
+   783→    try {
+   784→      const session = this.sessions.get(snapshot.sessionId);
+   785→      if (session) {
+   786→        session.state = 'SESSION_ACTIVE';
+   787→        session.intentId = snapshot.intentId;
+   788→        session.experienceId = snapshot.experienceId;
+   789→        session.endedAt = null;
+   790→      } else {
+   791→        this.sessions.set(snapshot.sessionId, {
+   792→          sessionId: snapshot.sessionId,
+   793→          state: 'SESSION_ACTIVE',
+   794→          intentId: snapshot.intentId,
+   795→          experienceId: snapshot.experienceId,
+   796→          createdAt: snapshot.savedAt,
+   797→          endedAt: null,
+   798→        });
+   799→      }
+   800→      if (snapshot.intentId !== null) {
+   801→        this.intents.set(snapshot.intentId, {
+   802→          intentId: snapshot.intentId,
+   803→          sessionId: snapshot.sessionId,
+   804→          rawInput: snapshot.topic,
+   805→          semanticAction: 'DIRECT_ANSWER',
+   806→          state: 'CREATED',
+   807→          createdAt: snapshot.savedAt,
+   808→        });
+   809→      }
+   810→      this.experiences.set(snapshot.experienceId, {
+   811→        experienceId: snapshot.experienceId,
+   812→        sessionId: snapshot.sessionId,
+   813→        intentId: snapshot.intentId ?? '',
+   814→        candidateId: snapshot.candidateId,
+   815→      });
+   816→      this.store.restore(snapshot.experienceId, snapshot.state);
+   817→      this.transcripts.set(snapshot.experienceId, snapshot.transcript ?? []);
+   818→    } catch {
+   819→      // 恢复失败静默——走既有 unknown experience 指引
+   820→    }
+   821→  }
+   822→}
+   823→

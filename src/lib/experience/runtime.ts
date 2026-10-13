@@ -35,6 +35,20 @@
  * - 记忆域（F-5 唯一跨会话域）：读侧 retrieveRelevant（懒到期 + RECALL
  *   迁移 + 2 字滑窗相关性）注入提示；写侧 recordMemory（07 §7 过滤）；
  *   用户显式 withdraw/correct 为确定性系统轮次。读写仅经本文件。
+ *
+ * S2b 编排（媒体生成切片——产品负责人指令 2026-10-10：问答过程中
+ * 识别用户意图，自动调用相应文本 / 语音 / 图像 / 视频模型进行生成）：
+ * - 生成意图只认领分类器 UNKNOWN / CHANGE_DIRECTION 层的输入
+ *   （零黄金回归面）；对话回应照常进行，媒体产物随流追加。
+ * - 路由（对齐参考 http.ts L586-596）：呈现/收听类（useContext）
+ *   借 REPEAT 的重放语义提供生成材料（语音=完整重放供 TTS 朗读；
+ *   视觉=CR-56 收敛为一句简短引导）；直接创作类走 CREATE 伞形
+ *   （创作域预览 + 媒体随流追加）；「换一张图片」再生成特例路由
+ *   CREATE（避免误触方向变更结束会话）。
+ * - 媒体生成不改变会话状态：轮次先提交，生成随后（started →
+ *   completed | failed | unconfigured）；失败不回滚轮次。
+ * - REPEAT 为确定性重放（无 LLM）：重放上一条可呈现内容轮；
+ *   无可重放内容时回退内容轮（回答照常进行 + 生成随流追加）。
  */
 
 import { classifyInput } from './classifier';
@@ -48,6 +62,12 @@ import {
   nextCreationPhase,
 } from './creation';
 import type { LlmGateway } from './llm-gateway';
+import { getMediaGateway, MediaGatewayError, type MediaGateway } from './media-gateway';
+import {
+  recognizeGenerationIntent,
+  shouldCompactReplay,
+  type GenerationIntent,
+} from './generation-intent';
 import type { MemoryRecord } from './memory';
 import { correctMemory, extractCorrectedTopic, recordMemory, retrieveRelevant, withdrawMemory } from './memory';
 import { POLICY_VERSION, resolvePolicy } from './policy';
@@ -83,8 +103,18 @@ const BOUNDARY_NOTICES: Record<string, string> = {
   DEEPEN: '深入展开是下一个切片的方向性操作。现在你可以直接问出想深入的那一点，或者提一个"如果…"。',
   SIMPLIFY: '换一个更简单的讲法是下一个切片的方向性操作。你可以直接说"再简单点告诉我哪里看不懂"，我会直接回答。',
   REFRAME: '换角度重讲是下一个切片的方向性操作。你可以直接说出想换的角度。',
-  REPEAT: '重放上一条是下一个切片的操作。上面那条还在，你可以往上翻看。',
 };
+
+/** S2b：可重放的内容轮 kind（通知/澄清/完成不参与重放）。 */
+const REPLAYABLE_KINDS: ReadonlySet<string> = new Set([
+  'FIRST_LAYER',
+  'ANSWER',
+  'EXPLANATION',
+  'SIMULATION_RESULT',
+  'CORRECTION_EXPLAIN',
+  'CREATION_PREVIEW',
+  'CREATION_PATCHED',
+]);
 
 const UNKNOWN_NOTICE =
   '这句话我还没能理解。这个切片里你可以：问"为什么"、提一个"如果…"、说"继续"，或者随时说"好了"结束。';
@@ -94,7 +124,10 @@ const WHAT_IF_IN_CREATION_NOTICE =
   '创作进行时暂时不能开新的模拟。你可以继续修改这个作品，说"就这样"完成它，或者直接提问题；想结束可以说"好了"。';
 
 export class ExperienceRuntime {
-  constructor(private readonly gateway: LlmGateway) {}
+  constructor(
+    private readonly gateway: LlmGateway,
+    private readonly media: MediaGateway = getMediaGateway()
+  ) {}
 
   /** 首页/入口屏 → 建立会话并跑完第一轮（意图解析 → 体验）。 */
   async *start(input: StartInput, signal: AbortSignal): AsyncGenerator<TurnEvent> {
@@ -197,6 +230,16 @@ export class ExperienceRuntime {
       return;
     }
 
+    // ── S2b：生成意图路由（只认领 UNKNOWN / CHANGE_DIRECTION 层——零黄金
+    // 回归面；对话回应照常进行，媒体产物随流追加）──
+    let generationIntent: GenerationIntent | null = null;
+    {
+      const semanticActionBefore = classification.semanticAction;
+      if (semanticActionBefore === 'UNKNOWN' || semanticActionBefore === 'CHANGE_DIRECTION') {
+        generationIntent = recognizeGenerationIntent(raw);
+      }
+    }
+
     // ── S2a：创作会话内输入路由（对齐参考 runtime：UNKNOWN / CORRECTION 层）──
     let semanticAction = classification.semanticAction;
     let creationIntent: CreationInterpretation | null = null;
@@ -240,6 +283,18 @@ export class ExperienceRuntime {
           creationIntent = correctionInterpretation;
         }
         // kind === 'none'：保持 CORRECTION，走通用纠正路径（G07 完整语义）。
+      }
+    }
+
+    // 生成意图改写（在创作域路由之后——生成意图优先认领，对齐参考
+    // http 层先于 runtime 创作路由的顺序）：改写后的动作进入策略解析。
+    if (generationIntent) {
+      if (semanticAction === 'UNKNOWN') {
+        semanticAction = generationIntent.useContext ? 'REPEAT' : 'CREATE';
+      } else if (semanticAction === 'CHANGE_DIRECTION') {
+        // 再生成特例（「换一张图片，夏天的服装」）：模态词在场时「换」
+        // 指向媒体再生成而非体验方向变更——否则会误触会话结束。
+        semanticAction = 'CREATE';
       }
     }
 
@@ -312,6 +367,12 @@ export class ExperienceRuntime {
       return;
     }
 
+    // ── S2b：REPEAT——上一条内容的确定性重放（无 LLM；生成意图的语义载体）──
+    if (policyAction === 'REPEAT') {
+      yield* this.runRepeatTurn(sessionId, session, state, raw, semanticAction, expectedVersion, signal, generationIntent);
+      return;
+    }
+
     // ── S2a F-2：CREATE——创作域轮次 ──
     if (policyAction === 'CREATE') {
       if (creationIntent && creationIntent.kind === 'ambiguous') {
@@ -324,7 +385,7 @@ export class ExperienceRuntime {
         return;
       }
       // 首建（无活跃创作）或取代（活跃创作被新 CREATE 取代——历史保留）。
-      yield* this.runCreationFirstTurn(sessionId, session, state, raw, semanticAction, expectedVersion, signal);
+      yield* this.runCreationFirstTurn(sessionId, session, state, raw, semanticAction, expectedVersion, signal, generationIntent);
       return;
     }
 
@@ -357,7 +418,7 @@ export class ExperienceRuntime {
     }
 
     // ── 内容轮：ANSWER / EXPLAIN / SIMULATE（G07 纠正 = EXPLAIN 变体）──
-    yield* this.runContentTurn(sessionId, session, state, raw, semanticAction, policyAction, expectedVersion, signal);
+    yield* this.runContentTurn(sessionId, session, state, raw, semanticAction, policyAction, expectedVersion, signal, generationIntent);
     return;
   }
 
@@ -473,6 +534,212 @@ export class ExperienceRuntime {
   }
 
   // -------------------------------------------------------------------------
+  // S2b：REPEAT 轮次（确定性重放）与媒体生成编排
+  // -------------------------------------------------------------------------
+
+  /**
+   * S2b：REPEAT 轮次——上一条可呈现内容的确定性重放（不调用模型）。
+   *
+   * - 语音朗读类（「读给我听 / 声音我听听」）：完整重放（用户要「听」
+   *   的是内容本身），重放文本即 TTS 材料。
+   * - 视觉呈现类（「用图片展现刚才的内容 / 图片我看看」）：CR-56
+   *   收敛——完整重放会污染对话流，收敛为一句简短引导；画面提示词
+   *   由被重放内容蒸馏。
+   * - 视频呈现类：同样完整重放；随后编排层给出诚实「未接入」。
+   * - 会话内无可重放内容（首条输入即呈现类表达）：回退内容轮——回答
+   *   照常进行 + 生成随流追加（新生成的回答即材料）。
+   */
+  private async *runRepeatTurn(
+    sessionId: string,
+    session: SessionRow,
+    state: ExperienceState,
+    raw: string,
+    semanticAction: string,
+    expectedVersion: number,
+    signal: AbortSignal,
+    generationIntent: GenerationIntent | null
+  ): AsyncGenerator<TurnEvent> {
+    const last = [...state.history].reverse().find((h) => REPLAYABLE_KINDS.has(h.kind));
+    if (!last) {
+      // 无可呈现内容：回退内容轮（DIRECT_ANSWER + 生成随流追加）。
+      yield* this.runContentTurn(
+        sessionId,
+        session,
+        state,
+        raw,
+        'DIRECT_ANSWER',
+        'ANSWER',
+        expectedVersion,
+        signal,
+        generationIntent
+      );
+      return;
+    }
+    // CR-56 收敛仅限图像呈现类（视频走完整重放 + 诚实未接入，避免
+    // 「正在生成」引导语与未接入说明自相矛盾）。
+    const compact = generationIntent !== null && generationIntent.modality === 'image' && shouldCompactReplay(raw);
+    const content = compact ? '好的，把刚才的内容画出来——正在生成，马上就好。' : last.content;
+
+    const acting = transitionExperience(state.view, 'USER_ACTION');
+    if (!acting.ok) {
+      yield { type: 'error', code: 'INVALID_INPUT', message: '状态迁移被拒绝（非法转移）' };
+      return;
+    }
+    state.view = acting.next;
+
+    const now = new Date().toISOString();
+    const turnNumber = state.turn + 1;
+    state.history.push({
+      turn: turnNumber,
+      semanticAction,
+      policyAction: 'REPEAT',
+      userText: raw,
+      kind: 'ANSWER',
+      content,
+      at: now,
+    });
+    state.turn = turnNumber;
+
+    const waiting = transitionExperience(state.view, 'RESPONSE_COMPLETED');
+    if (!waiting.ok) {
+      yield { type: 'error', code: 'INVALID_INPUT', message: '等待态迁移被拒绝' };
+      return;
+    }
+    state.view = waiting.next;
+
+    const ok = await store.commitTurn({
+      sessionId,
+      expectedVersion,
+      newState: state,
+      newStatus: 'ACTIVE',
+      exitReason: null,
+      events: [
+        {
+          type: 'POLICY_DECIDED',
+          payload: {
+            semanticAction,
+            policyAction: 'REPEAT',
+            replay: true,
+            compact,
+            policy: POLICY_VERSION,
+            stateMachine: STATE_MACHINE_VERSION,
+          },
+        },
+        { type: 'CONTENT_DELIVERED', payload: { turn: turnNumber, kind: 'ANSWER', replay: true, compact } },
+        { type: 'STATE_UPDATED', payload: { view: state.view } },
+      ],
+    });
+    if (!ok) {
+      yield { type: 'error', code: 'VERSION_CONFLICT', message: '这一轮结果到达时状态已被更新（迟到写入已拒绝）' };
+      return;
+    }
+    yield { type: 'content', turn: turnNumber, kind: 'ANSWER', text: content, stateVersion: expectedVersion + 1 };
+    yield { type: 'state', stateVersion: expectedVersion + 1, view: state.view, state };
+    if (generationIntent) {
+      yield* this.runGeneration(generationIntent, last.content, sessionId, turnNumber, signal);
+    }
+    yield { type: 'done', stateVersion: expectedVersion + 1, ended: false, exitReason: null };
+  }
+
+  /**
+   * S2b：媒体生成编排——对话回应之后的随流追加（answer 先行纪律）。
+   *
+   * 生成不改变会话状态：轮次已提交，媒体是体验产物（失败不回滚轮次）。
+   * 提示词构建：语音 = 重放/回答内容（≤1000 字符，TTS 单次上限）；
+   * 视觉呈现类 = 上一轮内容经 LLM 蒸馏（失败回退确定性首段——
+   * 蒸馏是增强项绝不阻塞）；直接创作 = 用户原话（短输入轻量增富）。
+   */
+  private async *runGeneration(
+    intent: GenerationIntent,
+    material: string,
+    sessionId: string,
+    turn: number,
+    signal: AbortSignal
+  ): AsyncGenerator<TurnEvent> {
+    if (intent.modality === 'video') {
+      yield {
+        type: 'generation',
+        status: 'unconfigured',
+        turn,
+        modality: 'video',
+        message: '视频生成还没有接入。图片和语音现在就可以：说「画一张…的图片」，或者「读给我听」试试。',
+      };
+      return;
+    }
+    if (signal.aborted) return;
+    try {
+      let promptUsed: string;
+      if (intent.modality === 'voice') {
+        // 朗读类：材料是重放/回答内容；直接语音类（「用语音说…」）用用户原话。
+        promptUsed = (intent.useContext || intent.referential ? material : intent.prompt).slice(0, 1000);
+      } else if (intent.useContext || intent.referential) {
+        promptUsed = await this.distillVisualPrompt(material, signal);
+      } else {
+        // 直接创作（CREATE 路由）：用户原话就是画面主题；短输入轻量增富
+        // （对齐参考 enrichPrompt——裸短语直达 t2i 会因无主体回落默认人像）。
+        promptUsed = intent.prompt.trim().length < 16 ? `${intent.prompt.trim()}，画面温馨自然，细节丰富` : intent.prompt.trim();
+      }
+      if (promptUsed.trim().length === 0) {
+        yield {
+          type: 'generation',
+          status: 'failed',
+          turn,
+          modality: intent.modality,
+          message: '没有可供生成的内容',
+        };
+        return;
+      }
+      yield { type: 'generation', status: 'started', turn, modality: intent.modality, prompt: promptUsed };
+      const record =
+        intent.modality === 'image'
+          ? await this.media.generateImage(promptUsed, { sessionId, turn, signal })
+          : await this.media.generateVoice(promptUsed, { sessionId, turn, signal });
+      if (signal.aborted) return; // 产物已落盘但用户已离开：不投递
+      yield {
+        type: 'generation',
+        status: 'completed',
+        turn,
+        modality: intent.modality,
+        url: `/api/experience/media/${record.file}`,
+        promptUsed,
+        mime: record.mime,
+      };
+    } catch (error) {
+      if (signal.aborted) return;
+      const message =
+        error instanceof MediaGatewayError && !error.retryable
+          ? error.message
+          : '这次没生成出来，可以稍后再试一次';
+      yield { type: 'generation', status: 'failed', turn, modality: intent.modality, message };
+    }
+  }
+
+  /**
+   * S2b：视觉提示词蒸馏——上一轮内容 → 40-80 字画面描述。
+   * 蒸馏是增强项绝不阻塞：LLM 失败时回退确定性首段（≤90 字）。
+   */
+  private async distillVisualPrompt(material: string, signal: AbortSignal): Promise<string> {
+    const source = material.slice(0, 700);
+    const fallback = source.split(/\n{2,}/)[0]?.slice(0, 90) ?? source.slice(0, 90);
+    try {
+      const proposal = await this.gateway.generate({
+        systemPrompt:
+          '你是画面导演。把给定内容浓缩成一句 40 到 80 字的中文画面描述：只描述可见的画面（主体、场景、光线、氛围），不出现「画」「图片」字样，不做任何解释，不加引号，直接输出这一句描述。',
+        userPrompt: source,
+        signal,
+      });
+      const text = proposal.text
+        .trim()
+        .replace(/^[「『"']+/, '')
+        .replace(/[」』"']+$/, '')
+        .slice(0, 120);
+      return text.length > 0 ? text : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // S2a F-2：创作轮次（首建 / 补丁 / ASK）
   // -------------------------------------------------------------------------
 
@@ -484,7 +751,8 @@ export class ExperienceRuntime {
     raw: string,
     semanticAction: string,
     expectedVersion: number,
-    signal: AbortSignal
+    signal: AbortSignal,
+    generationIntent: GenerationIntent | null = null
   ): AsyncGenerator<TurnEvent> {
     const isFirstTurn = state.turn === 0 && state.view.status === 'ENTERING';
     if (isFirstTurn) {
@@ -615,6 +883,11 @@ export class ExperienceRuntime {
     }
     yield { type: 'content', turn: turnNumber, kind: 'CREATION_PREVIEW', text: content, stateVersion: expectedVersion + 1 };
     yield { type: 'state', stateVersion: expectedVersion + 1, view: state.view, state };
+    if (generationIntent) {
+      // S2b：直接创作类的媒体随流追加（「画一张风图」→ 作品预览 + 图片）。
+      // 材料参数在直接创作分支不参与（runGeneration 用 intent.prompt）。
+      yield* this.runGeneration(generationIntent, raw, sessionId, turnNumber, signal);
+    }
     yield { type: 'done', stateVersion: expectedVersion + 1, ended: false, exitReason: null };
   }
 
@@ -982,7 +1255,8 @@ export class ExperienceRuntime {
     semanticAction: string,
     policyAction: string,
     expectedVersion: number,
-    signal: AbortSignal
+    signal: AbortSignal,
+    generationIntent: GenerationIntent | null = null
   ): AsyncGenerator<TurnEvent> {
     const isFirstTurn = state.turn === 0 && state.view.status === 'ENTERING';
     const trigger: 'USER_ACTION' | 'CORRECTION' =
@@ -1018,10 +1292,15 @@ export class ExperienceRuntime {
     let proposalText: string;
     try {
       const systemPrompt = buildSystemPrompt(state, memoryContext.signals);
+      // S2b：呈现类表达作首条输入（无前文可重放）时回退到内容轮——生成
+      // 注记让回答直接进入内容本身（新生成的回答即生成材料）。
+      const genNote = generationIntent
+        ? `\n\n（用户想要这段内容的${generationIntent.modality === 'voice' ? '语音朗读版' : '画面版'}——不要复述或回应这句话本身，第一句就直接进入内容。）`
+        : '';
       const userPrompt =
-        semanticAction === 'CORRECTION' && !isFirstTurn
+        (semanticAction === 'CORRECTION' && !isFirstTurn
           ? buildCorrectionPrompt(raw)
-          : buildUserPrompt(policyAction as 'ANSWER' | 'EXPLAIN' | 'SIMULATE' | 'CHANGE_EXPERIENCE' | 'STOP' | 'CREATE', raw, state.turn);
+          : buildUserPrompt(policyAction as 'ANSWER' | 'EXPLAIN' | 'SIMULATE' | 'CHANGE_EXPERIENCE' | 'STOP' | 'CREATE', raw, state.turn)) + genNote;
       const proposal = await this.gateway.generate({ systemPrompt, userPrompt, signal });
       if (signal.aborted) {
         await store.appendCancellationEvent(sessionId, session.generation + 1, expectedVersion);
@@ -1152,6 +1431,10 @@ export class ExperienceRuntime {
     }
     yield { type: 'content', turn: turnNumber, kind, text: proposalText, stateVersion: expectedVersion + 1 };
     yield { type: 'state', stateVersion: expectedVersion + 1, view: state.view, state };
+    if (generationIntent) {
+      // S2b：首条输入即呈现类表达的回退路径——新生成的回答即生成材料。
+      yield* this.runGeneration(generationIntent, proposalText, sessionId, turnNumber, signal);
+    }
     yield { type: 'done', stateVersion: expectedVersion + 1, ended: false, exitReason: null };
   }
 
@@ -1199,7 +1482,7 @@ import { HttpLlmGateway } from './llm-gateway';
 let runtimeInstance: ExperienceRuntime | null = null;
 export function getRuntime(): ExperienceRuntime {
   if (!runtimeInstance) {
-    runtimeInstance = new ExperienceRuntime(new HttpLlmGateway());
+    runtimeInstance = new ExperienceRuntime(new HttpLlmGateway(), getMediaGateway());
   }
   return runtimeInstance;
 }

@@ -31,6 +31,17 @@ const STAGE_LABELS: Record<ExperienceStage, string> = {
 
 const QUICK_ACTIONS = ['为什么？', '继续', '我大概懂了', '换一个', '好了'] as const;
 
+/**
+ * S2b：媒体快捷动作（发现性入口——能力直达，无需知道说法）。
+ * 发送的是可被词表识别的完整表达（与参考「画成图片」chip 同一纪律：
+ * 面板动作 = 普通输入，分类器→词表路由，UI 无特权直写）。
+ * 仅在有已呈现内容后出现（朗读/呈现的材料是上一轮内容）。
+ */
+const MEDIA_ACTIONS: ReadonlyArray<{ label: string; sends: string }> = [
+  { label: '读给我听', sends: '读给我听' },
+  { label: '画成图片', sends: '用图片展现刚才的内容' },
+];
+
 /** 阶段化输入提示（创作阶段：局部修改的入口语——08 §13）。 */
 const STAGE_PLACEHOLDERS: Partial<Record<ExperienceStage, string>> = {
   SIMULATION: '提一个"如果……"，看看会怎样……',
@@ -74,6 +85,8 @@ export function ExperienceScreen({ session, onSend, onRetry, onBackHome }: Exper
     !session.generating &&
     session.turns.length === 0 &&
     Boolean(session.sessionId);
+  // 媒体入口仅在有已呈现内容后出现（朗读/呈现的材料是上一轮内容）。
+  const hasSettledContent = session.turns.some((t) => t.kind !== undefined);
 
   return (
     <main className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col px-4">
@@ -174,6 +187,19 @@ export function ExperienceScreen({ session, onSend, onRetry, onBackHome }: Exper
                 {action}
               </button>
             ))}
+            {hasSettledContent
+              ? MEDIA_ACTIONS.map((action) => (
+                  <button
+                    key={action.label}
+                    type="button"
+                    disabled={inputLocked}
+                    onClick={() => onSend(action.sends)}
+                    className="min-h-11 rounded-full border border-amber-200/80 bg-amber-50/50 px-4 text-sm text-amber-800/90 transition-colors hover:border-amber-400 hover:bg-amber-100/70 hover:text-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-40"
+                  >
+                    {action.label}
+                  </button>
+                ))
+              : null}
           </div>
           <form
             aria-label="继续问"
