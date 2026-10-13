@@ -120,3 +120,24 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── 个人体验引擎：柔和的自定义滚动条 ── */
+.exp-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(214 211 209) transparent;
+}
+.exp-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.exp-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.exp-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgb(214 211 209);
+  border-radius: 9999px;
+}
+.exp-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(168 162 158);
+}
+

@@ -1,8 +1,12 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// 个人体验引擎 — S1 切片数据层
+//
+// 纪律（对齐 intent-experience 契约）：
+// - ExperienceSession.state 是产品状态的唯一持久形态；
+//   所有写入必须经 Runtime（src/lib/experience/runtime.ts）单一写入者路径。
+// - stateVersion 每次合法提交恰好 +1（S1-12 不变式；stale 写入经
+//   updateMany 条件守卫拒绝 — GS-05）。
+// - ExperienceEvent 只追加（append-only 审计账本：决策轨迹/内容投递/
+//   状态变更留痕），任何代码不得改写或删除历史事件。
 
 generator client {
   provider = "prisma-client-js"
@@ -13,20 +17,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model ExperienceSession {
+  id           String   @id @default(cuid())
+  seedId       String? // 目录种子 id；null = 自由输入生成的自定义体验
+  topic        String // 展示主题（hook 或用户输入）
+  status       String   @default("ACTIVE") // ACTIVE | COMPLETED
+  exitReason   String? // user_stop | goal_satisfied | direction_changed
+  stateVersion Int      @default(1)
+  generation   Int      @default(0) // 生成代数：迟到的旧代结果拒绝入库
+  state        Json // ExperienceState（含状态机视图/知识/轮次历史）
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  events       ExperienceEvent[]
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model ExperienceEvent {
+  id           String   @id @default(cuid())
+  sessionId    String
+  session      ExperienceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  seq          Int // 会话内单调序号
+  type         String // SESSION_STARTED | POLICY_DECIDED | CONTENT_DELIVERED | STATE_UPDATED | EXPERIENCE_COMPLETED | DIRECTION_CHANGED | GENERATION_CANCELLED
+  payload      Json?
+  stateVersion Int
+  createdAt    DateTime @default(now())
+
+  @@unique([sessionId, seq])
 }
