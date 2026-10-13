@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G04-N","event":"trace_started","at":"2026-10-09T12:52:35.801Z","form":"in-process","sourceClause":"P2 Exit Gate & Sign-off §8 G04 Creation；Evaluation System V1 §5 G04；E2 Stage 5（最小 Creation Branch）；PD-21（产品负责人 2026-10-09 批准）","goldenCase":"G04","dimension":"NORMAL"}
+{"caseId":"G3-GOLDEN-0001:G04-N","event":"trace_completed","at":"2026-10-09T12:52:36.545Z","startedAt":"2026-10-09T12:52:35.801Z","durationMs":744,"result":"FAIL","pass":false}

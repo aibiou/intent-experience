@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G05-NEG","event":"trace_started","at":"2026-10-09T13:32:15.982Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G05 Negative（in-flight generation / stale response 必测维度）；S1-10 Critical（旧 operation 不得提交，STALE_GENERATION）","goldenCase":"G05","dimension":"NEGATIVE"}
+{"caseId":"G3-GOLDEN-0001:G05-NEG","event":"trace_completed","at":"2026-10-09T13:32:16.397Z","startedAt":"2026-10-09T13:32:15.982Z","durationMs":415,"result":"PASS","pass":true}

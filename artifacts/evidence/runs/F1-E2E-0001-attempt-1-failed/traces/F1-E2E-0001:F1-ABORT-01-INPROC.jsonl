@@ -1,0 +1,3 @@
+{"caseId":"F1-E2E-0001:F1-ABORT-01-INPROC","event":"trace_started","at":"2026-10-08T14:19:54.151Z","form":"in-process","sourceClause":"P3-S1-REVIEW-005 F-1（AbortSignal 取消传播）；E5 §5 必测维度（故障条件：取消）；C2 State Machine（生成终止不产生半状态）"}
+{"caseId":"F1-E2E-0001:F1-ABORT-01-INPROC","event":"abort-observed","at":"2026-10-08T14:19:54.348Z","form":"in-process","receivedChunks":0,"abortError":"TypeError"}
+{"caseId":"F1-E2E-0001:F1-ABORT-01-INPROC","event":"trace_completed","at":"2026-10-08T14:19:54.350Z","startedAt":"2026-10-08T14:19:54.151Z","durationMs":199,"result":"FAIL","pass":false}

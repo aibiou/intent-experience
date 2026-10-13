@@ -1,0 +1,2 @@
+{"caseId":"S2A-F2-0001:COMPLETION","event":"trace_started","at":"2026-10-09T07:47:49.027Z","form":"inprocess","sourceClause":"S2A-F2-SEMANTIC-FREEZE-01 §2 D-05 + §4 变更 2；08 §27（完成信号词表）；13 §22/§23.2（完成语义：立即结束，不自动推荐/继续）","servers":[]}
+{"caseId":"S2A-F2-0001:COMPLETION","event":"trace_completed","at":"2026-10-09T07:47:50.520Z","startedAt":"2026-10-09T07:47:49.027Z","durationMs":1493,"result":"PASS","pass":true}

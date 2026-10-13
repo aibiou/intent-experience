@@ -1,0 +1,346 @@
+{
+  "runId": "OBL02-LATENCY-0001",
+  "recordedAt": "2026-10-09T10:41:09.194Z",
+  "executor": {
+    "executedBy": "工程负责人角色（代理，Codex）",
+    "independentEvaluator": "独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）"
+  },
+  "obligation": "OBL-02 延迟测量执行（G5 第 9 项 DEFERRED 遗留条件的执行履行；decision-register 后续切片义务跟踪表 OBL-02）",
+  "authorization": "OBL-02-LATENCY-METHOD-01 v1.0.0（产品负责人 2026-10-09 按 E3 批准；批准范围仅测量方法——分层与样本窗口纪律，不含统计阈值）",
+  "method": {
+    "id": "OBL-02-LATENCY-METHOD-01",
+    "version": "1.0.0",
+    "status": "APPROVED",
+    "approver": "产品负责人（用户本人，PD-15）",
+    "approvedAt": "2026-10-09",
+    "source": "docs/product/baseline/obl-02-latency-measurement-method-v1.md"
+  },
+  "window": {
+    "startedAt": "2026-10-09T10:41:09.194Z",
+    "finishedAt": "2026-10-09T10:45:26.624Z",
+    "durationMs": 257425,
+    "rule": "方法 §5：连续执行窗口（单次证据运行内的连续提交序列）；同一窗口内不切换运行时版本（typecheck / build / 测量执行同一 git HEAD）"
+  },
+  "code": {
+    "gitHead": "d87285fd0f47dc56f94696b6d12cf06ae3525261",
+    "workTreeClean": false,
+    "uncommittedEntries": [
+      "M tools/evidence/package.json",
+      "?? artifacts/evidence/runs/OBL02-LATENCY-0001/",
+      "?? tools/evidence/src/obl02.mjs"
+    ],
+    "typecheckExitCode": 0,
+    "buildExitCode": 0,
+    "runtimeFiles": {
+      "audit.ts": "1da20af50e24cde6e4638a78f22e05ec847fa153c0a4655b86134474291ddf0b",
+      "chunks.ts": "733a16552bc0fdd120bd2e202ee17de26078307f9c79821fe2599f3915fc89ec",
+      "classifier.ts": "b4a1b008f0b258d882804f34b4f2dd2ffe73c5131b95c279b808fcc1419edbec",
+      "correction.ts": "72897fcf8b3d8a64ceb9d6600a228cd2c447f772cc79c2aa8e46ab63a9d4674c",
+      "creation.ts": "28f14267903c219cbcdfc98588c396c1fcc1506a9f3a59baee3183398548a5ca",
+      "decision-trace.ts": "6606aa6e01c100b0217bafd7b49810a174e3dd7cda36a15668ebf0b42506f0c8",
+      "events.ts": "a3ec7e38081eb5653536a8c758e462712802ea050772a226c40e9d0cfeafeefa",
+      "fixtures/change-direction.ts": "8db3861f3a0693492054d4aeb9d73ed42a3fb561bcc7f45ed8de0fc47ed6468a",
+      "fixtures/correction.ts": "27393524ebcb51cf2f26e32fa163e3c2a787f0cfe2cf9b11fc242dbe7db03f68",
+      "fixtures/create.ts": "e84eba657c582b8947d10988ed9389ab5eb56563f8d07de97ef7f81f486b7b99",
+      "fixtures/direct-answer.ts": "d2183d5f8fe5075540980462cf3774fba8fcc4c1f0740032654ba27331ed264c",
+      "fixtures/simulate.ts": "77d51cfad3fb9beef78a367e767b0eb3aea582f9a9d7a189f98468ad14d55643",
+      "fixtures/why.ts": "8e597e2d9c4082ee4a80e19557c82d3be54ed917f3dbfd68bb8a4752787757e0",
+      "http.ts": "d26961966a134880732b9ae22a9368c821ce6680fff2c1df4349d0a7f731b13d",
+      "llm-gateway.ts": "858dea8a666c6bed47142f39b32695418e88d564d54096b8373ed80f955a1601",
+      "policy.ts": "5793845f0e6041a11266c0a2f0bcf0cd0e015c065ed9477a38cca35db9fac616",
+      "runtime.ts": "76de676201d939384ebfc930c19568bffdb6249f3ce948006853f02d19969829",
+      "server-runtime.ts": "b6b3f83166d085e72013661915f2f79398f961081310bd35c5ad4d10412f5700",
+      "session.ts": "d7a21131bfb848730643ca7808e71a714e4a757e917cf1103f23c549d68589ae",
+      "simulation.ts": "507cd3a6010a1edb193279f1be03ff2c1c9bd31d1ad9b382e8ab88ecfd46a2a6",
+      "state-machine.ts": "79a5cba41afcd6c9288e903acc12400871a7c178330aaa3844f00c1235447da7",
+      "state-store.ts": "625f747f39f589c8d3d99bf00a61dd58a89c5876e9b21cd2c1f59a346189e863",
+      "stream.ts": "a2931765e29382e81f755be747a8dbb9097b94d3a42103a9d8ba87c988281010",
+      "validator.ts": "46850fea758853531f6687551b8f96280772c7fe4c019ac76559ec93fdc4646a"
+    }
+  },
+  "environment": {
+    "os": "Darwin 25.6.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": {
+      "model": "Apple M1",
+      "logicalProcessors": 8
+    },
+    "memory": {
+      "totalBytes": 8589934592
+    },
+    "node": "v24.21.0",
+    "nodeExecutable": "/Users/pg014/.nvm/versions/node/v24.21.0/bin/node",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "typescript": "7.0.2",
+    "note": "方法 §2：平台登记 OS / CPU / 内存；证据运行仅使用合成数据（ADR-0002 §3）；运行时 / 依赖 / 硬件变更须重新开窗（方法 §5）"
+  },
+  "model": {
+    "dimension": "N/A",
+    "reason": "方法 §3：当前仅合成网关（SyntheticLlmGateway）——模型维度登记为 N/A（synthetic）；真实提供方接入须另经产品决策与隐私六要素批准，接入后按提供方 / 模型标识 / 模型版本分层（跨模型评测责任链由角色 3 与角色 5 共签）"
+  },
+  "executionForms": [
+    {
+      "form": "in_process",
+      "description": "进程内证据形态：执行器直接构造 ExperienceRuntime（加载已提交 .ts 源字节）；事件经内存汇观测"
+    },
+    {
+      "form": "http",
+      "description": "HTTP 形态：Next.js 生产服务器路由端到端（next start；POST /api/experience/{experienceId}/event，application/x-ndjson）"
+    }
+  ],
+  "requestCategories": [
+    {
+      "semanticAction": "DIRECT_ANSWER",
+      "expectedPolicyAction": "ANSWER",
+      "measuredInput": "直接告诉我答案",
+      "intentInput": "直接告诉我答案",
+      "setupPath": "启动链（意图输入即类别意图）后直接测量",
+      "forms": [
+        "in_process",
+        "http"
+      ],
+      "samplesPerForm": 30
+    },
+    {
+      "semanticAction": "WHY",
+      "expectedPolicyAction": "EXPLAIN",
+      "measuredInput": "为什么？",
+      "intentInput": "为什么",
+      "setupPath": "启动链（意图输入即类别意图）后直接测量",
+      "forms": [
+        "in_process",
+        "http"
+      ],
+      "samplesPerForm": 30
+    },
+    {
+      "semanticAction": "WHAT_IF",
+      "expectedPolicyAction": "SIMULATE",
+      "measuredInput": "如果世界突然失去摩擦力会怎样",
+      "intentInput": "如果世界突然失去摩擦力会怎样",
+      "setupPath": "启动链（意图输入即类别意图）后直接测量",
+      "forms": [
+        "in_process",
+        "http"
+      ],
+      "samplesPerForm": 30
+    },
+    {
+      "semanticAction": "CHANGE_DIRECTION",
+      "expectedPolicyAction": "CHANGE_EXPERIENCE",
+      "measuredInput": "换个话题",
+      "intentInput": "换个话题",
+      "setupPath": "启动链（意图输入即类别意图）后直接测量",
+      "forms": [
+        "in_process",
+        "http"
+      ],
+      "samplesPerForm": 30
+    },
+    {
+      "semanticAction": "STOP",
+      "expectedPolicyAction": "STOP",
+      "measuredInput": "停止",
+      "intentInput": "直接告诉我答案",
+      "setupPath": "启动链 + 一次 DIRECT_ANSWER 预提交（建立合法状态）",
+      "forms": [
+        "in_process",
+        "http"
+      ],
+      "samplesPerForm": 30
+    },
+    {
+      "semanticAction": "CREATE",
+      "expectedPolicyAction": "CREATE",
+      "measuredInput": "做成一个小游戏",
+      "intentInput": "为什么",
+      "setupPath": "启动链 + 一次 WHY 预提交（建立合法状态）",
+      "forms": [
+        "in_process",
+        "http"
+      ],
+      "samplesPerForm": 30
+    },
+    {
+      "semanticAction": "CORRECTION",
+      "expectedPolicyAction": "EXPLAIN",
+      "measuredInput": "修改这个",
+      "intentInput": "为什么",
+      "setupPath": "启动链 + 一次 WHY 预提交（建立合法状态）",
+      "forms": [
+        "in_process",
+        "http"
+      ],
+      "samplesPerForm": 30
+    }
+  ],
+  "paths": [
+    {
+      "path": "normal",
+      "description": "正常路径（方法 §4 路径维度之一）"
+    },
+    {
+      "path": "fault_recovery",
+      "description": "方法 §1/§4：故障恢复路径单列（LLM_UNAVAILABLE → 健康重试完成），不与正常路径混合；代表类别 DIRECT_ANSWER（首个探索动作）"
+    }
+  ],
+  "sampleDiscipline": {
+    "rule": "方法 §5：每类别每形态 ≥ 30 次提交方可计算参考统计量；低于该量仅登记原始值。样本量为方法学建议，非验收阈值",
+    "targetPerStratum": 30,
+    "achieved": {
+      "inproc_direct_answer": 30,
+      "inproc_why": 30,
+      "inproc_what_if_simulate": 30,
+      "inproc_change_direction": 30,
+      "inproc_stop": 30,
+      "inproc_create": 30,
+      "inproc_correction": 30,
+      "http_direct_answer": 30,
+      "http_why": 30,
+      "http_what_if_simulate": 30,
+      "http_change_direction": 30,
+      "http_stop": 30,
+      "http_create": 30,
+      "http_correction": 30,
+      "inproc_fault_recovery": 30,
+      "http_fault_recovery": 30
+    },
+    "rawValuesRegistered": true,
+    "dataSource": "方法 §5：证据执行器 trace 时间戳（traces/<stratum>.jsonl，每样本一条 latency_sample，含 recordedAt ISO-8601）；HTTP 形态另经服务端事件汇（正常路径：logs/http-normal-events.jsonl；故障恢复：logs/fault-http-<n>-events.jsonl 每样本独立）"
+  },
+  "observationPoint": "进程内形态：流事件 yield 时刻（performance.now()）；HTTP 形态：NDJSON 行解析时刻（客户端观测）。分块间隔受事件循环与网络缓冲分辨率限制，登记为观测值而非提供方内部耗时",
+  "strata": {
+    "inproc_direct_answer": {
+      "form": "in_process",
+      "category": "direct_answer",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/inproc_direct_answer.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_INPROC_DIRECT_ANSWER.json"
+    },
+    "inproc_why": {
+      "form": "in_process",
+      "category": "why",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/inproc_why.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_INPROC_WHY.json"
+    },
+    "inproc_what_if_simulate": {
+      "form": "in_process",
+      "category": "what_if_simulate",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/inproc_what_if_simulate.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_INPROC_WHAT_IF_SIMULATE.json"
+    },
+    "inproc_change_direction": {
+      "form": "in_process",
+      "category": "change_direction",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/inproc_change_direction.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_INPROC_CHANGE_DIRECTION.json"
+    },
+    "inproc_stop": {
+      "form": "in_process",
+      "category": "stop",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/inproc_stop.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_INPROC_STOP.json"
+    },
+    "inproc_create": {
+      "form": "in_process",
+      "category": "create",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/inproc_create.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_INPROC_CREATE.json"
+    },
+    "inproc_correction": {
+      "form": "in_process",
+      "category": "correction",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/inproc_correction.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_INPROC_CORRECTION.json"
+    },
+    "http_direct_answer": {
+      "form": "http",
+      "category": "direct_answer",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/http_direct_answer.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_HTTP_DIRECT_ANSWER.json"
+    },
+    "http_why": {
+      "form": "http",
+      "category": "why",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/http_why.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_HTTP_WHY.json"
+    },
+    "http_what_if_simulate": {
+      "form": "http",
+      "category": "what_if_simulate",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/http_what_if_simulate.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_HTTP_WHAT_IF_SIMULATE.json"
+    },
+    "http_change_direction": {
+      "form": "http",
+      "category": "change_direction",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/http_change_direction.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_HTTP_CHANGE_DIRECTION.json"
+    },
+    "http_stop": {
+      "form": "http",
+      "category": "stop",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/http_stop.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_HTTP_STOP.json"
+    },
+    "http_create": {
+      "form": "http",
+      "category": "create",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/http_create.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_HTTP_CREATE.json"
+    },
+    "http_correction": {
+      "form": "http",
+      "category": "correction",
+      "path": "normal",
+      "sampleCount": 30,
+      "trace": "traces/http_correction.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_HTTP_CORRECTION.json"
+    },
+    "inproc_fault_recovery": {
+      "form": "in_process",
+      "category": "direct_answer",
+      "path": "fault_recovery",
+      "sampleCount": 30,
+      "trace": "traces/inproc_fault_recovery.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_INPROC_FAULT_RECOVERY.json"
+    },
+    "http_fault_recovery": {
+      "form": "http",
+      "category": "direct_answer",
+      "path": "fault_recovery",
+      "sampleCount": 30,
+      "trace": "traces/http_fault_recovery.jsonl",
+      "case": "cases/OBL02-LATENCY-0001_HTTP_FAULT_RECOVERY.json"
+    }
+  },
+  "disclosure": "内部参考值 / 参考统计量（方法 §5 样本纪律满足：每分层 ≥30 提交）——不构成任何延迟指标宣称（方法 §6）；无统计阈值（PB-03 / PD-08：无真实用户基线不编造阈值）；任何指标宣称须同时满足方法批准 + 样本纪律 + 形态/环境/类别分层注明；公开发布须另行满足 E3 统计 Gate（人群、观察窗口、分子/分母、数据源、阈值、批准人）。",
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置 G5 或任何产品 Gate 状态为 PASS（E5 §2）。G5 第 9 项（延迟结果）是否关闭由独立评测人（角色 5）经逐项裁决作出。"
+}

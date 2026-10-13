@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G06-FR","event":"trace_started","at":"2026-10-09T12:57:58.089Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G06 Failure/Recovery；CC02 H02（生成中客户端中止；取消的 generation 不提交）","goldenCase":"G06","dimension":"FAILURE_RECOVERY"}
+{"caseId":"G3-GOLDEN-0001:G06-FR","event":"trace_completed","at":"2026-10-09T12:57:58.134Z","startedAt":"2026-10-09T12:57:58.088Z","durationMs":46,"result":"PASS","pass":true}

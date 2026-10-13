@@ -1,0 +1,225 @@
+{
+  "caseIdNamespace": "S2A-F3-0001:MODIFY-ALIAS",
+  "sourceClause": "P3-S2-IMPL-AUTH-01 v1.2.0 §2(2)；S2A-F3-SEMANTIC-FREEZE-01 v1.0.0 §3 变更 1；C05.2 动作表（MODIFY = \"用户要求修改已有结果\"）；08 §10 修改类型族",
+  "scope": "MODIFY 别名登记：MODIFY 词表分类为 CORRECTION 用户面别名（静态分类断言 + 非创作会话完整重评估链路）；优先级层不变",
+  "precondition": "进程内形态（默认合成网关）；每案例独立 ExperienceRuntime 与内存汇；静态分类断言直接调用已提交分类器",
+  "inputFault": "MODIFY 族输入（\"修改这个\" / \"调整一下\"）+ 优先级混合输入（\"好了，修改这个\" / \"换个方向，修改这个\"）",
+  "expected": {
+    "aliasRegistration": "MODIFY 词表（08 §10 修改类型族）分类为 CORRECTION 用户面别名；RESTORE 词表分类为 CORRECTION 恢复子型（correctionIntent=restore）；原生否定族不变；S2b 保留输入（\"简单一点\"）仍 UNKNOWN；创作 ADD 族（\"再加两个障碍\"）仍 UNKNOWN；优先级层不变（STOP / CHANGE_DIRECTION 先判）",
+    "chain": "MODIFY 别名输入在非创作会话走通用 CORRECTION 完整链路：correction_requested（semantic_action=CORRECTION）→ experience_interrupted（reason=correction, old_generation_rejected=true）→ generation / llm_request / llm_output_validated → state_transitioned(event=CORRECTION) → 版本化提交（v5）→ 流完成（v6）→ correction_applied（correction_target=current_candidate, correction_summary=输入, corrected_candidate_id=提案 ID, semantic_action=CORRECTION）",
+    "invariants": "策略决策 EXPLAIN（重评估落到合法 Policy Action）；决策追踪 reason=reassess, llm_used=true, policy_version=policy_v1.3.0；终态 WAITING/UNDERSTANDING v6（阶段保持）"
+  },
+  "actual": {
+    "aliasFacts": [
+      {
+        "input": "修改这个",
+        "family": "MODIFY tune 族（/修改/）",
+        "expected": "CORRECTION",
+        "actual": "CORRECTION",
+        "expectedRestoreIntent": false,
+        "actualRestoreIntent": null,
+        "pass": true
+      },
+      {
+        "input": "调整一下",
+        "family": "MODIFY tune 族（/调整/）",
+        "expected": "CORRECTION",
+        "actual": "CORRECTION",
+        "expectedRestoreIntent": false,
+        "actualRestoreIntent": null,
+        "pass": true
+      },
+      {
+        "input": "把出口放远一点",
+        "family": "MODIFY tune 族（/放远/）",
+        "expected": "CORRECTION",
+        "actual": "CORRECTION",
+        "expectedRestoreIntent": false,
+        "actualRestoreIntent": null,
+        "pass": true
+      },
+      {
+        "input": "太难了",
+        "family": "MODIFY rebalance 族（/太难/）",
+        "expected": "CORRECTION",
+        "actual": "CORRECTION",
+        "expectedRestoreIntent": false,
+        "actualRestoreIntent": null,
+        "pass": true
+      },
+      {
+        "input": "做得更有科幻感",
+        "family": "MODIFY restyle 族（/更有…感/）",
+        "expected": "CORRECTION",
+        "actual": "CORRECTION",
+        "expectedRestoreIntent": false,
+        "actualRestoreIntent": null,
+        "pass": true
+      },
+      {
+        "input": "换成文本模式",
+        "family": "MODIFY replace 族（/换成/）",
+        "expected": "CORRECTION",
+        "actual": "CORRECTION",
+        "expectedRestoreIntent": false,
+        "actualRestoreIntent": null,
+        "pass": true
+      },
+      {
+        "input": "把主角改名为英雄",
+        "family": "MODIFY rename 族（/改名为/）",
+        "expected": "CORRECTION",
+        "actual": "CORRECTION",
+        "expectedRestoreIntent": false,
+        "actualRestoreIntent": null,
+        "pass": true
+      },
+      {
+        "input": "刚才那个更好",
+        "family": "RESTORE 子型（08 §28）",
+        "expected": "CORRECTION",
+        "actual": "CORRECTION",
+        "expectedRestoreIntent": true,
+        "actualRestoreIntent": "restore",
+        "pass": true
+      },
+      {
+        "input": "退回刚才那个",
+        "family": "RESTORE 子型（08 §28）",
+        "expected": "CORRECTION",
+        "actual": "CORRECTION",
+        "expectedRestoreIntent": true,
+        "actualRestoreIntent": "restore",
+        "pass": true
+      },
+      {
+        "input": "撤销刚才修改",
+        "family": "RESTORE 子型（08 §28）",
+        "expected": "CORRECTION",
+        "actual": "CORRECTION",
+        "expectedRestoreIntent": true,
+        "actualRestoreIntent": "restore",
+        "pass": true
+      },
+      {
+        "input": "不是",
+        "family": "原生否定纠正族（PD-21）",
+        "expected": "CORRECTION",
+        "actual": "CORRECTION",
+        "expectedRestoreIntent": false,
+        "actualRestoreIntent": null,
+        "pass": true
+      },
+      {
+        "input": "简单一点",
+        "family": "S2b 保留（SIMPLIFY；/太简单/ 要求\"太简单\"连写）",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN",
+        "expectedRestoreIntent": false,
+        "actualRestoreIntent": null,
+        "pass": true
+      },
+      {
+        "input": "再加两个障碍",
+        "family": "创作 ADD 族（通用分类器无模式——UNKNOWN 路由不变）",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN",
+        "expectedRestoreIntent": false,
+        "actualRestoreIntent": null,
+        "pass": true
+      }
+    ],
+    "aliasAllPass": true,
+    "priorityChecks": [
+      {
+        "input": "好了，修改这个",
+        "note": "P-01 STOP 永远优先于 MODIFY 别名",
+        "expected": "STOP",
+        "actual": "STOP",
+        "pass": true
+      },
+      {
+        "input": "换个方向，修改这个",
+        "note": "P-03 显式方向变更优先于 MODIFY 别名",
+        "expected": "CHANGE_DIRECTION",
+        "actual": "CHANGE_DIRECTION",
+        "pass": true
+      }
+    ],
+    "priorityAllPass": true,
+    "chain1": {
+      "ok": true,
+      "selectedAction": "EXPLAIN",
+      "policyVersion": "policy_v1.3.0",
+      "headerStateVersion": 5,
+      "correctionRequested": 1,
+      "correctionRequestedSemanticAction": "CORRECTION",
+      "correctionRequestedRawInput": "修改这个",
+      "interrupted": [
+        {
+          "reason": "correction",
+          "oldGenerationRejected": true
+        }
+      ],
+      "transitioned": [
+        {
+          "event": "EXPERIENCE_STARTED",
+          "action": "START_EXPERIENCE"
+        },
+        {
+          "event": "WHY",
+          "action": "EXPLAIN"
+        },
+        {
+          "event": "CORRECTION",
+          "action": "EXPLAIN"
+        }
+      ],
+      "correctionApplied": [
+        {
+          "correction_target": {
+            "kind": "current_candidate"
+          },
+          "correction_summary": "修改这个",
+          "corrected_candidate_id": "proposal_synthetic_0002",
+          "semantic_action": "CORRECTION"
+        }
+      ],
+      "finalState": "WAITING/UNDERSTANDING v6",
+      "decisionReason": "reassess",
+      "decisionLlmUsed": true,
+      "decisionPolicyVersion": "policy_v1.3.0"
+    },
+    "chain2": {
+      "ok": true,
+      "correctionApplied": 1,
+      "finalState": "WAITING/UNDERSTANDING v6"
+    }
+  },
+  "invariants": [
+    "S2a 范围边界（S2A-F3-SEMANTIC-FREEZE-01 §2）：MODIFY 登记为 CORRECTION 用户面别名（授权 §2(2)）；不新增顶层 SemanticAction / PolicyAction（PD-23 §5）；分类优先级层不变（STOP > CHANGE_DIRECTION > CORRECTION > CREATE > WHY > WHAT_IF > DIRECT_ANSWER）",
+    "创作会话路由保护（D-01 选项 A）：活跃创作会话内 CORRECTION 分类输入先经 RESTORE 预检（D-04 词表，创作版本 >1），再经创作修改族预检（复用 interpretCreationInput 词表族与 08 §16 冲突判据）——命中创作 ADD/REMOVE/MODIFY 族 → 创作解释（CREATE 伞形 + 补丁轮次，F-2 机制不变）；命中冲突判据 → ASK（至多一个澄清问题）；未命中 → 通用 CORRECTION 路径（F-2 变更 3 保持：重评估创作子状态，不推进子状态机）",
+    "纠正目标确定性派生（D-02 选项 A）：指代词表（刚才 / 那个 / 上一步 / 上一个 / 上一版 / 上一个版本 → 上一候选）+ 创作分量映射（TARGET_SYNONYMS 同义词表）+ 默认当前候选；无新增模型调用",
+    "G07 操作语义承载（D-03 选项 A）：创作域经 F-2 补丁机制承载（不重建）；非创作域经重评估候选替换（不重放会话历史——重评估仅替换被纠正候选）",
+    "RESTORE_PREVIOUS_VERSION（D-04 选项 A）：CORRECTION 用户面恢复子型，不新增轴触发器；创作域经创作存储回滚提交——版本单调 +1（S1-12 不变式：版本指针永不回退），新版本内容 = 目标历史版本内容，user_changes 登记 restore 条目（含恢复来源版本号）；非创作域经意图登记 + 重评估（decision-trace reason=restore_previous_version）",
+    "纠正域事件（D-05 选项 A）：correction_applied（correction_target / correction_summary / corrected_candidate_id / semantic_action=CORRECTION）与 correction_restored（restored_from_version / restored_to_version / creation_id / semantic_action=CORRECTION）；C6 §14 命名模式；事件为不可变权威事实（C6 §5）",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；创作修改 / 恢复轮次经 expectedCreationVersion 双重前置校验——陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12 同族）；失败写入不消耗任何版本号（OBL-01 纪律）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "纠正与在途生成互斥（旧候选拒绝，old_generation_rejected=true）；重评估链路：取消在途 generation → 拒绝旧候选 → LLM 提案纠正候选 → 验证 → 版本化提交",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）；创作修改 / 恢复轮次决策追踪 llm_used=false（确定性规则，非模型）",
+    "纠正不持久化跨会话（PD-07——纠正域事件均为会话内事实登记，无 memory 层事件）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/S2A-F3-0001:MODIFY-ALIAS.jsonl",
+    "traceSha256": "fc274612c337c2a7662ddfaa8c7d3a133761d99a446d1b07f8b4f8d0fffc3855",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

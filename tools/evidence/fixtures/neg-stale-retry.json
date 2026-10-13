@@ -1,0 +1,26 @@
+{
+  "caseId": "GS-05-NEG-STALE-RETRY",
+  "kind": "stale-write",
+  "title": "Stale Retry After Rejection（负向：拒绝后重试相同陈旧版本）",
+  "sourceClause": "CC02 stale-write cases；E5 §5 必测维度（stale state_version / 重复请求 / 重试）；acceptance-mapping §A GS-05 必需负向案例（旧版本重试）",
+  "scope": "S1 核心（负向 / 故障条件）",
+  "precondition": "fixture 状态存储初始化：version = 2；此前已有一次陈旧写入被拒绝（本案例内重放两次写入）",
+  "inputFault": "第一次写入携带 expected_state_version = 1 被拒绝后，重试携带相同陈旧 expected_state_version = 1",
+  "payload": { "topic": "e5-trial-fixture", "synthetic": true },
+  "writes": [
+    { "label": "stale-write-first", "expectedStateVersion": 1 },
+    { "label": "stale-write-retry", "expectedStateVersion": 1 }
+  ],
+  "expected": "两次写入均被拒绝（STATE_VERSION_CONFLICT）；状态仍为 version=2；两次拒绝均有审计记录（auditEntries = 2）；重试不得绕过版本检查",
+  "expectedOutcome": {
+    "finalStateVersion": 2,
+    "auditEntries": 2,
+    "statePreserved": true,
+    "allRejected": true
+  },
+  "invariants": [
+    "重复陈旧写入不得通过重试绕过版本检查",
+    "拒绝次数与 write_audit 记录一致",
+    "最新状态在重试后仍然保留"
+  ]
+}

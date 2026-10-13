@@ -1,0 +1,2 @@
+{"caseId":"S2A-F2-0001:ASK-BOUND","event":"trace_started","at":"2026-10-09T07:46:50.020Z","form":"inprocess","sourceClause":"S2A-F2-SEMANTIC-FREEZE-01 §4 变更 1；08 §16（冲突判据：至多一个澄清问题）","servers":[]}
+{"caseId":"S2A-F2-0001:ASK-BOUND","event":"trace_completed","at":"2026-10-09T07:46:50.778Z","startedAt":"2026-10-09T07:46:50.019Z","durationMs":759,"result":"FAIL","pass":false}

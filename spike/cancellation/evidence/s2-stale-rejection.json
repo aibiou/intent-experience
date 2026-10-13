@@ -1,0 +1,71 @@
+{
+  "name": "S-2 stale 响应拒绝",
+  "pass": true,
+  "criteria": [
+    {
+      "name": "正常写入被接受（gen-A：1→2）",
+      "pass": true
+    },
+    {
+      "name": "旧版本迟到写入 100% 拒绝（50/50）",
+      "pass": true
+    },
+    {
+      "name": "拒绝语义为 STATE_VERSION_CONFLICT",
+      "pass": true
+    },
+    {
+      "name": "未覆盖新状态（最终 version=2 且 payload 不变）",
+      "pass": true
+    },
+    {
+      "name": "拒绝路径全部可审计（audit 行数与字段完整，含 generation_id / 原版本 / 当前版本 / rejected_at）",
+      "pass": true
+    },
+    {
+      "name": "无自动合并 / 静默丢弃（拒绝均显式记录，无其他副作用行）",
+      "pass": true
+    }
+  ],
+  "sqliteVersion": "3.53.4",
+  "accepted": {
+    "accepted": true,
+    "newVersion": 2
+  },
+  "staleAttempts": 50,
+  "staleRejected": 50,
+  "finalRow": {
+    "id": 1,
+    "payload": "payload-v2",
+    "version": 2
+  },
+  "auditSample": [
+    {
+      "seq": 1,
+      "generation_id": "gen-B-late-0",
+      "original_state_version": 1,
+      "current_state_version": 2,
+      "stale_reason": "STATE_VERSION_CONFLICT",
+      "decision": "REJECTED",
+      "rejected_at": "2026-10-08T10:46:27.497Z"
+    },
+    {
+      "seq": 2,
+      "generation_id": "gen-B-late-1",
+      "original_state_version": 1,
+      "current_state_version": 2,
+      "stale_reason": "STATE_VERSION_CONFLICT",
+      "decision": "REJECTED",
+      "rejected_at": "2026-10-08T10:46:27.498Z"
+    },
+    {
+      "seq": 3,
+      "generation_id": "gen-B-late-2",
+      "original_state_version": 1,
+      "current_state_version": 2,
+      "stale_reason": "STATE_VERSION_CONFLICT",
+      "decision": "REJECTED",
+      "rejected_at": "2026-10-08T10:46:27.498Z"
+    }
+  ]
+}

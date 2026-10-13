@@ -1,0 +1,2 @@
+{"caseId":"S3-API-0001:STREAM-EXECUTION","event":"trace_started","at":"2026-10-10T04:57:29.711Z","form":"inprocess","sourceClause":"S3B-SEMANTIC-FREEZE-01 v1.0.0 §3 变更 4（D-3 选项 A——纯暴露层）；S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划；S1 §14（WHAT_IF → SIMULATE 映射不变）；S2A-F4-SEMANTIC-FREEZE-01 §2 D-03 选项 A（WHAT_IF 首轮自动 CREATE 分支）","servers":[]}
+{"caseId":"S3-API-0001:STREAM-EXECUTION","event":"trace_completed","at":"2026-10-10T04:57:30.435Z","startedAt":"2026-10-10T04:57:29.710Z","durationMs":725,"result":"PASS","pass":true}

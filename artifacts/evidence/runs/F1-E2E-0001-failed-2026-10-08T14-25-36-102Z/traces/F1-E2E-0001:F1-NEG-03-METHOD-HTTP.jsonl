@@ -1,0 +1,6 @@
+{"caseId":"F1-E2E-0001:F1-NEG-03-METHOD-HTTP","event":"trace_started","at":"2026-10-08T14:23:16.472Z","form":"http","sourceClause":"C5 API Contract V1（方法约束）；E5 §5 必测维度（负向案例）"}
+{"caseId":"F1-E2E-0001:F1-NEG-03-METHOD-HTTP","event":"request-completed","at":"2026-10-08T14:23:16.482Z","form":"http","status":405,"method":"GET"}
+{"caseId":"F1-E2E-0001:F1-NEG-03-METHOD-HTTP","event":"trace_completed","at":"2026-10-08T14:23:16.483Z","startedAt":"2026-10-08T14:23:16.472Z","durationMs":11,"result":"FAIL","pass":false}
+{"caseId":"F1-E2E-0001:F1-NEG-03-METHOD-HTTP","event":"trace_started","at":"2026-10-08T14:24:31.992Z","form":"http","sourceClause":"C5 API Contract V1（方法约束）；E5 §5 必测维度（负向案例）"}
+{"caseId":"F1-E2E-0001:F1-NEG-03-METHOD-HTTP","event":"request-completed","at":"2026-10-08T14:24:31.996Z","form":"http","status":405,"method":"GET"}
+{"caseId":"F1-E2E-0001:F1-NEG-03-METHOD-HTTP","event":"trace_completed","at":"2026-10-08T14:24:31.997Z","startedAt":"2026-10-08T14:24:31.992Z","durationMs":5,"result":"PASS","pass":true}

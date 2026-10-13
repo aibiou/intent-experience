@@ -1,0 +1,250 @@
+{
+  "runId": "S2B-0001",
+  "obligation": "P3-S2B-IMPL-AUTH-01 v1.0.0 §1/§2：S2b 体验动作扩展首批义务 G-1…G-4（S2B-SEMANTIC-FREEZE-01 v1.0.0 冻结文本实施：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 + SEARCH 内部能力 + First Experience 完整呈现）",
+  "startedAt": "2026-10-09T15:15:23.894Z",
+  "finishedAt": "2026-10-09T15:15:33.657Z",
+  "durationMs": 9758,
+  "cases": [
+    {
+      "caseId": "DIRECTIONAL-DEEPEN",
+      "result": "PASS"
+    },
+    {
+      "caseId": "DIRECTIONAL-SIMPLIFY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "DIRECTIONAL-REFRAME",
+      "result": "PASS"
+    },
+    {
+      "caseId": "ESCALATION-NEG",
+      "result": "PASS"
+    },
+    {
+      "caseId": "SEARCH-CAPABILITY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "FIRST-EXPERIENCE",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "PRIORITY-CHAIN",
+      "result": "PASS"
+    }
+  ],
+  "allCasesPass": false,
+  "assertions": [
+    {
+      "id": "A1",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + S2b 专项：policy_v2.0.0 变更 1–6 / state_machine_v1.5.0 变更 1–3 / frozenDecisions D-01…D-05 + 附列项 VERIFY + 黄金回归绑定）",
+      "passed": true,
+      "detail": {
+        "missingSections": [],
+        "frozenDecisionsComplete": true
+      }
+    },
+    {
+      "id": "A2",
+      "description": "环境锁定：engines.node === \"24.21.0\"（F-2 精确锁定）且执行于 Node v24.21.0；lockfileVersion 3",
+      "passed": true,
+      "detail": {
+        "engines": {
+          "node": "24.21.0"
+        },
+        "nodeVersion": "v24.21.0",
+        "lockfileVersion": 3
+      }
+    },
+    {
+      "id": "A3",
+      "description": "全部 7 案例记录齐备且 12 字段完整（E5 §4；7 执行；无 DEFERRED 登记——S2b 首批义务案例面五组全执行）",
+      "passed": false,
+      "detail": {
+        "recordFiles": 7,
+        "expected": 7,
+        "allCasesPass": false
+      }
+    },
+    {
+      "id": "A4",
+      "description": "全部 7 执行案例轨迹齐备且非空（trace_started + 案例事实 + trace_completed）",
+      "passed": true,
+      "detail": {
+        "traceFiles": 7,
+        "expected": 7
+      }
+    },
+    {
+      "id": "A5",
+      "description": "案例面覆盖：S2B-SEMANTIC-FREEZE-01 §5.2 五组案例面全覆盖且通过（正常路径×3 / 非创作会话升级负向 / SEARCH 内部能力 / First Experience 呈现 / 优先级链）",
+      "passed": false,
+      "detail": {
+        "surfaceCoverage": [
+          {
+            "group": "案例面 1（正常路径×3）",
+            "caseIds": [
+              "DIRECTIONAL-DEEPEN",
+              "DIRECTIONAL-SIMPLIFY",
+              "DIRECTIONAL-REFRAME"
+            ],
+            "complete": true
+          },
+          {
+            "group": "案例面 2（非创作会话升级负向）",
+            "caseIds": [
+              "ESCALATION-NEG"
+            ],
+            "complete": true
+          },
+          {
+            "group": "案例面 3（SEARCH 内部能力）",
+            "caseIds": [
+              "SEARCH-CAPABILITY"
+            ],
+            "complete": true
+          },
+          {
+            "group": "案例面 4（First Experience 呈现）",
+            "caseIds": [
+              "FIRST-EXPERIENCE"
+            ],
+            "complete": false
+          },
+          {
+            "group": "案例面 5（优先级链）",
+            "caseIds": [
+              "PRIORITY-CHAIN"
+            ],
+            "complete": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "A6",
+      "description": "DIRECTIONAL 正常路径：DEEPEN / SIMPLIFY / REFRAME 创作会话内顶层补丁操作——分类正确（词表识别）、policy_v2.0.0 恒等映射、reason=creation_modification、头状态 ACTIVE/CREATION v7、流内容逐字节等于各方向性语料、<action>_requested ×1、creation_patch_applied ×1（operation/target/change={direction}/creation_version=2）、CREATE 迁移 ×2、决策追踪 semantic_action + explicit_user_direction + llm_used=false、终态 WAITING/CREATION v8 + lastSemanticAction、创作版本 2 + user_changes 权威登记 + 结构逐字段保持",
+      "passed": true,
+      "detail": {
+        "deepen": true,
+        "simplify": true,
+        "reframe": true
+      }
+    },
+    {
+      "id": "A7",
+      "description": "ESCALATION-NEG：非创作会话方向性操作——三动作分类正确但执行升级拒绝（INVALID_ACTION——policy_v2.0.0 变更 5；C3 升级纪律，不静默执行未定义语义）；状态版本与视图零增量（拒绝先于任何写入——OBL-01）；零方向性事件、零 creation_patch_applied；创作对象不存在",
+      "passed": true,
+      "detail": {
+        "escalation": true
+      }
+    },
+    {
+      "id": "A8",
+      "description": "SEARCH-CAPABILITY：三面只读检索（read_only 恒真、相关性判定、非活跃创作对象面跳过）；VERIFY 类输入经既有 WHY / DIRECT_ANSWER 解释层路由（附列裁决区选项 A——无 VERIFY 语义动作）；WHY 路径端到端执行无副作用（零创作补丁 / 零记忆事件 / 零方向性事件）；只读不变式（事件汇与状态版本零增量）；静态边界（search.ts 无运行时 import / 无外部网络出口；runtime.ts 双生成路径集成 search_context）",
+      "passed": true,
+      "detail": {
+        "search": true
+      }
+    },
+    {
+      "id": "A9",
+      "description": "FIRST-EXPERIENCE：呈现模型结构（入口 3 步 / 六阶段含 BRANCH=SIMULATION 轴映射 / 完成 3 步 / 退出 2 步 / 中断 3 步——E2 §5/§6/§7 冻结面）；视图→呈现阶段映射（含 BRANCH Simulation 呈现面区分）；默认查询 CURIOSITY；生命周期游走六阶段全路径（ENTERING/CURIOSITY v2 → WAITING/UNDERSTANDING v4 → WAITING/SIMULATION v6 → WAITING/CREATION v8 → WAITING/CREATION v10 → COMPLETED/COMPLETION v12；STOP 完成路径登记创作 active=false）",
+      "passed": false,
+      "detail": {
+        "presentation": false
+      }
+    },
+    {
+      "id": "A10",
+      "description": "PRIORITY-CHAIN：冻结优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER——分类器碰撞核验 8 组全通过（STOP 压倒 DEEPEN / CHANGE_DIRECTION 压倒 REFRAME / CREATE 压倒 DEEPEN / 方向性操作压倒 WHY / \"换角度\"不落入 CHANGE_DIRECTION / 基线 WHY 链尾序不变）；运行时证明：创作会话内\"好了再深入一点\"经 STOP 执行路径完成（COMPLETED/COMPLETION + creation_completed ×1 + 零 creation_patch_applied——STOP 优先于 DEEPEN 于运行时成立）",
+      "passed": true,
+      "detail": {
+        "priorityChain": true
+      }
+    },
+    {
+      "id": "A11",
+      "description": "黄金回归绑定：G3-GOLDEN-0001 在 policy_v2.0.0 / state_machine_v1.5.0 通过（36/36 案例、全部断言、退出码 0）——本运行动态证据的回归基线（S2b 案例已纳入 G3-GOLDEN-0001 回归基准，freeze §5.3）",
+      "passed": true,
+      "detail": {
+        "goldenExitCode": 0,
+        "goldenCases": 36,
+        "goldenAllPass": true,
+        "goldenPolicy": "policy_v2.0.0（S2b 版本化变更）",
+        "goldenStateMachine": "state_machine_v1.5.0"
+      }
+    },
+    {
+      "id": "A12",
+      "description": "案例记录形式校验：E5 §4 12 字段结构校验器逐案例通过；全部案例经进程内形态执行（无 HTTP 服务器）",
+      "passed": true,
+      "detail": {
+        "recordValidations": [
+          {
+            "caseId": "DIRECTIONAL-DEEPEN",
+            "valid": true
+          },
+          {
+            "caseId": "DIRECTIONAL-SIMPLIFY",
+            "valid": true
+          },
+          {
+            "caseId": "DIRECTIONAL-REFRAME",
+            "valid": true
+          },
+          {
+            "caseId": "ESCALATION-NEG",
+            "valid": true
+          },
+          {
+            "caseId": "SEARCH-CAPABILITY",
+            "valid": true
+          },
+          {
+            "caseId": "FIRST-EXPERIENCE",
+            "valid": true
+          },
+          {
+            "caseId": "PRIORITY-CHAIN",
+            "valid": true
+          }
+        ],
+        "forms": [
+          "in-process",
+          "in-process",
+          "in-process",
+          "in-process",
+          "in-process",
+          "in-process",
+          "in-process"
+        ]
+      }
+    },
+    {
+      "id": "A13-PREFLIGHT",
+      "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配（失败为 FATAL，不计入断言池）",
+      "passed": true,
+      "detail": {
+        "typecheckExitCode": 0,
+        "buildExitCode": 0,
+        "referenceVerified": "36/36",
+        "fingerprintsAllMatch": true
+      }
+    },
+    {
+      "id": "A14",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
+      "passed": true,
+      "detail": {
+        "verified": 16,
+        "failed": []
+      }
+    }
+  ],
+  "allAssertionsPass": false,
+  "allPassed": false,
+  "exitCode": 1,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2/G3/G4/G8）或产品状态为 PASS（E5 §2）。S2b 证据本运行已执行；G5 独立评测 NOT RUN（独立评测人须先审阅本运行 staged 材料）；G3 Gate 判定属独立评测人逐项裁决。"
+}

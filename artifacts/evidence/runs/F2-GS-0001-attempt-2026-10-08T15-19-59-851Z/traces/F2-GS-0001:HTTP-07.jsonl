@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:HTTP-07","event":"trace_started","at":"2026-10-08T15:18:11.713Z","form":"http","sourceClause":"API §11.3 Semantic validation；运行时语义校验（客户端不得注入策略动作）"}
+{"caseId":"F2-GS-0001:HTTP-07","event":"trace_completed","at":"2026-10-08T15:18:11.728Z","startedAt":"2026-10-08T15:18:11.713Z","durationMs":15,"result":"PASS","pass":true}

@@ -1,0 +1,2 @@
+{"caseId":"S2A-F3-0001:INPROC-REGRESSION","event":"trace_started","at":"2026-10-09T09:10:38.409Z","form":"inprocess","sourceClause":"S2A-F3-SEMANTIC-FREEZE-01 §5（S2A-F3-INPROC-REGRESSION 案例大纲）；G2 跨契约一致性；C6 §7（信封）/§25（sequence 单调）","servers":[]}
+{"caseId":"S2A-F3-0001:INPROC-REGRESSION","event":"trace_completed","at":"2026-10-09T09:10:40.188Z","startedAt":"2026-10-09T09:10:38.408Z","durationMs":1780,"result":"PASS","pass":true}

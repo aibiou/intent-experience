@@ -1,0 +1,3 @@
+{"caseId":"S4A-F1-0001:CONTINUE-RUNTIME","event":"trace_started","at":"2026-10-10T07:53:34.397Z","form":"in-process","sourceClause":"S4A-SEMANTIC-FREEZE-01 v1.0.0 §1 D-1 + §4 不变式；policy_v2.3.0 变更 1–3","servers":[]}
+{"caseId":"S4A-F1-0001:CONTINUE-RUNTIME","event":"case-fact","at":"2026-10-10T07:53:34.809Z","stateVersionBefore":4,"stateVersionFinal":4,"continueRounds":2}
+{"caseId":"S4A-F1-0001:CONTINUE-RUNTIME","event":"trace_completed","at":"2026-10-10T07:53:34.812Z","startedAt":"2026-10-10T07:53:34.397Z","durationMs":415,"result":"PASS","pass":true}

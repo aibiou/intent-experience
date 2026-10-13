@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G01-B","event":"trace_started","at":"2026-10-09T07:39:02.342Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G01 Boundary；S1-05 分类确定性（相邻输入变体与重复分类）","goldenCase":"G01","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G01-B","event":"trace_completed","at":"2026-10-09T07:39:02.349Z","startedAt":"2026-10-09T07:39:02.342Z","durationMs":7,"result":"PASS","pass":true}

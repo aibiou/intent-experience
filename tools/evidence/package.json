@@ -1,0 +1,28 @@
+{
+  "name": "intent-experience-evidence-tooling",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "E5 evidence pipeline executor (scoped license E5-SCOPED-LICENSE-01, PD-17 option A). Zero external dependencies: Node built-ins only.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "trial": "node src/trial.mjs",
+    "f1": "node src/f1.mjs",
+    "f2": "node src/f2.mjs",
+    "f3": "node src/f3.mjs",
+    "golden": "node src/golden.mjs",
+    "s2a-f1": "node src/s2a-f1.mjs",
+    "s2a-f2": "node src/s2a-f2.mjs",
+    "s2a-f3": "node src/s2a-f3.mjs",
+    "s2a-f4": "node src/s2a-f4.mjs",
+    "s2a-f5": "node src/s2a-f5.mjs",
+    "s2b": "node src/s2b.mjs",
+    "s5b-f1": "node src/s5b-f1.mjs",
+    "s4a-f1": "node src/s4a-f1.mjs",
+    "s3-api": "node src/s3-api.mjs",
+    "obl02": "node src/obl02.mjs"
+  }
+}

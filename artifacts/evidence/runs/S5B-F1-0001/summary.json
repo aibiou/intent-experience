@@ -1,0 +1,191 @@
+{
+  "runId": "S5B-F1-0001",
+  "obligation": "S5B-CONFIG-SURFACE-PROPOSAL-01 v1.0.0 裁决选项 A（产品负责人指令 2026-10-10 全项 A，standing authorization）：页面配置面——提供方配置持久化（API key 页面添加、AES-256-GCM 静态加密）+ D-5 隐私再确认 + 运行期委托网关（启用 / 禁用即时生效）",
+  "startedAt": "2026-10-10T10:26:55.626Z",
+  "finishedAt": "2026-10-10T10:26:58.412Z",
+  "durationMs": 2785,
+  "cases": [
+    {
+      "caseId": "CREATE-NORMAL",
+      "result": "PASS"
+    },
+    {
+      "caseId": "CREATE-UNREGISTERED",
+      "result": "PASS"
+    },
+    {
+      "caseId": "CREATE-MISSING-FIELDS",
+      "result": "PASS"
+    },
+    {
+      "caseId": "KEY-SEPARATION",
+      "result": "PASS"
+    },
+    {
+      "caseId": "CONFIRM-GENERIC-TEMPLATE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "ENABLE-BEFORE-CONFIRM",
+      "result": "PASS"
+    },
+    {
+      "caseId": "ENABLE-DECRYPT-SINGLE-ACTIVE",
+      "result": "PASS"
+    },
+    {
+      "caseId": "DISABLE-FALLBACK",
+      "result": "PASS"
+    },
+    {
+      "caseId": "DELETE-CORRUPT-NOTFOUND",
+      "result": "PASS"
+    },
+    {
+      "caseId": "CIPHERTEXT-TAMPER",
+      "result": "PASS"
+    },
+    {
+      "caseId": "READ-NO-KEY-LEAK",
+      "result": "PASS"
+    },
+    {
+      "caseId": "RUNTIME-PRIORITY",
+      "result": "PASS"
+    },
+    {
+      "caseId": "PROVIDER-REGISTRY",
+      "result": "PASS"
+    }
+  ],
+  "allCasesPass": true,
+  "assertions": [
+    {
+      "id": "A1",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段——S5B-F1-0001 形态；含 obligationTraceability：S5B → 案例 / 断言映射；frozenDecisions：D-1…D-5 裁决文本引用）",
+      "passed": true,
+      "detail": {
+        "form": "S5B-F1-0001"
+      }
+    },
+    {
+      "id": "A2",
+      "description": "环境锁定：engines.node === \"24.21.0\"（F-2 精确锁定）且执行于 Node v24.21.0；lockfileVersion 3",
+      "passed": true,
+      "detail": {
+        "engines": {
+          "node": "24.21.0"
+        },
+        "nodeVersion": "v24.21.0",
+        "lockfileVersion": 3
+      }
+    },
+    {
+      "id": "A3",
+      "description": "全部 13 案例记录齐备且 12 字段完整（E5 §4；维度覆盖：NORMAL 6 / NEGATIVE 3 / BOUNDARY 2 / FAILURE_RECOVERY 2）",
+      "passed": true,
+      "detail": {
+        "cases": 13,
+        "validRecords": 13
+      }
+    },
+    {
+      "id": "A4",
+      "description": "全部 13 执行案例轨迹齐备且非空（trace_started + 案例事实 + trace_completed）",
+      "passed": true,
+      "detail": {
+        "traces": 13
+      }
+    },
+    {
+      "id": "A5",
+      "description": "静态加密不变式：API key 明文零落盘——扫描 43 个持久化 / 证据文件，0 命中（案例临时目录 + 本运行证据目录）",
+      "passed": true,
+      "detail": {
+        "filesScanned": 43,
+        "plaintextHits": 0
+      }
+    },
+    {
+      "id": "A6",
+      "description": "密钥分离不变式：运行期加密密钥（环境变量注入）零出现于任何持久化 / 证据文件——扫描命中 0（密钥与密文分离的独立验证）",
+      "passed": true,
+      "detail": {
+        "filesScanned": 43,
+        "encryptionKeyHits": 0
+      }
+    },
+    {
+      "id": "A7",
+      "description": "model-agnostic 静态边界：配置存储与全部配置面 API 路由源码无提供方字面量（提供方身份仅经 PROVIDER_PROFILES 规则族登记——用户经页面选择，产品代码不写死任何提供方）",
+      "passed": true,
+      "detail": {
+        "configStoreLiteralCount": 0,
+        "routeLiteralHits": []
+      }
+    },
+    {
+      "id": "A8",
+      "description": "D-5 隐私再确认通用模板：CONFIRMATION_TEMPLATE === \"PRIVACY-RECONFIRM-GENERIC/V1\"（提供方名称于签署时填写——不写死任何提供方）；确认人双重身份常量存在",
+      "passed": true,
+      "detail": {
+        "templateLiteralOk": true,
+        "confirmerLiteralOk": true
+      }
+    },
+    {
+      "id": "A9",
+      "description": "运行时优先级字节序：证据注入缝 > 页面持久化配置 > 环境变量 LLM 模式 > 合成默认（resolveServerGateway 函数体内静态字节序验证；动态委托输入契约见 RUNTIME-PRIORITY 案例）",
+      "passed": true,
+      "detail": {
+        "indexes": {
+          "seam": 110,
+          "persisted": 208,
+          "env": 322,
+          "fallback": 532
+        }
+      }
+    },
+    {
+      "id": "A10",
+      "description": "回归基线绑定：G3-GOLDEN-0001 当前汇总 48/48 案例全过（exitCode 0，policy_v2.3.0 / state_machine_v1.5.0）；S2B-0001 当前汇总 7/7 案例全过——S5B 为基础设施切片，零策略 / 状态机 / 事件契约变更",
+      "passed": true,
+      "detail": {
+        "golden": {
+          "exitCode": 0,
+          "cases": 48,
+          "allPass": true
+        },
+        "s2b": {
+          "exitCode": 0,
+          "cases": 7,
+          "allPass": true
+        }
+      }
+    },
+    {
+      "id": "A11",
+      "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配（失败为 FATAL，不计入断言池）",
+      "passed": true,
+      "detail": {
+        "typecheckExitCode": 0,
+        "buildExitCode": 0,
+        "referenceVerified": "36/36",
+        "fingerprintsAllMatch": true
+      }
+    },
+    {
+      "id": "A12",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
+      "passed": true,
+      "detail": {
+        "verified": 28,
+        "failed": 0
+      }
+    }
+  ],
+  "allAssertionsPass": true,
+  "allPassed": true,
+  "exitCode": 0,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2/G3/G4/G8）或产品状态为 PASS（E5 §2）。S5B 证据本运行已执行；G5 独立评测 NOT RUN（独立评测人须先审阅本运行 staged 材料）；真实 LLM 提供方接入（S5A-F1-0001）须用户添加真实 key 并首次签署 D-5 后执行。"
+}

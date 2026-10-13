@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:GS-02-POS","event":"trace_started","at":"2026-10-08T15:18:01.947Z","form":"in-process","sourceClause":"S1 §26 GS-02；Evaluation System V1 G02 Why；API V1 Case 02"}
+{"caseId":"F2-GS-0001:GS-02-POS","event":"trace_completed","at":"2026-10-08T15:18:02.332Z","startedAt":"2026-10-08T15:18:01.947Z","durationMs":385,"result":"PASS","pass":true}

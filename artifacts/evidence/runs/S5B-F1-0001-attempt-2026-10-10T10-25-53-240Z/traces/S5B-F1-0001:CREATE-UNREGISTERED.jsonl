@@ -1,0 +1,3 @@
+{"caseId":"S5B-F1-0001:CREATE-UNREGISTERED","event":"trace_started","at":"2026-10-10T10:24:54.683Z","form":"in-process","sourceClause":"S5A-SEMANTIC-FREEZE-01 §1 D-2；config-store.ts PROVIDER_NOT_REGISTERED","servers":[]}
+{"caseId":"S5B-F1-0001:CREATE-UNREGISTERED","event":"executor-error","at":"2026-10-10T10:24:54.685Z","error":"SyntaxError [ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX]: TypeScript parameter property is not supported in strip-only mode"}
+{"caseId":"S5B-F1-0001:CREATE-UNREGISTERED","event":"trace_completed","at":"2026-10-10T10:24:54.685Z","startedAt":"2026-10-10T10:24:54.683Z","durationMs":2,"result":"FAIL","pass":false}

@@ -1,0 +1,2 @@
+{"caseId":"S2A-F2-0001:INPROC-REGRESSION","event":"trace_started","at":"2026-10-09T07:47:53.522Z","form":"inprocess","sourceClause":"P3-S2-IMPL-AUTH-01 v1.2.0 §2/§6；G2 动态跨契约一致性；C6 §7（信封）/§25（sequence 单调）；S2A-F2-SEMANTIC-FREEZE-01 §4（policy_v1.2.0）","servers":[]}
+{"caseId":"S2A-F2-0001:INPROC-REGRESSION","event":"trace_completed","at":"2026-10-09T07:47:54.642Z","startedAt":"2026-10-09T07:47:53.522Z","durationMs":1120,"result":"PASS","pass":true}

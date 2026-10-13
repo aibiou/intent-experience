@@ -1,0 +1,79 @@
+{
+  "caseIdNamespace": "S2A-F4-0001:SEPARATION",
+  "sourceClause": "S2A-F4-SEMANTIC-FREEZE-01 §2 D-05 选项 A（四元分离事件记录）；E8-G2-CC07（假设 / 事实 / 模拟结果分离不变）；E2 Stage 3；C6 §14（命名模式 <domain>_<past_participle>）",
+  "scope": "每轮模拟结果四元分离断言：simulation_recorded properties 含 fact / inference / hypothesis / simulation 四元字段；fact = 语料事实分段（非全文——模拟结果不表现为事实）；simulation = 完整提案语料；separation_invariant 互斥注记；快照与事件逐字段一致",
+  "precondition": "WHAT_IF 意图链已建立；两轮模拟完成",
+  "inputFault": "WHAT_IF 洁净输入两轮（语料分离格式：事实——/推断——/假设——标记）",
+  "expected": {
+    "separation": "每轮 simulation_recorded 事件 properties 含 fact / inference / hypothesis / simulation 四元字段（E8-G2-CC07 字段化承载——D-05 选项 A）",
+    "factSection": "fact 字段 = 语料\"事实——\"与\"推断——\"之间分段（非全文——模拟结果不表现为事实）",
+    "simulationField": "simulation 字段 = 完整模拟提案语料（含 事实——/推断——/假设—— 标记——内容语料分离格式双重保证）",
+    "invariant": "separation_invariant=simulation_result_is_not_fact（事件 schema 互斥注记）",
+    "snapshotConsistency": "模拟域快照 separation 与事件 properties 逐字段一致（事件为不可变权威事实——C6 §5）"
+  },
+  "actual": {
+    "rounds": [
+      {
+        "round": 1,
+        "fourFieldsPresent": true,
+        "factMatchesCorpusSection": true,
+        "inferenceMatchesCorpusSection": true,
+        "hypothesisMatchesCorpusSection": true,
+        "simulationIsFullCorpus": true,
+        "simulationNotPresentedAsFact": true,
+        "corpusMarkers": true,
+        "invariantNote": "simulation_result_is_not_fact",
+        "sourceInput": "如果摩擦力为零会怎样",
+        "linkage": {
+          "simulation_id": "sim_round_synthetic_0001",
+          "proposal_id": "proposal_synthetic_0003",
+          "generation_id": "gen_synthetic_0001"
+        }
+      },
+      {
+        "round": 2,
+        "fourFieldsPresent": true,
+        "factMatchesCorpusSection": true,
+        "inferenceMatchesCorpusSection": true,
+        "hypothesisMatchesCorpusSection": true,
+        "simulationIsFullCorpus": true,
+        "simulationNotPresentedAsFact": true,
+        "corpusMarkers": true,
+        "invariantNote": "simulation_result_is_not_fact",
+        "sourceInput": "假如速度再高一点会怎样",
+        "linkage": {
+          "simulation_id": "sim_round_synthetic_0002",
+          "proposal_id": "proposal_synthetic_0004",
+          "generation_id": "gen_synthetic_0002"
+        }
+      }
+    ],
+    "snapshotMatchesEvents": true,
+    "snapshotRounds": 2
+  },
+  "invariants": [
+    "F-4 范围边界（S2A-F4-SEMANTIC-FREEZE-01 §1/§2 D-01 选项 A 分层）：WHAT_IF → SIMULATE 映射不变（S1 §14）；执行语义由 PD-06 单次模拟提案扩展为多轮模拟持久化（第一层）+ 轴外分支子状态机（第二层，D-02/D-03 选项 A）；不新增顶层 SemanticAction / PolicyAction（PD-23 §5）；分类优先级层不变（STOP > CHANGE_DIRECTION > CORRECTION > CREATE > WHY > WHAT_IF > DIRECT_ANSWER）",
+    "多轮模拟持久化（§3 变更 1，第一层）：每轮模拟结果经模拟域事件登记（simulation_recorded，D-05 选项 A）——properties 含 fact / inference / hypothesis / simulation 四元分离字段 + 源输入摘要；模拟历史会话内持久（D-04 选项 A——07 §3 Session State 纪律）；多轮模拟阶段迁移保持 SIMULATION（13 §15.3）；每次合法提交版本恰好 +1（S1-12；stale 拒绝）；不新建 Session / Experience（G03-N 不变式）",
+    "四元分离不变式（E8-G2-CC07）：模拟结果不得表现为事实——事件 schema 约束（simulation 字段与 fact 字段互斥注记 separation_invariant=simulation_result_is_not_fact）+ 内容语料分离格式（事实——/推断——/假设——标记）双重保证",
+    "轴外分支子状态机（§3 变更 2 / §4 变更 2，D-02 选项 A）：分支记录为体验状态轴之外的持久对象（branch_id / 源模拟轮次 / 模拟结果记录（四元分离）/ 版本 / 生命周期状态五分量）；体验阶段轴不变（WHAT_IF 轮次保持 SIMULATION 阶段，13 §15.3——分支操作不新增体验轴触发器）；分支模拟结果默认不回流为主线结论（D-02 选项 A 推导——\"采用某分支结论\"须产品负责人另案版本化定义，本版不预先写死）",
+    "分支生命周期操作集（D-03 选项 A 四操作最小集 + S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A 第五操作）：CREATE（WHAT_IF 首轮自动创建分支记录）/ SWITCH（显式切换激活分支）/ ABANDON（放弃分支）/ RETURN（返回主线模拟上下文）/ ADOPT_BRANCH（显式采用分支结论——目标分支记录附加 adopted 标记，生命周期契约不变；采用结果经 simulation_adopted 事件登记，properties 含 branch_id / source_round / adopted_content 摘要 / separation_invariant=simulation_result_is_not_fact；采用结果呈现为新一轮模拟上下文，主线当前上下文不变，用户须另行 CREATE 提交方将采纳内容纳入作品）；操作识别为确定性规则词表（同分类器纪律，具体词表为实现细节；词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH）；SWITCH / ABANDON / ADOPT_BRANCH 须命中分支作用域词表 + 可解析目标序号，否则走通用 SIMULATE 执行路径；分支模拟结果默认不回流为主线结论（D-02 选项 A——显式回流是经用户指令的例外通道，非默认行为）",
+    "分支状态会话内持久、会话结束失效（D-04 选项 A）：跨 USER_ACTION / RESPONSE_COMPLETED 周期存活；体验完成 / 方向变更 / 重复 CREATE 取代在途创作会话时模拟域失效（事件为不可变权威事实——C6 §5，失效仅作用于运行时存储）；跨会话分支持久化属 F-5 Minimal Memory 裁决范围（授权 §2(4) 专管），本切片不实施",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action；PD-12 同层解释顺序 WHY > WHAT_IF",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；分支操作轮次经同一串行化写者纪律（版本化提交后应用——S1-12）；失败写入不消耗任何版本号（OBL-01 纪律——含分支操作前置校验拒绝）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）；分支操作轮次为确定性系统回合（无 LLM 提案——决策追踪 llm_used=false）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）；模拟轮次决策追踪 reasonPrimary=semantic_action（llm_used=true）；分支操作轮次 reasonPrimary=explicit_user_direction（llm_used=false）；拒绝轮次 reasonPrimary=invalid_state_transition",
+    "模拟不持久化跨会话（PD-07——模拟域事件与分支记录均为会话内事实登记，无 memory 层事件）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/S2A-F4-0001:SEPARATION.jsonl",
+    "traceSha256": "9cc4860758d20f2d0115c2bd1052c06d4c482f320282d33bd4edecd2af307a3b",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

@@ -1,0 +1,18 @@
+E5 trial run E5-TRIAL-0001 — Node v24.21.0 (/Users/pg014/.nvm/versions/node/v24.21.0/bin/node) — 2026-10-08T13:55:00.902Z
+--- 1/5 version matrix & archive integrity ---
+[PASS] A1 — run-metadata 版本矩阵完整（决策/契约/S1 规范/代码/环境/回归基线各组齐备）
+[PASS] A2a — C1–C7 契约指纹核验（运行时计算哈希 = 基线登记；C4 分节指纹见契约 §18）
+[PASS] A2b — 归档完整性核验（36 项 reference 哈希 = SHA256SUMS）
+--- 2/5 case executions (synthetic fixture replay) ---
+  case E5-TRIAL-0001:GS-01 — PASS (/Users/pg014/Documents/Codex/intent-experience/artifacts/evidence/runs/E5-TRIAL-0001/cases/E5-TRIAL-0001_GS-01.json)
+  case E5-TRIAL-0001:GS-02 — PASS (/Users/pg014/Documents/Codex/intent-experience/artifacts/evidence/runs/E5-TRIAL-0001/cases/E5-TRIAL-0001_GS-02.json)
+  case E5-TRIAL-0001:GS-05 — PASS (/Users/pg014/Documents/Codex/intent-experience/artifacts/evidence/runs/E5-TRIAL-0001/cases/E5-TRIAL-0001_GS-05.json)
+  case E5-TRIAL-0001:GS-05-NEG-STALE-RETRY — PASS (/Users/pg014/Documents/Codex/intent-experience/artifacts/evidence/runs/E5-TRIAL-0001/cases/E5-TRIAL-0001_GS-05-NEG-STALE-RETRY.json)
+[PASS] A3 — 案例记录完整（4 案例，E5 §4 全字段，writeCaseRecord 校验通过）
+[PASS] A4 — trace 完整（每案例事件序列可还原：input → semantic → policy → state → result）
+[PASS] A6 — 失败路径按预期登记（陈旧写入拒绝 + write_audit 记录 + 状态未被覆盖）
+--- 3/5 run metadata & summary ---
+--- 4/5 SHA-256 manifest ---
+[PASS] A7 — 哈希清单产出（11 文件，SHA256SUMS）
+[PASS] A8 — 哈希清单可独立重算（逐项重算 = 清单登记）
+--- 5/5 run log ---

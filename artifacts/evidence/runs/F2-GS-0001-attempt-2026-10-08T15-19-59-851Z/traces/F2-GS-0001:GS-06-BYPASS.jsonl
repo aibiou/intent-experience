@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:GS-06-BYPASS","event":"trace_started","at":"2026-10-08T15:18:06.315Z","form":"in-process","sourceClause":"acceptance-mapping §A GS-06 负向：策略绕过；S1 §15 P-05"}
+{"caseId":"F2-GS-0001:GS-06-BYPASS","event":"trace_completed","at":"2026-10-08T15:18:06.316Z","startedAt":"2026-10-08T15:18:06.315Z","durationMs":1,"result":"PASS","pass":true}

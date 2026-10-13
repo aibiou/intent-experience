@@ -1,0 +1,443 @@
+{
+  "runId": "G3-GOLDEN-0001",
+  "recordedAt": "2026-10-12T03:41:01.926Z",
+  "executor": {
+    "executedBy": "工程负责人角色（代理，Codex）",
+    "independentEvaluator": "独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）"
+  },
+  "obligation": "P2 G09 黄金案例回归套件义务 / G3 Gate（P2 Exit Gate & Sign-off §8）；OBL-03（PD-19：G3 DEFERRED TO S2/P2 关闭切片——PD-21 关闭切片已执行并履行；S2b G09 方向性操作已执行）",
+  "authorization": "P3-S1-IMPL-AUTH-01 v1.3.0 §2（动态证据执行）；E5-SCOPED-LICENSE-01（PD-17 / CR-15 选项 A）",
+  "goldenCorpus": {
+    "definition": "P2 核心产品验收 G01–G12；每案例至少 Normal/Negative/Boundary/Failure-Recovery 四维度 + Expected/Observed/Evidence/Evaluator（P2 Exit Gate §8；G09 为 S2b 方向性操作；G10 为 S2 分支回流操作——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A；G11/G12 为 S3a 新增——S3-SCOPE-PROPOSAL-01 v1.0.0 RULED §4 动态证据计划）",
+    "s1Covered": {
+      "goldenCases": [
+        "G01",
+        "G02",
+        "G03",
+        "G04",
+        "G05",
+        "G06",
+        "G07",
+        "G08",
+        "G09",
+        "G10",
+        "G11",
+        "G12"
+      ],
+      "caseIds": [
+        "G01-N",
+        "G01-NEG",
+        "G01-B",
+        "G01-FR",
+        "G02-N",
+        "G02-NEG",
+        "G02-B",
+        "G02-FR",
+        "G03-N",
+        "G03-NEG",
+        "G03-B",
+        "G03-FR",
+        "G05-N",
+        "G05-NEG",
+        "G05-B",
+        "G05-FR",
+        "G06-N",
+        "G06-NEG",
+        "G06-B",
+        "G06-FR",
+        "G04-N",
+        "G04-NEG",
+        "G04-B",
+        "G04-FR",
+        "G07-N",
+        "G07-NEG",
+        "G07-B",
+        "G07-FR",
+        "G08-N",
+        "G08-NEG",
+        "G08-B",
+        "G08-FR",
+        "G09-N",
+        "G09-NEG",
+        "G09-B",
+        "G09-FR",
+        "G10-N",
+        "G10-NEG",
+        "G10-B",
+        "G10-FR",
+        "G11-N",
+        "G11-NEG",
+        "G11-B",
+        "G11-FR",
+        "G12-N",
+        "G12-NEG",
+        "G12-B",
+        "G12-FR"
+      ],
+      "count": 48,
+      "note": "G03 为 S1 基础单次模拟形态（PD-06）；G04/G07/G08 为 PD-21 关闭切片最小实现（完整语义 DEFERRED TO S2，acceptance-mapping §B）"
+    },
+    "closureSlice": {
+      "authority": "PD-21（产品负责人 2026-10-09 批准；decision-register v0.19.0）",
+      "goldenCases": [
+        "G04",
+        "G07",
+        "G08"
+      ],
+      "note": "最小实现（CREATE / CORRECTION 语义动作 + CREATION 阶段 + 当前会话方向信号）四维度黄金证据齐备；完整 Creation / Correction / 持久 Memory 语义仍 DEFERRED TO S2（acceptance-mapping §B，PD-05/PD-06/PD-07）"
+    }
+  },
+  "regression": {
+    "baselineRunIds": [
+      "F2-GS-0001",
+      "F3-EB-0001"
+    ],
+    "baselineBinding": "案例期望逐项冻结自 F2-GS-0001 行为基线（F2 动态证据 40/40 案例 PASS）；F3-EB-0001 为工程边界基线",
+    "comparison": "行为漂移检测——运行时代码（src/experience/**）字节绑定 git HEAD；行为偏离冻结期望即案例 FAIL",
+    "changeId": null,
+    "affectedCaseIds": [
+      "G01-N",
+      "G01-NEG",
+      "G01-B",
+      "G01-FR",
+      "G02-N",
+      "G02-NEG",
+      "G02-B",
+      "G02-FR",
+      "G03-N",
+      "G03-NEG",
+      "G03-B",
+      "G03-FR",
+      "G05-N",
+      "G05-NEG",
+      "G05-B",
+      "G05-FR",
+      "G06-N",
+      "G06-NEG",
+      "G06-B",
+      "G06-FR",
+      "G04-N",
+      "G04-NEG",
+      "G04-B",
+      "G04-FR",
+      "G07-N",
+      "G07-NEG",
+      "G07-B",
+      "G07-FR",
+      "G08-N",
+      "G08-NEG",
+      "G08-B",
+      "G08-FR",
+      "G09-N",
+      "G09-NEG",
+      "G09-B",
+      "G09-FR",
+      "G10-N",
+      "G10-NEG",
+      "G10-B",
+      "G10-FR",
+      "G11-N",
+      "G11-NEG",
+      "G11-B",
+      "G11-FR",
+      "G12-N",
+      "G12-NEG",
+      "G12-B",
+      "G12-FR"
+    ],
+    "priorRunIds": [
+      "F1-E2E-0001",
+      "F2-GS-0001",
+      "F3-EB-0001"
+    ]
+  },
+  "contracts": [
+    {
+      "id": "C1",
+      "name": "Core Schema（核心结构）",
+      "version": "core_schema_v1.0.0",
+      "source": "docs/product/reference/12｜Core Schema Specification V1（核心数据结构规范 V1）.md",
+      "registeredHash": "ff6cfa8da0eede4a89cf4bf93d5e19b42b227948c2f2fcce62e5039153b06ea3",
+      "registeredNote": null,
+      "computedHash": "ff6cfa8da0eede4a89cf4bf93d5e19b42b227948c2f2fcce62e5039153b06ea3",
+      "match": true
+    },
+    {
+      "id": "C2",
+      "name": "State Machine（状态机）",
+      "version": "state_machine_v1.0.0",
+      "source": "docs/product/reference/13｜State Machine Specification V1（状态机规范 V1）.md",
+      "registeredHash": "e0dd5c81d62cd2ef55f4dec84fb0198b681a1eed9f001f1c5932cebbea8bacb4",
+      "registeredNote": null,
+      "computedHash": "e0dd5c81d62cd2ef55f4dec84fb0198b681a1eed9f001f1c5932cebbea8bacb4",
+      "match": true
+    },
+    {
+      "id": "C3",
+      "name": "Action & Policy（动作与策略）",
+      "version": "action_policy_v1.0.0（基线赋予）",
+      "source": "docs/product/reference/14｜Action & Policy Contract V1（动作与策略契约 V1）.md",
+      "registeredHash": "c8b5b34c91c68e92e443a8dac96a1191fba86c3d0e332133a48f7dc368a948c3",
+      "registeredNote": null,
+      "computedHash": "c8b5b34c91c68e92e443a8dac96a1191fba86c3d0e332133a48f7dc368a948c3",
+      "match": true
+    },
+    {
+      "id": "C4",
+      "name": "LLM Contract（大模型契约，正式文件）",
+      "version": "C4-LLM-Contract-v1.0.0",
+      "source": "docs/product/contracts/C4-LLM-Contract-v1.0.0.md",
+      "registeredHash": null,
+      "registeredNote": "§1–§17 全节 SHA-256 范围指纹已登记于 C4-LLM-Contract-v1.0.0.md §18（K-4/K-5，CR-10/CR-11 关闭）",
+      "computedHash": "fd7254a8dd2ea0aae54dc3fe5bf4608410a80f3934b9fbc1adf64584706e8296",
+      "match": null
+    },
+    {
+      "id": "C5",
+      "name": "API（接口）",
+      "version": "api_v1.0.0",
+      "source": "docs/product/reference/16｜API Contract V1（接口契约 V1）.md",
+      "registeredHash": "0de5c303bb1c7bb768fea1cf4e7b65fd019e38b63b9ef434a60ca70a81524ab7",
+      "registeredNote": null,
+      "computedHash": "0de5c303bb1c7bb768fea1cf4e7b65fd019e38b63b9ef434a60ca70a81524ab7",
+      "match": true
+    },
+    {
+      "id": "C6",
+      "name": "Event & Analytics（事件与分析）",
+      "version": "analytics_v1.0.0",
+      "source": "docs/product/reference/17｜Event & Analytics Contract V1（事件与数据分析契约 V1）.md",
+      "registeredHash": "624062105fd7c1203128db9741a0c46f4adbac0a6d9b419489bcbaaf84367856",
+      "registeredNote": null,
+      "computedHash": "624062105fd7c1203128db9741a0c46f4adbac0a6d9b419489bcbaaf84367856",
+      "match": true
+    },
+    {
+      "id": "C7",
+      "name": "Evaluation（评测与验收）",
+      "version": "evaluation_v1.0.0",
+      "source": "docs/product/reference/18｜Evaluation System V1（评测与验收体系 V1）.md",
+      "registeredHash": "de97ddaa16163bf743a8f46776d545f42761a087734ef5518ed50579af01f54c",
+      "registeredNote": null,
+      "computedHash": "de97ddaa16163bf743a8f46776d545f42761a087734ef5518ed50579af01f54c",
+      "match": true
+    }
+  ],
+  "s1Specifications": [
+    {
+      "source": "docs/product/reference/P3-S1-CC02｜C01～C09 Cross-Contract Consistency Matrix（跨契约一致性矩阵）.md",
+      "sha256": "ae07efbf11c902fc8ae89cda5b4e015bf5f106bca858f39ed15ed9c6a2e23193",
+      "archiveIntegrity": "VERIFIED vs SHA256SUMS"
+    },
+    {
+      "source": "docs/product/reference/P3-S1-C07～C08｜LLM Gateway & Validator Contracts（大模型网关与验证器契约）.md",
+      "sha256": "bb5f2e8f64e68651963670e8b60f53fea84578a9cef8e1ee3fc541cfee87831c",
+      "archiveIntegrity": "VERIFIED vs SHA256SUMS"
+    },
+    {
+      "source": "docs/product/reference/P3-S1｜Runtime Vertical Slice Specification（运行时首个完整产品切片规范）.md",
+      "sha256": "b50bb1d5238814351e594546d585244f91b0180bc4a917a88ed135f0a7fcdf33",
+      "archiveIntegrity": "VERIFIED vs SHA256SUMS"
+    },
+    {
+      "source": "docs/product/reference/P3-S1-CC01｜Cross-Contract Consistency Specification（跨契约一致性规范）.md",
+      "sha256": "67b7225597ecc96623f7cfaf28dc822ec05bcffe82d599e1c436fa8e58e9d5b6",
+      "archiveIntegrity": "VERIFIED vs SHA256SUMS"
+    },
+    {
+      "source": "docs/product/reference/P3-S1-C01～C04｜Runtime Core Foundation Contracts（运行时核心底座契约）.md",
+      "sha256": "028c0ae402de343a40045c36ed90fa7b624ede107da496f6bbfed1de988d8f84",
+      "archiveIntegrity": "VERIFIED vs SHA256SUMS"
+    },
+    {
+      "source": "docs/product/reference/P3-S1-C07～C09｜LLM Gateway、Validator & Runtime Contracts（大模型网关、验证器与运行时契约）.md",
+      "sha256": "41eace13729f0a1f1219323cc7c37d0a0542a4c1a1042628420744c41c525cb4",
+      "archiveIntegrity": "VERIFIED vs SHA256SUMS"
+    },
+    {
+      "source": "docs/product/reference/P3-S1-C05～C06｜Semantic Action & Policy Contracts（语义动作与策略契约）.md",
+      "sha256": "d65f29f4450289da54f528a899c2c7fe6629adb10f95c9a882d73445b52ffb09",
+      "archiveIntegrity": "VERIFIED vs SHA256SUMS"
+    }
+  ],
+  "stateMachine": {
+    "version": "state_machine_v1.5.0",
+    "source": "SRC-05 / 13",
+    "closureSlice": "CREATION 阶段 + CREATE/CORRECTION 触发（PD-21 关闭切片最小形态）+ 完整 WHAT_IF 分支语义（S2a F-4，state_machine_v1.4.0）+ S2b 变更 1–3（state_machine_v1.5.0：方向性操作 DEEPEN/SIMPLIFY/REFRAME 文档化——冻结迁移表无结构变更）"
+  },
+  "policy": {
+    "version": "policy_v2.3.0（S4 REPEAT/CONTINUE 版本化变更 + S2b 版本化变更 + S2 分支回流版本化变更）",
+    "source": "SRC-06 / 14",
+    "status": "S1 冻结策略表（5 语义动作）+ 关闭切片 CREATE/CORRECTION（PD-21，最小形态）+ 完整 G04 Creation 语义（S2a F-2）+ 完整 G07 Correction 语义（S2a F-3，policy_v1.3.0：MODIFY 别名登记 + G07 四要素 + RESTORE 恢复子型）+ 完整 WHAT_IF 分支语义（S2a F-4，policy_v1.4.0：多轮模拟持久化 + 轴外分支子状态机）+ Minimal Memory 语义（S2a F-5，policy_v1.5.0：轴外记忆子状态机 + L5 信号注入 + Runtime 单一写入者）+ S2b 方向性操作语义（policy_v2.0.0：DEEPEN/SIMPLIFY/REFRAME 顶层语义动作 14 §8 恒等映射 + 冻结优先级链 STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER + 创作域顶层补丁操作承载）+ S2 分支回流语义（policy_v2.2.0：ADOPT_BRANCH 第五分支操作显式回流——S2-BRANCH-REFLOW-DEF-01 v1.0.0 选项 A；词表优先级 RETURN > SWITCH > ABANDON > ADOPT_BRANCH；adopted 附加标记幂等、生命周期契约不变；simulation_adopted 事件 C6 §14 派生；采用结果作新一轮模拟上下文呈现，主线当前上下文不变，默认不回流语义不变——显式回流为用户指示例外通道）+ S4 REPEAT/CONTINUE 语义（policy_v2.3.0：REPEAT/CONTINUE 策略动作版本化——S4A-SEMANTIC-FREEZE-01 v1.0.0 D-1 选项 A；C3 G-1 空缺版本化关闭；CONTINUE 幂等确认回合 / REPEAT 呈现层重放上一完成轮响应；优先级链扩展 … > DIRECT_ANSWER > CONTINUE > REPEAT > UNKNOWN；state_version 不变——纯呈现 / 确认语义，不登记状态变更事件；词表 CONTINUE=/继续当前体验/继续/往下进行/接着来/、REPEAT=/重复上一/重复上一条/再说一遍/重新表达/再表达一次/）；SEARCH 仍表外（PD-06，内部能力动作 14 §7）"
+  },
+  "api": {
+    "version": "api_v1.0.0",
+    "source": "SRC-07 / 16"
+  },
+  "event": {
+    "version": "analytics_v1.0.0",
+    "source": "SRC-08 / 17"
+  },
+  "evaluation": {
+    "contract": "C7",
+    "version": "evaluation_v1.0.0",
+    "note": "G5 16 项评测包已执行并双签署（P3-S1-G5-WORKSHEET-01 v1.7.0）；G3 逐项判定属本运行后的独立评测范畴"
+  },
+  "code": {
+    "gitHead": "6f7fef2ee0e79a5ede8d3d1ec3ee76048d10067d",
+    "workTreeClean": false,
+    "uncommittedEntries": [
+      "M src/experience/runtime.ts",
+      "?? src/experience/runtime-actions.ts",
+      "?? src/experience/runtime-core.ts"
+    ],
+    "runtimeFiles": {
+      "audit.ts": "a1612c2947c25817375b51e584eaa7805240066f9ec9a08e853517090ee91b7a",
+      "catalog.ts": "cd4c7219045edd8a5fa2b67a26a4215e638e88254c86a2c722f60d77c7c91ea8",
+      "chunks.ts": "b178df56a6921268af56f6ed53a44c9e8c7c1a9e4adc7b9a069b11dfebeb015d",
+      "classifier.ts": "792c378557359436af965a0c13e4d2977ac3a2f068b0b806b73bd717e1513e50",
+      "config-store.ts": "c7ada4b58de289e3f7f34b058f8cdaf57c01c953ecbb7c974943759ff65f9f43",
+      "correction.ts": "e2dab6c00e050df98753dec7e9261a8bef4ff86a7890d7a577f5b099a26384af",
+      "creation.ts": "dc6e0a729c2a4d5bffdde951a45d63b7032144300cb4526de6a9f46048a810af",
+      "decision-trace.ts": "f4330575ea4cb70b05057d09a460991a97c8c15bd337fd9383274bf395911738",
+      "events.ts": "180fad5518552ac3f0a04ded929e7d6516cb58577ae0a127d6c8b83af10db8b0",
+      "fixtures/change-direction.ts": "82b31786d1aa971d9c98c1f1b8fda787be448f54e8bb582f592e1d5f646bd357",
+      "fixtures/correction.ts": "b19c3216a0849645f723e340121376fafec3b9f9ec91119ed18ff80349b4de9e",
+      "fixtures/create.ts": "dfeb0c2b3980b8c91e792e95fe7d098db16a06463eadecb9b8f6588b4d1e618f",
+      "fixtures/deepen.ts": "c0b704529f80c740d7fbebda4b414a2f05e1ef2c3682537fecfdcf6c51f3d8d4",
+      "fixtures/direct-answer.ts": "20b9d271d686d80a42ece1b4750ffb477c068a00af4772cdd43d3d1d6213065e",
+      "fixtures/reframe.ts": "2144829a10506425fe1eda04c159992d7207b34752cd5cfc5cd0c16ca8ca8e69",
+      "fixtures/simplify.ts": "aaa9530ec10f16cbdc396f32218493fad52ac96a23814fc07349431176be882f",
+      "fixtures/simulate.ts": "1aa6b8fc6926a18aa0934ac1bf86e70d7ebc0db85581fe190d216f7a32181e02",
+      "fixtures/why.ts": "c734f8b2c4dfed11652ba6cbe41616d336c1bb01013ea58bc189be1a8075810e",
+      "generation-gateway.ts": "5f23bb8909404a1adb6a717c06b086dba0ea6e0281d4192351b90f5e1df75b4a",
+      "generation-intent.ts": "b2e9afb3d16ba4eeb1586c87232c1b89df4fe0e0b55e05bd3a403fb0fa654819",
+      "http.ts": "944f998ac5aae212242a139802591d7f735e26d0f7e8d06216844a92b4e55a92",
+      "llm-gateway.ts": "55084e6110837a808429c6097e906a6b040a4b334659e20513494f219d52d5d7",
+      "memory.ts": "73af9eefd6c68564f71a1853aa506715128b3140cb06087430fffea0e1960e3e",
+      "policy.ts": "61271a39ddd796e2a1b34fb65922900996c150f2df79273562b1f0c98806e2b8",
+      "presentation.ts": "c8cf45f2fb0cb554d0be0edc1cfaa199c8051b3f5d7caf0091d7d51f9ef422f0",
+      "prompt-engine.ts": "a26fddf709a2c2d93f4c4d677832baaba1bd71c57300718b7c58049e04dbc87b",
+      "runtime-actions.ts": "dd79352ed8f21fc3362dc13f30019eb31c9cead13acddf405fe5f62a9e983969",
+      "runtime-contracts.ts": "e3d208338a74c9b0b871430e43f45a90f88da6bfab5169d61b08f10ba6a937e6",
+      "runtime-core.ts": "977975716b844c0ecc2cd72bd7e9ce9dc074825fa2175aeefb991c3eed433072",
+      "runtime-errors.ts": "fc0ecfc3f23894ec086dd112989c3ce36b122f813258b3856c40eb3423f5c1ee",
+      "runtime.ts": "9f94a8d768e6889b9f1dc2889ab5291cdba15ddac4dff517bb058f5f4be0cb61",
+      "search.ts": "97fb4a3a23e0f1ee004e29a315b0c109096edec7fcc71e5ba4a8ddd4c6f493c1",
+      "server-runtime.ts": "9c2e9cde469d4acf62781e1cb4f27f109a940c5f9d2e0915c70d586403b66161",
+      "session-snapshot.ts": "b1180a2872eaade2f75e2d1c3fc6a67daee9d5deca05d4129aa0ab7f70d47f9e",
+      "session.ts": "3ac2c750e2ddca89c88a0e7e4166529e53f323b87bca4033f51d6036d1c9fd48",
+      "simulation.ts": "f0a8b5198ac7762d718b2eb9267a217465781959ecb2292de1776fcec1505d70",
+      "state-machine.ts": "f6fe4c0aca09bbf24beb0791afea6003be656cbd84c8f8407a2a72cc0e0e7c11",
+      "state-store.ts": "61c4c97809d64212e58aa161ea87eb2276dbf90e0945acdd066c5593db9b22f4",
+      "stream.ts": "bf50741900a391ec11eb2c8112def5cc54eeeda33301616b2abe8c755e3717ad",
+      "validator.ts": "e334843100697fd8a17828d65c6f43f99c8210c394ab50a0a53ab6e0e06f8716",
+      "works-store.ts": "47aacddbc4b4ad74dbf179aac0bed4837250ee0708d50874e80d44aff2687292"
+    },
+    "typecheckCommand": "npm run typecheck:core",
+    "buildCommand": "npm run build (next build, Turbopack)",
+    "typecheckExitCode": 0,
+    "buildExitCode": 0
+  },
+  "prompt": {
+    "value": "synthetic-fixture",
+    "reason": "无真实 LLM 提供方调用（E5 §2 排除项；ADR-0002 §3 硬边界）"
+  },
+  "model": {
+    "value": "synthetic-fixture",
+    "reason": "同上；LLM 网关为合成实现（经 LlmGateway 接口；故障形态经证据注入网关）"
+  },
+  "corpus": {
+    "fixtures": [
+      {
+        "fixtureId": "synthetic/direct-answer/v1",
+        "file": "src/experience/fixtures/direct-answer.ts",
+        "sha256": "20b9d271d686d80a42ece1b4750ffb477c068a00af4772cdd43d3d1d6213065e"
+      },
+      {
+        "fixtureId": "synthetic/why/v1",
+        "file": "src/experience/fixtures/why.ts",
+        "sha256": "c734f8b2c4dfed11652ba6cbe41616d336c1bb01013ea58bc189be1a8075810e"
+      },
+      {
+        "fixtureId": "synthetic/simulate/v2",
+        "file": "src/experience/fixtures/simulate.ts",
+        "sha256": "1aa6b8fc6926a18aa0934ac1bf86e70d7ebc0db85581fe190d216f7a32181e02"
+      },
+      {
+        "fixtureId": "synthetic/change-direction/v1",
+        "file": "src/experience/fixtures/change-direction.ts",
+        "sha256": "82b31786d1aa971d9c98c1f1b8fda787be448f54e8bb582f592e1d5f646bd357"
+      },
+      {
+        "fixtureId": "synthetic/create/v1",
+        "file": "src/experience/fixtures/create.ts",
+        "sha256": "dfeb0c2b3980b8c91e792e95fe7d098db16a06463eadecb9b8f6588b4d1e618f"
+      },
+      {
+        "fixtureId": "synthetic/correction/v1",
+        "file": "src/experience/fixtures/correction.ts",
+        "sha256": "b19c3216a0849645f723e340121376fafec3b9f9ec91119ed18ff80349b4de9e"
+      },
+      {
+        "fixtureId": "synthetic/deepen/v1",
+        "file": "src/experience/fixtures/deepen.ts",
+        "sha256": "c0b704529f80c740d7fbebda4b414a2f05e1ef2c3682537fecfdcf6c51f3d8d4"
+      },
+      {
+        "fixtureId": "synthetic/simplify/v1",
+        "file": "src/experience/fixtures/simplify.ts",
+        "sha256": "aaa9530ec10f16cbdc396f32218493fad52ac96a23814fc07349431176be882f"
+      },
+      {
+        "fixtureId": "synthetic/reframe/v1",
+        "file": "src/experience/fixtures/reframe.ts",
+        "sha256": "2144829a10506425fe1eda04c159992d7207b34752cd5cfc5cd0c16ca8ca8e69"
+      },
+      {
+        "fixtureId": "synthetic/stop/v1",
+        "file": "（运行时内联构造：STOP 无内容分块）",
+        "sha256": null
+      }
+    ],
+    "realUserData": false
+  },
+  "environment": {
+    "nodeVersion": "v24.21.0",
+    "nodeExecutable": "C:\\Users\\jou\\AppData\\Roaming\\fnm\\node-versions\\v24.21.0\\installation\\node.exe",
+    "nodeLockSource": "F-2：2026-10-08 授权日重查 nodejs.org——v24.21.0 Latest LTS（Active LTS）；package.json engines.node 精确锁定",
+    "nextjs": {
+      "used": false,
+      "note": "本套件为进程内形态（真实 .ts 源字节经 registerHooks 执行）；Next.js 仅参与 preflight build 验证；HTTP 形态证据见 F2-GS-0001 / F3-EB-0001"
+    },
+    "platform": "win32",
+    "arch": "x64",
+    "database": {
+      "engine": "node:sqlite（仅证据执行器 fixture 状态存储；本运行时为内存态，S1 不持久化跨会话数据，PD-07）",
+      "sqliteVersion": "3.53.4"
+    }
+  },
+  "referenceIntegrity": {
+    "manifest": "docs/product/reference/SHA256SUMS",
+    "total": 36,
+    "verified": 36,
+    "failed": 0
+  },
+  "run": {
+    "startedAt": "2026-10-12T03:41:01.926Z",
+    "finishedAt": "2026-10-12T03:41:40.082Z",
+    "command": "npm run golden (node tools/evidence/src/golden.mjs, from tools/evidence)",
+    "exitCode": 1,
+    "form": "in-process（真实 .ts 源字节；HTTP 形态回归证据见 F2-GS-0001 / F3-EB-0001）"
+  },
+  "lockfiles": {
+    "package-lock.json": {
+      "lockfileVersion": 3,
+      "sha256": null
+    },
+    "tools/evidence/package-lock.json": {
+      "lockfileVersion": 3,
+      "sha256": "8aaac7e84fa58516375d695e41e4250a30eddc52d5d9fde8ee68f3bbe9ec077e"
+    }
+  }
+}

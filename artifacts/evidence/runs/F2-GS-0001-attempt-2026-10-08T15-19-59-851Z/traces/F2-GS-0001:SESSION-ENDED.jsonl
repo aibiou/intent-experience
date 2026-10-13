@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:SESSION-ENDED","event":"trace_started","at":"2026-10-08T15:18:06.916Z","form":"in-process","sourceClause":"S1-01（ended 后旧操作拒绝）；状态机 §4.4；S1 §27 API"}
+{"caseId":"F2-GS-0001:SESSION-ENDED","event":"trace_completed","at":"2026-10-08T15:18:07.293Z","startedAt":"2026-10-08T15:18:06.916Z","durationMs":377,"result":"PASS","pass":true}

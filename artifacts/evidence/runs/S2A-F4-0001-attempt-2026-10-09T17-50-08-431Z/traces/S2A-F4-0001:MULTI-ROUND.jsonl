@@ -1,0 +1,2 @@
+{"caseId":"S2A-F4-0001:MULTI-ROUND","event":"trace_started","at":"2026-10-09T17:37:26.970Z","form":"inprocess","sourceClause":"P3-S2-IMPL-AUTH-01 v1.2.0 §2(3)；S2A-F4-SEMANTIC-FREEZE-01 v1.0.0 §3 变更 1（第一层）；S1 §14（WHAT_IF → SIMULATE 映射不变）；13 §15.3（SIMULATION → SIMULATION）；S1-12（每次合法提交恰好 +1）","servers":[]}
+{"caseId":"S2A-F4-0001:MULTI-ROUND","event":"trace_completed","at":"2026-10-09T17:37:28.380Z","startedAt":"2026-10-09T17:37:26.970Z","durationMs":1410,"result":"FAIL","pass":false}

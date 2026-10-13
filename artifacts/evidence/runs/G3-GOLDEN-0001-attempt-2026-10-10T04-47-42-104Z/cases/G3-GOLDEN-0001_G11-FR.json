@@ -1,0 +1,64 @@
+{
+  "caseIdNamespace": "G3-GOLDEN-0001:G11-FR",
+  "sourceClause": "P2 Exit Gate §8 G11 故障恢复；S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.4（用户主权——WITHDRAW 经既有生命周期与事件，长期记忆同走五阶段生命周期）；07 §15（用户控制）/ §13（\"别再给我这个\"）；C6 §14（memory_withdrawn 命名）",
+  "scope": "P2 G3 黄金套件——S3a 新增长期记忆黄金案例（用户主权撤回 + 幂等）",
+  "precondition": "A 类显式长期记忆记录存在（REMEMBERED）",
+  "inputFault": "\"别再给我这个\"（WITHDRAW 词表）×2（首次执行 + 重复幂等）",
+  "expected": {
+    "write": "A 类显式表达 → 记录 ×1（long_term / explicit / confidence=1.0 / REMEMBERED）",
+    "sovereignty": "用户主权不因记忆类别而削弱（长期记忆同走五阶段生命周期）——\"别再给我这个\" → WITHDRAW 执行：记录 →EXPIRED + withdrawn_at 留痕 + 删除审计（删除时间 / 记录范围 / 验证信息），memory_withdrawn ×1（properties：record_id / topic / previous_lifecycle / lifecycle / deletion_audit）",
+    "idempotence": "重复撤回 → 幂等空操作（no_memory_target——已 EXPIRED 记录非活跃目标，零重复留痕）"
+  },
+  "actual": {
+    "writeOk": true,
+    "writeKind": "record_long_term",
+    "written": {
+      "memoryClass": "long_term",
+      "lifecycle": "REMEMBERED"
+    },
+    "withdrawOk": true,
+    "withdrawKind": "withdraw",
+    "withdrawExecuted": true,
+    "withdrawn": {
+      "lifecycle": "EXPIRED",
+      "withdrawnAt": "2026-10-10T04:44:13.312Z",
+      "deletionAudit": {
+        "deletedAt": "2026-10-10T04:44:13.312Z",
+        "scope": "record memory_synthetic_0001 (topic: 我喜欢古典音乐)",
+        "reason": "withdrawn",
+        "verification": "withdrawal acknowledged at 2026-10-10T04:44:13.312Z; record marked EXPIRED and excluded from retrieval"
+      }
+    },
+    "memoryWithdrawnEvents": [
+      {
+        "topic": "我喜欢古典音乐",
+        "previous_lifecycle": "REMEMBERED",
+        "lifecycle": "EXPIRED",
+        "has_deletion_audit": true
+      }
+    ],
+    "repeatOk": true,
+    "repeatKind": "withdraw",
+    "repeatExecuted": false,
+    "repeatReason": "no_memory_target"
+  },
+  "invariants": [
+    "P2 G3 黄金套件不变式（P2 Exit Gate §8）：每个黄金案例覆盖 Normal/Negative/Boundary/Failure-Recovery 四维度",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "旧 operation 不得提交（generation epoch 守卫 + 版本双重检查，S1-10；CC02 H03）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "失败不消耗版本号（EB-02）；取消的 generation 不提交（CC02 H02）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
+  ],
+  "evidence": {
+    "trace": "traces/G3-GOLDEN-0001:G11-FR.jsonl",
+    "traceSha256": "6818c62f0468a92a0d1696ed069bf93ae4a5bdb2cc6f458ccf538e19482b922e",
+    "form": "in-process",
+    "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G3 Gate 逐项判定属独立评测范畴（角色 5）；G04/G07/G08 完整语义 DEFERRED TO S2（acceptance-mapping §B）"
+}

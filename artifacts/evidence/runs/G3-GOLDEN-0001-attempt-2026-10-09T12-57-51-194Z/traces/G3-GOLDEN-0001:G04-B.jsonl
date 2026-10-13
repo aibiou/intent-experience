@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G04-B","event":"trace_started","at":"2026-10-09T12:52:36.922Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G04 Boundary；相邻重复输入；版本链 +1 不变式；PD-21","goldenCase":"G04","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G04-B","event":"trace_completed","at":"2026-10-09T12:52:38.040Z","startedAt":"2026-10-09T12:52:36.922Z","durationMs":1118,"result":"PASS","pass":true}

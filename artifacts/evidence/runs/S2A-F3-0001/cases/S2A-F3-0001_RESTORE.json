@@ -1,0 +1,109 @@
+{
+  "caseIdNamespace": "S2A-F3-0001:RESTORE",
+  "sourceClause": "S2A-F3-SEMANTIC-FREEZE-01 §3 变更 4 / §4 变更 2（D-04 选项 A）；08 §28（版本化与 RESTORE_PREVIOUS_VERSION）；S1-12 单调版本化不变式；OBL-01 纪律",
+  "scope": "创作会话恢复：add 轮（v2）→ 陈旧 expectedCreationVersion 恢复拒绝 → 恢复提交（v3，内容 = v1 快照，版本单调 +1，user_changes restore 条目，correction_restored 事件）",
+  "precondition": "CREATION-CHAIN 基线（WAITING/CREATION v6，创作 v1 USER_FEEDBACK）",
+  "inputFault": "\"再加两个障碍\"（声明 CREATE，expectedCreationVersion=1）/\"刚才那个更好\"（声明 CREATE；先陈旧 expectedCreationVersion=1 拒绝，后 =2 接受）",
+  "expected": {
+    "round1": "\"再加两个障碍\" → add 结构化补丁：创作 v2（objects=[player, exit, obstacle, obstacle_2_2]，obstacle_count=2）",
+    "staleRestore": "陈旧 expectedCreationVersion（=1 vs 当前 2）恢复提交 → STATE_VERSION_CONFLICT 拒绝（双重前置校验先于任何写入；失败不消耗版本号）",
+    "round3": "\"刚才那个更好\"（RESTORE 子型）→ 创作存储回滚提交：版本单调 +1（v2 → v3，S1-12 不变式：版本指针永不回退）；新版本内容 = 目标历史版本内容（objects=[player, exit]，variables={progress: 0}——v1 快照，obstacle_count 消失证明内容恢复而非指针回滚）；user_changes 登记 restore 条目（change.restoreFromVersion=1）；correction_restored 事件（restored_from_version=1, restored_to_version=3, semantic_action=CORRECTION）；创作补丁轮次特例——creation_patch_applied(operation=restore) + 阶段 PREVIEW 循环；决策追踪 reason=creation_restore, llm_used=false；头 reason=creation_restore",
+    "invariants": "恢复为修改轮次特例（经补丁提交纪律：expectedCreationVersion + expectedStateVersion 双重前置校验）；创作子状态机不推进（除补丁轮次 PREVIEW 循环）"
+  },
+  "actual": {
+    "round1": {
+      "ok": true,
+      "creationVersion": 2,
+      "objects": [
+        "player",
+        "exit",
+        "obstacle",
+        "obstacle_2_2"
+      ],
+      "obstacleCount": 2
+    },
+    "staleRestore": {
+      "ok": false,
+      "code": "STATE_VERSION_CONFLICT",
+      "details": {
+        "expected_creation_version": 1,
+        "current_creation_version": 2
+      }
+    },
+    "round3": {
+      "ok": true,
+      "headerReason": "creation_restore",
+      "headerStateVersion": 9,
+      "contentMatchesFixture": true,
+      "creationVersion": 3,
+      "objects": [
+        "player",
+        "exit"
+      ],
+      "variables": {
+        "progress": 0
+      },
+      "userChanges": [
+        {
+          "version": 2,
+          "operation": "add",
+          "restoreFromVersion": null
+        },
+        {
+          "version": 3,
+          "operation": "restore",
+          "restoreFromVersion": 1
+        }
+      ],
+      "patchApplied": [
+        {
+          "operation": "add",
+          "creationVersion": 2
+        },
+        {
+          "operation": "restore",
+          "creationVersion": 3
+        }
+      ],
+      "restored": [
+        {
+          "restored_from_version": 1,
+          "restored_to_version": 3,
+          "creation_id": "creation_0001",
+          "semantic_action": "CORRECTION"
+        }
+      ],
+      "decisionReason": "creation_restore",
+      "decisionLlmUsed": false,
+      "decisionPolicyVersion": "policy_v1.3.0"
+    },
+    "finalState": "WAITING/CREATION v10",
+    "finalCreation": "v3 USER_FEEDBACK"
+  },
+  "invariants": [
+    "S2a 范围边界（S2A-F3-SEMANTIC-FREEZE-01 §2）：MODIFY 登记为 CORRECTION 用户面别名（授权 §2(2)）；不新增顶层 SemanticAction / PolicyAction（PD-23 §5）；分类优先级层不变（STOP > CHANGE_DIRECTION > CORRECTION > CREATE > WHY > WHAT_IF > DIRECT_ANSWER）",
+    "创作会话路由保护（D-01 选项 A）：活跃创作会话内 CORRECTION 分类输入先经 RESTORE 预检（D-04 词表，创作版本 >1），再经创作修改族预检（复用 interpretCreationInput 词表族与 08 §16 冲突判据）——命中创作 ADD/REMOVE/MODIFY 族 → 创作解释（CREATE 伞形 + 补丁轮次，F-2 机制不变）；命中冲突判据 → ASK（至多一个澄清问题）；未命中 → 通用 CORRECTION 路径（F-2 变更 3 保持：重评估创作子状态，不推进子状态机）",
+    "纠正目标确定性派生（D-02 选项 A）：指代词表（刚才 / 那个 / 上一步 / 上一个 / 上一版 / 上一个版本 → 上一候选）+ 创作分量映射（TARGET_SYNONYMS 同义词表）+ 默认当前候选；无新增模型调用",
+    "G07 操作语义承载（D-03 选项 A）：创作域经 F-2 补丁机制承载（不重建）；非创作域经重评估候选替换（不重放会话历史——重评估仅替换被纠正候选）",
+    "RESTORE_PREVIOUS_VERSION（D-04 选项 A）：CORRECTION 用户面恢复子型，不新增轴触发器；创作域经创作存储回滚提交——版本单调 +1（S1-12 不变式：版本指针永不回退），新版本内容 = 目标历史版本内容，user_changes 登记 restore 条目（含恢复来源版本号）；非创作域经意图登记 + 重评估（decision-trace reason=restore_previous_version）",
+    "纠正域事件（D-05 选项 A）：correction_applied（correction_target / correction_summary / corrected_candidate_id / semantic_action=CORRECTION）与 correction_restored（restored_from_version / restored_to_version / creation_id / semantic_action=CORRECTION）；C6 §14 命名模式；事件为不可变权威事实（C6 §5）",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；创作修改 / 恢复轮次经 expectedCreationVersion 双重前置校验——陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12 同族）；失败写入不消耗任何版本号（OBL-01 纪律）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "纠正与在途生成互斥（旧候选拒绝，old_generation_rejected=true）；重评估链路：取消在途 generation → 拒绝旧候选 → LLM 提案纠正候选 → 验证 → 版本化提交",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "决策追踪与 LLM/Policy/State 事件分离记录（C6 §22/§23）；创作修改 / 恢复轮次决策追踪 llm_used=false（确定性规则，非模型）",
+    "纠正不持久化跨会话（PD-07——纠正域事件均为会话内事实登记，无 memory 层事件）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据"
+  ],
+  "evidence": {
+    "trace": "traces/S2A-F3-0001:RESTORE.jsonl",
+    "traceSha256": "4596b68d2375e06086b3d9b17b13622de5bc0b5cb7d69a56fe994713f9f4e57f",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

@@ -1,0 +1,2 @@
+{"caseId":"S2B-0001:DIRECTIONAL-REFRAME","event":"trace_started","at":"2026-10-09T15:15:28.525Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 案例面 1；14 §8 恒等映射；08 §十 方向性操作自然语示例锚点；policy_v2.0.0 变更 1/3/4","servers":[]}
+{"caseId":"S2B-0001:DIRECTIONAL-REFRAME","event":"trace_completed","at":"2026-10-09T15:15:29.616Z","startedAt":"2026-10-09T15:15:28.525Z","durationMs":1090,"result":"PASS","pass":true}

@@ -1,0 +1,2 @@
+{"caseId":"S2A-F2-0001:RESTART-SUPERSEDED","event":"trace_started","at":"2026-10-09T07:46:51.533Z","form":"inprocess","sourceClause":"S2A-F2-SEMANTIC-FREEZE-01 §2 D-03 选项 A + §4 变更 1；G04-Boundary 黄金契约（相邻重复 CREATE 各生成完整最小构建）","servers":[]}
+{"caseId":"S2A-F2-0001:RESTART-SUPERSEDED","event":"trace_completed","at":"2026-10-09T07:46:52.675Z","startedAt":"2026-10-09T07:46:51.533Z","durationMs":1142,"result":"PASS","pass":true}

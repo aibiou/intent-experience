@@ -1,0 +1,2 @@
+{"caseId":"S2A-F4-0001:BRANCH-LIFECYCLE","event":"trace_started","at":"2026-10-10T00:33:11.786Z","form":"inprocess","sourceClause":"S2A-F4-SEMANTIC-FREEZE-01 §2 D-02 选项 A（轴外分支子状态机）/ D-03 选项 A（四操作最小集）/ §4 变更 2；S1-12；OBL-01（拒绝不消耗版本号）","servers":[]}
+{"caseId":"S2A-F4-0001:BRANCH-LIFECYCLE","event":"trace_completed","at":"2026-10-10T00:33:13.890Z","startedAt":"2026-10-10T00:33:11.786Z","durationMs":2104,"result":"PASS","pass":true}

@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB07-TIMEOUT-RECOVERY","event":"trace_started","at":"2026-10-08T15:59:56.638Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-07（Timeout Boundary：超时 → 有界恢复 → 保留状态 → 允许用户控制）"}
+{"caseId":"F3-EB-0001:EB07-TIMEOUT-RECOVERY","event":"trace_completed","at":"2026-10-08T15:59:57.075Z","startedAt":"2026-10-08T15:59:56.638Z","durationMs":437,"result":"PASS","pass":true}

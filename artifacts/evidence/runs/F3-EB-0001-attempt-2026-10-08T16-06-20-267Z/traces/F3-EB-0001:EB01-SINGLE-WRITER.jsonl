@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB01-SINGLE-WRITER","event":"trace_started","at":"2026-10-08T15:59:54.943Z","form":"static+in-process","sourceClause":"P2-EVIDENCE-4.0 EB-01（Runtime Single Writer）"}
+{"caseId":"F3-EB-0001:EB01-SINGLE-WRITER","event":"trace_completed","at":"2026-10-08T15:59:54.952Z","startedAt":"2026-10-08T15:59:54.941Z","durationMs":11,"result":"PASS","pass":true}

@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G11-FR","event":"trace_started","at":"2026-10-10T04:48:57.699Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G11 故障恢复；S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.4（用户主权——WITHDRAW 经既有生命周期与事件，长期记忆同走五阶段生命周期）；07 §15（用户控制）/ §13（\"别再给我这个\"）；C6 §14（memory_withdrawn 命名）","goldenCase":"G11","dimension":"FAILURE_RECOVERY"}
+{"caseId":"G3-GOLDEN-0001:G11-FR","event":"trace_completed","at":"2026-10-10T04:48:57.702Z","startedAt":"2026-10-10T04:48:57.699Z","durationMs":3,"result":"PASS","pass":true}

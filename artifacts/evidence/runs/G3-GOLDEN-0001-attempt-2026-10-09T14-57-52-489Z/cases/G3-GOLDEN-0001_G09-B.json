@@ -1,0 +1,91 @@
+{
+  "caseIdNamespace": "G3-GOLDEN-0001:G09-B",
+  "sourceClause": "S2B-SEMANTIC-FREEZE-01 §5.2 优先级链；policy_v2.0.0 变更 4 冻结优先级链；分类器确定性规则词表（GS-01 确定性）",
+  "scope": "P2 G3 黄金套件——S2b 新增黄金案例（冻结优先级链 8 组碰撞输入：STOP / CHANGE_DIRECTION / CORRECTION / CREATE 优先于方向性动作；方向性动作优先于 WHY / WHAT_IF / DIRECT_ANSWER）",
+  "precondition": "无（纯分类层；确定性规则，无状态变更）",
+  "inputFault": "优先级碰撞输入 8 组（含 \"换个角度\" → CHANGE_DIRECTION 词表碰撞核验）",
+  "expected": {
+    "freezeChain": "STOP > CHANGE_DIRECTION > CORRECTION > CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER（policy_v2.0.0 变更 4）",
+    "groups": "8 组碰撞输入逐组判定（含 \"换个角度\" 词表碰撞核验）",
+    "determinism": "同一输入重复分类结果恒定（GS-01；确定性规则分类）"
+  },
+  "actual": {
+    "results": [
+      {
+        "input": "好了，深入一点",
+        "expected": "STOP",
+        "rule": "STOP 永远优先（P-01）压倒方向性动作",
+        "actual": "STOP",
+        "deterministic": true
+      },
+      {
+        "input": "不要这个，深挖一下",
+        "expected": "CHANGE_DIRECTION",
+        "rule": "显式方向变更优先于方向性操作（P-03）",
+        "actual": "CHANGE_DIRECTION",
+        "deterministic": true
+      },
+      {
+        "input": "不对，简化一点",
+        "expected": "CORRECTION",
+        "rule": "用户纠正优先于方向性操作（PD-21 关闭切片）",
+        "actual": "CORRECTION",
+        "deterministic": true
+      },
+      {
+        "input": "做成一个小游戏，重新表述",
+        "expected": "CREATE",
+        "rule": "创作意图优先于方向性操作（PD-21 关闭切片）",
+        "actual": "CREATE",
+        "deterministic": true
+      },
+      {
+        "input": "换个角度",
+        "expected": "CHANGE_DIRECTION",
+        "rule": "碰撞核验：\"换个\"命中 CHANGE_DIRECTION 先于\"换角度\"（词表碰撞由优先级层消解）",
+        "actual": "CHANGE_DIRECTION",
+        "deterministic": true
+      },
+      {
+        "input": "为什么深入一点",
+        "expected": "DEEPEN",
+        "rule": "方向性操作优先于 WHY（S2b 冻结链）",
+        "actual": "DEEPEN",
+        "deterministic": true
+      },
+      {
+        "input": "如果简单一点",
+        "expected": "SIMPLIFY",
+        "rule": "方向性操作优先于 WHAT_IF（S2b 冻结链）",
+        "actual": "SIMPLIFY",
+        "deterministic": true
+      },
+      {
+        "input": "换角度回答这个问题",
+        "expected": "REFRAME",
+        "rule": "方向性操作优先于 DIRECT_ANSWER（提问标记为最低层）",
+        "actual": "REFRAME",
+        "deterministic": true
+      }
+    ]
+  },
+  "invariants": [
+    "P2 G3 黄金套件不变式（P2 Exit Gate §8）：每个黄金案例覆盖 Normal/Negative/Boundary/Failure-Recovery 四维度",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action",
+    "所有状态写入经版本化单写者路径（expected_state_version，PD-16）；陈旧写入返回 STATE_VERSION_CONFLICT 且不得覆盖（S1-12）",
+    "LLM 输出永远是提案；任何越权状态写入提案被拒绝且不产生状态写入（S1 §17；CC02 H01/H05）",
+    "旧 operation 不得提交（generation epoch 守卫 + 版本双重检查，S1-10；CC02 H03）",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "失败不消耗版本号（EB-02）；取消的 generation 不提交（CC02 H02）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据（ADR-0002 §3）"
+  ],
+  "evidence": {
+    "trace": "traces/G3-GOLDEN-0001:G09-B.jsonl",
+    "traceSha256": "4b2a8b7bd0757425cd0058d13a3176dda00de4c7d850ac3ef273c32d0b4b84dd",
+    "form": "in-process",
+    "regressionBaseline": "F2-GS-0001（行为基线；期望逐项冻结）"
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G3 Gate 逐项判定属独立评测范畴（角色 5）；G04/G07/G08 完整语义 DEFERRED TO S2（acceptance-mapping §B）"
+}

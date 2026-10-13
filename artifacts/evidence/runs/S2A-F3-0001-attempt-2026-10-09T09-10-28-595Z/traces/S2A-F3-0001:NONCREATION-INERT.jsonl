@@ -1,0 +1,2 @@
+{"caseId":"S2A-F3-0001:NONCREATION-INERT","event":"trace_started","at":"2026-10-09T09:02:44.533Z","form":"inprocess","sourceClause":"S2A-F3-SEMANTIC-FREEZE-01 §5（S2A-F3-NONCREATION-INERT 案例大纲）；G3 黄金套件 G07-N 语义（关闭切片行为不回归）；PD-07","servers":[]}
+{"caseId":"S2A-F3-0001:NONCREATION-INERT","event":"trace_completed","at":"2026-10-09T09:02:45.275Z","startedAt":"2026-10-09T09:02:44.533Z","durationMs":742,"result":"PASS","pass":true}

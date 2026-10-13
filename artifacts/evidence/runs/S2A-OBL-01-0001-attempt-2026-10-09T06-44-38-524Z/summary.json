@@ -1,0 +1,151 @@
+{
+  "runId": "S2A-OBL-01-0001",
+  "obligation": "P3-S2-IMPL-AUTH-01 v1.1.0 §2/§6：OBL-01——环境门控 LlmGateway 注入缝（CR-18 选项 A 形态，仅证据/测试环境启用，默认合成模式不变）+ HTTP 形态 LLM 故障 503 动态证据补测（S2a 首个迭代 F-1）",
+  "startedAt": "2026-10-09T06:22:09.224Z",
+  "finishedAt": "2026-10-09T06:22:15.137Z",
+  "durationMs": 5909,
+  "cases": [
+    {
+      "caseId": "HTTP-503",
+      "result": "PASS"
+    },
+    {
+      "caseId": "CALL-ONCE",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "VERSION-INTACT",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "STOP-AFTER-FAILURE",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "RECOVERY-BOUNDED",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "SEAM-INERT",
+      "result": "FAIL"
+    },
+    {
+      "caseId": "INPROC-REGRESSION",
+      "result": "FAIL"
+    }
+  ],
+  "allCasesPass": false,
+  "assertions": [
+    {
+      "id": "A1",
+      "description": "run-metadata 完整（E5 §3 版本矩阵全部字段 + OBL-01 可追溯性专项）",
+      "passed": true,
+      "detail": {
+        "missingSections": []
+      }
+    },
+    {
+      "id": "A2",
+      "description": "环境锁定：engines.node === \"24.21.0\"（F-2 精确锁定）且执行于 Node v24.21.0；lockfileVersion 3；Next.js / React / TypeScript 版本登记",
+      "passed": true,
+      "detail": {
+        "enginesNode": "24.21.0",
+        "processVersion": "v24.21.0",
+        "lockfileVersion": 3,
+        "next": "16.4.0",
+        "react": "19.3.0",
+        "typescript": "7.0.2"
+      }
+    },
+    {
+      "id": "A3",
+      "description": "全部 7 案例记录齐备且 12 字段完整（E5 §4）",
+      "passed": false,
+      "detail": {
+        "recordFiles": 7,
+        "expected": 7,
+        "allCasesPass": false
+      }
+    },
+    {
+      "id": "A4",
+      "description": "全部 7 案例轨迹文件齐备且非空",
+      "passed": true,
+      "detail": {
+        "traceFiles": 7
+      }
+    },
+    {
+      "id": "A5",
+      "description": "HTTP-503：LLM 上游不可用 → HTTP 503 + code=LLM_UNAVAILABLE + retryable=true（结构化错误体 {code, message, retryable}）",
+      "passed": true,
+      "detail": {
+        "http503": true
+      }
+    },
+    {
+      "id": "A6",
+      "description": "CALL-ONCE：故障路径网关恰好一次调用（llm_request_started=1、llm_request_completed=0、generation_started=1——无自动重试，EB-06）",
+      "passed": false,
+      "detail": {
+        "callOnce": false
+      }
+    },
+    {
+      "id": "A7",
+      "description": "VERSION-INTACT：LLM 失败写入不消耗状态版本（v2 → v2），体验保持 WAITING（waiting_for_user=true）",
+      "passed": false,
+      "detail": {
+        "versionIntact": false
+      }
+    },
+    {
+      "id": "A8",
+      "description": "STOP-AFTER-FAILURE：失败后 STOP 以原状态版本合法终止（200 + stopped 事件 + 零内容分块 + 终态 COMPLETED v3）；STOP 不触发网关调用",
+      "passed": false,
+      "detail": {
+        "stopAfterFailure": false
+      }
+    },
+    {
+      "id": "A9",
+      "description": "RECOVERY-BOUNDED：fail_once 形态有界恢复——首次 503（版本不消耗）、用户重试 200 全链路（内容逐字节等于语料、终态 WAITING v4）",
+      "passed": false,
+      "detail": {
+        "recoveryBounded": false
+      }
+    },
+    {
+      "id": "A10",
+      "description": "SEAM-INERT：注入缝未设置时 HTTP 形态 WHY 200 全链路（行为与 S1 一致）+ 静态字节断言（门控存在、缝实现无网络出口字节）",
+      "passed": false,
+      "detail": {
+        "seamInert": false
+      }
+    },
+    {
+      "id": "A11-PREFLIGHT",
+      "description": "预检与完整性：typecheck:core + next build 退出码 0；参考归档哈希全部验证通过；契约指纹 C1–C7 全部匹配（失败为 FATAL，不计入断言池）",
+      "passed": true,
+      "detail": {
+        "typecheckExitCode": 0,
+        "buildExitCode": 0,
+        "referenceVerified": "36/36",
+        "fingerprintsAllMatch": true
+      }
+    },
+    {
+      "id": "A11",
+      "description": "证据清单 SHA256SUMS 已产出且独立重算全部一致",
+      "passed": true,
+      "detail": {
+        "verified": 24,
+        "failed": []
+      }
+    }
+  ],
+  "allAssertionsPass": false,
+  "allPassed": false,
+  "exitCode": 1,
+  "vocabularyNote": "退出码 0 与本汇总全部通过只表示本运行中的断言通过；不设置任何 Golden Case、Gate（G2/G4/G8）或产品状态为 PASS（E5 §2）。OBL-01 证据本运行已执行；G5 独立评测 NOT RUN（独立评测人须先审阅本运行 staged 材料）。"
+}

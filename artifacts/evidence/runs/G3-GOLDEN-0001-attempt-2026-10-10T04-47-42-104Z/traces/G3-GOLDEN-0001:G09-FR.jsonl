@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G09-FR","event":"trace_started","at":"2026-10-10T04:44:06.926Z","form":"in-process","sourceClause":"S2B-SEMANTIC-FREEZE-01 §5.2 陈旧创作版本拒绝（S1-12 延伸）；失败写入不消耗版本号（OBL-01 纪律）","goldenCase":"G09","dimension":"FAILURE_RECOVERY"}
+{"caseId":"G3-GOLDEN-0001:G09-FR","event":"trace_completed","at":"2026-10-10T04:44:07.994Z","startedAt":"2026-10-10T04:44:06.926Z","durationMs":1068,"result":"PASS","pass":true}

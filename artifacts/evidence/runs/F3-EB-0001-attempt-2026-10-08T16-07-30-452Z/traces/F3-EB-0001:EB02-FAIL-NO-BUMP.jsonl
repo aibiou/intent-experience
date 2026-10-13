@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB02-FAIL-NO-BUMP","event":"trace_started","at":"2026-10-08T16:06:22.444Z","form":"in-process","sourceClause":"P2-EVIDENCE-4.0 EB-02（State Version：失败写入不消耗版本号）"}
+{"caseId":"F3-EB-0001:EB02-FAIL-NO-BUMP","event":"trace_completed","at":"2026-10-08T16:06:22.446Z","startedAt":"2026-10-08T16:06:22.444Z","durationMs":2,"result":"PASS","pass":true}

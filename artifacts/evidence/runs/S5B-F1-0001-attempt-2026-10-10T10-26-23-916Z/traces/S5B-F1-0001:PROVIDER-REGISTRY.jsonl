@@ -1,0 +1,3 @@
+{"caseId":"S5B-F1-0001:PROVIDER-REGISTRY","event":"trace_started","at":"2026-10-10T10:25:56.240Z","form":"in-process","sourceClause":"llm-gateway.ts PROVIDER_PROFILES；config-store.ts registeredProviders / providerDefaultModel","servers":[]}
+{"caseId":"S5B-F1-0001:PROVIDER-REGISTRY","event":"case-fact","at":"2026-10-10T10:25:56.241Z","registered":["dashscope"],"registryMatchesProfiles":true,"profileComplete":true}
+{"caseId":"S5B-F1-0001:PROVIDER-REGISTRY","event":"trace_completed","at":"2026-10-10T10:25:56.242Z","startedAt":"2026-10-10T10:25:56.240Z","durationMs":2,"result":"PASS","pass":true}

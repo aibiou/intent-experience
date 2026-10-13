@@ -1,0 +1,2 @@
+{"caseId":"G3-GOLDEN-0001:G11-B","event":"trace_started","at":"2026-10-10T04:44:13.311Z","form":"in-process","sourceClause":"P2 Exit Gate §8 G11 边界；S3A-SEMANTIC-FREEZE-01 v1.0.0 §1.2（识别仅在全部既有优先级层与记忆操作词表未命中后调用——零优先级层变更）；G09-B 边界纪律（冻结优先级链碰撞输入）","goldenCase":"G11","dimension":"BOUNDARY"}
+{"caseId":"G3-GOLDEN-0001:G11-B","event":"trace_completed","at":"2026-10-10T04:44:13.311Z","startedAt":"2026-10-10T04:44:13.311Z","durationMs":0,"result":"PASS","pass":true}

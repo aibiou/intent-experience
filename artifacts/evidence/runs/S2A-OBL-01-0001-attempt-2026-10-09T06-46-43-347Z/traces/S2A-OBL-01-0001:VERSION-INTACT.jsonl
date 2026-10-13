@@ -1,0 +1,2 @@
+{"caseId":"S2A-OBL-01-0001:VERSION-INTACT","event":"trace_started","at":"2026-10-09T06:45:59.550Z","form":"http","sourceClause":"P3-S2-IMPL-AUTH-01 §2 OBL-01 / S1-12（版本化单写者）/ PD-16（expected_state_version）/ EB-02（失败写入不消耗版本号）","servers":["S1"]}
+{"caseId":"S2A-OBL-01-0001:VERSION-INTACT","event":"trace_completed","at":"2026-10-09T06:45:59.568Z","startedAt":"2026-10-09T06:45:59.550Z","durationMs":18,"result":"PASS","pass":true}

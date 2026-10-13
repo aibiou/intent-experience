@@ -1,0 +1,2 @@
+{"caseId":"S2A-F5-0001:SINGLE-WRITER","event":"trace_started","at":"2026-10-10T04:41:50.465Z","form":"inprocess","sourceClause":"S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §2 D-05 选项 A（写入经 Runtime 单一写入者）；授权 §5.8；GS-06 / CC02 H01/H05（模型 state_update 提案拒绝）；S1 §17（LLM 禁止动作——不得写 Memory）","servers":[]}
+{"caseId":"S2A-F5-0001:SINGLE-WRITER","event":"trace_completed","at":"2026-10-10T04:41:50.467Z","startedAt":"2026-10-10T04:41:50.465Z","durationMs":2,"result":"PASS","pass":true}

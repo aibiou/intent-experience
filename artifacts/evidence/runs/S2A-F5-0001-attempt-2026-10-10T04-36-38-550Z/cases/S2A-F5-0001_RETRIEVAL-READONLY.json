@@ -1,0 +1,90 @@
+{
+  "caseIdNamespace": "S2A-F5-0001:RETRIEVAL-READONLY",
+  "sourceClause": "S2A-F5-SEMANTIC-FREEZE-01 v1.0.0 §1 元素 7 / §2 D-03 选项 A（检索只读）；07 §22（记忆检索不应改变体验）；07 §16（透明性经事件日志 + 用户控制面承载——非检索写事件）",
+  "scope": "检索不改变体验（负向）：会话 B 的 L5 检索零 memory 域事件；零 session_started / experience_started（检索不触发产品动作——不自动启动新体验）；state_transitioned 恰为 WHY 流自身两次（体验启动 + 提交 USER_ACTION——无额外状态写入）；连续两次 getMemory() 快照逐字节一致（查询不改写记录）",
+  "precondition": "会话 A 记忆登记存在；CapturingGateway 捕获生成请求 context",
+  "inputFault": "洁净 WHY 输入",
+  "expected": {
+    "readOnly": "会话 B 的 L5 检索零 memory 域事件（检索只读——D-02 选项 A；07 §22）；零 session_started / experience_started（检索不触发产品动作——不自动启动）；state_transitioned 恰为 WHY 流自身两次（体验启动 CURIOSITY→UNDERSTANDING + 提交 USER_ACTION）",
+    "noMutation": "连续两次 getMemory() 快照逐字节一致（查询不改写记录）",
+    "decisionTrace": "会话 B 决策追踪与事件同步登记（无额外决策——检索不产生决策追踪）"
+  },
+  "actual": {
+    "sessionB": {
+      "whyOk": true,
+      "selectedAction": "EXPLAIN",
+      "memoryEventCount": 0,
+      "memoryEventTypes": [],
+      "explicitStarts": [
+        "session_started",
+        "experience_started"
+      ],
+      "transitions": [
+        {
+          "from": {
+            "status": "ENTERING",
+            "stage": "CURIOSITY"
+          },
+          "to": {
+            "status": "READY",
+            "stage": "UNDERSTANDING"
+          }
+        },
+        {
+          "from": {
+            "status": "READY",
+            "stage": "UNDERSTANDING"
+          },
+          "to": {
+            "status": "ACTIVE",
+            "stage": "UNDERSTANDING"
+          },
+          "steps": [
+            "USER_ACTION"
+          ]
+        }
+      ]
+    },
+    "counts": {
+      "sessionStartedBefore": 1,
+      "sessionStartedAfter": 2,
+      "experienceStartedBefore": 1,
+      "experienceStartedAfter": 2,
+      "newTraces": 1
+    },
+    "snapshotStable": true,
+    "snapshotRecord": {
+      "recordId": "memory_synthetic_0001",
+      "topic": "为什么",
+      "lifecycle": "IN_USE",
+      "lastRecalledAt": "2026-10-10T03:50:31.491Z"
+    }
+  },
+  "invariants": [
+    "F-5 范围边界（S2A-F5-SEMANTIC-FREEZE-01 §1/§2 D-01…D-05 全项选项 A）：不新增语义动作（DEEPEN / SIMPLIFY / REFRAME / SEARCH 仍属 S2b 保留禁用，授权 §5.7）；既有语义动作映射不变（policy_v1.5.0 §3 变更 1）；分类优先级层不变（STOP > CHANGE_DIRECTION > CORRECTION > CREATE > WHY > WHAT_IF > DIRECT_ANSWER——记忆操作识别仅在全部既有层未命中后调用，仅认领会成为 UNKNOWN 的输入，不改变优先级层）",
+    "记忆域范围（policy_v1.5.0 §3 变更 2①）：仅短期记忆——跨会话主题 / 意图信号 + 用户显式纠正 / 撤回记录；长期记忆 / 偏好画像禁用，写入路径不存在（负向不变式）",
+    "六类数据状态区分纪律（07 §2–§6 + §8 类型层）：记忆记录（Short-term Memory，跨会话持久——D-01 选项 A）不得与 Current State / Session State（会话结束即失效——负向不变式）混淆；类型维度（Fact / Inference / Preference）与状态维度分离",
+    "信号措辞纪律（07 §4）：记忆为\"最近产生过较高兴趣\"信号 ≠ \"用户喜欢 X\"偏好——记录承载主题 / 意图信号，不承载偏好画像",
+    "生命周期五阶段契约化（D-02 选项 A；state_machine_v1.4.0 §4 变更 1）：REMEMBERED（记住，创建即进入）→ IN_USE（暂时使用，经 RECALL）→ DECAYING（逐渐失效，时间衰减驱动）→ EXPIRED（到期，自动）；用户操作 CORRECT（被用户纠正：内容更正 + 纠正留痕，→REMEMBERED）与 WITHDRAW（被用户撤回：→EXPIRED + 撤回留痕 + 删除审计）；记忆域事件词表 memory_recorded / memory_corrected / memory_withdrawn / memory_expired（domain=memory，C6 §7 已预留层；衰减为内部置信度更新，不逐点发事件；检索为只读，不发事件——D-02 选项 A）",
+    "写入侧过滤（07 §7 不默认长期记住清单，D-05 选项 A）：临时情绪 / 一次性兴趣 / 一次性任务 / 当前环境 / 单次拒绝 / 推测人格不得写入（命中即不记录、不发事件）",
+    "作用面纪律（D-03 选项 A）：记忆仅作为 Context Builder 的 L5 相关短期记忆信号注入（07 §21 优先级链；07 §20 检索纪律——以当前意图为检索键，只取相关记录，不全量塞入）；L2 Current Intent 覆盖 L5（07 §12 不变式）；记忆检索为只读操作，不改变体验、不触发任何产品动作（07 §22——不启动新体验、不自动续行、不修改创作状态）；L6 长期记忆层在 S2 不存在（负向不变式）",
+    "保留与删除（D-04 选项 A；隐私六要素 P3-S1-PRIVACY-SIX-01 要素 1/5）：默认 6 个月保留期自记录最后更新时间起算（活跃记忆不因持续使用而意外过期）；到期自动删除并登记删除审计记录（删除时间 / 记录范围 / 验证信息——删除可验证）；时间衰减采纳 07 §11 示例形态为规范参数（指数衰减：Day 0 = 0.90 → Day 3 ≈ 0.63；k = ln(0.9/0.63)/3 ≈ 0.1189/天）；兴趣衰减至阈值驱动迁移（IN_USE 且 < 0.50 → DECAYING；DECAYING 且 < 0.10 → EXPIRED）；用户再次主动探索时 interest 重新获得证据（再探索 +0.15，上限 1.0——07 §11 纪律）",
+    "写入经 Runtime 单一写入者（D-05 选项 A；授权 §5.8；GS-06 / CC02 H01/H05）：记忆写入仅经 Runtime 内部写入方法；模型输出不得直接写记忆（Validator 拒绝 state_update 类提案）；用户纠正 / 撤回作为用户动作经确定性规则词表识别（WITHDRAW > CORRECT 优先级——撤回为用户主权更强信号，GS-04），经 Runtime 单一写入者执行并留痕（memory_corrected / memory_withdrawn）",
+    "轴外记忆子状态机（state_machine_v1.4.0 §4 变更 1）：记忆记录为体验状态轴之外的持久对象（五分量：record_id / 内容分量（主题 + 意图信号）/ 生命周期状态 / 创建与更新时间戳 / 来源与置信度分量）；体验阶段轴不变（记忆操作不新增体验轴触发器——记忆操作经 resolveIntent 路由，不创建新 Session / Experience）",
+    "版本不变式（policy_v1.5.0 §3 变更 5；S1-12 单调版本化）：记忆记录操作不改变体验状态版本链——单调版本化仅约束体验状态；记忆域经自身记录与事件日志留痕",
+    "07 §10 映射冻结：OBSERVED/CANDIDATE → REMEMBERED（创建）；ACTIVE → IN_USE；DECAYING → DECAYING；EXPIRED → EXPIRED；显式 EXPLICIT 路径 S2 不存在（长期记忆禁用）",
+    "P-01 STOP 永远优先；P-02 CHANGE 必须取消旧操作；P-03 显式用户方向优先；P-04 策略不生成事实内容；P-05 LLM 不选择最终 Action；PD-12 同层解释顺序 WHY > WHAT_IF",
+    "事件为不可变事实（C6 §5）；信封符合 C6 §7；同一 Experience Runtime 内 sequence_number 严格单调（C6 §25）；event_id 幂等去重（C6 §27）",
+    "工程边界（P2-EVIDENCE-4.0）：超时不自行决定新方向（EB-07）；完成不属于 LLM 自主权限（EB-13）；分析只能观察（EB-14）",
+    "合成语料内容逐字节等于 fixture；运行时不调用任何真实 LLM 提供方；不收集真实用户数据；默认仅合成数据（ADR-0002 §3 证据沙箱硬边界）"
+  ],
+  "evidence": {
+    "trace": "traces/S2A-F5-0001:RETRIEVAL-READONLY.jsonl",
+    "traceSha256": "ddc43080b618406587ceadb169f6e0b75cdd36066abe92c625a2d88d84876180",
+    "form": "inprocess",
+    "servers": []
+  },
+  "result": "PASS",
+  "evaluator": "执行：工程负责人角色（代理，Codex）；独立评测：独立评测负责人（用户本人，角色 5，PD-15；G5 隔离声明 2026-10-08 签署生效）。本记录由执行方起草，独立评测人保留审阅与否决权。",
+  "defectsFollowUp": "无（本案例）；G5 16 项评测包仍 NOT RUN；E3 公开发布统计阈值待产品负责人批准"
+}

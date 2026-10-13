@@ -1,0 +1,2 @@
+{"caseId":"F2-GS-0001:C6-MINSET","event":"trace_started","at":"2026-10-08T15:21:24.461Z","form":"in-process","sourceClause":"S1 §23 S1 最低事件集；C6 §10–§21 事件分类；名称调和表（迭代记录 §4）"}
+{"caseId":"F2-GS-0001:C6-MINSET","event":"trace_completed","at":"2026-10-08T15:21:26.024Z","startedAt":"2026-10-08T15:21:24.461Z","durationMs":1563,"result":"PASS","pass":true}

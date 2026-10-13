@@ -1,0 +1,2 @@
+{"caseId":"F3-EB-0001:EB09-FRONTEND","event":"trace_started","at":"2026-10-08T16:06:25.344Z","form":"static","sourceClause":"P2-EVIDENCE-4.0 EB-09（Frontend Boundary：Frontend → Product API，而非 Frontend → LLM Provider）"}
+{"caseId":"F3-EB-0001:EB09-FRONTEND","event":"trace_completed","at":"2026-10-08T16:06:25.351Z","startedAt":"2026-10-08T16:06:25.344Z","durationMs":7,"result":"PASS","pass":true}

@@ -1,0 +1,6 @@
+{"caseId":"F1-E2E-0001:F1-NEG-01-OUTOFSCOPE-HTTP","event":"trace_started","at":"2026-10-08T14:23:16.457Z","form":"http","sourceClause":"PD-05（CREATE 禁用）；C3 §7 动作集；E5 §2 状态词汇（不得把拒绝记为 PASS 以外的产品状态）；c3-semantic-gap-register-v1.md（未定义语义不得由编码者补写）"}
+{"caseId":"F1-E2E-0001:F1-NEG-01-OUTOFSCOPE-HTTP","event":"request-completed","at":"2026-10-08T14:23:16.463Z","form":"http","status":400,"semanticAction":"CREATE"}
+{"caseId":"F1-E2E-0001:F1-NEG-01-OUTOFSCOPE-HTTP","event":"trace_completed","at":"2026-10-08T14:23:16.464Z","startedAt":"2026-10-08T14:23:16.457Z","durationMs":7,"result":"PASS","pass":true}
+{"caseId":"F1-E2E-0001:F1-NEG-01-OUTOFSCOPE-HTTP","event":"trace_started","at":"2026-10-08T14:24:31.977Z","form":"http","sourceClause":"PD-05（CREATE 禁用）；C3 §7 动作集；E5 §2 状态词汇（不得把拒绝记为 PASS 以外的产品状态）；c3-semantic-gap-register-v1.md（未定义语义不得由编码者补写）"}
+{"caseId":"F1-E2E-0001:F1-NEG-01-OUTOFSCOPE-HTTP","event":"request-completed","at":"2026-10-08T14:24:31.984Z","form":"http","status":400,"semanticAction":"CREATE"}
+{"caseId":"F1-E2E-0001:F1-NEG-01-OUTOFSCOPE-HTTP","event":"trace_completed","at":"2026-10-08T14:24:31.985Z","startedAt":"2026-10-08T14:24:31.977Z","durationMs":8,"result":"PASS","pass":true}
