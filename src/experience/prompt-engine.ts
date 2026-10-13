@@ -17,11 +17,26 @@
 
 import type { EnabledProviderConfig } from './config-store';
 
+/**
+ * 通用画面纪律（2026-10-13 CR-59）：产品实测（猫呼噜科普体验
+ * 「画成图片」）发现图像模型把「喉部 / 声带 / 发声机制」等解剖
+ * 生理词具象为解剖教学图——颈部发光项圈、彩色管道剖面、胸前
+ * 解剖示意图 + 箭头标注 + 乱码英文。此纪律对**全部题材**生效
+ * （CR-54 只覆盖冥想类，科普类未被拦截——同类缺陷在科普主题
+ * 复现）。任何模态的蒸馏都必须收敛到「自然场景表达主题」。
+ */
+const DISTILL_VISUAL_DISCIPLINE = [
+  '- 禁止解剖式呈现：不得出现剖面、内部器官、血管、管道、骨骼等内部结构示意，不得出现箭头 / 框线 / 标注 / 图解式构图',
+  '- 画面不得出现任何文字、字母、数字、符号（含乱码与装饰性文字）',
+  '- 表达「如何运作 / 机制 / 原理」类主题时，用主体自然状态 + 环境氛围隐喻表达（如动物打呼噜的温馨场景、抽象光波 / 声波涟漪），不得画示意图',
+].join('\n');
+
 const DISTILL_SYSTEM_PROMPT_IMAGE = [
   '你是文生图提示词工程师。把「创作意图」与「创作描述」浓缩为一条直接可用的图像生成提示词：',
   '- 一段话 40~90 字；涵盖画面主体、风格手法、构图视角、色调光线中与画面直接相关的信息',
   '- 创作描述中明确的风格（像素风、水墨、赛博朋克等）必须保留，不得漂移为写实',
   '- 只输出提示词本身：无解释、无引号、无「提示词：」等前缀、无换行',
+  DISTILL_VISUAL_DISCIPLINE,
 ].join('\n');
 
 const DISTILL_SYSTEM_PROMPT_VIDEO = [
@@ -30,6 +45,7 @@ const DISTILL_SYSTEM_PROMPT_VIDEO = [
   '- 视频是动态的——必须写出「什么在动、镜头怎么动」，静态罗列元素视为不合格',
   '- 创作描述中明确的风格必须保留，不得漂移',
   '- 只输出提示词本身：无解释、无引号、无前缀、无换行',
+  DISTILL_VISUAL_DISCIPLINE,
 ].join('\n');
 
 /**
@@ -52,10 +68,16 @@ export const MEDITATIVE_INTENT_HINTS = [
   '减压', '焦虑', '禅', '晚安',
 ] as const;
 
-/** 强解剖 / 人体内部具象词——冥想类蒸馏结果含任一即视为不合格（回退）。 */
+/** 强解剖 / 人体内部具象词——蒸馏结果含任一即视为不合格（回退）。 */
 export const ANATOMIC_LITERALS = [
   '脊柱', '脊椎', '肋骨', '骨骼', '骨架', '解剖', '血管', '器官', '内脏', '血肉',
   '神经', '肌腱', '胸腔', '腹腔', '剖面', '躯干', '背部轮廓',
+  '喉部', '声带', '气管', '咽喉', '肌肉层', '截面',
+] as const;
+
+/** 示意 / 图解类具象词（科普「机制」类主题的常见跑偏面——解剖教学图）。 */
+export const SCHEMATIC_LITERALS = [
+  '示意图', '图解', '标注', '箭头', '框线', '结构图', '管道', '导管', '脉络', '构造图',
 ] as const;
 
 /** 冥想 / 放松 / 心灵 / 治愈类意图判定（意图 + 创作描述任一命中）。 */
@@ -69,7 +91,15 @@ export function containsAnatomicLiteral(text: string): boolean {
   return ANATOMIC_LITERALS.some((literal) => text.includes(literal));
 }
 
-/** 蒸馏 system prompt 构造：冥想类意图注入意境化校准纪律。 */
+/** 文本是否含解剖或示意 / 图解类具象词（任一命中即视为有解剖式呈现倾向）。 */
+export function containsSchematicLiteral(text: string): boolean {
+  return containsAnatomicLiteral(text) || SCHEMATIC_LITERALS.some((literal) => text.includes(literal));
+}
+
+/**
+ * 蒸馏 system prompt 构造：通用画面纪律常驻（CR-59——全题材禁解剖
+ * 示意 / 画面文字），冥想类意图额外注入意境化校准纪律（CR-54）。
+ */
 export function buildDistillSystemPrompt(
   modality: 'image' | 'video',
   isMeditative: boolean,
@@ -78,9 +108,39 @@ export function buildDistillSystemPrompt(
   return isMeditative ? `${base}\n${DISTILL_MEDITATIVE_CALIBRATION}` : base;
 }
 
-/** 蒸馏结果质量门：冥想类且含解剖具象词 → 不合格（调用方回退原提示词）。 */
-export function shouldRejectDistilled(text: string, isMeditative: boolean): boolean {
-  return isMeditative && containsAnatomicLiteral(text);
+/**
+ * 蒸馏结果质量门：任何题材的蒸馏结果含解剖 / 示意 / 图解类具象词
+ * 即视为不合格（CR-59 由冥想类泛化为通用——科普「机制」类主题的
+ * 「喉部 / 声带 / 示意图」跑偏面同等拦截；isMeditative 参数保留
+ * 兼容旧签名，判定已不再依赖题材）。
+ */
+export function shouldRejectDistilled(text: string, isMeditative?: boolean): boolean {
+  return containsSchematicLiteral(text);
+}
+
+/**
+ * 蒸馏失败 / 不合格时的安全视觉兜底（CR-59）：机制问句（「猫的
+ * 呼噜声是怎么发出来的？」）直接作图像提示会引导模型画解剖示意
+ * 图——兜底一律收敛为「主体自然状态 + 温馨场景」。
+ * 优先级：无解剖 / 示意词且 ≥10 字的设计文本（有画面信息）→
+ * 机制问句主题化场景（去掉疑问 / 机制词尾，保留主体短语）。
+ */
+export function safeVisualFallback(intentPrompt: string, designText?: string): string {
+  const design = designText?.trim();
+  if (design && design.length >= 10 && !containsSchematicLiteral(design)) {
+    return design.slice(0, 200);
+  }
+  const subject = intentPrompt
+    .replace(/[？?！!。，,]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/(是怎么|是如何|为什么会|为什么|怎么|如何|怎样|多少|哪|什么|呢|吗|啊)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/(发出来|产生|形成|由来|回事|原因|来源|运作|工作|原理|机制|构成|组成的|产生的|形成的|来的).*$/u, '')
+    .trim();
+  const subjectText = subject.length >= 2 ? subject : '主题主体';
+  return `${subjectText}，温馨自然的生活场景，柔和光线，安静舒适的氛围`;
 }
 
 const DISTILL_TIMEOUT_MS = 12_000;

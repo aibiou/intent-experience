@@ -47,7 +47,12 @@ import {
   type GenerationOptions,
 } from './generation-gateway';
 import { getEnabledProviderConfig, getEnabledProviderConfigForModality } from './config-store';
-import { distillVisualPrompt, planSeries, type SeriesPlan } from './prompt-engine';
+import {
+  distillVisualPrompt,
+  planSeries,
+  safeVisualFallback,
+  type SeriesPlan,
+} from './prompt-engine';
 
 /** 本会话最终蒸馏提示词（按体验 id——系列连贯性参考；进程内存量）。 */
 const distilledPromptsByExperience = new Map<string, string[]>();
@@ -279,6 +284,7 @@ async function* withGeneration(
       let finalPrompt =
         intent.useContext === true ? prompt : enrichPrompt(prompt);
       let distilledPrompt: string | null = null;
+      let designTextForFallback: string | undefined;
       if (intent.modality !== 'voice') {
         try {
           const textConfig = await getEnabledProviderConfig();
@@ -311,7 +317,7 @@ async function* withGeneration(
             } catch {
               transcriptForDistill = [];
             }
-            const designText = resolveDistillDesignText(
+            designTextForFallback = resolveDistillDesignText(
               intent,
               answerText,
               transcriptForDistill,
@@ -319,7 +325,7 @@ async function* withGeneration(
             distilledPrompt = await distillVisualPrompt(textConfig, {
               modality: intent.modality === 'video' ? 'video' : 'image',
               intentPrompt: prompt,
-              designText,
+              designText: designTextForFallback,
               aspectRatio: intent.aspectRatio,
               seconds: intent.seconds,
               hasReference: (intent.referenceImages?.length ?? 0) > 0,
@@ -338,6 +344,16 @@ async function* withGeneration(
             distilledPromptsByExperience.set(experienceId, history.slice(-5));
           }
           console.log('[withGeneration] distilled prompt:', distilledPrompt);
+        } else {
+          // 蒸馏失败 / 不合格的安全兜底（CR-59）：机制问句直接作
+          // 图像提示会引导模型画解剖示意（猫呼噜实测：颈部发光项圈 /
+          // 彩色管道剖面 / 箭头标注 / 乱码文字）——兜底收敛为
+          // 「主体自然状态 + 温馨场景」，绝不把机制问句原样下发。
+          finalPrompt = safeVisualFallback(prompt, designTextForFallback);
+          console.warn(
+            '[withGeneration] distill failed, safe visual fallback:',
+            finalPrompt,
+          );
         }
       }
       yield {
