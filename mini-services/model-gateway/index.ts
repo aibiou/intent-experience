@@ -12,6 +12,10 @@
  * - DELETE /api/providers/:id     → 删除
  * - POST /api/providers/:id/test  → 连通性测试（总是 200，body 区分成败）
  *
+ * 密钥分离：提供方配置存 providers.json（入库共享，人人是同一份）；
+ * 密钥只存 data/secrets.json（gitignored，本地独有）。apiKey 可选
+ * 传入——未配置密钥的提供方调用时明确报 PROVIDER_NO_KEY（400）。
+ *
  * CORS：所有响应带 Access-Control-Allow-Origin: *；OPTIONS 预检 204。
  */
 
@@ -155,6 +159,16 @@ async function handleChatCompletions(req: Request): Promise<Response> {
   }
 
   const record = resolved.record;
+  if (typeof record.apiKey !== 'string' || record.apiKey.length === 0) {
+    return json(
+      buildApiErrorBody(
+        `提供方「${record.name}」尚未配置本地密钥——密钥只存本地（data/secrets.json），请在设置中填入`,
+        'invalid_request_error',
+        'PROVIDER_NO_KEY',
+      ),
+      400,
+    );
+  }
   try {
     const content = await withRetry(() => callOpenAICompatible(record, messages));
     return json(buildChatCompletionResponse(record.model, content));
@@ -197,7 +211,7 @@ async function handleUpsertProvider(req: Request): Promise<Response> {
       name: value.name,
       kind: 'openai-compatible',
       baseUrl: value.baseUrl,
-      apiKey: value.apiKey,
+      apiKey: value.apiKey.length > 0 ? value.apiKey : undefined, // 密钥只写本地 secrets
       model: value.model,
       modality: 'text',
       enabled: value.enabled,
@@ -218,7 +232,9 @@ async function handleUpsertProvider(req: Request): Promise<Response> {
   }
   existing.name = value.name;
   existing.baseUrl = value.baseUrl;
-  existing.apiKey = value.apiKey;
+  if (value.apiKey.length > 0) {
+    existing.apiKey = value.apiKey; // 传了新密钥才替换；空=保留现有本地密钥
+  }
   existing.model = value.model;
   existing.enabled = value.enabled;
   existing.isDefault = value.isDefault;
@@ -245,6 +261,9 @@ async function handleTestProvider(id: string): Promise<Response> {
   const record = records.find((r) => r.id === id);
   if (!record) {
     return json({ ok: false, error: `未找到提供方配置：${id}` });
+  }
+  if (typeof record.apiKey !== 'string' || record.apiKey.length === 0) {
+    return json({ ok: false, error: `提供方「${record.name}」未配置本地密钥` });
   }
   try {
     const content = await callOpenAICompatible(record, TEST_MESSAGES);
