@@ -892,6 +892,19 @@ a:hover {
   color: var(--ink-faint);
 }
 
+/* 续作入口横幅（CR-61——作品墙「续作」带入参考图并自动创作，
+ * 用户进入即被告知预期，避免「没进度 / 不知道在生成什么」）。 */
+.ref-continue-banner {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 8px;
+}
+
 /* ---------- 系列创作面板（角色 + 分集——有序生成与查看） ---------- */
 
 .series-panel {

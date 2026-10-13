@@ -244,7 +244,14 @@ export default function HomePage() {
         status: data.state,
         stage: 'CURIOSITY',
       });
-      setInitialInput(`以这张图为参考继续创作：${entry.prompt}`);
+      // 续作提示词（CR-61）：优先作品 caption（有画面语义），
+      // 并剥离既有「以这张图为参考继续创作：」前缀——续作套
+      // 续作会叠出「以这张图为参考继续创作：以这张图为参考
+      // 继续创作：…」的双前缀（作品 prompt 与 caption 已带
+      // 参考意图时嵌套），作品墙标题与下游蒸馏词都难看。
+      const basePrompt = entry.caption ?? entry.prompt;
+      const trimmedBase = basePrompt.replace(/^以这张图为参考继续创作[：:]\s*/, '');
+      setInitialInput(`以这张图为参考继续创作：${trimmedBase}`);
       setInitialRefs([dataUri]);
       setResume(false);
       setPhase('experience');

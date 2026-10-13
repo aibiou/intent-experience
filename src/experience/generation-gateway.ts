@@ -566,6 +566,13 @@ export async function generateImage(
       ? IMAGE_SIZES[options.aspectRatio]
       : undefined;
   const refs = options?.referenceImages ?? [];
+  // 参考图透传日志（CR-61 实证链——确认 dataURI 参考图确实到达
+  // 生成网关；仅打长度与来源，不含敏感内容）。
+  if (refs.length > 0) {
+    console.log(
+      `[image-gen] referenceImages=${refs.length} first=${refs[0]?.slice(0, 32)}… len=${refs[0]?.length ?? 0}`,
+    );
+  }
   // 三段调用形态：带画幅 + 带参考图 → 仅参考图（画幅被拒）→
   // 裸调用（参考图也被拒——保底出图，文生图契约兜底）。
   const call = (withSize: boolean, withRefs: boolean) =>

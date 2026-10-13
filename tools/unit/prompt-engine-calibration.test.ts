@@ -137,6 +137,19 @@ describe('safeVisualFallback', () => {
     expect(out).toContain('深海生物');
     expect(out).toContain('温馨自然的生活场景');
   });
+
+  it('带参考图（CR-61）→ 参考图导向兜底，不再下发机制问句主体', () => {
+    const out = safeVisualFallback('猫的呼噜声是怎么发出来的？', undefined, true);
+    expect(out).toContain('以参考图为蓝本');
+    expect(out).toContain('主体、姿态与场景氛围');
+    expect(out).not.toContain('呼噜声');
+    expect(out).not.toContain('怎么');
+  });
+
+  it('带参考图且有合格设计文本（CR-61）→ 设计文本仍优先', () => {
+    const out = safeVisualFallback('猫的呼噜声是怎么发出来的？', '阳光透过纱帘，橘猫蜷在靠垫上午睡，呼吸平稳，暖色氛围', true);
+    expect(out).toBe('阳光透过纱帘，橘猫蜷在靠垫上午睡，呼吸平稳，暖色氛围');
+  });
 });
 
 describe('sanitizeDistilled', () => {
