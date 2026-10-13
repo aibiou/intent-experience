@@ -88,14 +88,22 @@ export interface GenerationOptions {
   /** 参考图（dataURI 数组，≤3 张——图生图：Agnes
    * extra_body.image 契约，生成与参考图主体一致）。 */
   referenceImages?: string[];
+  /** 语音音色（speaker ID——豆包语音 2.0 音色库；
+   * 不传即提供方默认音色）。 */
+  voice?: string;
 }
 
 // 画幅 → 图像尺寸（OpenAI images 兼容契约——聚合
 // 提供方普遍接受的三档；不发送即提供方默认）。
 const IMAGE_SIZES: Record<string, string> = {
-  '16:9': '1792x1024',
-  '9:16': '1024x1792',
-  '1:1': '1024x1024',
+  // Seedream 4.5 输出下限为 2K 档（总像素 ≥ 3686400）；
+  // 取值对应方舟 2K 档位映射（16:9=2816x1584、9:16=1584x2816、
+  // 1:1=2048x2048），保证横/竖/方画幅均满足像素下限。
+  // 其他提供方若拒绝大尺寸，generateImage 已有 400 → 无 size
+  // 降级链兜底，不影响出图。
+  '16:9': '2816x1584',
+  '9:16': '1584x2816',
+  '1:1': '2048x2048',
 };
 
 /** 端点基地址（剥离 chat-completions 后缀——生成端点
@@ -646,10 +654,97 @@ export async function generateImage(
   );
 }
 
+/**
+ * 豆包语音（火山引擎）契约判定：openspeech 域 / tts·audio
+ * 模型名——X-Api-Key 单头鉴权 + /api/v3/tts/create 非流式
+ * 音频生成（响应 audio base64 或 url），与 OpenAI 兼容
+ * /audio/speech（Bearer 鉴权）协议不同，须走独立适配器。
+ */
+function isDoubaoVoiceContract(config: EnabledProviderConfig): boolean {
+  const model = config.model.toLowerCase();
+  const endpoint = config.endpoint.toLowerCase();
+  return (
+    endpoint.includes('openspeech') ||
+    model.includes('tts') ||
+    model.includes('audio')
+  );
+}
+
+async function generateVoiceDoubao(
+  config: EnabledProviderConfig,
+  prompt: string,
+  speaker?: string,
+): Promise<GenerationArtifact> {
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl(config.endpoint)}/api/v3/tts/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': config.apiKey,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        text_prompt: prompt,
+        audio_config: { format: 'mp3', sample_rate: 48000 },
+        ...(speaker !== undefined && speaker.length > 0 ? { speaker } : {}),
+      }),
+      signal: AbortSignal.timeout(120_000),
+    });
+  } catch {
+    throw new GenerationError(
+      `generation provider network failure (provider=${config.provider}, modality=voice)`,
+      'voice',
+      true,
+    );
+  }
+  if (!response.ok) {
+    const detail = await readProviderError(response);
+    const reason = detail.message.length > 0 ? `: ${detail.message}` : '';
+    throw new GenerationError(
+      `generation provider failed (provider=${config.provider}, modality=voice, status=${response.status}${reason})`,
+      'voice',
+      detail.retryable,
+      response.status,
+    );
+  }
+  let parsed: unknown;
+  try {
+    parsed = await response.json();
+  } catch {
+    throw new GenerationError(
+      `generation provider response malformed (provider=${config.provider}, modality=voice: non-JSON body)`,
+      'voice',
+    );
+  }
+  const record = parsed as Record<string, unknown>;
+  const url = typeof record.url === 'string' && record.url.length > 0 ? record.url : undefined;
+  if (url !== undefined) {
+    return { url, mime: 'audio/mpeg' };
+  }
+  const audio =
+    typeof record.audio === 'string' && record.audio.length > 0 ? record.audio : undefined;
+  if (audio !== undefined) {
+    return { dataUri: `data:audio/mpeg;base64,${audio}`, mime: 'audio/mpeg' };
+  }
+  throw new GenerationError(
+    `generation provider response malformed (provider=${config.provider}, modality=voice: no url or audio)`,
+    'voice',
+  );
+}
+
 export async function generateVoice(
   config: EnabledProviderConfig,
   prompt: string,
+  _onProgress?: (progress: number) => void,
+  options?: GenerationOptions,
 ): Promise<GenerationArtifact> {
+  // 契约路由：豆包语音走自有 /api/v3/tts/create 适配器
+  // （options.voice 透传 2.0 音色库 speaker）；
+  // 否则按 OpenAI 兼容 /audio/speech（原实现，纯增量零回归）。
+  if (isDoubaoVoiceContract(config)) {
+    return generateVoiceDoubao(config, prompt, options?.voice);
+  }
   const response = await callProvider(config, '/audio/speech', {
     model: config.model,
     input: prompt,

@@ -60,6 +60,30 @@ const MODALITY_LABELS: Record<Modality, string> = {
   video: '视频',
 };
 
+// 提供商标识友好化（展示层——与配置页同一套映射）。
+const PROVIDER_LABELS: Record<string, string> = {
+  volcengine: '火山引擎',
+  dashscope: '阿里云百炼',
+  'agnes-com': 'Agnes AI',
+  newapi: '本地网关 NewAPI',
+  'doubao-voice': '豆包语音',
+};
+
+// 豆包语音 2.0 音色库精选（均已实测可用；不选即默认音色）。
+const VOICE_SPEAKERS = [  { id: 'zh_female_tianmeitaozi_mars_bigtts', name: '甜美桃子' },
+  { id: 'zh_male_shaonianzixin_uranus_bigtts', name: '少年梓辛 2.0' },
+  { id: 'zh_female_vv_uranus_bigtts', name: 'Vivi 2.0' },
+  { id: 'zh_female_xiaohe_uranus_bigtts', name: '小何 2.0' },
+  { id: 'zh_male_m191_uranus_bigtts', name: '云舟 2.0' },
+  { id: 'zh_male_liufei_uranus_bigtts', name: '刘飞 2.0' },
+  { id: 'zh_female_tianmeixiaoyuan_uranus_bigtts', name: '甜美小源 2.0' },
+  { id: 'zh_male_wennuanahu_uranus_bigtts', name: '温暖阿虎 2.0' },
+  { id: 'zh_male_baqiqingshu_uranus_bigtts', name: '霸气青叔 2.0' },
+  { id: 'zh_female_linxiao_uranus_bigtts', name: '林潇 2.0' },
+  { id: 'zh_female_kailangjiejie_uranus_bigtts', name: '开朗姐姐 2.0' },
+  { id: 'zh_male_huolixiaoge_uranus_bigtts', name: '活力小哥 2.0' },
+];
+
 function srcOf(entry: Pick<CreationEntry, 'url' | 'dataUri'>): string | undefined {
   return entry.dataUri ?? entry.url;
 }
@@ -97,6 +121,7 @@ export default function CreatePage() {
   const [message, setMessage] = useState('');
   const [history, setHistory] = useState<CreationEntry[]>([]);
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
+  const [speaker, setSpeaker] = useState('');
   const refInputRef = useRef<HTMLInputElement>(null);
   const requestRef = useRef<AbortController | null>(null);
 
@@ -196,6 +221,9 @@ export default function CreatePage() {
             ...(referenceImages.length > 0
               ? { reference_images: referenceImages }
               : {}),
+            ...(modality === 'voice' && speaker
+              ? { voice: speaker }
+              : {}),
           }),
         });
         if (!response.ok || response.body === null) {
@@ -265,7 +293,7 @@ export default function CreatePage() {
         }
       }
     })();
-  }, [prompt, phase, modality, modelId]);
+  }, [prompt, phase, modality, modelId, speaker]);
 
   // 取消在途生成（fetch abort → 服务端流中断）。
   const cancelGeneration = useCallback(() => {
@@ -364,7 +392,7 @@ export default function CreatePage() {
               {options.length === 0 && <option value="">暂无启用模型</option>}
               {options.map((option) => (
                 <option key={option.id} value={option.id}>
-                  {option.provider} · {option.model}
+                  {PROVIDER_LABELS[option.provider] ?? option.provider} · {option.model}
                 </option>
               ))}
             </select>
@@ -373,6 +401,24 @@ export default function CreatePage() {
             <p className="workspace-field-hint">
               该模态还没有启用的模型——<a href="/config">去模型配置</a>添加并启用后再生成。
             </p>
+          )}
+
+          {modality === 'voice' && (
+            <label className="workspace-field">
+              <span className="workspace-field-label">音色</span>
+              <select
+                className="workspace-model"
+                value={speaker}
+                onChange={(event) => setSpeaker(event.target.value)}
+              >
+                <option value="">默认音色</option>
+                {VOICE_SPEAKERS.map((voice) => (
+                  <option key={voice.id} value={voice.id}>
+                    {voice.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
 
           {phase === 'pending' ? (
