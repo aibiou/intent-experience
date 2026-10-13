@@ -1648,6 +1648,11 @@ export function ExperienceScreen({
             <p className="params-popover-hint">仅影响下一次图像 / 视频生成；「自动」跟随提供方默认。</p>
           </div>
         )}
+        {initialRefs !== undefined && initialRefs.length > 0 && (
+          <p className="ref-continue-banner">
+            已带入 {initialRefs.length} 张参考图——正在基于它继续创作，可随时停止
+          </p>
+        )}
         {pendingRefs.length > 0 && (
           <div className="ref-thumbs">
             {pendingRefs.map((uri, index) => (

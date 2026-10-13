@@ -348,8 +348,13 @@ async function* withGeneration(
           // 蒸馏失败 / 不合格的安全兜底（CR-59）：机制问句直接作
           // 图像提示会引导模型画解剖示意（猫呼噜实测：颈部发光项圈 /
           // 彩色管道剖面 / 箭头标注 / 乱码文字）——兜底收敛为
-          // 「主体自然状态 + 温馨场景」，绝不把机制问句原样下发。
-          finalPrompt = safeVisualFallback(prompt, designTextForFallback);
+          // 「主体自然状态 + 温馨场景」，绝不把机制问句原样下发；
+          // 带参考图时切参考图导向（CR-61——参考图承载主体）。
+          finalPrompt = safeVisualFallback(
+            prompt,
+            designTextForFallback,
+            (intent.referenceImages?.length ?? 0) > 0,
+          );
           console.warn(
             '[withGeneration] distill failed, safe visual fallback:',
             finalPrompt,
@@ -385,9 +390,21 @@ async function* withGeneration(
         (progress) => {
           progressQueue.push(progress);
         },
-        // 创作参数（画幅 / 时长——前端创作参数条透传；
+        // 创作参数（画幅 / 时长 / 参考图——前端创作参数条透传；
         // 缺省 undefined 保持提供方默认行为）。
-        { aspectRatio: intent.aspectRatio, seconds: intent.seconds },
+        // 参考图（CR-61）：续作 / 图生图意图的 reference_images
+        // 此前解析了却未透传生成网关（仅画幅 / 时长）——参考图
+        // 从未到达 agnes extra_body.image，图生图退化为纯文生
+        // 图（续作实测：参考图「橘猫蜷缩毛毯」生成「虎斑猫端坐
+        // 沙发」，仅氛围延续）。此处补齐透传。
+        {
+          aspectRatio: intent.aspectRatio,
+          seconds: intent.seconds,
+          ...(intent.referenceImages !== undefined &&
+          intent.referenceImages.length > 0
+            ? { referenceImages: intent.referenceImages }
+            : {}),
+        },
       );
       let artifact: Awaited<typeof artifactPromise>;
       let generationError: unknown;
@@ -454,7 +471,7 @@ async function* withGeneration(
 const ASPECT_RATIO_VALUES = new Set(['16:9', '9:16', '1:1']);
 const VIDEO_SECONDS_VALUES = new Set(['4', '6', '8', '12']);
 
-function extractCreationParams(body: {
+export function extractCreationParams(body: {
   aspect_ratio?: unknown;
   seconds?: unknown;
   reference_images?: unknown;
@@ -470,15 +487,24 @@ function extractCreationParams(body: {
     options.seconds = body.seconds as GenerationOptions['seconds'];
   }
   // 参考图（图生图）：dataURI 白名单校验——仅 data:image/、
-  // 单张 ≤1.5MB、至多 3 张；非法项静默丢弃。
+  // 解码后 ≤1.5MB、至多 3 张；非法项静默丢弃。
+  // CR-61：原按 dataURI 字符串长度 ≤1.5M 过滤——base64 膨胀
+  // ≈1.33×，1.2MB PNG 的 dataURI ≈1.7M 字符被误杀，作品墙
+  // 「续作」带的服务端落盘参考图（1.1–1.5MB 常态）从未到达
+  // 生成网关，图生图退化为纯文生。改为按 base64 负载估算解码
+  // 字节（len×3/4，含 padding 略高估——判定保守、不误放）。
   if (Array.isArray(body.reference_images)) {
     const refs = body.reference_images
-      .filter(
-        (item): item is string =>
-          typeof item === 'string' &&
-          item.startsWith('data:image/') &&
-          item.length <= 1_500_000,
-      )
+      .filter((item): item is string => {
+        if (typeof item !== 'string' || !item.startsWith('data:image/')) {
+          return false;
+        }
+        const metaEnd = item.indexOf(',');
+        if (metaEnd < 0) return false;
+        const payloadLength = item.length - metaEnd - 1;
+        if (payloadLength <= 0) return false;
+        return (payloadLength * 3) / 4 <= 1_500_000;
+      })
       .slice(0, 3);
     if (refs.length > 0) options.referenceImages = refs;
   }

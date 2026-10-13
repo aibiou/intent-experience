@@ -124,11 +124,21 @@ export function shouldRejectDistilled(text: string, isMeditative?: boolean): boo
  * 图——兜底一律收敛为「主体自然状态 + 温馨场景」。
  * 优先级：无解剖 / 示意词且 ≥10 字的设计文本（有画面信息）→
  * 机制问句主题化场景（去掉疑问 / 机制词尾，保留主体短语）。
+ * 带参考图（hasReference，CR-61）时优先「以参考图为蓝本」导向
+ * ——参考图承载主体与构图，兜底词只说明跟随参考图 + 氛围，
+ * 不再把机制问句的主体短语作为画面指令（弱化主题句干扰）。
  */
-export function safeVisualFallback(intentPrompt: string, designText?: string): string {
+export function safeVisualFallback(
+  intentPrompt: string,
+  designText?: string,
+  hasReference?: boolean,
+): string {
   const design = designText?.trim();
   if (design && design.length >= 10 && !containsSchematicLiteral(design)) {
     return design.slice(0, 200);
+  }
+  if (hasReference === true) {
+    return '以参考图为蓝本，保持其主体、姿态与场景氛围，在同样的光线与色调下自然呈现的温馨生活画面';
   }
   const subject = intentPrompt
     .replace(/[？?！!。，,]/g, ' ')
@@ -198,7 +208,7 @@ export async function distillVisualPrompt(
   const sections: string[] = [`创作意图：${input.intentPrompt}`];
   if (input.hasReference === true) {
     sections.push(
-      '参考图：用户提供了参考图——画面主体与整体风格须与参考图保持一致；后续描述是相对参考图的修改要求。',
+      '参考图：用户提供了参考图——画面主体与整体风格须与参考图保持一致；后续描述是相对参考图的修改要求。不得添加参考图中不存在的新主体（如参考图中没有人，画面中也不得出现人物；同理不得新增与参考图无关的物体或角色）。',
     );
   }
   if (input.designText && input.designText.trim().length > 0) {
