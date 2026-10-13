@@ -161,8 +161,11 @@ const ACTION_LABELS: Record<string, string> = {
  * 呈现为可见的"体验旅程"进度，兑现"控制感 / 从看见到参与"。
  * 五段：开始 → 理解 → 深入 → 创作 → 完成。当前段高亮 + 下一步可做什么。
  * 映射依据状态机语义（status 与 stage 的复合定位）。
+ *
+ * relax 类体验的阶段引导语更柔和（「沉浸」而非「深入」），
+ * 贴合放松场景的调性。
  */
-const STAGE_RAIL = [
+const STAGE_RAIL_DEFAULT = [
   { key: 'start', label: '开始', hint: '进入这个体验' },
   { key: 'understand', label: '理解', hint: '正在理解你的方向' },
   { key: 'deepen', label: '深入', hint: '现在可以深入、换角度或模拟' },
@@ -170,20 +173,28 @@ const STAGE_RAIL = [
   { key: 'done', label: '完成', hint: '收尾并沉淀这次体验' },
 ];
 
+const STAGE_RAIL_RELAX = [
+  { key: 'start', label: '开始', hint: '慢慢进入这段体验' },
+  { key: 'understand', label: '沉浸', hint: '跟着节奏走，不着急' },
+  { key: 'deepen', label: '沉浸', hint: '可以换个角度，或继续沉浸' },
+  { key: 'create', label: '创作', hint: '把感受留下来' },
+  { key: 'done', label: '完成', hint: '收尾，带着这份安静离开' },
+];
+
 function stageRailIndex(status: string, stage: string): number {
   if (status === 'COMPLETED' || stage === 'COMPLETION') return 4;
   if (stage === 'CREATION') return 3;
-  if (stage === 'SIMULATION' || status === 'WAITING') return 2;
+  if (stage === 'SIMULATION') return 2;
   if (status === 'ENTERING' || stage === 'CURIOSITY') return 0;
-  return 1; // READY/ACTIVE + UNDERSTANDING → 理解
+  return 1; // READY/ACTIVE/WAITING + UNDERSTANDING → 理解
 }
-
-function StageRail({ status, stage }: { status: string; stage: string }) {
+function StageRail({ status, stage, category }: { status: string; stage: string; category?: ExperienceCategory }) {
   const index = stageRailIndex(status, stage);
+  const rail = category === 'relax' ? STAGE_RAIL_RELAX : STAGE_RAIL_DEFAULT;
   return (
     <div className="stage-rail" aria-label="体验阶段">
       <div className="stage-rail-track">
-        {STAGE_RAIL.map((segment, segmentIndex) => (
+        {rail.map((segment, segmentIndex) => (
           <div
             key={segment.key}
             className={`stage-rail-seg${
@@ -196,8 +207,8 @@ function StageRail({ status, stage }: { status: string; stage: string }) {
         ))}
       </div>
       <p className="stage-rail-hint">
-        <span className="stage-rail-now">{STAGE_RAIL[index].label}阶段</span>
-        · {STAGE_RAIL[index].hint}
+        <span className="stage-rail-now">{rail[index].label}阶段</span>
+        · {rail[index].hint}
       </p>
     </div>
   );
@@ -384,6 +395,8 @@ interface ExperienceScreenProps {
   resume?: boolean;
   mode: 'synthetic' | 'provider';
   providerLabel?: string;
+  /** 体验分类（relax / discover / deep / create / wild——阶段引导语感知）。 */
+  category?: ExperienceCategory;
   onSessionUpdate: (session: SessionState) => void;
   onRecent: (entry: RecentEntry) => void;
   onExit: () => void;
@@ -400,6 +413,7 @@ export function ExperienceScreen({
   resume,
   mode,
   providerLabel,
+  category,
   onSessionUpdate,
   onRecent,
   onExit,
@@ -1255,10 +1269,10 @@ export function ExperienceScreen({
 
   useEffect(() => {
     const element = conversationRef.current;
-    if (element && followRef.current) {
+    if (element && (followRef.current || sessionState.status === 'COMPLETED')) {
       element.scrollTop = element.scrollHeight;
     }
-  }, [messages, generations]);
+  }, [messages, generations, sessionState.status]);
 
   const branchActive = currentBranchId !== null;
 
@@ -1498,7 +1512,7 @@ export function ExperienceScreen({
         </div>
       </header>
 
-      <StageRail status={sessionState.status} stage={sessionState.stage} />
+      <StageRail status={sessionState.status} stage={sessionState.stage} category={category} />
 
       <div className="experience-body">
         <section className="chat-column">

@@ -109,6 +109,9 @@ class PersistedConfigLlmGateway implements LlmGateway {
         temperature: persisted.temperature,
         apiKey: persisted.apiKey,
         systemPrompt: persisted.systemPrompt,
+        ...(persisted.maxTokens !== undefined ? { maxTokens: persisted.maxTokens } : {}),
+        ...(persisted.topP !== undefined ? { topP: persisted.topP } : {}),
+        ...(persisted.enableThinking !== undefined ? { enableThinking: persisted.enableThinking } : {}),
       }).propose(request);
     }
     this.synthetic ??= new SyntheticLlmGateway(allFixtures());
@@ -143,6 +146,9 @@ class PersistedConfigLlmGateway implements LlmGateway {
         temperature: persisted.temperature,
         apiKey: persisted.apiKey,
         systemPrompt: persisted.systemPrompt,
+        ...(persisted.maxTokens !== undefined ? { maxTokens: persisted.maxTokens } : {}),
+        ...(persisted.topP !== undefined ? { topP: persisted.topP } : {}),
+        ...(persisted.enableThinking !== undefined ? { enableThinking: persisted.enableThinking } : {}),
       }).proposeStream(request);
     };
   }
