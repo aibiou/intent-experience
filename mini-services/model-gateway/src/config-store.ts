@@ -24,16 +24,33 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
+/** 提供方模态（按模态路由：文本/图像/视频/语音各自独立选提供方）。 */
+export type ProviderModality = 'text' | 'image' | 'video' | 'voice';
+
+export const PROVIDER_MODALITIES: readonly ProviderModality[] = [
+  'text',
+  'image',
+  'video',
+  'voice',
+];
+
+export function isProviderModality(value: unknown): value is ProviderModality {
+  return (
+    typeof value === 'string' &&
+    (PROVIDER_MODALITIES as readonly string[]).includes(value)
+  );
+}
+
 export interface ProviderConfigRecord {
   id: string; // crypto.randomUUID()
-  name: string; // 显示名，唯一（如 "newapi"、"公司中转"）
+  name: string; // 显示名，唯一（如 "agnes-com"、"火山云语音"）
   kind: 'openai-compatible';
-  baseUrl: string; // 完整 base，如 https://api.example.com/v1（网关拼 /chat/completions）
+  baseUrl: string; // 完整 base，如 https://api.example.com/v1（网关按契约拼生成端点）
   apiKey?: string; // 运行时形态：load() 从 data/secrets.json 合并；持久化（providers.json）绝不写
-  model: string; // 模型名（如 gpt-4o / deepseek-chat）
-  modality: 'text'; // 本切片仅 text（图/视频/语音是后续切片）
+  model: string; // 模型名（如 gpt-4o / agnes-image-2.5-flash / seed-audio-1.0）
+  modality: ProviderModality; // 模态绑定——一条记录只服务一个模态
   enabled: boolean;
-  isDefault: boolean; // 同时刻最多一条 isDefault=true 的 text 记录
+  isDefault: boolean; // 同一模态至多一条 isDefault=true（enforceDefaultUniqueness 按模态归一）
   createdAt: string; // ISO 时间
   updatedAt: string; // ISO 时间
 }
@@ -45,7 +62,7 @@ export interface ProviderConfigSummary {
   kind: 'openai-compatible';
   baseUrl: string;
   model: string;
-  modality: 'text';
+  modality: ProviderModality;
   enabled: boolean;
   isDefault: boolean;
   createdAt: string;
@@ -81,17 +98,17 @@ export function summarizeRecord(record: ProviderConfigRecord): ProviderConfigSum
 }
 
 /**
- * isDefault 唯一性（纯函数）：多条 isDefault=true 时仅保留第一条，
- * 其余置 false；无 default 时保持原状（删除 default 记录后允许
- * 短暂没有 default——解析链此时回退内置 zai）。
+ * isDefault 唯一性（纯函数，按模态）：同一模态多条 isDefault=true
+ * 时仅保留第一条，其余置 false；无 default 时保持原状（删除
+ * default 记录后允许短暂没有 default——解析链按模态回退）。
  */
 export function enforceDefaultUniqueness(
   records: ProviderConfigRecord[],
 ): ProviderConfigRecord[] {
-  let seen = false;
+  const seen = new Set<ProviderModality>();
   return records.map((record) => {
-    if (record.isDefault && !seen) {
-      seen = true;
+    if (record.isDefault && !seen.has(record.modality)) {
+      seen.add(record.modality);
       return record;
     }
     return { ...record, isDefault: false };
@@ -106,7 +123,8 @@ function isRecordLike(value: unknown): value is ProviderConfigRecord {
     typeof r.id === 'string' &&
     typeof r.name === 'string' &&
     typeof r.baseUrl === 'string' &&
-    typeof r.model === 'string'
+    typeof r.model === 'string' &&
+    isProviderModality(r.modality)
   );
 }
 
@@ -190,7 +208,7 @@ export class ConfigStore {
     return records.filter(isRecordLike).map((record) => ({
       ...record,
       kind: 'openai-compatible' as const,
-      modality: 'text' as const,
+      modality: record.modality, // 模态绑定（isRecordLike 已校验合法值）
       enabled: record.enabled === true,
       isDefault: record.isDefault === true,
       apiKey: secrets[record.id], // 密钥只来自本地 secrets（缺失 → undefined，hasKey=false）

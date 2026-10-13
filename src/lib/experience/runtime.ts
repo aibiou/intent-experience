@@ -656,16 +656,6 @@ export class ExperienceRuntime {
     turn: number,
     signal: AbortSignal
   ): AsyncGenerator<TurnEvent> {
-    if (intent.modality === 'video') {
-      yield {
-        type: 'generation',
-        status: 'unconfigured',
-        turn,
-        modality: 'video',
-        message: '视频生成还没有接入。图片和语音现在就可以：说「画一张…的图片」，或者「读给我听」试试。',
-      };
-      return;
-    }
     if (signal.aborted) return;
     try {
       let promptUsed: string;
@@ -693,7 +683,9 @@ export class ExperienceRuntime {
       const record =
         intent.modality === 'image'
           ? await this.media.generateImage(promptUsed, { sessionId, turn, signal })
-          : await this.media.generateVoice(promptUsed, { sessionId, turn, signal });
+          : intent.modality === 'video'
+            ? await this.media.generateVideo(promptUsed, { sessionId, turn, signal })
+            : await this.media.generateVoice(promptUsed, { sessionId, turn, signal });
       if (signal.aborted) return; // 产物已落盘但用户已离开：不投递
       yield {
         type: 'generation',
