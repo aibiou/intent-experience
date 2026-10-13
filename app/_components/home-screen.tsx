@@ -10,8 +10,6 @@ import {
   SendIcon,
   SettingsIcon,
   ShuffleIcon,
-  FlameIcon,
-  ClockIcon,
   SparklesIcon,
   HistoryIcon,
   ImageIcon,
@@ -21,14 +19,11 @@ import {
   LogoMark,
 } from './icons';
 import { creationSrc, timeAgo, type CreationEntry } from './creations';
-import { ExperienceCover } from './experience-cover';
 import {
   EXPERIENCE_CATALOG,
-  CATEGORY_LABELS,
   type ExperienceSeed,
   type ExperienceCategory,
 } from '../../src/experience/catalog';
-import { curateList } from '../../src/experience/curation';
 
 export interface RecentEntry {
   experienceId: string;
@@ -40,9 +35,8 @@ export interface RecentEntry {
   stage?: string;
 }
 
-type FeedTab = 'featured' | 'hot' | 'fresh';
-
-// 状态入口（Screen 01 低成本选择——用户只回答「我现在比较像哪一种」）。
+// 状态入口（Screen 01 低成本选择——用户只回答「我现在比较像哪一种」，
+// 点击即进入该类别的一个体验：不用费脑子）。
 const STATE_CHOICES: {
   icon: ComponentType<{ size?: number }>;
   label: string;
@@ -53,12 +47,6 @@ const STATE_CHOICES: {
   { icon: SearchIcon, label: '深入一个问题', category: 'deep' },
   { icon: EditIcon, label: '做点什么', category: 'create' },
   { icon: ShuffleIcon, label: '随便看看', category: 'wild' },
-];
-
-const TABS: { id: FeedTab; label: string }[] = [
-  { id: 'featured', label: '推荐' },
-  { id: 'hot', label: '热门' },
-  { id: 'fresh', label: '最新' },
 ];
 
 // 续讲感知：会话阶段 → 中文短标签（「上次停在 X」）。
@@ -74,18 +62,7 @@ const STAGE_LABELS: Record<string, string> = {
   WAITING: '等待',
 };
 
-// 「此刻」脉搏：让首页读起来像有活的社区在运转。
-const PULSE_VERBS = ['正在探索', '刚刚进入', '正在深入'];
-
-function dayBucket(): number {
-  return Math.floor(Date.now() / 86400000);
-}
-
-function rotate<T>(list: T[], offset: number): T[] {
-  if (list.length === 0) return list;
-  const shift = ((offset % list.length) + list.length) % list.length;
-  return [...list.slice(shift), ...list.slice(0, shift)];
-}
+// 「此刻」脉搏已按 V1.1 移除（首页不做社交暗示、其他全部弱化）。
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -93,15 +70,6 @@ function greeting(): string {
   if (hour < 12) return '早上好';
   if (hour < 18) return '下午好';
   return '晚上好';
-}
-
-// 封面高度分档（画廊瀑布流的节奏感）——同一体验永远同一档。
-function coverTier(id: string): 'cover-tall' | 'cover-square' | 'cover-wide' {
-  let hash = 0;
-  for (let index = 0; index < id.length; index += 1) {
-    hash = (hash * 31 + id.charCodeAt(index)) >>> 0;
-  }
-  return (['cover-tall', 'cover-square', 'cover-wide'] as const)[hash % 3];
 }
 
 interface HomeScreenProps {
@@ -124,15 +92,8 @@ const CREATION_MODALITY_LABELS: Record<CreationEntry['modality'], string> = {
 // 作品墙分页粒度。
 const WALL_PAGE_SIZE = 12;
 
-// 自由输入框轮播提示——多模态能力
-// 一目了然，每 4 秒换一条。
-const ENTRY_HINTS: readonly string[] = [
-  '做个清晨森林的视频……',
-  '画一张赛博朋克城市插画……',
-  '读一段睡前故事……',
-  '写一首关于地铁的诗……',
-  '做个极简像素头像……',
-];
+// 自由入口（V1.1 §1.5）：不要像搜索框——「把脑子里现在想到的东西扔给我」。
+const COMPOSER_PLACEHOLDER = '直接告诉我，现在脑子里在想什么？';
 
 interface LightboxState {
   src: string;
@@ -151,21 +112,12 @@ export function HomeScreen({
   onContinueCreation,
 }: HomeScreenProps) {
   const [draft, setDraft] = useState('');
-  const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<FeedTab>('featured');
-  const [category, setCategory] = useState<ExperienceCategory | null>(null);
-  const [pulseIndex, setPulseIndex] = useState(0);
-  const [hintIndex, setHintIndex] = useState(0);
   const [lightbox, setLightbox] = useState<LightboxState | null>(null);
   // 作品墙模态筛选 + 分页（专业作品库——服务端全量在手，
   // 展示按 12 件一页渐进加载）。
   const [wallFilter, setWallFilter] = useState<'all' | CreationEntry['modality']>('all');
   const [wallLimit, setWallLimit] = useState(WALL_PAGE_SIZE);
-  // Screen 01 §1.3 首屏分级（E 项）：新用户（无历史）默认聚焦三层首屏，
-  // 内容墙折叠；用户一旦主动表达（选方向/搜索/点更多）即展开。
-  const [feedOpen, setFeedOpen] = useState<boolean>(
-    recents.length > 0 || creations.length > 0,
-  );
+  // Screen 01 首屏：三层视觉层级常驻（当前状态 → 低成本选择 → 自由入口）。
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
   // ③ 记忆可见化：首页"我记得你"总览——把系统跨体验记住的理解
@@ -191,24 +143,9 @@ export function HomeScreen({
     };
   }, []);
 
-  // 老用户 = 有历史（最近探索或作品）→ 首屏直接给全量；否则新用户聚焦首屏。
+  // 老用户 = 有历史（最近探索或作品）→ 首页可带记忆/作品/最近探索；
+  // 新用户聚焦三层首屏。
   const isReturning = recents.length > 0 || creations.length > 0;
-
-  // 脉搏轮转：每 4 秒换一条，像社区的实时感。
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setPulseIndex((index) => index + 1);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // 输入框提示轮播。
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setHintIndex((index) => (index + 1) % ENTRY_HINTS.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Lightbox：Esc 关闭。
   useEffect(() => {
@@ -219,43 +156,6 @@ export function HomeScreen({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [lightbox]);
-
-  const catalog = useMemo(() => {
-    const base = rotate(EXPERIENCE_CATALOG, dayBucket());
-    let list = base;
-    if (category) list = list.filter((seed) => seed.category === category);
-    const normalized = query.trim().toLowerCase();
-    if (normalized) {
-      list = list.filter((seed) => {
-        const haystack = [seed.title, seed.summary, ...seed.tags, CATEGORY_LABELS[seed.category]]
-          .join(' ')
-          .toLowerCase();
-        return haystack.includes(normalized);
-      });
-    }
-    if (tab === 'hot') {
-      return [...list].sort((a, b) => b.hot - a.hot);
-    }
-    if (tab === 'fresh') {
-      return [...list].reverse();
-    }
-    // 目录策展（⑥ 项）：默认"推荐"视图且无显式筛选（搜索/选分类）时，
-    // 按全局记忆偏好把匹配体验整体前移；显式语义一律不策展。
-    if (!category && !query.trim()) {
-      return curateList(list, globalMemories);
-    }
-    return list;
-  }, [query, tab, category, globalMemories]);
-
-  const featured = useMemo(
-    () => EXPERIENCE_CATALOG.filter((seed) => seed.featured),
-    [],
-  );
-  const featuredFirst = featured[0];
-
-  const pulseSeed = EXPERIENCE_CATALOG[pulseIndex % EXPERIENCE_CATALOG.length];
-  const pulseVerb = PULSE_VERBS[pulseIndex % PULSE_VERBS.length];
-  const pulseCount = 2 + (pulseIndex % 5);
 
   const submit = () => {
     const input = draft.trim();
@@ -275,19 +175,20 @@ export function HomeScreen({
     onEnter(seed);
   };
 
+  // 低成本选择：点状态入口 → 该类别随机一个体验直接进入
+  // （V1.1：五种入口不同，但都不要求用户再选）。
+  const enterCategory = (category: ExperienceCategory) => {
+    const pool = EXPERIENCE_CATALOG.filter((seed) => seed.category === category);
+    const candidates = pool.length > 0 ? pool : EXPERIENCE_CATALOG;
+    onEnter(candidates[Math.floor(Math.random() * candidates.length)]);
+  };
+
   const resizeComposer = () => {
     const element = composerRef.current;
     if (!element) return;
     element.style.height = 'auto';
     element.style.height = `${Math.min(element.scrollHeight, 96)}px`;
   };
-
-  const gridSeeds: ExperienceSeed[] =
-    tab === 'featured' && !query && !category
-      ? catalog.filter((seed) => seed.id !== featuredFirst.id)
-      : catalog;
-
-  const pulseKey = `${pulseVerb}-${pulseSeed.id}-${pulseCount}`;
 
   // 作品库：模态计数 + 筛选 + 分页切片。
   const modalityCounts = useMemo(() => {
@@ -325,20 +226,6 @@ export function HomeScreen({
           <LogoMark size={22} />
           <span className="wordmark">个人体验引擎</span>
         </span>
-        <div className="searchbar">
-          <SearchIcon size={15} />
-          <input
-            className="searchbar-input"
-            type="search"
-            placeholder="搜索体验……"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              // 搜索即主动表达——立即展开内容墙。
-              if (event.target.value.trim()) setFeedOpen(true);
-            }}
-          />
-        </div>
         <a className="config-link" href="/config">
           <SettingsIcon size={14} /> 模型配置
         </a>
@@ -357,12 +244,8 @@ export function HomeScreen({
             <button
               key={choice.label}
               type="button"
-              className={`state-chip${category === choice.category ? ' is-active' : ''}`}
-              onClick={() => {
-                setCategory(category === choice.category ? null : choice.category);
-                // 用户主动选方向——展开内容墙。
-                setFeedOpen(true);
-              }}
+              className="state-chip"
+              onClick={() => enterCategory(choice.category)}
             >
               <choice.icon size={16} />
               <span>{choice.label}</span>
@@ -422,130 +305,8 @@ export function HomeScreen({
         </section>
       )}
 
-      <div className="pulse">
-        <span className="pulse-dot" aria-hidden="true" />
-        <p className="pulse-text" key={pulseKey}>
-          此刻有 {pulseCount} 位探索者{pulseVerb}「{pulseSeed.title}」
-        </p>
-      </div>
-
-      {isReturning || feedOpen ? (
-        <section className="feed">
-          <div className="feed-tabs">
-            {TABS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`feed-tab${tab === item.id ? ' is-active' : ''}`}
-                onClick={() => setTab(item.id)}
-              >
-                {item.id === 'hot' && <FlameIcon size={13} />}
-                {item.id === 'fresh' && <ClockIcon size={13} />}
-                {item.id === 'featured' && <SparklesIcon size={13} />}
-                {item.label}
-              </button>
-            ))}
-            <span className="feed-count">{catalog.length} 个体验</span>
-          </div>
-
-          {tab === 'featured' && !query && !category && (
-            <button
-              type="button"
-              className="card card-featured"
-              onClick={() => onEnter(featuredFirst)}
-            >
-              <ExperienceCover seed={featuredFirst} />
-              <div className="featured-overlay">
-                <span className="featured-eyebrow">
-                  今日精选
-                  <span className="hot-badge">
-                    <FlameIcon size={12} /> {featuredFirst.hot}
-                  </span>
-                </span>
-                <h3>{featuredFirst.title}</h3>
-                <p>{featuredFirst.summary}</p>
-                <span className="card-cta">
-                  开始探索 <ArrowRightIcon size={14} />
-                </span>
-              </div>
-            </button>
-          )}
-
-          <div className="card-grid">
-            {gridSeeds.map((seed) => (
-              <button
-                key={seed.id}
-                type="button"
-                className="card card-gallery"
-                onClick={() => onEnter(seed)}
-              >
-                <ExperienceCover seed={seed} className={coverTier(seed.id)} />
-                {seed.hot >= 60 && (
-                  <span className="hot-badge cover-hot">
-                    <FlameIcon size={12} /> {seed.hot}
-                  </span>
-                )}
-                <span className="tag tag-category cover-category">
-                  {CATEGORY_LABELS[seed.category]}
-                </span>
-                <div className="card-overlay">
-                  <h3>{seed.title}</h3>
-                  <p className="card-summary">{seed.summary}</p>
-                  <div className="card-tags">
-                    {seed.tags.map((tag) => (
-                      <span key={tag} className="tag">{tag}</span>
-                    ))}
-                  </div>
-                  <span className="card-cta">
-                    开始探索 <ArrowRightIcon size={14} />
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {catalog.length === 0 && (
-            <p className="feed-empty">
-              没有找到相关体验——换个关键词，或直接在下面开口。
-            </p>
-          )}
-        </section>
-      ) : (
-        <section className="feed feed-compact">
-          <button
-            type="button"
-            className="card card-featured"
-            onClick={() => onEnter(featuredFirst)}
-          >
-            <ExperienceCover seed={featuredFirst} />
-            <div className="featured-overlay">
-              <span className="featured-eyebrow">
-                今日精选
-                <span className="hot-badge">
-                  <FlameIcon size={12} /> {featuredFirst.hot}
-                </span>
-              </span>
-              <h3>{featuredFirst.title}</h3>
-              <p>{featuredFirst.summary}</p>
-              <span className="card-cta">
-                开始探索 <ArrowRightIcon size={14} />
-              </span>
-            </div>
-          </button>
-          <button
-            type="button"
-            className="feed-more"
-            onClick={() => setFeedOpen(true)}
-          >
-            <CompassIcon size={15} />
-            <span>发现更多体验</span>
-            <ArrowRightIcon size={14} />
-          </button>
-          <p className="feed-compact-note">
-            或直接在下面开口——你的好奇，就是最好的入口。
-          </p>
-        </section>
-      )}
+      {/* V1.1：首页不做信息流——「推荐/热门/最新」与社交脉搏已移除，
+          第一屏只保留三层视觉层级；体验入口即状态选择或自由输入。 */}
 
       {creations.length > 0 && (
         <section className="creations">
@@ -677,29 +438,28 @@ export function HomeScreen({
         </section>
       )}
 
+      {/* 最近探索（V1.1 §1.4）：最多一条——「昨天停在：X 继续探索 →」。 */}
       {recents.length > 0 && (
         <section className="recents">
           <h2 className="recents-title">继续探索</h2>
-          <div className="recents-row">
-            {recents.map((recent) => (
-              <button
-                key={recent.experienceId}
-                type="button"
-                className="recent-chip"
-                onClick={() => onResume(recent)}
-              >
-                <HistoryIcon size={13} />
-                <span className="recent-chip-main">
-                  <span className="recent-chip-text">{recent.topic}</span>
-                  {recent.stage && (
-                    <span className="recent-chip-sub">
-                      上次停在 {STAGE_LABELS[recent.stage] ?? '途中'} · {timeAgo(recent.at) || '刚刚'}
-                    </span>
-                  )}
+          <button
+            type="button"
+            className="recent-chip recent-chip-last"
+            onClick={() => onResume(recents[0])}
+          >
+            <HistoryIcon size={13} />
+            <span className="recent-chip-main">
+              <span className="recent-chip-text">{recents[0].topic}</span>
+              {recents[0].stage && (
+                <span className="recent-chip-sub">
+                  上次停在 {STAGE_LABELS[recents[0].stage] ?? '途中'} · {timeAgo(recents[0].at) || '刚刚'}
                 </span>
-              </button>
-            ))}
-          </div>
+              )}
+            </span>
+            <span className="recent-chip-cta">
+              继续探索 <ArrowRightIcon size={14} />
+            </span>
+          </button>
         </section>
       )}
 
@@ -709,7 +469,7 @@ export function HomeScreen({
           ref={composerRef}
           className="composer-input"
           rows={1}
-          placeholder={ENTRY_HINTS[hintIndex]}
+          placeholder={COMPOSER_PLACEHOLDER}
           value={draft}
           onChange={(event) => {
             setDraft(event.target.value);
