@@ -114,3 +114,54 @@ Stage Summary:
 - 模型网关体系闭环：独立 mini-service（3-a）+ 主应用 HTTP 客户端接线（4）+ 配置 UI（5）——自定义 provider（newapi OpenAI 兼容）从 UI 配置到网关路由到体验流调用的全链路打通
 - 运维注意（本沙箱特性，worklog 留档）：后台进程会被收割；网关由主应用请求驱动自愈（ensureGateway）保障，主 dev server 若被收割需重启 bun run dev
 - 诚实边界：编辑 provider 需重输密钥（网关 upsert 校验 apiKey 必填——简单安全，避免"省略=保留旧值"的隐式行为）；newapi 真实端点未实测（无真实密钥），OpenAI 兼容契约由网关 81 单测锁定 + 假地址错误路径验证
+
+---
+Task ID: 6-plan
+Agent: Z.ai Code (主控)
+Task: S2a 切片语义调研与实施规划（完整 G04 Creation / G07 Correction / WHAT_IF 分支 / Minimal Memory）
+
+Work Log:
+- 读参考仓库 S2 范围裁决（PD-23 选项 B 分批：S2a 核心能力收束 → S2b 体验动作扩展）
+- 读 S2a 实施授权（F-1 网关注入缝已由我们的独立模型网关覆盖；F-2/F-3/F-4/F-5 为本轮切片）
+- 精读四个参考实现：creation.ts（708 行：子状态机 CREATE_INTENT→CONTEXT_INHERIT→MINIMAL_BUILD→PREVIEW→USER_FEEDBACK→COMPLETE、五项上下文继承、补丁词表/冲突判据/ASK 纪律、版本化+stale 拒绝）、correction.ts（MODIFY 别名词表/RESTORE 子型/指代表/目标派生）、simulation.ts（四元分离、分支记录、SWITCH/ABANDON/RETURN/ADOPT_BRANCH、分支不回流主线）、memory.ts（REMEMBERED/IN_USE/DECAYING/EXPIRED 生命周期、衰减参数、写入过滤、6个月保留+删除审计）
+- 读 F-2 语义冻结文本：D-02 轴外子状态机（阶段轴不变）、D-03 会话内持久（跨会话属 F-5）、D-05 完成信号经 STOP 路径登记（USER_FEEDBACK→COMPLETE + creation_completed，轴触发器不变）、创作会话输入路由（修改意图不落通用 CORRECTION；完成词表 08 §27；冲突 ASK 至多一问）
+- 核对我方现状：state-machine.ts 的 CREATE/CORRECTION/WHAT_IF 触发器规则已齐备（S1 保留契约完整性）；classifier 已识别 CREATE/MODIFY 族缺失别名；policy 冻结表 7 键（CREATE 表外）
+
+Stage Summary:
+- 我方 S2a 适配决策（诚实边界）：①创作对象采用内容型模型（concept{theme,goal}+content 草稿+userChanges 补丁权威历史+version+phase）——参考的 objects/rules/variables 结构化模板为合成模式设计，真实 LLM 下局部修改纪律经提示约束+补丁权威登记实现；②创作/分支域持久化于会话 state JSON（D-03 会话内持久）；记忆为唯一跨会话域（Prisma 全局表）；③所有域写入仍经 runtime 单一写入者 + commitTurn 版本守卫（每轮恰好 +1，比参考更严）；④WHAT_IF 自 CREATION 阶段非法（冻结契约），创作会话内"如果…"按冲突判据 ASK 或诚实拒绝
+- 实施分解：6-a 子代理 creation.ts+correction.ts 纯逻辑+单测；6-b 子代理 simulation.ts+memory.ts 纯逻辑+单测；6-c 主控契约层升级（types/policy_v2/classifier 别名/prompt-engine）+ runtime 编排 + Prisma 记忆表；6-d UI（创作卡/分支徽章/快捷动作）；6-e 全链路验证
+
+---
+Task ID: 6-a
+Agent: general-purpose
+Task: S2a 切片——creation.ts + correction.ts 纯逻辑模块 + 单测（G04 完整 Creation / G07 完整 Correction 语义）
+
+Work Log:
+- 读 worklog（3-b 测试纪律：先临时脚本跑通真实实现再落测试、断言不发明契约；6-plan S2a 决策①：内容型创作对象）与参考仓库 creation.ts（708 行）/correction.ts（120 行）；读我方 classifier.test.ts / state-machine.test.ts 对齐 bun:test + 契约引用 + 循环断言风格
+- 新建 src/lib/experience/creation.ts（只新建，未动任何现有文件）：类型（CreationPhase / CreationOperation {add,remove,modify,restore} / CreationModifyKind 五子型 / CreationPatch 含 restoreFromVersion / CreationChange / 内容型 CreationObject{concept, content, userChanges, version, phase} / CreationInterpretation / InheritedCreationContext）+ 9 函数（nextCreationPhase 6 规则迁移表、inheritCreationContext 五项×N 计数、extractCount、TARGET_SYNONYMS 8 条、extractTarget 三层（中文同义词→content 英文目标词→'creation'）、interpretCreationInput（完成词表→add/remove/modify 构造→4 轴冲突判据 ASK 一问→none）、applyCreationPatchMeta（深拷贝+version 恰好+1+userChanges 追加，content 一律不变——真实 LLM 适配：登记权威/内容生成分离）、buildRestorePatch、interpretRestore（fromVersion=max(1, version-1)））
+- 新建 src/lib/experience/correction.ts：MODIFY_PATTERNS（与 interpretCreationInput 修改族同源，D-01 单一词表两处路由）/RESTORE_PATTERNS 三词/PREVIOUS_CANDIDATE_PATTERNS 6 词/isRestoreIntent/deriveCorrectionTarget（指代→creation_component（TARGET_SYNONYMS 映射）→current_candidate）；creation↔correction 循环 import 经函数体引用（无顶层求值依赖，Bun ESM 安全）
+- 临时脚本（/home/z/scratch-s2a/，跑完即删）对迁移表 6×6 全矩阵、继承五项、数量/目标全值域、解释四分支全样例、补丁登记不变式、恢复三态、纠正词表正负样本共 130+ 断言逐一跑通真实实现，确认零偏差后落测试文件
+- 新建 tests/engine/creation.test.ts（47 用例/173 断言）：子状态机 6 合法全通（含主干全链路与 USER_FEEDBACK↔PREVIEW 三轮循环）+ 穷举 36 组合恰 6 合法 30 拒（越级/倒退/自环/patch_applied 仅自 USER_FEEDBACK/PREVIEW 上 completed 拒——完成必经预览的机器结构面/终态 COMPLETE 六事件全拒）；继承五项各断言（×N 计数、零计数不入表、"做成一个小游戏。"→"一个小游戏"、半角句号、无"做成"用原文、coreVariables 恒空）；extractCount 全值域+默认+词表首命中如实锁（"12"→2）；TARGET_SYNONYMS 全 8 条 11 词；extractTarget 三层；完成词表 4 词；add/remove 样例（"再加两个障碍"→{add, obstacle, count:2}）；modify 四子型（rebalance/restyle/rename 带 to（"改名叫做传送门"→to="叫做传送门"，冻结正则如实锁定）/tune）+ replace 不可达性如实锁（"换成/替换"必含"换"字恒落 CHANGE_DIRECTION 冲突轴→ambiguous，与参考一致）；冲突 4 轴全覆盖（question 用 08 §16 原文格式）；'none'；补丁登记（version 恰好+1、原对象不被 mutate（深拷贝+JSON 快照对照）、content 逐字节不变（同引用+长度）、连续 3 补丁 1→4 单调且旧版本对象冻结、登记与外部后续 patch 变异隔离）；恢复三态（version=3→2、version=1 收敛 1、未命中 null）
+- 新建 tests/engine/correction.test.ts（10 用例/44 断言）：MODIFY 正/负样本（正 11 输入覆盖五子型词族；负含"再加两个障碍/移除出口"证明 ADD/REMOVE 不属 MODIFY 族）；RESTORE 三词命中 + 指代非恢复负样本 + 与 isRestoreIntent 同词表一致性；指代 6 词全命中；deriveCorrectionTarget 三分支（指代优先（"把刚才那个障碍改一下"→previous_candidate）、creation_component 分量值（obstacle/exit/difficulty）、默认 current_candidate（含无 creation 时同义词不参与路由的如实锁定））
+
+Stage Summary:
+- 产物：4 个新文件（src/lib/experience/{creation,correction}.ts + tests/engine/{creation,correction}.test.ts），零修改现有文件（git status 证实仅 4 个新增）；纯逻辑零 DB 零网络零 Prisma import
+- 测试：bun test 两新文件 57 pass / 0 fail（217 断言）；全 engine 套件 160 pass / 0 fail（原 103 全绿不受影响）；bun run lint 退出码 0；bunx tsc --noEmit 对 4 个新文件零错误（仓库其余 tsc 报错均为既有，与本任务无关）
+- 关键决策/发现（只报告不修改）：①applyCreationPatchMeta 与参考 applyCreationPatch 的关键差异——只登记不写 content（真实 LLM 适配：内容由 runtime 经 LLM 局部修改后另行写入，本函数只管版本与权威历史）；②replace 子型在冻结词表下不可达（"换成/替换"必含"换"字→恒命中 CHANGE_DIRECTION 冲突轴走澄清问题），与参考实现行为一致，已如实锁定并注明；③extractCount 词表首命中不做算术（"12"→2）、rename 正则捕获"改名"后全部文本（"改名叫做传送门"→to="叫做传送门"）——确定性表的真实行为，如实记录；④下一个任务（6-b/6-c）注意：CreationPhaseEvent/CreationObject 类型与 runtime 编排对接时，补丁应用轨道（applyCreationPatchMeta+LLM 写 content）与阶段迁移轨道（nextCreationPhase）分离，completed 仅可自 USER_FEEDBACK 发出
+
+---
+Task ID: 6-b
+Agent: general-purpose
+Task: S2a 切片——simulation.ts + memory.ts 纯逻辑模块 + 单测（WHAT_IF 完整分支域 + Minimal Memory）
+
+Work Log:
+- 读 worklog（3-b 测试纪律：断言全部来自实际词表/迁移表、不发明契约；6-plan S2a 决策②③：分支域会话 state JSON 持久、记忆为唯一跨会话域；边界：不引入 S3a 跨会话分支持久化与长期记忆）；精读参考仓库 simulation.ts（519 行）/memory.ts（698 行）与参考单测风格；读我方 classifier.test.ts 对齐 bun:test + 契约引用头注释 + 循环断言风格
+- 新建 src/lib/experience/simulation.ts（只新建，零修改现有文件）：类型（SimulationSeparation 四元分离 E8-G2-CC07 / SimulationRoundRecord / BranchLifecycle 三态 / BranchRecord 含 adopted 附加属性 / BranchOperation / SimulationDomainState 含 roundCounter+branchCounter）；5 函数（deriveSimulationSeparation 标记确定性切分、interpretBranchOperation 词表优先级 RETURN>SWITCH>ABANDON>ADOPT_BRANCH + 作用域词+序号可解析门槛（中文数字一~十→1~10）、validateBranchOperation 前置校验（RETURN 无激活拒绝/序号越界拒绝/ABANDONED 目标拒绝）、applyBranchOperation 四操作状态转移（RETURN→RETURNED+指针清空、ABANDON→ABANDONED+记录保留、ADOPT_BRANCH 幂等+指针不变+生命周期不变、SWITCH→ACTIVE 含 RETURNED 恢复）、recordSimulationRound 首轮自动 CREATE 分支+轮次双登记+跨分支连续编号）
+- 新建 src/lib/experience/memory.ts：类型（MemoryLifecycle 四态 / MemoryRecord 十四字段 / MemoryDeletionAudit / MemorySignal / 共用结果联合）+ 规范参数常量（锚点 0.9 / K=ln(0.9/0.63)/3 / 阈值 0.5、0.1 / 保留期 180 天）+ 10 函数（effectiveInterest 指数衰减、passesMemoryWriteFilter 六类负向过滤、recognizeMemoryOperation WITHDRAW>CORRECT、extractCorrectedTopic、recordMemory（过滤/再探索 +0.15 上限 1/confidence 0.7|0.95 分支/recordId 注入或默认去重）、recallMemory（REMEMBERED→IN_USE、IN_USE/DECAYING 幂等）、correctMemory（corrections+1+锚点重置+source 变更）、withdrawMemory（→EXPIRED+撤回审计）、applyMemoryDecay（保留期优先>decay_threshold>DECAYING 迁移不刷新 updatedAt）、retrieveRelevant（先懒到期+2 字滑窗相关性+RECALL 迁移不发事件+读时点衰减值））
+- 新建 tests/engine/simulation.test.ts（35 用例）与 tests/engine/memory.test.ts（49 用例）：完整四段切分/缺标记空串容错/ simulation=全文；RETURN 五词/中文数字序号/序号 0 越界/支线无"分支"字样不识别（词表实现细节如实锁定）/混合操作词优先级；validate 三类拒绝+合法通过；apply 四操作状态转移逐一断言（含 ADOPT 幂等、RETURNED 分支被 ADOPT/SWITCH 的生命周期不变/恢复）；recordSimulationRound 首轮建分支/第二轮同分支 version=2/RETURN 后跨分支连续编号 sim_round_0003+branch_0002/SWITCH 往返；衰减锚点 Day0=0.9/Day3≈0.63（容差 0.01）/未来时间不增/非法日期 0 天/常量锁定；六类过滤各一例+intentSignal 侧命中；recordMemory 新记录字段全量 toEqual+两 confidence 分支+默认 recordId 去重+再探索 0.6→0.75 与 0.9→1 上限+EXPIRED 同主题新建；recall/correct/withdraw 各迁移与拒绝与幂等路径；decay 四迁移（90 天 IN_USE→DECAYING 不刷新 updatedAt/60 天 DECAYING→EXPIRED decay_threshold/181 天 retention_expired 隐私优先/179 天不删+EXPIRED 跳过审计不覆盖）；retrieveRelevant（相关命中 REMEMBERED→IN_USE/3 天衰减读值≈0.63/EXPIRED 不返回/超保留期懒到期/无滑窗交集不返回/DECAYING 命中不迁移）；全部返回数组的函数均有 JSON 快照对照的入参未 mutate 断言
+- 验证：bun test 两新文件 84 pass / 0 fail（333 断言）；bun run lint 退出码 0；bun test tests/engine/ 全量 244 pass / 0 fail（原 103 用例重跑确认 103/103 全绿不受影响；6-a 并行产物 57 例同套件共存）；bunx tsc --noEmit 对两新文件零错误（仓库其余 tsc 报错均为既有文件，与本任务无关）
+
+Stage Summary:
+- 产物：4 个新文件（src/lib/experience/{simulation,memory}.ts + tests/engine/{simulation,memory}.test.ts），零修改现有文件（git status 证实仅新增）；纯逻辑零 DB 零网络零 Prisma import；TypeScript 严格类型
+- 关键决策（与参考实现的差异，规格优先）：①deriveSimulationSeparation 缺标记容错修正——参考实现 markerStart+len 无守卫，缺"事实——"标记时会从下标 3 切出错位垃圾片段；我方按规格"sectionOf：start>=0 && end>start 才截取"对标记缺失保持 -1 使该段为空串（完整四段输入行为与参考逐字节一致，仅缺标记边界面修正）；②Store 类去状态化——参考为进程内 Map 存储（S3a 跨会话形态），我方按 S2a 规格改纯函数（branches/records/state → 新数组新状态），持久化交给 6-c 接线会话 state JSON / Prisma 记忆表；③MemoryRecord 去掉 sessionId/experienceId/memoryClass/candidateLongTerm（S3a 范围外），MemorySource 仅 session_observation|user_correction；④withdrawMemory 不设 expiredAt（撤回留痕字段独立于到期字段，与参考一致）；⑤检索信号 interestSignal 取 RECALL 迁移前的读时点衰减值（参考语义：读时快照）
+- 交接注意（6-c）：SimulationDomainState.roundCounter/branchCounter 从 0 起、编号自 1 起（sim_round_0001/branch_0001）；记忆 recordId 建议由 runtime 注入（默认 memory_ 四位补零仅测试/兜底）；apply 前必须先 validate（apply 未命中目标回退 branches[0] 属契约不可达路径）

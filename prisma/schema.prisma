@@ -1,4 +1,4 @@
-// 个人体验引擎 — S1 切片数据层
+// 个人体验引擎 — S1 + S2a 切片数据层
 //
 // 纪律（对齐 intent-experience 契约）：
 // - ExperienceSession.state 是产品状态的唯一持久形态；
@@ -7,6 +7,11 @@
 //   updateMany 条件守卫拒绝 — GS-05）。
 // - ExperienceEvent 只追加（append-only 审计账本：决策轨迹/内容投递/
 //   状态变更留痕），任何代码不得改写或删除历史事件。
+// - MemoryRecord（S2a F-5 Minimal Memory）：唯一跨会话域——仅短期记忆
+//   （跨会话主题/意图信号 + 用户显式纠正/撤回记录）；生命周期
+//   REMEMBERED→IN_USE→DECAYING→EXPIRED；默认保留 6 个月自最后更新起算，
+//   到期自动删除标记 + 删除审计（deletionAudit）。写入仅经 Runtime
+//   单一写入者（07 号契约 §7 写入过滤 + 隐私要素 1/5）。
 
 generator client {
   provider = "prisma-client-js"
@@ -42,4 +47,24 @@ model ExperienceEvent {
   createdAt    DateTime @default(now())
 
   @@unique([sessionId, seq])
+}
+
+// S2a F-5 Minimal Memory — 跨会话短期记忆（07 号契约 §2–§8 / §20 / §22）。
+// 措辞纪律："最近产生过较高兴趣" ≠ "用户喜欢 X"——字段只存主题与意图
+// 信号，不存画像推断。EXPIRED 记录保留（删除审计可验证），检索层排除。
+model MemoryRecord {
+  id            String    @id // recordId（Runtime 生成：memory_0001 形态）
+  topic         String // 探索主题（信号措辞纪律）
+  intentSignal  String // 意图信号（如 'topic_observation' / 'user_correction: …'）
+  lifecycle     String // REMEMBERED | IN_USE | DECAYING | EXPIRED
+  source        String // session_observation | user_correction
+  confidence    Float // 0.7 观察 | 0.95 用户纠正
+  interestSignal Float // 兴趣信号（Day 0 锚点 0.9，指数衰减）
+  corrections   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now())
+  lastRecalledAt DateTime?
+  withdrawnAt   DateTime?
+  expiredAt     DateTime?
+  deletionAudit Json? // { deletedAt, scope, reason, verification }
 }

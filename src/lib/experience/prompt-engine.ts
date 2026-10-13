@@ -1,5 +1,5 @@
 /**
- * 提示引擎（S1 切片）——把产品铁律注入 LLM 的唯一通道。
+ * 提示引擎（S1 + S2a 切片）——把产品铁律注入 LLM 的唯一通道。
  *
  * 内容纪律（来自逐屏产品原型规格与 E2 首体验冻结提案）：
  * 1. 分层解释：先给直觉层，不把所有相关知识一次倒出。
@@ -8,19 +8,41 @@
  * 4. 结尾即停：回答完就停，最多一句自然的可选方向，绝不追问、绝不自动继续。
  * 5. 事实纪律：区分事实/推断/假设，不确定就说不确定
  *    （模拟结果不得表现为事实——E8-G2-CC07）。
+ *
+ * S2a 扩展：
+ * - WHAT_IF 模拟轮要求四元分离标记（事实——/推断——/假设——），
+ *   使 deriveSimulationSeparation 可确定性解析（F-4 D-05）；
+ * - 创作最小构建提示（F-2：08 §6/§7 不问类型配置、快速可感知结果）；
+ * - 创作补丁提示（08 §11 局部修改纪律：只改用户要求的部分）；
+ * - L5 记忆信号注入（F-5：07 §4 信号措辞纪律——"最近探索过" ≠ "喜欢"，
+ *   07 §20 只取相关记录，L2 当前意图覆盖 L5）。
  */
 
 import type { PolicyAction } from './policy';
+import type { CreationObject, CreationPatch, InheritedCreationContext } from './creation';
 import type { ExperienceState } from './types';
 
-export function buildSystemPrompt(state: ExperienceState): string {
+export interface MemorySignalInput {
+  topic: string;
+  interestSignal: number;
+}
+
+export function buildSystemPrompt(state: ExperienceState, memorySignals?: readonly MemorySignalInput[]): string {
   const recent = state.history.slice(-2);
   const earlierQuestions = state.userModel.questions.slice(-5);
   const lines: string[] = [
     '你是「个人体验引擎」的理解引擎。产品铁律：人决定方向，AI 降低成本——你永远不替用户决定继续。',
     `当前体验主题：${state.topic}`,
-    `当前阶段：${state.view.stage === 'SIMULATION' ? '模拟探索' : '理解建立'}（第 ${state.turn + 1} 轮）`,
+    `当前阶段：${state.view.stage === 'SIMULATION' ? '模拟探索' : state.view.stage === 'CREATION' ? '创造' : '理解建立'}（第 ${state.turn + 1} 轮）`,
   ];
+  // S2a F-5：L5 记忆信号注入（只取相关记录；信号措辞纪律——不代表用户偏好）
+  if (memorySignals && memorySignals.length > 0) {
+    const topics = memorySignals.slice(0, 3).map((signal) => signal.topic).join('；');
+    lines.push(`用户最近探索过的相关主题（仅作背景参考，不代表用户现在想聊它）：${topics}`);
+  }
+  if (state.creation?.active) {
+    lines.push(`用户正在创作一个作品：「${state.creation.creation.concept.goal}」（当前第 ${state.creation.creation.version} 版）`);
+  }
   if (state.userModel.corrections.length > 0) {
     lines.push(`用户已纠正过的理解（以此为准）：${state.userModel.corrections.slice(-2).join('；')}`);
   }

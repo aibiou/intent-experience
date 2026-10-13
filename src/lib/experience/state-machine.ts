@@ -158,5 +158,5 @@ export function initialExperienceView(): ExperienceView {
   return { status: 'ENTERING', stage: 'CURIOSITY' };
 }
 
-/** 状态机版本（决策追踪用）。 */
-export const STATE_MACHINE_VERSION = 'state_machine_v1.0.0-slice';
+/** 状态机版本（决策追踪用；S2a 终点——创作/纠正/分支为轴外域不占轴）。 */
+export const STATE_MACHINE_VERSION = 'state_machine_v1.3.0-s2a';

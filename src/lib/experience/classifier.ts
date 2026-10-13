@@ -1,14 +1,17 @@
 /**
- * 语义动作分类器（S1 切片；intent-experience classifier 契约的直接转写）。
+ * 语义动作分类器（S1 + S2a 切片；intent-experience classifier 契约的直接转写）。
  *
  * 确定性规则分类：输入自然语言 → 语义动作。不调用任何模型——
  * "模型异常时不得改写用户意图"（GS-01 负向）由构造保证。
  * 优先级链（S2b policy_v2 冻结链）：
- *   STOP > CHANGE_DIRECTION > CORRECTION > CREATE >
- *   DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER >
- *   （通用提问标记 → DIRECT_ANSWER）> CONTINUE / REPEAT > UNKNOWN
+ *   STOP > CHANGE_DIRECTION > CORRECTION（含 MODIFY 别名 / RESTORE 子型）>
+ *   CREATE > DEEPEN = SIMPLIFY = REFRAME > WHY = WHAT_IF > DIRECT_ANSWER >
+ *   （通用提问标记 → DIRECT_ANSWER）> CONTINUE / REPEAT > 记忆操作 > UNKNOWN
  * 无法分类的输入返回 UNKNOWN 并升级（不在运行时发明语义）。
  */
+
+import { MODIFY_PATTERNS, RESTORE_PATTERNS } from './correction';
+import { recognizeMemoryOperation } from './memory';
 
 export type SemanticAction =
   | 'DIRECT_ANSWER'
@@ -24,6 +27,15 @@ export type SemanticAction =
   | 'CONTINUE'
   | 'REPEAT'
   | 'UNKNOWN';
+
+export interface ClassificationResult {
+  semanticAction: SemanticAction;
+  /** S2a F-3（D-04）：RESTORE 恢复子型标记（CORRECTION 用户面）。 */
+  correctionIntent?: 'restore';
+  /** S2a F-5（D-05）：记忆操作意图（仅 UNKNOWN 后识别——仅认领会成为
+   * UNKNOWN 的输入，不改变任何优先级层，零黄金回归面）。 */
+  memoryIntent?: 'withdraw' | 'correct';
+}
 
 const STOP_PATTERNS: ReadonlyArray<RegExp> = [
   /好了/,
@@ -144,12 +156,15 @@ const REPEAT_PATTERNS: ReadonlyArray<RegExp> = [
   /再表达一次/,
 ];
 
-export interface ClassificationResult {
-  semanticAction: SemanticAction;
-}
-
 /**
  * 分类输入文本。同一输入重复分类结果恒定（确定性；GS-01 负向案例的证据基础）。
+ *
+ * S2a F-3（policy_v1.3.0 变更 1）：MODIFY 登记为 CORRECTION 用户面别名
+ * （08 §10 修改类型族，与创作修改族同源——单一词表两处路由，D-01 选项 A）；
+ * RESTORE 词表（D-04）登记为 CORRECTION 恢复子型（correctionIntent='restore'，
+ * 路由恢复预检用）。优先级层不变（STOP / CHANGE_DIRECTION 仍先判）。
+ * S2a F-5（D-05）：记忆操作识别仅在全部既有优先级层未命中后调用
+ * （仅认领会成为 UNKNOWN 的输入，零黄金回归面）。
  */
 export function classifyInput(rawInput: string): ClassificationResult {
   // P-01：STOP 永远优先（STOP 压倒其他一切动作）。
@@ -160,8 +175,17 @@ export function classifyInput(rawInput: string): ClassificationResult {
   if (CHANGE_DIRECTION_PATTERNS.some((pattern) => pattern.test(rawInput))) {
     return { semanticAction: 'CHANGE_DIRECTION' };
   }
-  if (CORRECTION_PATTERNS.some((pattern) => pattern.test(rawInput))) {
-    return { semanticAction: 'CORRECTION' };
+  // CORRECTION 层：既有纠正词表 + MODIFY 别名词表 + RESTORE 子型。
+  const restoreIntent = RESTORE_PATTERNS.some((pattern) => pattern.test(rawInput));
+  if (
+    CORRECTION_PATTERNS.some((pattern) => pattern.test(rawInput)) ||
+    MODIFY_PATTERNS.some((pattern) => pattern.test(rawInput)) ||
+    restoreIntent
+  ) {
+    return {
+      semanticAction: 'CORRECTION',
+      ...(restoreIntent ? { correctionIntent: 'restore' as const } : {}),
+    };
   }
   if (CREATE_PATTERNS.some((pattern) => pattern.test(rawInput))) {
     return { semanticAction: 'CREATE' };
@@ -195,6 +219,11 @@ export function classifyInput(rawInput: string): ClassificationResult {
   }
   if (REPEAT_PATTERNS.some((pattern) => pattern.test(rawInput))) {
     return { semanticAction: 'REPEAT' };
+  }
+  // S2a F-5：记忆操作识别（仅认领会成为 UNKNOWN 的输入）。
+  const memoryOperation = recognizeMemoryOperation(rawInput);
+  if (memoryOperation) {
+    return { semanticAction: 'UNKNOWN', memoryIntent: memoryOperation.memoryIntent };
   }
   return { semanticAction: 'UNKNOWN' };
 }
