@@ -394,15 +394,58 @@ function sharesSignal(rawInput: string, text: string): boolean {
 }
 
 /**
- * 记忆记录存储（切片内本地持久化记忆记录存储——D-01 选项 A）。
+ * 记忆记录存储（切片内本地持久化记忆记录存储——D-01 选项 A；
  * 进程内形态（model on F-2 创作对象 / F-4 分支记录轴外持久对象纪律）；
  * 所有写操作经本类方法（Runtime 单一写入者——CC02 H01）。
+ *
+ * 持久化形态（CR-52——轴外持久对象 D-01 选项 A 的本机实现）：
+ * 构造时注入 persist 回调（依赖注入——HTTP 形态由 server-runtime
+ * 注入落盘 data/memory/index.json；进程内证据形态不注入，行为
+ * 与既有纯内存形态完全一致——黄金回归不变式）。所有变更后
+ * flush（fire-and-forget 语义由注入方承担）。
  */
+export interface MemoryStoreOptions {
+  /** 记忆每次变更后调用（快照为全量记录——含 EXPIRED 审计留痕）。 */
+  persist?: (records: MemoryRecord[]) => void;
+}
+
 export class MemoryStore {
   private readonly records = new Map<string, MemoryRecord>();
   /** 主题 → 活跃记录索引（同一主题的再次探索为再探索而非新记录）。 */
   private readonly byTopic = new Map<string, string>();
   private recordCounter = 0;
+  private readonly persist?: (records: MemoryRecord[]) => void;
+
+  constructor(options: MemoryStoreOptions = {}) {
+    this.persist = options.persist;
+  }
+
+  /** 变更后持久化钩子（仅当注入 persist——未注入形态零落盘行为）。 */
+  private flush(): void {
+    this.persist?.(Array.from(this.records.values()));
+  }
+
+  /**
+   * 恢复（持久化加载——跨进程重启记忆保留；幂等：仅当内存
+   * 无记录时注入，已存在则忽略并返回 0——同
+   * ExperienceStateStore.restore 纪律）。EXPIRED 记录
+   * （含删除审计）原样保留——检索语义本身即排除 EXPIRED
+   * （审计留痕不丢）。恢复不登记任何事件（只读加载）。
+   */
+  restore(records: MemoryRecord[]): number {
+    if (this.records.size > 0) {
+      return 0;
+    }
+    for (const record of records) {
+      this.records.set(record.recordId, record);
+    }
+    this.byTopic.clear();
+    for (const [topic, recordId] of buildMemoryTopicIndex(records)) {
+      this.byTopic.set(topic, recordId);
+    }
+    this.recordCounter = nextMemoryCounter(records);
+    return records.length;
+  }
 
   /**
    * CREATE（记住，→REMEMBERED——经 Runtime 单一写入者）。
@@ -446,6 +489,7 @@ export class MemoryStore {
         candidateLongTerm: true,
       };
       this.records.set(existing.recordId, updated);
+      this.flush();
       return { recorded: true, record: updated, reexploration: true, previousLifecycle: existing.lifecycle };
     }
     this.recordCounter += 1;
@@ -477,6 +521,7 @@ export class MemoryStore {
     };
     this.records.set(recordId, record);
     this.byTopic.set(input.topic, recordId);
+    this.flush();
     return { recorded: true, record, reexploration: false, previousLifecycle: null };
   }
 
@@ -502,6 +547,7 @@ export class MemoryStore {
     }
     const updated: MemoryRecord = { ...record, lifecycle: 'IN_USE', updatedAt: now, lastRecalledAt: now };
     this.records.set(recordId, updated);
+    this.flush();
     return { ok: true, record: updated };
   }
 
@@ -539,6 +585,7 @@ export class MemoryStore {
       this.byTopic.delete(record.topic);
       this.byTopic.set(topic, recordId);
     }
+    this.flush();
     return { ok: true, record: updated, previousLifecycle: record.lifecycle };
   }
 
@@ -575,6 +622,7 @@ export class MemoryStore {
     if (this.byTopic.get(record.topic) === recordId) {
       this.byTopic.delete(record.topic);
     }
+    this.flush();
     return { ok: true, record: updated, previousLifecycle: record.lifecycle };
   }
 
@@ -613,6 +661,9 @@ export class MemoryStore {
         this.records.set(record.recordId, updated);
         decayed.push(updated);
       }
+    }
+    if (decayed.length > 0 || expired.length > 0) {
+      this.flush();
     }
     return { decayed, expired };
   }
@@ -695,4 +746,50 @@ export class MemoryStore {
   getSnapshot(): MemorySnapshot {
     return { records: Array.from(this.records.values()) };
   }
+}
+
+// ---------------------------------------------------------------------------
+// 持久化恢复纯函数（CR-52——data/memory/index.json 加载重建；
+// 纯逻辑可单测——fs 读写在 memory-persistence.ts）
+// ---------------------------------------------------------------------------
+
+/**
+ * 主题索引重建（恢复用——与 recordMemory 索引语义一致：
+ * EXPIRED 记录不入主题索引；同主题多条活跃记录（历史
+ * 形态）保留 updatedAt 最新者）。
+ */
+export function buildMemoryTopicIndex(
+  records: MemoryRecord[],
+): Map<string, string> {
+  const byTopic = new Map<string, string>();
+  for (const record of records) {
+    if (record.lifecycle === 'EXPIRED') {
+      continue;
+    }
+    const currentId = byTopic.get(record.topic);
+    if (currentId === undefined) {
+      byTopic.set(record.topic, record.recordId);
+      continue;
+    }
+    const current = records.find((candidate) => candidate.recordId === currentId);
+    if (current !== undefined && record.updatedAt > current.updatedAt) {
+      byTopic.set(record.topic, record.recordId);
+    }
+  }
+  return byTopic;
+}
+
+/**
+ * 记录计数器恢复（memory_synthetic_NNNN 最大序号——
+ * 恢复后新记录 ID 不与历史撞号；非规范 ID 忽略）。
+ */
+export function nextMemoryCounter(records: MemoryRecord[]): number {
+  let max = 0;
+  for (const record of records) {
+    const match = /^memory_synthetic_(\d+)$/.exec(record.recordId);
+    if (match !== null) {
+      max = Math.max(max, Number(match[1]));
+    }
+  }
+  return max;
 }

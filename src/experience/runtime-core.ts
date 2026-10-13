@@ -121,8 +121,10 @@ export class RuntimeCoreBase {
   /** 创作状态存储（G04 完整 Creation 语义；S2A-F2-SEMANTIC-FREEZE-01 §4/D-03 选项 A——会话内持久）。 */
   protected readonly creations = new CreationStore();
   protected readonly simulations = new SimulationStore();
-  /** 记忆记录存储（S2a F-5；轴外持久对象——D-01 选项 A；跨会话短期记忆）。 */
-  protected readonly memories = new MemoryStore();
+  /** 记忆记录存储（S2a F-5；轴外持久对象——D-01 选项 A；跨会话短期记忆；
+   * CR-52——持久化形态经 RuntimeOptions 注入：initialMemoryRecords 恢复 /
+   * memoryPersist 落盘；进程内证据形态不注入，行为零变化）。 */
+  protected readonly memories: MemoryStore;
   /** 语义动作历史（创作上下文继承派生用；08 §6 五项。仅登记已提交动作）。 */
   protected readonly actionHistory = new Map<string, SemanticAction[]>();
   /** 上一完成轮响应内容（S4 D-1 选项 A——REPEAT 呈现层重放数据源；
@@ -157,6 +159,10 @@ export class RuntimeCoreBase {
     this.traceSink = options.decisionTraceSink ?? (() => undefined);
     this.auditSink = options.auditSink ?? (() => undefined);
     this.gateway = options.gateway ?? new SyntheticLlmGateway(allFixtures());
+    this.memories = new MemoryStore({ persist: options.memoryPersist });
+    if (options.initialMemoryRecords !== undefined && options.initialMemoryRecords.length > 0) {
+      this.memories.restore(options.initialMemoryRecords);
+    }
   }
 
   /**
