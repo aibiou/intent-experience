@@ -4,6 +4,7 @@ import {
   containsAnatomicLiteral,
   buildDistillSystemPrompt,
   shouldRejectDistilled,
+  sanitizeDistilled,
 } from '../../src/experience/prompt-engine';
 
 describe('isMeditativeIntent', () => {
@@ -77,5 +78,37 @@ describe('shouldRejectDistilled', () => {
 
   it('非冥想 + 解剖词 → 不拦截（普通场景不误伤）', () => {
     expect(shouldRejectDistilled('心脏血管结构科普示意图', false)).toBe(false);
+  });
+});
+
+describe('sanitizeDistilled', () => {
+  it('单行正常输出 → 原样通过', () => {
+    const out = sanitizeDistilled('温暖逆光下，一只熟睡的橘猫侧卧在亚麻床单上，周身环绕金色声波涟漪');
+    expect(out).toContain('橘猫');
+  });
+
+  it('多行输出（首行客套话 + 主体行）→ 取内容最丰富的主体行（CR-58）', () => {
+    const raw = '好的，让我为你构思一下：\n温暖逆光下，一只熟睡的橘猫侧卧在亚麻床单上，喉部微微起伏，周身环绕着半透明的金色声波涟漪与轻柔光雾，将低频震动具象化为流动的丝状光环，采用极简治愈风格，柔焦摄影，浅景深。';
+    const out = sanitizeDistilled(raw);
+    expect(out).not.toContain('好的');
+    expect(out).toContain('橘猫');
+    expect(out).toContain('声波涟漪');
+  });
+
+  it('超长输出 → 截断到 200 字符保主体（CR-58，原为整条拒绝）', () => {
+    const longBody = '温暖逆光下橘猫'.repeat(40);
+    const out = sanitizeDistilled(longBody);
+    expect(out).not.toBeNull();
+    expect(out!.length).toBeLessThanOrEqual(200);
+  });
+
+  it('剥前缀与成对引号', () => {
+    expect(sanitizeDistilled('提示词：静夜中的猫')).toBe('静夜中的猫');
+    expect(sanitizeDistilled('「风穿过旷野」')).toBe('风穿过旷野');
+  });
+
+  it('过短无信息 → 拒绝', () => {
+    expect(sanitizeDistilled('好的')).toBeNull();
+    expect(sanitizeDistilled('   ')).toBeNull();
   });
 });

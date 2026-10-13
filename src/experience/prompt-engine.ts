@@ -103,14 +103,31 @@ export interface VisualPromptDistillInput {
 }
 
 /** 从模型输出提取合格提示词（剥引号 / 前缀，校验长度）。 */
-function sanitizeDistilled(raw: string): string | null {
+export function sanitizeDistilled(raw: string): string | null {
   let text = raw.trim();
-  // 单行化（模型偶发换行——取首段非空行）。
-  text = text.split('\n').map((line) => line.trim()).find((line) => line.length > 0) ?? '';
+  // 单行化（模型偶发换行）：取内容最丰富的非空行——多行输出时
+  // 主体行通常最长，首行可能是格式前缀 / 客套话（「好的，让我
+  // 为你构思：」）。曾按首行取，首行过短致整条蒸馏被拒、作品
+  // caption 静默退化为主题（CR-58）。
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  if (lines.length === 0) return null;
+  text = lines.reduce((best, line) => (line.length > best.length ? line : best));
   // 剥常见前缀与成对引号。
   text = text.replace(/^(提示词|Prompt)\s*[:：]\s*/i, '');
   text = text.replace(/^["'「『]+|["'」』]+$/g, '').trim();
-  if (text.length < 5 || text.length > 200) return null;
+  if (text.length < 5) {
+    console.warn(`[distill] sanitize rejected too-short (${raw.length} chars raw)`);
+    return null;
+  }
+  // 超长截断保主体（原为直接拒绝——模型偶发超长导致整条蒸馏
+  // 静默失败、作品 caption 退化为主题句；截断优于放弃）。
+  if (text.length > 200) {
+    console.warn(`[distill] sanitize truncated ${text.length} -> 200 chars`);
+    text = text.slice(0, 200).trim();
+  }
   return text;
 }
 
@@ -149,35 +166,54 @@ export async function distillVisualPrompt(
   }
   const isMeditative = isMeditativeIntent(input.intentPrompt, input.designText);
   const systemPrompt = buildDistillSystemPrompt(input.modality, isMeditative);
-  let response: Response;
-  try {
-    response = await fetch(config.endpoint.replace(/\/+$/, '').endsWith('/chat/completions')
-      ? config.endpoint
-      : `${config.endpoint.replace(/\/+$/, '')}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: sections.join('\n\n') },
-        ],
-        temperature: 0.85,
-        max_tokens: 300,
-      }),
-      signal: AbortSignal.timeout(DISTILL_TIMEOUT_MS),
-    });
-  } catch {
+  // 瞬态重试（CR-58，对齐 CR-51 生成链路纪律）：蒸馏是 caption
+  // 画面语义的来源，一次网络抖动 / 网关限流不该让整条蒸馏静默
+  // 丢失、作品 caption 退化为主题句。失败与超时重试一次。
+  const distillEndpoint = config.endpoint.replace(/\/+$/, '').endsWith('/chat/completions')
+    ? config.endpoint
+    : `${config.endpoint.replace(/\/+$/, '')}/chat/completions`;
+  const distillBody = JSON.stringify({
+    model: config.model,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: sections.join('\n\n') },
+    ],
+    temperature: 0.85,
+    max_tokens: 300,
+  });
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 2 && response === null; attempt += 1) {
+    try {
+      const candidate = await fetch(distillEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: distillBody,
+        signal: AbortSignal.timeout(DISTILL_TIMEOUT_MS),
+      });
+      if (candidate.ok) {
+        response = candidate;
+      } else {
+        console.error(`[distill] http ${candidate.status} (attempt ${attempt + 1}/2) for ${config.endpoint}`);
+      }
+    } catch (error) {
+      console.error(
+        `[distill] fetch failed (attempt ${attempt + 1}/2):`,
+        (error as Error)?.message ?? error,
+      );
+    }
+  }
+  if (response === null) {
+    console.error('[distill] give up after retries, fallback to topic/intent prompt');
     return null;
   }
-  if (!response.ok) return null;
   let parsed: unknown;
   try {
     parsed = await response.json();
-  } catch {
+  } catch (error) {
+    console.error('[distill] json parse failed:', (error as Error)?.message ?? error);
     return null;
   }
   const content = (parsed as {
