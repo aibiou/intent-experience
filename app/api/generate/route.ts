@@ -49,6 +49,7 @@ export async function POST(req: Request): Promise<Response> {
     prompt?: unknown;
     model_id?: unknown;
     reference_images?: unknown;
+    voice?: unknown;
   };
   if (typeof body.request_id !== 'string' || body.request_id.length === 0) {
     return jsonError(400, 'INVALID_REQUEST', 'request_id is required');
@@ -127,6 +128,9 @@ export async function POST(req: Request): Promise<Response> {
           {
             ...(referenceImages !== undefined && referenceImages.length > 0
               ? { referenceImages }
+              : {}),
+            ...(typeof body.voice === 'string' && body.voice.length > 0
+              ? { voice: body.voice }
               : {}),
           },
         );

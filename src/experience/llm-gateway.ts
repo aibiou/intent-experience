@@ -150,6 +150,18 @@ export const PROVIDER_PROFILES: Readonly<
     temperature: DEFAULT_PROVIDER_TEMPERATURE,
     systemPrompt: DEFAULT_PROVIDER_SYSTEM_PROMPT,
   },
+  volcengine: {
+    endpoint: 'https://ark.cn-beijing.volces.com/api/v3',
+    defaultModel: 'doubao-seed-2-0-lite-260428',
+    temperature: DEFAULT_PROVIDER_TEMPERATURE,
+    systemPrompt: DEFAULT_PROVIDER_SYSTEM_PROMPT,
+  },
+  'doubao-voice': {
+    endpoint: 'https://openspeech.bytedance.com',
+    defaultModel: 'seed-audio-1.0',
+    temperature: DEFAULT_PROVIDER_TEMPERATURE,
+    systemPrompt: DEFAULT_PROVIDER_SYSTEM_PROMPT,
+  },
 };
 
 let providerProposalCounter = 0;

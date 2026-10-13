@@ -63,6 +63,21 @@ function endpointHost(endpoint: string): string {
   }
 }
 
+/** 提供商标识友好化（展示层映射——产品仍保持
+ * model-agnostic：provider 为记录/预设键，label 仅
+ * 用于页面可读性，不参与任何逻辑判定）。 */
+const PROVIDER_LABELS: Record<string, string> = {
+  volcengine: '火山引擎',
+  dashscope: '阿里云百炼',
+  'agnes-com': 'Agnes AI',
+  newapi: '本地网关 NewAPI',
+  'doubao-voice': '豆包语音',
+};
+
+function providerLabel(provider: string): string {
+  return PROVIDER_LABELS[provider] ?? provider;
+}
+
 /** 模型模态识别（确定性规则——按模型名关键词归入
  * 文本 / 语音 / 图像 / 视频四类；未命中归文本）。 */
 function categorizeModels(
@@ -224,8 +239,6 @@ export default function ConfigPage() {
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [modality, setModality] = useState<Modality>('text');
-  // 预设默认值仅首次加载填充一次（refresh 不随表单输入重跑）。
-  const didInitDefaultsRef = useRef(false);
 
   const visibleConfigs = useMemo(
     () => configs.filter((config) => (config.modality ?? 'text') === modality),
@@ -248,15 +261,9 @@ export default function ConfigPage() {
       const profilesData = (await profilesResponse.json()) as { providers: ProviderProfile[] };
       setConfigs(configsData.configs);
       setProfiles(profilesData.providers);
-      // 预设默认值仅首次填充——表单输入不触发整页重载
-      // （此前 refresh 依赖 provider 状态：每敲一个字符都
-      // 全量重拉三接口 + loading 闪烁）。
-      if (profilesData.providers.length > 0 && !didInitDefaultsRef.current) {
-        didInitDefaultsRef.current = true;
-        setProvider(profilesData.providers[0].provider);
-        setModel(profilesData.providers[0].default_model ?? '');
-        setEndpoint(profilesData.providers[0].default_endpoint ?? '');
-      }
+      // 表单初始为空——不自动预填任何预设（避免出现
+      // 用户并未开通/未选择的服务）。需要时点击下方
+      // 预设按钮一键填充。</think>
       if (statusResponse.ok) {
         setStatus((await statusResponse.json()) as ConfigStatus);
       }
@@ -642,7 +649,9 @@ export default function ConfigPage() {
         <h1>模型配置</h1>
         {status && (
           <span className={`mode-badge mode-${status.mode}`}>
-            当前：{status.mode === 'provider' ? `${status.provider} · ${status.model}` : '合成演示'}
+            {status.mode === 'provider'
+              ? `当前生效：${providerLabel(status.provider ?? '')} · ${status.model ?? ''}`
+              : '合成演示（未接入真实模型）'}
           </span>
         )}
       </header>
@@ -700,28 +709,30 @@ export default function ConfigPage() {
         </div>
         {profiles.length > 0 && (
           <div className="config-presets">
-            <span className="config-preset-label">预设（自动填充）：</span>
+            <span className="config-preset-label">预设（一键填充）：</span>
             {profiles.map((profile) => (
               <button
                 key={profile.provider}
                 type="button"
-                className="config-button config-button-quiet"
+                className="config-button config-button-quiet config-preset-button"
                 onClick={() => applyPreset(profile)}
+                title={`${providerLabel(profile.provider)} · ${profile.default_model}`}
               >
-                {profile.provider}
+                <span className="config-preset-name">{providerLabel(profile.provider)}</span>
+                <span className="config-preset-id">{profile.provider}</span>
               </button>
             ))}
           </div>
         )}
         <div className="config-form">
           <div className="config-field">
-            <label htmlFor="config-provider">提供方（自定义名称，如 my-provider）</label>
+            <label htmlFor="config-provider">提供方</label>
             <input
               id="config-provider"
               className="config-input"
               value={provider}
               onChange={(event) => setProvider(event.target.value)}
-              placeholder="任意名称——用于标识与隐私确认记录"
+              placeholder="自定义名称，如 volcengine（火山引擎）——用于标识与隐私确认记录"
             />
           </div>
           <div className="config-field">
@@ -881,7 +892,10 @@ export default function ConfigPage() {
         ) : (
           <ul className="config-list">
             {visibleConfigs.map((config) => (
-              <li key={config.id} className="config-item">
+              <li
+                key={config.id}
+                className={`config-item${config.enabled ? ' is-enabled' : ''}`}
+              >
                 {editingId === config.id ? (
                   <div className="config-form config-form-edit">
                     <div className="config-field">
@@ -966,11 +980,16 @@ export default function ConfigPage() {
                 ) : (
                   <div className="config-item-main">
                     <div className="config-item-head">
-                      <span className="config-provider">{config.provider}</span>
+                      <span className="config-provider">
+                        <span className="config-provider-label">
+                          {providerLabel(config.provider)}
+                        </span>
+                        <span className="config-provider-id">{config.provider}</span>
+                      </span>
                       <span className="config-model">{config.model}</span>
-                <span className={`modality-badge modality-${config.modality ?? 'text'}`}>
-                  {MODALITY_LABEL[config.modality ?? 'text']}
-                </span>
+                      <span className={`modality-badge modality-${config.modality ?? 'text'}`}>
+                        {MODALITY_LABEL[config.modality ?? 'text']}
+                      </span>
                       <span className="config-endpoint" title={config.endpoint}>
                         {endpointHost(config.endpoint)}
                       </span>
@@ -996,7 +1015,9 @@ export default function ConfigPage() {
                       </span>
                     </div>
                     {config.enabled && (
-                      <p className="config-item-note">当前回应由该配置的模型生成。</p>
+                      <p className="config-item-note">
+                        <CheckIcon size={12} /> 当前回应由该配置的模型生成。
+                      </p>
                     )}
                     {configModels[config.id] && (
                       <div className="config-probe-panel">
