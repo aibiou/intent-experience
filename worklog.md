@@ -325,3 +325,18 @@ Stage Summary:
 - 浏览器验收（agent-browser）：首页（状态入口/自由输入/我记住的/模型网关设置）✓；随便看看 → 光速入口卡 ✓；开始探索 → SSE 首轮真实流式回答（时空属性解释，内容连贯）✓；「读给我听」「画成图片」快捷入口在位 ✓；「好了」干净退出 + 9 控件全禁用（GS-04）✓；全程零控制台错误 ✓
 - 待办：push 仍被认证阻塞（无 SSH 密钥/gh CLI/Token），需用户提供 GitHub PAT（Contents: Read and write，限本仓库）；提供后执行 git push origin main（合并提交可直接快进推送，无需 force）
 - 后续同步注意：远端未来改 app/ 下文件的合并会触发 rename 检测/手动解决（我方树中该目录已迁 reference/app/）；远端其余路径（src/experience、docs 等）未来合并无冲突面
+
+---
+Task ID: 10
+Agent: Z.ai Code (主控)
+Task: 使用用户提供的 PAT 完成远端推送
+
+Work Log:
+- 用户以即时消息提供 GitHub PAT（ghp_ 前缀，经典 token）；一次性内联用于 push URL，未写入任何文件/git config/credential store
+- git push <token>@github.com:aibiou/intent-experience.git main:main 成功：43c2e64..6d7eb51，快进推送（无 force）
+- git ls-remote 验证：refs/heads/main = 6d7eb51（与本地 main 逐字节一致）——远端现包含完整双线历史：参考实现全部提交 + 我方 12 个提交（含合并提交 5cf57bc）
+
+Stage Summary:
+- 远端同步完成；本地与远端 main 完全一致
+- 安全提示已转达用户：该 Token 已在聊天中暴露，建议推送确认后到 GitHub Settings → Developer settings 吊销
+- Token 处置：仅一次性使用，未持久化；后续推送需重新提供或由用户在 GitHub 配置 deploy key/新 PAT
