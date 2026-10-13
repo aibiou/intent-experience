@@ -552,8 +552,21 @@ export function ExperienceScreen({
       sessionRef.current = next;
       setSessionState(next);
       onSessionUpdate(next);
+      // 「继续探索」最近条目兜底刷新：任何会话状态同步（含恢复会话
+      // resyncState / 流 state_updated）都以最新 stage 更新 chip——
+      // topic 传空串由 page 层继承旧主题（首条流的主题由 send 侧携带）。
+      if (next.experienceId) {
+        onRecent({
+          experienceId: next.experienceId,
+          sessionId: next.sessionId,
+          stateVersion: next.stateVersion,
+          topic: '',
+          stage: next.stage,
+          at: new Date().toISOString(),
+        });
+      }
     },
-    [onSessionUpdate],
+    [onSessionUpdate, onRecent],
   );
 
   const resyncState = useCallback(async (): Promise<boolean> => {
@@ -759,16 +772,18 @@ export function ExperienceScreen({
                   status: String(state.status ?? sessionRef.current.status),
                   stage: String(state.stage ?? sessionRef.current.stage),
                 });
-                if (isFirst) {
-                  onRecent({
-                    experienceId: String(event.experience_id),
-                    sessionId: sessionRef.current.sessionId,
-                    stateVersion: Number(event.state_version),
-                    topic: rawInput.slice(0, 40),
-                    stage: String(state.stage ?? sessionRef.current.stage),
-                    at: new Date().toISOString(),
-                  });
-                }
+                // 每次流提交都刷新「继续探索」最近条目：stage/at 取最新
+                // （会话深入/创作/完成会推进 stage，chip 不再冻结在「理解」）；
+                // topic 仅首条携带真实主题，后续轮传空串由 page 层继承旧主题
+                // （避免「画成图片/好了」等指令词覆盖会话主题）。
+                onRecent({
+                  experienceId: String(event.experience_id),
+                  sessionId: sessionRef.current.sessionId,
+                  stateVersion: Number(event.state_version),
+                  topic: isFirst ? rawInput.slice(0, 40) : '',
+                  stage: String(state.stage ?? sessionRef.current.stage),
+                  at: new Date().toISOString(),
+                });
               }
             } else if (event.type === 'chunk') {
               const content = typeof event.content === 'string' ? event.content : '';
@@ -1302,12 +1317,27 @@ export function ExperienceScreen({
   // 哪个生成的」：作品说明是基于哪一段引导内容画出来的。
   const stageSource = useMemo(() => {
     if (!stageArtifact?.anchor) return null;
-    const anchorMessage = messages.find(
+    const anchorIndex = messages.findIndex(
       (item) => item.id === stageArtifact.anchor,
     );
+    if (anchorIndex < 0) return null;
+    const anchorMessage = messages[anchorIndex];
     const text = anchorMessage?.text?.trim();
     if (!text) return null;
-    return text.length > 24 ? `${text.slice(0, 24)}…` : text;
+    // REPEAT 收敛轮的回应仅一句引导语（CR-56，无内容信息）——
+    // 回溯到其前一条 assistant 真实回答作为来源（与蒸馏原料同源，
+    // 回答「图是基于哪段内容画的」）；直接创作轮的长回答保持自身。
+    let sourceText = text;
+    if (anchorIndex > 0 && text.length <= 60) {
+      for (let index = anchorIndex - 1; index >= 0; index -= 1) {
+        const previous = messages[index];
+        if (previous.role === 'assistant' && previous.text?.trim()) {
+          sourceText = previous.text.trim();
+          break;
+        }
+      }
+    }
+    return sourceText.length > 24 ? `${sourceText.slice(0, 24)}…` : sourceText;
   }, [stageArtifact, messages]);
   const stageIndex = stageArtifact
     ? completedArtifacts.findIndex((item) => item.id === stageArtifact.id)
