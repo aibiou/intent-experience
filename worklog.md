@@ -287,3 +287,21 @@ Stage Summary:
 - 回归：WHY 提问正常回答 ✓；「好了」干净结束层 + 9 控件全禁用（GS-04）✓；292 单测全绿
 - 设计纪律：生成意图只认领 UNKNOWN/CHANGE 层（分类器优先级链零改动）；REPEAT 为确定性重放（无 LLM）；媒体是体验产物不进 ExperienceState（无版本语义，产物索引独立）；对话回应照常进行、媒体随流追加（answer 先行）
 - 已知边界（只报告）：①「画一个头像」类输入走分类器 CREATE（层叠所限，与参考一致——不触发媒体生成）；②恢复时 unconfigured 视频无产物可挂（诚实说明仅流内可见）；③TTS 单次 1000 字符上限（长内容截断朗读）；④媒体产物随会话累积在 data/media（无清理策略——后续切片）
+
+---
+Task ID: 8
+Agent: Z.ai Code (主控)
+Task: 回答用户「提交远端代码了吗」——git 远端状态核实 + 推送前工程卫生清理
+
+Work Log:
+- git remote -v 为空：无任何远端仓库配置，代码从未推送，仅存于本地 git
+- 核实本地完整性：9 个提交、工作区干净，最新提交已完整包含 S2b 全部工作（媒体网关/生成意图/前端媒体呈现），无未提交文件
+- 顺带核实历史任务：worklog 第 230 行确认 S2a 切片（6-a~6-e）早已闭环（UI 升级 + 浏览器验收 + 254 单测全绿）；S2b 后续也已完成（292 单测全绿）
+- 发现仓库卫生问题：.env / db/custom.db / data/media 音频图片（含 5.8MB wav）/ tool-results/ 工具输出 / .verify/ 截图 / upload/ 粘贴图 / dev.pid 均被跟踪入库（.gitignore 的 .env* 规则因文件先于规则被跟踪而未生效）
+- 清理：git rm -r --cached 移出上述运行时产物（磁盘文件全部保留，仅解除跟踪）；.gitignore 追加 /data/ /db/*.db /tool-results/ /upload/ /.verify/ /.zscripts/dev.pid /download/
+- 规范提交 78bb491：chore: untrack runtime artifacts and harden .gitignore；跟踪文件 172 → 142
+
+Stage Summary:
+- 结论：代码从未提交远端；本地 git 现已干净规范、随时可推送
+- 推送需用户提供：远端仓库地址（如 https://github.com/<user>/<repo>.git）+ 访问凭证（PAT/SSH），本环境无法自行创建远端仓库
+- 不重写历史（9 个历史提交含 UUID 信息保留原样）；.env 历史内容仅本地 DB 路径，无真实密钥，泄露风险可忽略
