@@ -1,0 +1,40 @@
+{
+  "records": [
+    {
+      "id": "pc_0e83a2f7a315e028",
+      "name": "agnes-com",
+      "kind": "openai-compatible",
+      "baseUrl": "https://apihub.agnes-ai.com/v1",
+      "model": "agnes-3.0-flash",
+      "modality": "text",
+      "enabled": true,
+      "isDefault": true,
+      "createdAt": "2026-10-11T13:57:48.385Z",
+      "updatedAt": "2026-10-13T07:48:49.428Z"
+    },
+    {
+      "id": "pc_099b856bb0a1b1ec",
+      "name": "newapi",
+      "kind": "openai-compatible",
+      "baseUrl": "http://localhost:13000/v1",
+      "model": "agnes-3.0-flash",
+      "modality": "text",
+      "enabled": false,
+      "isDefault": false,
+      "createdAt": "2026-10-12T00:36:52.286Z",
+      "updatedAt": "2026-10-12T00:36:53.997Z"
+    },
+    {
+      "id": "pc_94c8ae48ebf4cee9",
+      "name": "volcengine",
+      "kind": "openai-compatible",
+      "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+      "model": "doubao-seed-2-0-lite-260428",
+      "modality": "text",
+      "enabled": false,
+      "isDefault": false,
+      "createdAt": "2026-10-13T07:03:24.300Z",
+      "updatedAt": "2026-10-13T07:03:32.077Z"
+    }
+  ]
+}

@@ -1,7 +1,16 @@
 /**
  * 提供方配置持久化（对齐参考仓库 D-3 多记录配置纪律）。
  *
- * - 存储：data/config.json，格式 {"records": ProviderConfigRecord[]}。
+ * 密钥分离（2026-10-14）：
+ * - 共享配置 providers.json（服务根目录，入库）：提供方形态
+ *   （id / name / baseUrl / model / enabled / isDefault …），
+ *   绝不含密钥——每个拉取代码的人看到同一份提供方配置。
+ * - 本地密钥 data/secrets.json（gitignored，绝不入库）：
+ *   仅 {"keys": {id: apiKey}}——每个本地环境用自己的密钥。
+ * - 运行时 load() 合并两者：record.apiKey = secrets[id]（缺失 → 空串，
+ *   hasKey=false；调用时明确报「未配置密钥」而非伪装请求）。
+ *
+ * 其余纪律不变：
  * - 原子写：先写临时文件（同目录 + pid + 时间戳后缀）再 rename，
  *   绝不出现半写状态；rename 失败时清理 tmp 残留。
  * - 容错：文件缺失 / 损坏（非法 JSON、records 非数组）返回空记录列表，
@@ -20,13 +29,13 @@ export interface ProviderConfigRecord {
   name: string; // 显示名，唯一（如 "newapi"、"公司中转"）
   kind: 'openai-compatible';
   baseUrl: string; // 完整 base，如 https://api.example.com/v1（网关拼 /chat/completions）
-  apiKey: string;
+  apiKey?: string; // 运行时形态：load() 从 data/secrets.json 合并；持久化（providers.json）绝不写
   model: string; // 模型名（如 gpt-4o / deepseek-chat）
   modality: 'text'; // 本切片仅 text（图/视频/语音是后续切片）
   enabled: boolean;
   isDefault: boolean; // 同时刻最多一条 isDefault=true 的 text 记录
   createdAt: string; // ISO 时间
-  updatedAt: string;
+  updatedAt: string; // ISO 时间
 }
 
 /** 对外摘要（API 读形态——绝不回完整 key，仅掩码 + hasKey 标记）。 */
@@ -41,8 +50,8 @@ export interface ProviderConfigSummary {
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;
-  apiKeyMasked: string; // "sk-***后4位" 形式
-  hasKey: true;
+  apiKeyMasked: string; // "sk-***后4位" 形式；无密钥时全掩蔽
+  hasKey: boolean;
 }
 
 /** key 脱敏：只保留后 4 位；过短（<=4 位）时完全掩蔽。 */
@@ -54,6 +63,7 @@ export function maskApiKey(apiKey: string): string {
 }
 
 export function summarizeRecord(record: ProviderConfigRecord): ProviderConfigSummary {
+  const hasKey = typeof record.apiKey === 'string' && record.apiKey.length > 0;
   return {
     id: record.id,
     name: record.name,
@@ -65,8 +75,8 @@ export function summarizeRecord(record: ProviderConfigRecord): ProviderConfigSum
     isDefault: record.isDefault,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
-    apiKeyMasked: maskApiKey(record.apiKey),
-    hasKey: true,
+    apiKeyMasked: hasKey ? maskApiKey(record.apiKey as string) : 'sk-****',
+    hasKey,
   };
 }
 
@@ -96,16 +106,68 @@ function isRecordLike(value: unknown): value is ProviderConfigRecord {
     typeof r.id === 'string' &&
     typeof r.name === 'string' &&
     typeof r.baseUrl === 'string' &&
-    typeof r.apiKey === 'string' &&
     typeof r.model === 'string'
   );
 }
 
-export class ConfigStore {
+/** 原子写：tmp 文件 + rename；rename 失败清残留并抛出。 */
+async function writeAtomic(filePath: string, content: string): Promise<void> {
+  await mkdir(dirname(filePath), { recursive: true });
+  const tmp = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  await writeFile(tmp, content, 'utf8');
+  try {
+    await rename(tmp, filePath);
+  } catch (error) {
+    await rm(tmp, { force: true }).catch(() => undefined); // 不留 tmp 残余
+    throw error;
+  }
+}
+
+/**
+ * 本地密钥存储（data/secrets.json，绝不入库）。
+ * 形态：{"keys": {<providerId>: <apiKey>}}；文件缺失/损坏 → 空映射。
+ */
+export class SecretsStore {
   constructor(private readonly filePath: string) {}
 
+  async load(): Promise<Record<string, string>> {
+    let raw: string;
+    try {
+      raw = await readFile(this.filePath, 'utf8');
+    } catch {
+      return {}; // 文件缺失等 → 空映射
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return {}; // 损坏 JSON → 空映射（不崩溃）
+    }
+    if (parsed === null || typeof parsed !== 'object') return {};
+    const keys = (parsed as { keys?: unknown }).keys;
+    if (keys === null || typeof keys !== 'object') return {};
+    const out: Record<string, string> = {};
+    for (const [id, key] of Object.entries(keys as Record<string, unknown>)) {
+      if (typeof id === 'string' && id.length > 0 && typeof key === 'string' && key.length > 0) {
+        out[id] = key;
+      }
+    }
+    return out;
+  }
+
+  async save(keys: Record<string, string>): Promise<void> {
+    await writeAtomic(this.filePath, `${JSON.stringify({ keys }, null, 2)}\n`);
+  }
+}
+
+export class ConfigStore {
+  constructor(
+    private readonly filePath: string,
+    private readonly secretsStore: SecretsStore,
+  ) {}
+
   /**
-   * 读取记录。文件缺失 / 损坏（非法 JSON、records 非数组）→ 空列表，
+   * 读取记录（合并本地密钥）。文件缺失 / 损坏 → 空列表，
    * 不抛异常（调用方无需 try/catch）。
    */
   async load(): Promise<ProviderConfigRecord[]> {
@@ -124,37 +186,50 @@ export class ConfigStore {
     if (parsed === null || typeof parsed !== 'object') return [];
     const records = (parsed as { records?: unknown }).records;
     if (!Array.isArray(records)) return [];
+    const secrets = await this.secretsStore.load();
     return records.filter(isRecordLike).map((record) => ({
       ...record,
       kind: 'openai-compatible' as const,
       modality: 'text' as const,
       enabled: record.enabled === true,
       isDefault: record.isDefault === true,
+      apiKey: secrets[record.id], // 密钥只来自本地 secrets（缺失 → undefined，hasKey=false）
     }));
   }
 
   /**
-   * 原子写：tmp 文件 + rename（对齐参考仓库 config-store 纪律）。
-   * 写入前执行 isDefault 唯一性归一；返回归一化后的记录列表。
+   * 原子写：共享配置与本地密钥分文件落盘。
+   * - providers.json：记录本体（剥离 apiKey——共享配置绝不含密钥）
+   * - secrets.json：仅当前记录集中有密钥的 id（删除记录即清其密钥）
+   * 写入前执行 isDefault 唯一性归一；返回归一化后的记录列表（含 apiKey）。
    */
   async save(records: ProviderConfigRecord[]): Promise<ProviderConfigRecord[]> {
     const normalized = enforceDefaultUniqueness(records);
-    await mkdir(dirname(this.filePath), { recursive: true });
-    const tmp = `${this.filePath}.${process.pid}.${Date.now()}.tmp`;
-    await writeFile(tmp, `${JSON.stringify({ records: normalized }, null, 2)}\n`, 'utf8');
-    try {
-      await rename(tmp, this.filePath);
-    } catch (error) {
-      await rm(tmp, { force: true }).catch(() => undefined); // 不留 tmp 残余
-      throw error;
+    const shared = normalized.map((record) => {
+      const { apiKey: _omit, ...rest } = record;
+      return rest;
+    });
+    await writeAtomic(this.filePath, `${JSON.stringify({ records: shared }, null, 2)}\n`);
+    const keys: Record<string, string> = {};
+    for (const record of normalized) {
+      if (typeof record.apiKey === 'string' && record.apiKey.length > 0) {
+        keys[record.id] = record.apiKey;
+      }
     }
+    await this.secretsStore.save(keys);
     return normalized;
   }
 }
 
-/** 服务端单例存储路径：<mini-service>/data/config.json（运行时生成）。 */
+/** 共享配置路径：<mini-service>/providers.json（入库，人人同一份）。 */
 export function defaultStorePath(): string {
-  return join(import.meta.dir, '..', 'data', 'config.json');
+  return join(import.meta.dir, '..', 'providers.json');
 }
 
-export const configStore = new ConfigStore(defaultStorePath());
+/** 本地密钥路径：<mini-service>/data/secrets.json（gitignored，绝不入库）。 */
+export function defaultSecretsPath(): string {
+  return join(import.meta.dir, '..', 'data', 'secrets.json');
+}
+
+export const secretsStore = new SecretsStore(defaultSecretsPath());
+export const configStore = new ConfigStore(defaultStorePath(), secretsStore);
