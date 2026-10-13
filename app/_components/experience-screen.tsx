@@ -1315,30 +1315,34 @@ export function ExperienceScreen({
 
   // 作品来源：锚定消息（引发生成的回答）摘要——回答「哪个是
   // 哪个生成的」：作品说明是基于哪一段引导内容画出来的。
-  const stageSource = useMemo(() => {
-    if (!stageArtifact?.anchor) return null;
-    const anchorIndex = messages.findIndex(
-      (item) => item.id === stageArtifact.anchor,
-    );
-    if (anchorIndex < 0) return null;
-    const anchorMessage = messages[anchorIndex];
-    const text = anchorMessage?.text?.trim();
-    if (!text) return null;
-    // REPEAT 收敛轮的回应仅一句引导语（CR-56，无内容信息）——
-    // 回溯到其前一条 assistant 真实回答作为来源（与蒸馏原料同源，
-    // 回答「图是基于哪段内容画的」）；直接创作轮的长回答保持自身。
-    let sourceText = text;
-    if (anchorIndex > 0 && text.length <= 60) {
+  // 回溯锚点的真实回答文本：REPEAT 收敛轮的回应仅一句引导语
+  // （CR-56，无内容信息）——连续回溯【跳过 ≤60 字引导语链】，
+  // 直到最近的真实回答（与蒸馏原料同源；曾只回溯一条，连续
+  // 「画成图片」时命中相邻引导语——CR-58）。
+  const resolveStageSourceText = useCallback(
+    (anchorId: number | undefined): string | null => {
+      if (anchorId === undefined) return null;
+      const anchorIndex = messages.findIndex((item) => item.id === anchorId);
+      if (anchorIndex < 0) return null;
+      const anchorText = messages[anchorIndex]?.text?.trim();
+      if (!anchorText) return null;
+      if (anchorText.length > 60) return anchorText;
       for (let index = anchorIndex - 1; index >= 0; index -= 1) {
         const previous = messages[index];
-        if (previous.role === 'assistant' && previous.text?.trim()) {
-          sourceText = previous.text.trim();
-          break;
-        }
+        if (previous.role !== 'assistant') continue;
+        const text = previous.text?.trim();
+        if (text && text.length > 60) return text;
       }
-    }
+      // 无真实回答可回溯：退回锚点自身（至少不留空）。
+      return anchorText;
+    },
+    [messages],
+  );
+  const stageSource = useMemo(() => {
+    const sourceText = resolveStageSourceText(stageArtifact?.anchor);
+    if (!sourceText) return null;
     return sourceText.length > 24 ? `${sourceText.slice(0, 24)}…` : sourceText;
-  }, [stageArtifact, messages]);
+  }, [stageArtifact, resolveStageSourceText]);
   const stageIndex = stageArtifact
     ? completedArtifacts.findIndex((item) => item.id === stageArtifact.id)
     : -1;
@@ -1888,6 +1892,16 @@ export function ExperienceScreen({
                 >
                   {stageArtifact.distilled ??
                     stageArtifact.label ??
+                    // 蒸馏失败兜底（CR-58）：用回溯的真实回答片段作
+                    // caption——有画面语义，而非无信息的主题句。
+                    (() => {
+                      const source = resolveStageSourceText(
+                        stageArtifact.anchor,
+                      );
+                      return source && source.length > 60
+                        ? `${source.slice(0, 80)}…`
+                        : source;
+                    })() ??
                     stageArtifact.prompt}
                 </span>
                 {stageSource && (

@@ -282,6 +282,11 @@ async function* withGeneration(
       if (intent.modality !== 'voice') {
         try {
           const textConfig = await getEnabledProviderConfig();
+          if (textConfig === null) {
+            console.error(
+              '[withGeneration] distill skipped: no enabled text provider config',
+            );
+          }
           if (textConfig) {
             // 系列上下文取本会话的【最终】蒸馏提示词（用户意图
             // 太薄，做连贯性参考会失真）。
@@ -321,7 +326,8 @@ async function* withGeneration(
               previousPrompts,
             });
           }
-        } catch {
+        } catch (distillError) {
+          console.error('[withGeneration] distill failed:', (distillError as Error)?.message ?? distillError);
           distilledPrompt = null;
         }
         if (distilledPrompt !== null) {
