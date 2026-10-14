@@ -29,6 +29,8 @@ import type {
   CatalogSeed,
   ClientCategory,
   RecentSessionSummary,
+  WorkSummary,
+  WorksResponse,
 } from '@/components/experience/client-types';
 
 type Phase = 'home' | 'entrance' | 'experience';
@@ -44,6 +46,7 @@ export default function Page() {
   const [phase, setPhase] = useState<Phase>('home');
   const [seeds, setSeeds] = useState<CatalogSeed[]>([]);
   const [recent, setRecent] = useState<RecentSessionSummary[]>([]);
+  const [works, setWorks] = useState<WorkSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [entranceSeed, setEntranceSeed] = useState<CatalogSeed | null>(null);
 
@@ -68,6 +71,16 @@ export default function Page() {
       // 目录失败保持安静：保留旧数据/空态，不打扰首页
     } finally {
       setLoading(false);
+    }
+    // 作品墙独立加载：失败同样保持安静（有旧数据则保留）
+    try {
+      const res = await fetch('/api/experience/works');
+      if (res.ok) {
+        const data = (await res.json()) as WorksResponse;
+        setWorks(data.works);
+      }
+    } catch {
+      // 同上
     }
   }, []);
 
@@ -140,7 +153,7 @@ export default function Page() {
     [sessionApi]
   );
 
-  /** 最近探索 → 只读恢复历史轮次，继续当前会话（含媒体产物挂回）。 */
+  /** 最近探索 / 作品墙 → 只读恢复历史轮次，继续当前会话（含媒体产物挂回）。 */
   const handleOpenRecent = useCallback(
     async (id: string) => {
       try {
@@ -169,6 +182,7 @@ export default function Page() {
             <HomeScreen
               seeds={seeds}
               recent={recent}
+              works={works}
               loading={loading}
               onPickState={handlePickState}
               onWild={handleWild}

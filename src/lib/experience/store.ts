@@ -294,3 +294,15 @@ export async function recentSessions(limit = 6): Promise<SessionSummary[]> {
     };
   });
 }
+
+/** 按 id 批量取会话主题（作品墙 join 用——只读；会话不存在则缺席）。 */
+export async function sessionTopicsByIds(
+  ids: string[]
+): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const sessions = await db.experienceSession.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, topic: true },
+  });
+  return new Map(sessions.map((s) => [s.id, s.topic]));
+}
