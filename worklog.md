@@ -391,10 +391,11 @@ Work Log:
   - 显式 provider=死提供方 id → 502 UPSTREAM_UNREACHABLE（单候选链，确定性失败，不转移）
   - 全链死亡（两条死提供方启用 + agnes 停用）→ 502 + 汇总「尝试：「dead-b」ECONNREFUSED…；「dead-a」ECONNREFUSED…」
   - 清理后稳态恢复：agnes-com 唯一启用且默认、直连 chat 200；网关 /api/providers 列表与文件逐字节一致
+  - 视频 e2e（真实上游 agnes-video-2.5-flash）：POST /v1/videos → 上游 HTTP 503「video queue is full, please retry later」（request id: 202610142308496848198783rnqBDI7）→ 网关 502 MEDIA_UPSTREAM_ERROR 如实呈现（提供方名 + HTTP 状态 + 上游原话）。诚实结论：上游视频队列饱和（容量问题，非代码缺陷）——重试策略按 5xx 可重试规则持续重试约 8 分钟后如实报错；视频模态仅一条启用记录（无第二候选可转移），转移逻辑本身在文本模态已验证
 - 验证：bun test tests/engine/ 296 pass / 0 fail；网关 bun test 69 pass / 0 fail；tsc 零新增错误（仅存量 examples/websocket socket.io 模块缺失与 policy.test.ts 重载错误——均先于本次变更存在）
 - 环境备注：沙箱周期性收割后台进程——开发服务器多次被收割后以 nohup 脱离重启；网关经 ensureGateway 自动复活已真实验证（杀灭网关进程后经代理请求即复活并加载正确配置）
 
 Stage Summary:
 - G2-6 多提供方容灾完成：单元层（链解析 + 转移接线 + 15 例新增单测）+ 真实上游全矩阵验证（转移成功 / 显式确定性失败 / 全链死亡如实汇总 / 稳态恢复）
 - G1 配置面收口：测试按钮真实连通性经浏览器验收
-- 待办：视频 e2e（上游异步任务轮询中，结果待回报）；推送仍阻塞（GitHub 认证凭据缺失——需用户本地推送或提供 PAT，勿在聊天中粘贴 token）
+- 待办：视频生成受上游队列饱和阻塞（503 queue full——容量问题，待上游恢复后重验）；G2-5 图像编辑端点、G2-4 语义记忆召回为后续阶段；推送仍阻塞（GitHub 认证凭据缺失——需用户本地推送或提供 PAT，勿在聊天中粘贴 token）
