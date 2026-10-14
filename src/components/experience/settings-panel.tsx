@@ -111,13 +111,16 @@ export function SettingsPanel() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [health, list] = await Promise.all([
-        gwJson<{ ok: boolean; defaultProvider: string }>('/healthz'),
-        gwJson<{ providers: ProviderSummary[]; count: number }>('/api/providers'),
-      ]);
-      if (health.ok && health.data) setDefaultProvider(health.data.defaultProvider);
-      else if (!health.ok) setDefaultProvider('不可达');
-      if (list.ok && list.data) setProviders(list.data.providers);
+      const list = await gwJson<{ providers: ProviderSummary[]; count: number }>('/api/providers');
+      if (list.ok && list.data) {
+        setProviders(list.data.providers);
+        // 从 providers 列表里找默认提供方名称（healthz 端点在 Next.js 下无 proxy 路由）
+        const def = list.data.providers.find((p) => p.isDefault && p.enabled)
+          ?? list.data.providers.find((p) => p.enabled);
+        setDefaultProvider(def?.name ?? '未配置');
+      } else {
+        setDefaultProvider('不可达');
+      }
     } finally {
       setLoading(false);
     }
