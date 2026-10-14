@@ -31,6 +31,23 @@ export interface CatalogResponse {
   recent: RecentSessionSummary[];
 }
 
+/** 作品墙条目（对齐 GET /api/experience/works）。 */
+export interface WorkSummary {
+  id: string;
+  sessionId: string;
+  topic: string | null;
+  turn: number;
+  modality: 'image' | 'voice' | 'video';
+  url: string;
+  mime: string;
+  promptUsed: string;
+  at: string;
+}
+
+export interface WorksResponse {
+  works: WorkSummary[];
+}
+
 /** 首页状态入口（Screen 01）——状态，不是兴趣分类。 */
 export const STATE_ENTRIES: ReadonlyArray<{
   category: Exclude<ClientCategory, 'wild'>;

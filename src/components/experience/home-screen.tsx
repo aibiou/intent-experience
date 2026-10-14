@@ -19,6 +19,7 @@ import {
   STATE_ENTRIES,
   type CatalogSeed,
   type RecentSessionSummary,
+  type WorkSummary,
 } from './client-types';
 
 const STATE_ICONS = {
@@ -31,6 +32,7 @@ const STATE_ICONS = {
 interface HomeScreenProps {
   seeds: CatalogSeed[];
   recent: RecentSessionSummary[];
+  works: WorkSummary[];
   loading: boolean;
   onPickState: (category: 'relax' | 'discover' | 'deep' | 'create') => void;
   onWild: () => void;
@@ -38,9 +40,16 @@ interface HomeScreenProps {
   onOpenRecent: (id: string) => void;
 }
 
+const MODALITY_LABEL: Readonly<Record<WorkSummary['modality'], string>> = {
+  image: '图像',
+  voice: '语音',
+  video: '视频',
+};
+
 export function HomeScreen({
   seeds,
   recent,
+  works,
   loading,
   onPickState,
   onWild,
@@ -181,6 +190,96 @@ export function HomeScreen({
           </div>
         </section>
       ) : null}
+
+      {/* 作品墙——生成即落盘的作品，安静回看 */}
+      {loading && works.length === 0 ? (
+        <div className="mt-12 w-full max-w-2xl space-y-2">
+          <Skeleton className="h-4 w-16" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="aspect-[4/3] rounded-2xl" />
+            ))}
+          </div>
+        </div>
+      ) : works.length > 0 ? (
+        <section aria-label="作品" className="mt-12 w-full max-w-2xl">
+          <h2 className="mb-3 text-sm text-stone-400">作品</h2>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {works.map((work) => (
+              <li key={work.id}>
+                <WorkCard work={work} onOpen={onOpenRecent} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </main>
+  );
+}
+
+/** 作品墙卡片——图像缩略图；语音/视频内联播放；点击回看所属会话。 */
+function WorkCard({
+  work,
+  onOpen,
+}: {
+  work: WorkSummary;
+  onOpen: (sessionId: string) => void;
+}) {
+  const caption = (
+    <span className="block px-3 py-2.5">
+      <span className="block truncate text-sm text-stone-700">
+        {work.topic ?? work.promptUsed}
+      </span>
+      <span className="mt-0.5 flex items-center gap-1.5 text-xs text-stone-400">
+        <span className="rounded-full border border-stone-200 bg-stone-50 px-1.5 py-px">
+          {MODALITY_LABEL[work.modality]}
+        </span>
+        <span>第 {work.turn} 轮</span>
+        <span aria-hidden="true">·</span>
+        <span>{formatRelativeTime(work.at)}</span>
+      </span>
+    </span>
+  );
+
+  if (work.modality === 'image') {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpen(work.sessionId)}
+        className="block w-full overflow-hidden rounded-2xl border border-stone-200/90 bg-white text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-300/80 hover:shadow-[0_2px_8px_rgba(87,83,78,0.08)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
+      >
+        <img
+          src={work.url}
+          alt={work.promptUsed.slice(0, 80)}
+          loading="lazy"
+          className="aspect-[4/3] w-full object-cover"
+        />
+        {caption}
+      </button>
+    );
+  }
+
+  return (
+    <article className="overflow-hidden rounded-2xl border border-stone-200/90 bg-white">
+      <div className="bg-stone-50/80 px-3 py-2.5">
+        {work.modality === 'voice' ? (
+          <audio controls preload="none" src={work.url} className="h-9 w-full">
+            你的浏览器不支持音频播放。
+          </audio>
+        ) : (
+          <video controls preload="metadata" src={work.url} className="aspect-video w-full">
+            你的浏览器不支持视频播放。
+          </video>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => onOpen(work.sessionId)}
+        aria-label={`回看会话：${work.topic ?? work.promptUsed}`}
+        className="block w-full text-left transition-colors hover:bg-amber-50/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber-500"
+      >
+        {caption}
+      </button>
+    </article>
   );
 }
