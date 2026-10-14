@@ -51,11 +51,17 @@ function networkReason(error: unknown): string {
 function extractErrorMessage(raw: string, status: number): string {
   try {
     const parsed = JSON.parse(raw) as UpstreamErrorShape;
-    if (parsed?.error) {
-      if (typeof parsed.error === 'string' && parsed.error.length > 0) return parsed.error;
-      if (typeof parsed.error.message === 'string' && parsed.error.message.length > 0) {
-        return parsed.error.message;
-      }
+    const errorField = parsed?.error;
+    if (
+      typeof errorField === 'object' &&
+      errorField !== null &&
+      typeof errorField.message === 'string' &&
+      errorField.message.length > 0
+    ) {
+      return errorField.message;
+    }
+    if (typeof errorField === 'string' && errorField.length > 0) {
+      return errorField;
     }
   } catch {
     /* 非 JSON body——回退原文 */

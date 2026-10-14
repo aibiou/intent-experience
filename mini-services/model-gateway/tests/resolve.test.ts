@@ -1,6 +1,10 @@
 /// <reference types="bun-types" />
 import { describe, expect, it } from 'bun:test';
-import { ProviderResolveError, resolveProvider } from '../src/resolve';
+import {
+  ProviderResolveError,
+  resolveProvider,
+  resolveProviderChain,
+} from '../src/resolve';
 import type { ProviderConfigRecord } from '../src/config-store';
 
 /** 解析链（resolve.ts）——网关路由的核心，全部纯函数。 */
@@ -154,5 +158,98 @@ describe('resolveProvider 解析链', () => {
     expect(() => resolveProvider([imageOnly], undefined, 'text')).toThrow(
       ProviderResolveError,
     );
+  });
+});
+
+describe('resolveProviderChain 候选链（G2-6 多提供方容灾）', () => {
+  it('未指定 → 默认优先，其余按数组顺序', () => {
+    const first = makeRecord({ id: 'p1', name: '首条' });
+    const def = makeRecord({ id: 'p2', name: '默认', isDefault: true });
+    const second = makeRecord({ id: 'p3', name: '次条' });
+    expect(
+      resolveProviderChain([first, def, second], undefined, 'text').map((r) => r.id),
+    ).toEqual(['p2', 'p1', 'p3']);
+  });
+
+  it('多条默认 → 全部入链（默认之间按数组顺序）', () => {
+    const d1 = makeRecord({ id: 'p1', isDefault: true });
+    const d2 = makeRecord({ id: 'p2', isDefault: true });
+    const plain = makeRecord({ id: 'p3' });
+    expect(
+      resolveProviderChain([d1, d2, plain], undefined, 'text').map((r) => r.id),
+    ).toEqual(['p1', 'p2', 'p3']);
+  });
+
+  it('停用记录不进入候选链', () => {
+    const off = makeRecord({ id: 'p1', enabled: false });
+    const on = makeRecord({ id: 'p2' });
+    expect(
+      resolveProviderChain([off, on], undefined, 'text').map((r) => r.id),
+    ).toEqual(['p2']);
+  });
+
+  it('停用的默认不抢占——回退到启用记录', () => {
+    const on = makeRecord({ id: 'p1', name: '启用' });
+    const offDef = makeRecord({
+      id: 'p2',
+      name: '停用默认',
+      isDefault: true,
+      enabled: false,
+    });
+    expect(
+      resolveProviderChain([on, offDef], undefined, 'text').map((r) => r.id),
+    ).toEqual(['p1']);
+  });
+
+  it('该模态无启用记录 → MEDIA_PROVIDER_MISSING（与单解析同语义）', () => {
+    expect(() => resolveProviderChain([], undefined, 'text')).toThrow(
+      ProviderResolveError,
+    );
+    try {
+      resolveProviderChain([makeRecord({ modality: 'image' })], undefined, 'text');
+      throw new Error('不应到达');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProviderResolveError);
+      expect((error as ProviderResolveError).code).toBe('MEDIA_PROVIDER_MISSING');
+      expect((error as ProviderResolveError).message).toMatch(/未配置文本/);
+    }
+  });
+
+  it('模态隔离：图像记录不进入文本候选链', () => {
+    const imageOnly = makeRecord({ id: 'p1', modality: 'image', isDefault: true });
+    expect(() => resolveProviderChain([imageOnly], undefined, 'text')).toThrow(
+      /未配置文本/,
+    );
+  });
+
+  it('显式指定 → 单候选（确定性选择，不故障转移）', () => {
+    const a = makeRecord({ id: 'p1' });
+    const b = makeRecord({ id: 'p2' });
+    expect(
+      resolveProviderChain([a, b], 'p2', 'text').map((r) => r.id),
+    ).toEqual(['p2']);
+    // 显式 id 不存在 → PROVIDER_NOT_FOUND（同 resolveProvider）
+    try {
+      resolveProviderChain([a], 'nope', 'text');
+      throw new Error('不应到达');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProviderResolveError);
+      expect((error as ProviderResolveError).code).toBe('PROVIDER_NOT_FOUND');
+    }
+  });
+
+  it('显式指定带空白 → 修剪后匹配', () => {
+    const record = makeRecord({ id: 'p1' });
+    expect(
+      resolveProviderChain([record], '  p1  ', 'text').map((r) => r.id),
+    ).toEqual(['p1']);
+  });
+
+  it('空串/纯空白视为未指定（走默认链）', () => {
+    const def = makeRecord({ id: 'p1', isDefault: true });
+    expect(resolveProviderChain([def], '', 'text').map((r) => r.id)).toEqual(['p1']);
+    expect(
+      resolveProviderChain([def], '   ', 'text').map((r) => r.id),
+    ).toEqual(['p1']);
   });
 });

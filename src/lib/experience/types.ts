@@ -131,7 +131,7 @@ export type TurnEvent =
     }
   | {
       type: 'generation';
-      status: 'failed' | 'unconfigured';
+      status: 'failed';
       turn: number;
       modality: GenerationModality;
       message: string;

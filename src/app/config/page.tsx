@@ -433,7 +433,9 @@ export default function ConfigPage() {
   const handleTest = useCallback(async (p: ProviderSummary) => {
     setTestingId(p.id);
     try {
-      const r = await apiFetch<{ ok: boolean; sample?: string; error?: string }>(`/api/config/${encodeURIComponent(p.id)}/test`, { method: 'POST' });
+      // 连通性测试经模型网关代理（/api/providers/:id/test）——
+      // 测试即真实最小模型调用，属网关职责（主应用不直连上游）
+      const r = await apiFetch<{ ok: boolean; sample?: string; error?: string }>(`/api/providers/${encodeURIComponent(p.id)}/test`, { method: 'POST' });
       if (!r.ok) { toast({ description: r.error ?? '测试失败' }); return; }
       if (r.data?.ok) toast({ description: `连通正常：${r.data.sample ?? ''}` });
       else toast({ description: `连不通：${r.data?.error ?? '未知'}` });
