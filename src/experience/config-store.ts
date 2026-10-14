@@ -14,8 +14,9 @@
  *   云存储；本机开发形态为本地 data/ 目录（.gitignore 排除，
  *   绝不提交）。
  * - D-3 多记录配置模型：每提供方一条配置（provider / model /
- *   endpoint / key 密文引用），可多条并存；单条启用（用户经
- *   页面选择）。
+ *   endpoint / key 密文引用），可多条并存；启用即默认
+ *   （用户经页面选择——同模态可多条启用，首条为默认，
+ *   余为 G2-6 容灾候选链）。
  * - D-5 隐私再确认：确认记录经通用模板签署（模板
  *   PRIVACY-RECONFIRM-GENERIC/V1——提供方名称于签署时填写，
  *   不写死任何提供方——S5A-SEMANTIC-FREEZE-01 v1.1.0）；
@@ -71,15 +72,15 @@ export interface ProviderConfigRecord {
   model: string;
   /** chat-completions 兼容端点（用户自定义——预设提供方缺省回退）。 */
   endpoint: string;
-  /** 生成模态（文本 / 语音 / 图像 / 视频——产品负责人
-   * 指令 2026-10-10：模型按模态分类，每模态至多一条
-   * 启用）。默认 text（既有记录迁移）。 */
+  /** 生成模态（文本 / 语音 / 图像 / 视频——模型按模态
+   * 分类；同模态可多条启用，首条为默认，余为容灾候选
+   * 链）。默认 text（既有记录迁移）。 */
   modality: ProviderModality;
   /** AES-256-GCM 密文引用：base64(iv).base64(ciphertext).base64(tag)。 */
   keyCiphertext: string;
   createdAt: string;
   updatedAt: string;
-  /** 启用时间（null = 未启用；同时至多一条启用）。 */
+  /** 启用时间（null = 未启用；同模态首条启用记录为默认）。 */
   enabledAt: string | null;
 }
 
@@ -593,6 +594,23 @@ export async function confirmProviderPrivacy(
   return confirmation;
 }
 
+/** 同模态前置（启用即默认——默认归属按数组序推导：
+ * 运行期与网关均取「同模态第一条 enabled 记录」为默认，
+ * 故启用时把记录移到同模态记录之前；其余记录相对序不变）。 */
+function promoteToModalityFront(
+  records: ProviderConfigRecord[],
+  target: ProviderConfigRecord,
+): void {
+  const from = records.indexOf(target);
+  if (from <= 0) return; // 已在首位（或不存在——requireRecord 已保证存在）
+  const insertAt = records.findIndex(
+    (candidate) => candidate.modality === target.modality,
+  );
+  if (insertAt < 0 || insertAt >= from) return; // 目标已是首个同模态记录
+  records.splice(from, 1);
+  records.splice(insertAt, 0, target);
+}
+
 export async function enableProviderConfig(id: string): Promise<ProviderConfigSummary> {
   const { record, store } = await requireRecord(id);
   const confirmed = confirmedProviders((await loadConfirmations()).confirmations);
@@ -602,17 +620,16 @@ export async function enableProviderConfig(id: string): Promise<ProviderConfigSu
       `provider '${record.provider}' requires privacy re-confirmation before enabling (S5A-SEMANTIC-FREEZE-01 v1.1.0 D-5: unconfirmed providers cannot be enabled)`,
     );
   }
-  // 按模态单条启用（D-3 修订——产品负责人指令 2026-10-10：
-  // 模型按模态分类，每模态至多一条启用；其他模态的
-  // 启用状态不受影响）。
-  for (const candidate of store.records) {
-    candidate.enabledAt =
-      candidate.modality !== record.modality
-        ? candidate.enabledAt
-        : candidate.id === record.id
-          ? new Date().toISOString()
-          : null;
-  }
+  // 启用 = 启用并提升为模态默认（G2-6 多提供方容灾前置——
+  // 2026-10-14 修订 2026-10-10 单条启用指令）：记录前置到
+  // 同模态记录之前。默认归属由数组序推导——主应用
+  // getEnabledProviderConfigForModality 与网关
+  // enforceDefaultUniqueness 均取「同模态第一条 enabled 记录」
+  // 为默认，规则一致。同模态其余已启用记录保留启用态，
+  // 成为容灾候选链（默认失败时按序故障转移）；其他模态的
+  // 启用状态不受影响。
+  record.enabledAt = new Date().toISOString();
+  promoteToModalityFront(store.records, record);
   record.updatedAt = new Date().toISOString();
   await persistStore(store);
   return summarize(record, true);

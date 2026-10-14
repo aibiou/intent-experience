@@ -94,3 +94,42 @@ export function resolveProvider(
     'MEDIA_PROVIDER_MISSING',
   );
 }
+
+/**
+ * 候选链（G2-6 多提供方容灾）——调用方沿链逐个尝试，
+ * 当前候选失败（瞬态/凭据类）且链上还有候选时自动切换。
+ *
+ * - 显式指定（requested 非空）→ 单候选：调用方明确选了
+ *   这条记录，确定性选择不故障转移（失败即失败，如实报错）
+ * - 未指定 → 该模态全部 enabled 记录：isDefault 优先，
+ *   其余按数组顺序（与 resolveProvider 的缺省链同序）
+ * - 链空（该模态无 enabled 记录）→ MEDIA_PROVIDER_MISSING，
+ *   错误语义与 resolveProvider 完全一致
+ */
+export function resolveProviderChain(
+  records: ProviderConfigRecord[],
+  requested?: string,
+  modality: ProviderModality = 'text',
+): ProviderConfigRecord[] {
+  const requestedId =
+    typeof requested === 'string' && requested.trim().length > 0
+      ? requested.trim()
+      : undefined;
+
+  if (requestedId !== undefined) {
+    return [resolveProvider(records, requestedId, modality).record];
+  }
+
+  const enabled = records.filter(
+    (r) => r.modality === modality && r.enabled,
+  );
+  if (enabled.length === 0) {
+    throw new ProviderResolveError(
+      `未配置${MODALITY_LABEL[modality]}生成提供方——请在 /config 页面添加并启用${MODALITY_LABEL[modality]}模态提供方`,
+      'MEDIA_PROVIDER_MISSING',
+    );
+  }
+  const defaults = enabled.filter((r) => r.isDefault);
+  const rest = enabled.filter((r) => !r.isDefault);
+  return [...defaults, ...rest];
+}

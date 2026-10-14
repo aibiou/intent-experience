@@ -32,7 +32,7 @@ import {
   type ProviderConfigRecord,
   type ProviderModality,
 } from './src/config-store';
-import { ProviderResolveError, resolveProvider, type ResolvedProvider } from './src/resolve';
+import { ProviderResolveError, resolveProviderChain, type ResolvedProvider } from './src/resolve';
 import {
   EmptyContentError,
   UpstreamHttpError,
@@ -90,13 +90,15 @@ function providerLabel(resolved: ResolvedProvider): string {
   return `「${resolved.record.name}」`;
 }
 
-/** chat/completions 错误映射：可读中文错误 + OpenAI 风格 {error:{message,type,code}}。 */
-function mapChatError(error: unknown, resolved: ResolvedProvider): Response {
+/** chat/completions 错误映射：可读中文错误 + OpenAI 风格 {error:{message,type,code}}。
+ * detail 为多提供方容错的全链尝试摘要（G2-6）。 */
+function mapChatError(error: unknown, resolved: ResolvedProvider, detail?: string): Response {
   const label = providerLabel(resolved);
+  const suffix = detail ? `（尝试：${detail}）` : '';
   if (error instanceof UpstreamNetworkError || isNetworkFailure(error)) {
     const reason = error instanceof Error ? error.message : String(error);
     return json(
-      buildApiErrorBody(`无法连接到提供方${label}：${reason}`, 'api_error', 'UPSTREAM_UNREACHABLE'),
+      buildApiErrorBody(`无法连接到提供方${label}：${reason}${suffix}`, 'api_error', 'UPSTREAM_UNREACHABLE'),
       502,
     );
   }
@@ -104,7 +106,7 @@ function mapChatError(error: unknown, resolved: ResolvedProvider): Response {
     if (isRetryableStatus(error.status)) {
       return json(
         buildApiErrorBody(
-          `提供方${label}暂时不可用（HTTP ${error.status}）：${error.message}`,
+          `提供方${label}暂时不可用（HTTP ${error.status}）：${error.message}${suffix}`,
           'api_error',
           'UPSTREAM_UNAVAILABLE',
         ),
@@ -114,7 +116,7 @@ function mapChatError(error: unknown, resolved: ResolvedProvider): Response {
     const type = error.status === 401 || error.status === 403 ? 'authentication_error' : 'invalid_request_error';
     return json(
       buildApiErrorBody(
-        `提供方${label}返回错误（HTTP ${error.status}）：${error.message}`,
+        `提供方${label}返回错误（HTTP ${error.status}）：${error.message}${suffix}`,
         type,
         'UPSTREAM_ERROR',
       ),
@@ -123,7 +125,7 @@ function mapChatError(error: unknown, resolved: ResolvedProvider): Response {
   }
   if (error instanceof EmptyContentError) {
     return json(
-      buildApiErrorBody(`提供方${label}返回了空内容`, 'api_error', 'EMPTY_CONTENT'),
+      buildApiErrorBody(`提供方${label}返回了空内容${suffix}`, 'api_error', 'EMPTY_CONTENT'),
       502,
     );
   }
@@ -148,6 +150,40 @@ async function handleHealthz(): Promise<Response> {
   });
 }
 
+/** 故障转移合格判定（G2-6）：瞬态（网络/超时/非 JSON/
+ * 空内容）与凭据类（401/403）错误可切换下一候选；
+ * 请求形态类（400/404 等其它 4xx）不切换——同一请求
+ * 换提供方同样会失败。 */
+function isFailoverEligible(error: unknown): boolean {
+  if (error instanceof UpstreamNetworkError || error instanceof EmptyContentError) {
+    return true;
+  }
+  if (isNetworkFailure(error)) {
+    return true;
+  }
+  if (error instanceof UpstreamHttpError) {
+    return (
+      error.status === 401 ||
+      error.status === 403 ||
+      isRetryableStatus(error.status)
+    );
+  }
+  return false;
+}
+
+/** 候选失败原因（简短，供全链尝试摘要；长消息截断）。 */
+function failureReason(error: unknown): string {
+  let reason: string;
+  if (error instanceof UpstreamHttpError) {
+    reason = `HTTP ${error.status} ${error.message}`;
+  } else if (error instanceof EmptyContentError) {
+    reason = '返回空内容';
+  } else {
+    reason = error instanceof Error ? error.message : String(error);
+  }
+  return reason.length > 60 ? `${reason.slice(0, 60)}…` : reason;
+}
+
 async function handleChatCompletions(req: Request): Promise<Response> {
   const parsed = parseChatRequest(await readJsonBody(req));
   if (!parsed.ok) {
@@ -156,9 +192,9 @@ async function handleChatCompletions(req: Request): Promise<Response> {
   const { messages, provider } = parsed.value;
 
   const records = await configStore.load();
-  let resolved: ResolvedProvider;
+  let chain: ProviderConfigRecord[];
   try {
-    resolved = resolveProvider(records, provider);
+    chain = resolveProviderChain(records, provider);
   } catch (error) {
     if (error instanceof ProviderResolveError) {
       return json(buildApiErrorBody(error.message, 'invalid_request_error', error.code), 400);
@@ -166,23 +202,45 @@ async function handleChatCompletions(req: Request): Promise<Response> {
     throw error;
   }
 
-  const record = resolved.record;
-  if (typeof record.apiKey !== 'string' || record.apiKey.length === 0) {
+  // 多提供方容错（G2-6）：沿候选链逐个尝试——当前候选
+  // 瞬态/凭据类失败且链上还有候选时自动切换；全部失败
+  // 后如实汇总每条候选的失败原因（不伪装成功）。
+  const failures: string[] = [];
+  let lastError: unknown;
+  let lastRecord = chain[chain.length - 1];
+  for (const record of chain) {
+    if (typeof record.apiKey !== 'string' || record.apiKey.length === 0) {
+      failures.push(`「${record.name}」未配置密钥`);
+      continue;
+    }
+    lastRecord = record;
+    try {
+      const content = await withRetry(() => callOpenAICompatible(record, messages));
+      return json(buildChatCompletionResponse(record.model, content));
+    } catch (error) {
+      lastError = error;
+      failures.push(`「${record.name}」${failureReason(error)}`);
+      if (!isFailoverEligible(error)) {
+        break;
+      }
+    }
+  }
+  if (lastError === undefined) {
+    // 链上候选全部未配置密钥
     return json(
       buildApiErrorBody(
-        `提供方「${record.name}」尚未配置密钥——请在 /config 页面填入`,
+        '该模态提供方均未配置密钥——请在 /config 页面填入',
         'invalid_request_error',
         'PROVIDER_NO_KEY',
       ),
       400,
     );
   }
-  try {
-    const content = await withRetry(() => callOpenAICompatible(record, messages));
-    return json(buildChatCompletionResponse(record.model, content));
-  } catch (error) {
-    return mapChatError(error, resolved);
-  }
+  return mapChatError(
+    lastError,
+    { kind: 'record', record: lastRecord },
+    failures.join('；'),
+  );
 }
 
 async function handleListProviders(): Promise<Response> {
@@ -228,17 +286,19 @@ function mediaOk(artifact: MediaArtifact): Response {
   return json({ ok: true, ...artifact });
 }
 
-/** 媒体错误映射：上游不可达/瞬态 → 502；参数/上游明确拒绝 → 透传状态。 */
-function mapMediaError(error: unknown): Response {
+/** 媒体错误映射：上游不可达/瞬态 → 502；参数/上游明确拒绝 → 透传状态。
+ * detail 为多提供方容错的全链尝试摘要（G2-6）。 */
+function mapMediaError(error: unknown, detail?: string): Response {
   if (error instanceof MediaProviderError) {
+    const suffix = detail ? `（尝试：${detail}）` : '';
     if (error.retryable || error.status === undefined) {
       return json(
-        buildApiErrorBody(error.message, 'api_error', 'MEDIA_UPSTREAM_ERROR'),
+        buildApiErrorBody(`${error.message}${suffix}`, 'api_error', 'MEDIA_UPSTREAM_ERROR'),
         502,
       );
     }
     return json(
-      buildApiErrorBody(error.message, 'invalid_request_error', 'MEDIA_UPSTREAM_ERROR'),
+      buildApiErrorBody(`${error.message}${suffix}`, 'invalid_request_error', 'MEDIA_UPSTREAM_ERROR'),
       error.status,
     );
   }
@@ -253,27 +313,70 @@ function mapMediaError(error: unknown): Response {
   );
 }
 
-/** 按模态解析提供方并执行媒体生成（解析错误 → 400）。 */
+/** 媒体故障转移合格判定（G2-6）：瞬态（retryable/网络）
+ * 与凭据类（401/403）可切换下一候选；其它 4xx 不切换。 */
+function isMediaFailoverEligible(error: unknown): boolean {
+  if (error instanceof MediaProviderError) {
+    if (error.retryable || error.status === undefined) {
+      return true;
+    }
+    return error.status === 401 || error.status === 403;
+  }
+  return false;
+}
+
+/** 按模态解析提供方候选链并执行媒体生成（解析错误 → 400；
+ * 候选链容错：当前候选瞬态/凭据失败自动切换下一候选）。 */
 async function runMediaGeneration(
   modality: ProviderModality,
   generate: (record: ProviderConfigRecord) => Promise<MediaArtifact>,
 ): Promise<Response> {
   const records = await configStore.load();
-  let resolved: ResolvedProvider;
+  let chain: ProviderConfigRecord[];
   try {
-    resolved = resolveProvider(records, undefined, modality);
+    chain = resolveProviderChain(records, undefined, modality);
   } catch (error) {
     if (error instanceof ProviderResolveError) {
       return json(buildApiErrorBody(error.message, 'invalid_request_error', error.code), 400);
     }
     throw error;
   }
-  try {
-    const artifact = await generate(resolved.record);
-    return mediaOk(artifact);
-  } catch (error) {
-    return mapMediaError(error);
+
+  const failures: string[] = [];
+  let lastError: unknown;
+  let lastRecord = chain[chain.length - 1];
+  for (const record of chain) {
+    if (typeof record.apiKey !== 'string' || record.apiKey.length === 0) {
+      failures.push(`「${record.name}」未配置密钥`);
+      continue;
+    }
+    lastRecord = record;
+    try {
+      const artifact = await generate(record);
+      return mediaOk(artifact);
+    } catch (error) {
+      lastError = error;
+      failures.push(
+        error instanceof MediaProviderError
+          ? error.message
+          : `「${record.name}」${failureReason(error)}`,
+      );
+      if (!isMediaFailoverEligible(error)) {
+        break;
+      }
+    }
   }
+  if (lastError === undefined) {
+    return json(
+      buildApiErrorBody(
+        `该模态（${modality}）提供方均未配置密钥——请在 /config 页面填入`,
+        'invalid_request_error',
+        'PROVIDER_NO_KEY',
+      ),
+      400,
+    );
+  }
+  return mapMediaError(lastError, failures.join('；'));
 }
 
 /** POST /v1/images/generations —— 图像生成（默认图像模态提供方）。 */

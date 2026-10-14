@@ -1,5 +1,7 @@
 /**
- * POST /api/config/[id]/enable — 启用提供方配置（按模态单条启用）。
+ * POST /api/config/[id]/enable — 启用提供方配置
+ * （启用即默认：记录提升至同模态首位；同模态
+ * 其余已启用记录保留为容灾候选链——G2-6）。
  */
 
 import { enableProviderConfig, ConfigStoreError } from '@/experience/config-store';

@@ -374,3 +374,27 @@ Work Log:
 
 Stage Summary:
 - 网关纯函数测试覆盖解析链/校验/重试/配置存储四层，统一配置层后架构下全绿
+
+---
+Task ID: 14
+Agent: Z.ai Code (主控)
+Task: Phase 0 收口 + G2-6 多提供方容灾（真实上游全矩阵验证）
+
+Work Log:
+- Phase 0 修复：/config 页测试按钮 404（测试经 /api/providers/:id/test 代理转发给网关——真实最小模型调用属网关职责）；GET /api/config/[id] 由占位实现为真实查询（脱敏摘要形态，不回 key 任何形态）；死代码清扫（types.ts 删除 'unconfigured' 死分支、generation-intent.ts 过期注释更正——视频提供方已可配置、model-gateway 残留明文 secrets.json 删除）；openai-compatible.ts 错误消息提取的类型收窄修复
+- G2-6 容灾（单元层）：resolveProviderChain 候选链（显式 id → 单候选确定性解析；否则该模态默认记录优先、再按数组序）；chat/completions 与媒体生成 handler 沿候选链故障转移——瞬态（网络/超时/非 JSON/空内容）与凭据类（401/403/429/5xx）错误切换下一候选，请求形态类（400/404 等其它 4xx）不切换；全链失败如实汇总每条候选原因（尝试：「a」…；「b」…）；密钥未配置候选跳过并记录；+9 单测
+- G2-6 前置（启用语义）：enableProviderConfig 由「按模态单条启用（2026-10-10 指令）」修订为「启用即默认」——记录提升至同模态首位（默认归属按数组序推导：主应用 getEnabledProviderConfigForModality 与网关 enforceDefaultUniqueness 同一规则），同模态其余已启用记录保留启用态成为容灾候选链；跨模态互不影响；未确认提供方仍拒绝启用（D-5）；+4 单测
+- ensureGateway 修复（真实环境验证暴露）：spawn cwd 修正为主应用根目录（网关默认配置路径按 process.cwd() 解析，cwd=mini-services/model-gateway 会读不到统一配置源）；Windows 上 PATH 中的 bun 为 npm shim（bun.cmd 无法被 spawn 直接执行，仅 shell 可跑）——经 `where bun.exe` 解析真实可执行文件，回退 npm 全局安装位置 / 官方安装器位置；spawn error 事件监听（失败不再静默丢失）；健康端点轮询替代固定 3s 等待
+- 真实验证（真实上游 Agnes hub，全程真实调用）：
+  - 浏览器验收 /config 页（Playwright）：四模态分组渲染、默认横幅（文本/图像/视频: agnes-com · 语音: doubao-voice）、测试按钮 → 真实连通调用 → toast「连通正常：ok」
+  - 故障转移：构造不可达提供方 failover-canary（端点 127.0.0.1:9）→ 确认隐私 → 启用（提升为默认，agnes-com 保留启用）→ POST /v1/chat/completions → HTTP 200，agnes-3.0-flash 真实应答「ok」——死默认自动切换成功
+  - 显式 provider=死提供方 id → 502 UPSTREAM_UNREACHABLE（单候选链，确定性失败，不转移）
+  - 全链死亡（两条死提供方启用 + agnes 停用）→ 502 + 汇总「尝试：「dead-b」ECONNREFUSED…；「dead-a」ECONNREFUSED…」
+  - 清理后稳态恢复：agnes-com 唯一启用且默认、直连 chat 200；网关 /api/providers 列表与文件逐字节一致
+- 验证：bun test tests/engine/ 296 pass / 0 fail；网关 bun test 69 pass / 0 fail；tsc 零新增错误（仅存量 examples/websocket socket.io 模块缺失与 policy.test.ts 重载错误——均先于本次变更存在）
+- 环境备注：沙箱周期性收割后台进程——开发服务器多次被收割后以 nohup 脱离重启；网关经 ensureGateway 自动复活已真实验证（杀灭网关进程后经代理请求即复活并加载正确配置）
+
+Stage Summary:
+- G2-6 多提供方容灾完成：单元层（链解析 + 转移接线 + 15 例新增单测）+ 真实上游全矩阵验证（转移成功 / 显式确定性失败 / 全链死亡如实汇总 / 稳态恢复）
+- G1 配置面收口：测试按钮真实连通性经浏览器验收
+- 待办：视频 e2e（上游异步任务轮询中，结果待回报）；推送仍阻塞（GitHub 认证凭据缺失——需用户本地推送或提供 PAT，勿在聊天中粘贴 token）
