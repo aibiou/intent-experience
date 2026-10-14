@@ -77,7 +77,7 @@ export function humanizeGenerationFailure(
   return `${modalityLabel}生成没有成功——可以换个说法再试一次。`;
 }
 
-/** 画幅类型（Agnes 官方支持 8 种宽高比；项目 UI 默认暴露
+/** 画幅类型（官方支持 8 种宽高比；项目 UI 默认暴露
  * 3 种常用值，但后端全量接受——前端白名单逐步开放）。 */
 export type AspectRatio =
   | '16:9' | '9:16' | '1:1'
@@ -86,34 +86,34 @@ export type AspectRatio =
 /** 创作参数（前端透传——画幅 / 视频时长 / 参考图 / 高级参数；
  * 缺省用提供方默认，不改变既有生成行为）。 */
 export interface GenerationOptions {
-  /** 画幅（视频 aspect_ratio 直传；图像映射为 Agnes 官方
-   * size 档位 + ratio 组合——docs/agnes-image-25-flash）。 */
+  /** 画幅（视频 aspect_ratio 直传；图像映射为官方
+   * size 档位 + ratio 组合——官方图像文档）。 */
   aspectRatio?: AspectRatio;
   /** 视频时长（官方契约 "4"–"12" 秒）。 */
   seconds?: '4' | '6' | '8' | '12';
-  /** 参考图（dataURI 数组，≤3 张——图生图：Agnes
+  /** 参考图（dataURI 数组，≤3 张——图生图：官方
    * extra_body.image 契约，生成与参考图主体一致）。 */
   referenceImages?: string[];
   /** 语音音色（speaker ID——豆包语音 2.0 音色库；
    * 不传即提供方默认音色）。 */
   voice?: string;
-  /** 图像尺寸档位（Agnes 官方 size 参数——1K/2K/3K/4K；
+  /** 图像尺寸档位（官方 size 参数——1K/2K/3K/4K；
    * 缺省 "2K"，与既有像素量级一致）。 */
   imageTier?: '1K' | '2K' | '3K' | '4K';
-  /** 视频首帧图片 URL（keyframe 模式——Agnes 官方
+  /** 视频首帧图片 URL（keyframe 模式——官方
    * first_frame 参数，与 lastFrame 至少提供一个）。 */
   firstFrame?: string;
-  /** 视频尾帧图片 URL（keyframe 模式——Agnes 官方
+  /** 视频尾帧图片 URL（keyframe 模式——官方
    * last_frame 参数，与 firstFrame 至少提供一个）。 */
   lastFrame?: string;
-  /** 视频参考音频 URL 数组（reference 模式——Agnes 官方
+  /** 视频参考音频 URL 数组（reference 模式——官方
    * audios 参数，Flash 最多 3 段）。 */
   referenceAudios?: string[];
   /** 随机种子（视频官方 seed 参数——可复现结果）。 */
   seed?: number;
 }
 
-// 画幅 → Agnes 官方 ratio（docs/agnes-image-25-flash：
+// 画幅 → 官方 ratio（官方图像文档：
 // size 档位 + ratio 组合，替代历史精确像素写法。
 // 档位默认 2K——与既有像素量级一致，保证出图质量不降）。
 const DEFAULT_IMAGE_TIER = '2K';
@@ -267,7 +267,7 @@ function extractUrl(entry: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
-/** 异步任务轮询间隔与总超时（Agnes 视频官方
+/** 异步任务轮询间隔与总超时（视频官方
  * 建议每 1–2 秒查询一次；生成通常需数十秒）。 */
 const VIDEO_POLL_INTERVAL_MS = 1_500;
 // 免费档常态：任务入队后排队可达数分钟
@@ -288,7 +288,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** 任务 ID（Agnes 异步任务——video_id 优先，
+/** 任务 ID（异步任务——video_id 优先，
  * 兼容 id / task_id 两种响应字段）。 */
 function extractVideoId(parsed: unknown): string | undefined {
   if (parsed === null || typeof parsed !== 'object') return undefined;
@@ -304,8 +304,8 @@ function extractVideoId(parsed: unknown): string | undefined {
  * 视频契约路由：Seedance（火山方舟豆包——POST
  * /contents/generations/tasks 异步任务 + GET
  * /contents/generations/tasks/{id} 轮询，产物在 content.video_url）
- * 与 Agnes（/v1/videos + /agnesapi 轮询）两套契约不同——按模型名 /
- * 端点域判定，避免把 Seedance 请求发到 Agnes 契约（实测经第三方
+ * 与官方（/v1/videos + /agnesapi 轮询）两套契约不同——按模型名 /
+ * 端点域判定，避免把 Seedance 请求发到官方契约（实测经第三方
  * OpenAI 兼容网关转发视频会被网关无 /v1/videos 路由拒成 400；
  * 走提供方官方端点后契约正确、仅剩队列瞬态 503——网关能力边界，
  * 非产品参数缺陷）。
@@ -329,7 +329,7 @@ function isSeedanceContract(config: EnabledProviderConfig): boolean {
  * GET {base}/contents/generations/tasks/{id} 直至 succeeded，
  * 产物在 content.video_url。免费档常态排队/限速——错误映射与
  * 退避复用 callProvider / readProviderError（瞬态 status 标记
- * retryable），轮询用与 agnes 相同的间隔 / 超时纪律。
+ * retryable），轮询用与官方相同的间隔 / 超时纪律。
  */
 async function generateVideoSeedance(
   config: EnabledProviderConfig,
@@ -476,7 +476,7 @@ function extractTaskId(parsed: unknown): string | undefined {
  * GET {base}/async-result/{id}，task_status=SUCCESS 时取
  * data[0].url / video_result。请求体 / 响应解析为纯函数
  * （video-contract.ts——单测锁定）；网络与轮询纪律与
- * agnes / seedance 一致。
+ * 官方 / seedance 一致。
  */
 async function generateVideoZhipu(
   config: EnabledProviderConfig,
@@ -581,7 +581,7 @@ export async function generateImage(
   _onProgress?: (progress: number) => void,
   options?: GenerationOptions,
 ): Promise<GenerationArtifact> {
-  // Agnes 官方契约（docs/agnes-image-25-flash）：size 用档位
+  // 官方契约（官方图像文档）：size 用档位
   // （1K/2K/3K/4K），ratio 指定宽高比；response_format 放
   // extra_body 内（官方警告：勿放顶层）。
   const hasRatio = options?.aspectRatio !== undefined;
@@ -797,7 +797,7 @@ export async function generateVideo(
   options?: GenerationOptions,
 ): Promise<GenerationArtifact> {
   // 契约路由：Seedance（火山方舟豆包）用其自有异步任务契约；
-  // 否则按 Agnes 契约（下方原实现，纯增量零回归）。
+  // 否则按官方契约（下方原实现，纯增量零回归）。
   if (isSeedanceContract(config)) {
     return generateVideoSeedance(config, prompt, onProgress, options);
   }
@@ -805,12 +805,12 @@ export async function generateVideo(
   if (videoProviderOf(config) === 'zhipu') {
     return generateVideoZhipu(config, prompt, onProgress, options);
   }
-  // 官方文档契约（Agnes Video 2.5 Flash——docs/agnes-video-25-flash，
+  // 官方文档契约（官方视频文档，
   // OpenAI Videos 兼容异步任务接口）：POST /videos 创建任务
   // （mode 为生成模式 text/keyframe/reference；size 固定 "720P"；
   // seconds 为字符串 "4"–"12"），保存 video_id 后轮询
   // GET /agnesapi?video_id=&model_name= 直至 status=completed，
-  // 产物在响应顶层 url。注意与 agnes-video-v2.0 的文档是两代
+  // 产物在响应顶层 url。注意与视频 v2.0 的文档是两代
   // 契约（V2.0 用 width/height/num_frames、产物在 metadata.url
   // ——对本模型发 height 会被 400「禁止字段」拒绝，实测 2026-10-11）。
   // 503 = 服务忙（队列满）——按瞬态退避重试处理。
@@ -818,7 +818,7 @@ export async function generateVideo(
   // 原行为）；自定义参数被 400 拒绝时降级默认参数重试
   // （契约容差——时长/画幅档位可能随提供方收窄）。
   //
-  // 模式路由（docs/agnes-video-25-flash §生成模式规则）：
+  // 模式路由（官方视频文档 §生成模式规则）：
   // - keyframe：有 firstFrame / lastFrame 时启用——首尾帧控制。
   // - reference：有公开 URL 参考图 / 参考音频时启用——多模态参考。
   // - text：无媒体输入时默认——纯文本生成。

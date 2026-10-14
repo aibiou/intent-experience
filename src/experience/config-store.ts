@@ -318,11 +318,11 @@ export interface EnabledProviderConfig {
   temperature: number;
   systemPrompt: string;
   apiKey: string;
-  /** 最大输出 Token 数（Agnes 3.0 Flash 官方 max_tokens——可选）。 */
+  /** 最大输出 Token 数（官方 max_tokens——可选）。 */
   maxTokens?: number;
-  /** 核采样参数（Agnes 3.0 Flash 官方 top_p——可选）。 */
+  /** 核采样参数（官方 top_p——可选）。 */
   topP?: number;
-  /** Thinking 模式（Agnes 3.0 Flash chat_template_kwargs.enable_thinking——可选）。 */
+  /** Thinking 模式（官方 chat_template_kwargs.enable_thinking——可选）。 */
   enableThinking?: boolean;
 }
 

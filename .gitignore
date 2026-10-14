@@ -71,6 +71,13 @@ data/
 prisma/dev.db
 prisma/dev.db-journal
 
-# browser automation state / demo screenshots (not product or evidence artifacts)
+# compiled core bundle for the in-process evidence harness
+dist/
+
+# local provider config store (密文持久化；绝不提交)
+# 忽略所有 data/ 目录（含 mini-services/model-gateway/data/config.json）
+data/
+
+# browser automation state / demo screenshots
 .playwright-mcp/
 product-home.png

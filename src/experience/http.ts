@@ -111,7 +111,7 @@ export interface HandlerResult {
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 const NDJSON_HEADERS = { 'Content-Type': 'application/x-ndjson' };
 
-// 提示词增稠（2026-10-11——实测 agnes-image 对单词级提示词
+// 提示词增稠（2026-10-11——实测图像模型对单词级提示词
 // 先验极强：「美女」两次独立生成收敛到同一张「图库感」
 // 图像——同款毛衣同款沙发）。短提示词自动补充多样化的
 // 质感 / 光影描述（每次随机一组），让再生成有差异。仅用于
@@ -394,7 +394,7 @@ async function* withGeneration(
         // 缺省 undefined 保持提供方默认行为）。
         // 参考图（CR-61）：续作 / 图生图意图的 reference_images
         // 此前解析了却未透传生成网关（仅画幅 / 时长）——参考图
-        // 从未到达 agnes extra_body.image，图生图退化为纯文生
+        // 从未到达 extra_body.image，图生图退化为纯文生
         // 图（续作实测：参考图「橘猫蜷缩毛毯」生成「虎斑猫端坐
         // 沙发」，仅氛围延续）。此处补齐透传。
         {
@@ -468,7 +468,7 @@ async function* withGeneration(
  * 高级参数随请求透传到生成网关）：白名单校验，非法值静默忽略——
  * 参数是增强项，绝不影响对话主轴。
  */
-// Agnes 官方 8 种宽高比（docs/agnes-image-25-flash / agnes-video-25-flash）。
+// 官方 8 种宽高比（官方图像文档 / 官方视频文档）。
 const ASPECT_RATIO_VALUES = new Set([
   '16:9', '9:16', '1:1', '3:4', '4:3', '2:3', '3:2', '21:9',
 ]);
@@ -495,7 +495,7 @@ export function extractCreationParams(body: {
   if (typeof body.seconds === 'string' && VIDEO_SECONDS_VALUES.has(body.seconds)) {
     options.seconds = body.seconds as GenerationOptions['seconds'];
   }
-  // 图像尺寸档位（Agnes 官方 size 参数——1K/2K/3K/4K）。
+  // 图像尺寸档位（官方 size 参数——1K/2K/3K/4K）。
   if (
     typeof body.image_tier === 'string' &&
     IMAGE_TIER_VALUES.has(body.image_tier)
