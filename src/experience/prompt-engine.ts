@@ -215,7 +215,7 @@ export async function distillVisualPrompt(
     sections.push(`创作描述：${input.designText.trim().slice(0, 700)}`);
   }
   if (input.aspectRatio !== undefined) {
-    // Agnes 官方 8 种宽高比均注入构图方向标签。
+    // 官方 8 种宽高比均注入构图方向标签。
     const vertical = ['9:16', '2:3', '3:4'];
     const square = ['1:1'];
     const aspectLabel = square.includes(input.aspectRatio)

@@ -30,9 +30,9 @@ export interface LlmRequest {
   creation?: CreationLlmSummary;
   /** 取消信号（可选——增量流式形态经此中止上游连接；S5A v1.2.0）。 */
   signal?: AbortSignal;
-  /** 图像 URL 列表（可选——Agnes 3.0 Flash 多模态输入：
+  /** 图像 URL 列表（可选——官方多模态输入：
    * 用户可在对话中附带图片 URL，模型理解图像内容后
-   * 生成回应。docs/agnes-30-flash §图像 URL 输入）。 */
+   * 生成回应。官方文本文档 §图像 URL 输入）。 */
   imageUrls?: string[];
 }
 
@@ -137,13 +137,13 @@ export interface ProviderLlmConfig {
   temperature: number;
   apiKey: string;
   systemPrompt: string;
-  /** 最大输出 Token 数（Agnes 3.0 Flash 官方 max_tokens 参数；
+  /** 最大输出 Token 数（官方 max_tokens 参数；
    * 缺省 undefined——由提供方默认决定）。 */
   maxTokens?: number;
-  /** 核采样参数（Agnes 3.0 Flash 官方 top_p 参数；
+  /** 核采样参数（官方 top_p 参数；
    * 缺省 undefined——由提供方默认决定）。 */
   topP?: number;
-  /** Thinking 模式（Agnes 3.0 Flash 官方 chat_template_kwargs.enable_thinking；
+  /** Thinking 模式（官方 chat_template_kwargs.enable_thinking；
    * true 时启用更充分的任务拆解与推理——缺省 false）。 */
   enableThinking?: boolean;
 }
@@ -219,7 +219,7 @@ export class ProviderLlmGateway implements LlmGateway {
       ],
       temperature: this.config.temperature,
     };
-    // Agnes 3.0 Flash 官方可选参数（docs/agnes-30-flash）。
+    // 官方可选参数（官方文本文档）。
     if (this.config.maxTokens !== undefined) {
       body.max_tokens = this.config.maxTokens;
     }
@@ -229,7 +229,7 @@ export class ProviderLlmGateway implements LlmGateway {
     if (this.config.enableThinking === true) {
       body.chat_template_kwargs = { enable_thinking: true };
     }
-    // 多模态图像 URL 输入（docs/agnes-30-flash §图像 URL 输入）：
+    // 多模态图像 URL 输入（官方文本文档 §图像 URL 输入）：
     // 有 imageUrls 时 user content 改为数块格式
     // （text + image_url），让模型理解图像内容。
     const userText = renderProviderUserMessage(request);
@@ -328,7 +328,7 @@ export class ProviderLlmGateway implements LlmGateway {
       temperature: this.config.temperature,
       stream: true,
     };
-    // Agnes 3.0 Flash 官方可选参数（docs/agnes-30-flash）。
+    // 官方可选参数（官方文本文档）。
     if (this.config.maxTokens !== undefined) {
       body.max_tokens = this.config.maxTokens;
     }
@@ -338,7 +338,7 @@ export class ProviderLlmGateway implements LlmGateway {
     if (this.config.enableThinking === true) {
       body.chat_template_kwargs = { enable_thinking: true };
     }
-    // 多模态图像 URL 输入（docs/agnes-30-flash §图像 URL 输入）：
+    // 多模态图像 URL 输入（官方文本文档 §图像 URL 输入）：
     // 有 imageUrls 时 user content 改为数块格式
     // （text + image_url），让模型理解图像内容。
     const userText = renderProviderUserMessage(request);
