@@ -1,8 +1,11 @@
 /**
- * 模型网关 mini-service 入口（Bun.serve，端口固定 3031——不读环境变量）。
+ * 模型网关 mini-service 入口（Bun.serve，端口固定 3031）。
  *
- * 对接 LLM 提供方的唯一出入口，独立于主应用（自己的 package.json，
- * 不依赖主应用代码）。主应用接线是下一个任务。
+ * 2026-10-14 统一重构：
+ * - 配置源统一为主应用的 data/config/provider-configs.json（AES-256-GCM 加密）
+ * - model-gateway 只读取配置，不写入——所有配置变更经主应用 /config 页面
+ * - 取消所有合成/zai 兜底——无配置时明确报 MEDIA_PROVIDER_MISSING
+ * - 密钥经 EXPERIENCE_CONFIG_ENCRYPTION_KEY 环境变量解密
  *
  * HTTP 面（OpenAI 兼容风格）：
  * - GET  /healthz                 → {ok:true, uptimeSec, defaultProvider}
@@ -10,19 +13,15 @@
  * - POST /v1/images/generations   → 图像生成（默认图像模态提供方）
  * - POST /v1/audio/speech         → 语音合成（默认语音模态提供方）
  * - POST /v1/videos               → 视频生成（异步任务轮询直至完成）
- * - GET  /api/providers           → 列表（apiKey 脱敏，绝不回完整 key）
- * - POST /api/providers           → 新增（无 id，201）/ 更新（有 id，200）
- * - DELETE /api/providers/:id     → 删除
+ * - GET  /api/providers           → 列表（只读，apiKey 脱敏）
  * - POST /api/providers/:id/test  → 连通性测试（总是 200，body 区分成败）
+ * - GET  /api/providers/:id/models → 拉取上游可用模型列表（OpenAI /v1/models）
+ * - POST /api/providers/probe-models → 预览上游模型列表（无需先保存）
  *
  * 模态路由：文本/图像/视频/语音各自独立选提供方——
  * 每条记录绑定一个模态，缺省走该模态的 default 记录
- * （无 default 则该模态第一条 enabled）。媒体模态无
- * 内置兜底：未配置时明确报 MEDIA_PROVIDER_MISSING。
- *
- * 密钥分离：提供方配置存 providers.json（入库共享，人人是同一份）；
- * 密钥只存 data/secrets.json（gitignored，本地独有）。apiKey 可选
- * 传入——未配置密钥的提供方调用时明确报 PROVIDER_NO_KEY（400）。
+ * （无 default 则该模态第一条 enabled）。所有模态无内置兜底：
+ * 未配置时明确报 MEDIA_PROVIDER_MISSING。
  *
  * CORS：所有响应带 Access-Control-Allow-Origin: *；OPTIONS 预检 204。
  */
@@ -33,7 +32,7 @@ import {
   type ProviderConfigRecord,
   type ProviderModality,
 } from './src/config-store';
-import { BUILTIN_ZAI, ProviderResolveError, resolveProvider, type ResolvedProvider } from './src/resolve';
+import { ProviderResolveError, resolveProvider, type ResolvedProvider } from './src/resolve';
 import {
   EmptyContentError,
   UpstreamHttpError,
@@ -42,14 +41,12 @@ import {
   isRetryableStatus,
   withRetry,
 } from './src/retry';
-import { validateProviderInput } from './src/validate';
 import {
   buildApiErrorBody,
   buildChatCompletionResponse,
   parseChatRequest,
   type ChatMessage,
 } from './src/openai';
-import { callZai } from './src/providers/zai';
 import { callOpenAICompatible } from './src/providers/openai-compatible';
 import {
   generateImage,
@@ -90,7 +87,7 @@ async function readJsonBody(req: Request): Promise<unknown> {
 }
 
 function providerLabel(resolved: ResolvedProvider): string {
-  return resolved.kind === 'zai' ? 'zai' : `「${resolved.record.name}」`;
+  return `「${resolved.record.name}」`;
 }
 
 /** chat/completions 错误映射：可读中文错误 + OpenAI 风格 {error:{message,type,code}}。 */
@@ -147,7 +144,7 @@ async function handleHealthz(): Promise<Response> {
   return json({
     ok: true,
     uptimeSec: Math.floor((Date.now() - startedAt) / 1000),
-    defaultProvider: def ? def.name : BUILTIN_ZAI,
+    defaultProvider: def ? def.name : '(none)',
   });
 }
 
@@ -169,20 +166,11 @@ async function handleChatCompletions(req: Request): Promise<Response> {
     throw error;
   }
 
-  if (resolved.kind === 'zai') {
-    try {
-      const result = await withRetry(() => callZai(messages));
-      return json(buildChatCompletionResponse(result.model, result.content));
-    } catch (error) {
-      return mapChatError(error, resolved);
-    }
-  }
-
   const record = resolved.record;
   if (typeof record.apiKey !== 'string' || record.apiKey.length === 0) {
     return json(
       buildApiErrorBody(
-        `提供方「${record.name}」尚未配置本地密钥——密钥只存本地（data/secrets.json），请在设置中填入`,
+        `提供方「${record.name}」尚未配置密钥——请在 /config 页面填入`,
         'invalid_request_error',
         'PROVIDER_NO_KEY',
       ),
@@ -280,12 +268,6 @@ async function runMediaGeneration(
     }
     throw error;
   }
-  if (resolved.kind === 'zai') {
-    return json(
-      buildApiErrorBody('内置 zai 不支持媒体生成', 'invalid_request_error', 'PROVIDER_MODALITY_MISMATCH'),
-      400,
-    );
-  }
   try {
     const artifact = await generate(resolved.record);
     return mediaOk(artifact);
@@ -353,80 +335,6 @@ async function handleVideoGenerations(req: Request): Promise<Response> {
   return runMediaGeneration('video', (record) => generateVideo(record, prompt.value));
 }
 
-async function handleUpsertProvider(req: Request): Promise<Response> {
-  const body = await readJsonBody(req);
-  const bodyObj =
-    body !== null && typeof body === 'object' && !Array.isArray(body)
-      ? (body as Record<string, unknown>)
-      : null;
-  const id =
-    typeof bodyObj?.id === 'string' && bodyObj.id.length > 0 ? (bodyObj.id as string) : undefined;
-
-  const records = await configStore.load();
-  // 重名校验范围：更新自身除外（自身从比较集中排除）
-  const others = id === undefined ? records : records.filter((r) => r.id !== id);
-
-  const validated = validateProviderInput(body, others);
-  if (!validated.ok) {
-    return json(
-      buildApiErrorBody(validated.message, 'invalid_request_error', 'INVALID_PROVIDER_INPUT'),
-      400,
-    );
-  }
-  const value = validated.value;
-
-  if (id === undefined) {
-    const now = new Date().toISOString();
-    const record: ProviderConfigRecord = {
-      id: crypto.randomUUID(),
-      name: value.name,
-      kind: 'openai-compatible',
-      baseUrl: value.baseUrl,
-      apiKey: value.apiKey.length > 0 ? value.apiKey : undefined, // 密钥只写本地 secrets
-      model: value.model,
-      modality: value.modality,
-      enabled: value.enabled,
-      isDefault: value.isDefault,
-      createdAt: now,
-      updatedAt: now,
-    };
-    const saved = await configStore.save([...records, record]);
-    return json(summarizeRecord(saved.find((r) => r.id === record.id) ?? record), 201);
-  }
-
-  const existing = records.find((r) => r.id === id);
-  if (!existing) {
-    return json(
-      buildApiErrorBody(`未找到提供方配置：${id}`, 'invalid_request_error', 'PROVIDER_NOT_FOUND'),
-      404,
-    );
-  }
-  existing.name = value.name;
-  existing.baseUrl = value.baseUrl;
-  if (value.apiKey.length > 0) {
-    existing.apiKey = value.apiKey; // 传了新密钥才替换；空=保留现有本地密钥
-  }
-  existing.model = value.model;
-  existing.modality = value.modality;
-  existing.enabled = value.enabled;
-  existing.isDefault = value.isDefault;
-  existing.updatedAt = new Date().toISOString();
-  const saved = await configStore.save(records);
-  return json(summarizeRecord(saved.find((r) => r.id === id) ?? existing), 200);
-}
-
-async function handleDeleteProvider(id: string): Promise<Response> {
-  const records = await configStore.load();
-  if (!records.some((r) => r.id === id)) {
-    return json(
-      buildApiErrorBody(`未找到提供方配置：${id}`, 'invalid_request_error', 'PROVIDER_NOT_FOUND'),
-      404,
-    );
-  }
-  await configStore.save(records.filter((r) => r.id !== id));
-  return json({ ok: true, deleted: id });
-}
-
 /** 测试端点总是 200，用 body 区分成败。按模态路由：文本走对话，图像/语音走最小真实调用，视频为异步任务（创建+轮询数分钟）指引实际生成验证。 */
 async function handleTestProvider(id: string): Promise<Response> {
   const records = await configStore.load();
@@ -475,6 +383,71 @@ async function handleTestProvider(id: string): Promise<Response> {
   }
 }
 
+/** GET /api/providers/:id/models —— 拉取上游可用模型列表。 */
+async function handleProviderModels(id: string): Promise<Response> {
+  const records = await configStore.load();
+  const record = records.find((r) => r.id === id);
+  if (!record) {
+    return json(buildApiErrorBody(`未找到提供方配置：${id}`, 'invalid_request_error', 'PROVIDER_NOT_FOUND'), 404);
+  }
+  if (typeof record.apiKey !== 'string' || record.apiKey.length === 0) {
+    return json(buildApiErrorBody(`提供方「${record.name}」未配置本地密钥`, 'invalid_request_error', 'PROVIDER_NO_KEY'), 400);
+  }
+  return probeUpstreamModels(record.baseUrl, record.apiKey);
+}
+
+/** POST /api/providers/probe-models —— 用 baseUrl + apiKey 预览上游模型列表（无需先保存）。 */
+async function handleProbeModels(req: Request): Promise<Response> {
+  const body = await readJsonBody(req);
+  const bodyObj =
+    body !== null && typeof body === 'object' && !Array.isArray(body)
+      ? (body as Record<string, unknown>)
+      : null;
+  if (bodyObj === null) {
+    return json(buildApiErrorBody('请求体必须是 JSON 对象', 'invalid_request_error', 'INVALID_REQUEST'), 400);
+  }
+  const baseUrl = requireString(bodyObj, 'baseUrl');
+  if (!baseUrl.ok) {
+    return json(buildApiErrorBody(baseUrl.message, 'invalid_request_error', 'INVALID_REQUEST'), 400);
+  }
+  const apiKey = requireString(bodyObj, 'apiKey');
+  if (!apiKey.ok) {
+    return json(buildApiErrorBody(apiKey.message, 'invalid_request_error', 'INVALID_REQUEST'), 400);
+  }
+  return probeUpstreamModels(baseUrl.value, apiKey.value);
+}
+
+/** 公共逻辑：向 baseUrl/models 发起请求，解析并返回模型 ID 列表。 */
+async function probeUpstreamModels(rawBaseUrl: string, apiKey: string): Promise<Response> {
+  try {
+    const base = rawBaseUrl.replace(/\/+$/, '');
+    const res = await fetch(`${base}/models`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      return json(
+        buildApiErrorBody(`上游返回 HTTP ${res.status}${text ? '：' + text.slice(0, 200) : ''}`, 'api_error', 'UPSTREAM_ERROR'),
+        502,
+      );
+    }
+    const payload = (await res.json()) as { data?: Array<{ id: string }>; models?: Array<{ id: string }> };
+    const list = payload.data ?? payload.models ?? [];
+    const models = list.map((m) => m.id).filter((id): id is string => typeof id === 'string' && id.length > 0);
+    return json({ ok: true, models, count: models.length });
+  } catch (error) {
+    return json(
+      buildApiErrorBody(
+        `无法连接到上游提供方：${error instanceof Error ? error.message : String(error)}`,
+        'api_error',
+        'UPSTREAM_UNREACHABLE',
+      ),
+      502,
+    );
+  }
+}
+
 const server = Bun.serve({
   port: PORT,
   async fetch(req): Promise<Response> {
@@ -500,16 +473,21 @@ const server = Bun.serve({
       }
       if (path === '/api/providers') {
         if (req.method === 'GET') return await handleListProviders();
-        if (req.method === 'POST') return await handleUpsertProvider(req);
+        // POST/DELETE 经主应用 /config 页面管理——model-gateway 只读
+      }
+      // probe-models 必须在 :id 路由之前匹配
+      if (req.method === 'POST' && path === '/api/providers/probe-models') {
+        return await handleProbeModels(req);
+      }
+      const modelsMatch = path.match(/^\/api\/providers\/([^/]+)\/models$/);
+      if (modelsMatch && req.method === 'GET') {
+        return await handleProviderModels(decodeURIComponent(modelsMatch[1]));
       }
       const testMatch = path.match(/^\/api\/providers\/([^/]+)\/test$/);
       if (testMatch && req.method === 'POST') {
         return await handleTestProvider(decodeURIComponent(testMatch[1]));
       }
-      const deleteMatch = path.match(/^\/api\/providers\/([^/]+)$/);
-      if (deleteMatch && req.method === 'DELETE') {
-        return await handleDeleteProvider(decodeURIComponent(deleteMatch[1]));
-      }
+      // DELETE 经主应用 /config 页面管理——model-gateway 只读
       return json(
         buildApiErrorBody(`未知路由：${req.method} ${path}`, 'invalid_request_error', 'NOT_FOUND'),
         404,

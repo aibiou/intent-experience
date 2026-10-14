@@ -208,25 +208,17 @@ function confirmationPath(): string {
   );
 }
 
-let storeCache: StoreData | null = null;
-let confirmationCache: ConfirmationData | null = null;
-
 async function loadStore(): Promise<StoreData> {
-  if (storeCache) return storeCache;
   try {
     const parsed = JSON.parse(await readFile(storePath(), 'utf8')) as StoreData;
     if (!Array.isArray(parsed.records)) throw new Error('records must be an array');
-    // 既有记录迁移：未带模态字段的记录按文本模型处理（零行为变化）。
     for (const record of parsed.records) {
       if (!record.modality) record.modality = 'text';
     }
-    storeCache = parsed;
     return parsed;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      const empty: StoreData = { records: [] };
-      storeCache = empty;
-      return empty;
+      return { records: [] };
     }
     throw new ConfigStoreError('CONFIG_STORE_CORRUPT', `provider config store is unreadable: ${(error as Error).message}`);
   }
@@ -238,21 +230,16 @@ async function persistStore(data: StoreData): Promise<void> {
   const tmp = `${target}.${process.pid}.${Date.now()}.tmp`;
   await writeFile(tmp, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
   await rename(tmp, target);
-  storeCache = data;
 }
 
 async function loadConfirmations(): Promise<ConfirmationData> {
-  if (confirmationCache) return confirmationCache;
   try {
     const parsed = JSON.parse(await readFile(confirmationPath(), 'utf8')) as ConfirmationData;
     if (!Array.isArray(parsed.confirmations)) throw new Error('confirmations must be an array');
-    confirmationCache = parsed;
     return parsed;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      const empty: ConfirmationData = { confirmations: [] };
-      confirmationCache = empty;
-      return empty;
+      return { confirmations: [] };
     }
     throw new ConfigStoreError(
       'CONFIG_CONFIRMATION_STORE_CORRUPT',
@@ -267,7 +254,6 @@ async function persistConfirmations(data: ConfirmationData): Promise<void> {
   const tmp = `${target}.${process.pid}.${Date.now()}.tmp`;
   await writeFile(tmp, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
   await rename(tmp, target);
-  confirmationCache = data;
 }
 
 function newId(): string {

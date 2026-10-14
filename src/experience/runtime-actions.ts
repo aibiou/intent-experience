@@ -530,23 +530,24 @@ export class RuntimeActions extends RuntimeCoreBase {
       allowed_action: policy.policyAction,
       context: await this.buildLlmContext(input.rawInput, input.experienceId),
     };
+    // 网关可用性检查——无配置真实模型时进入 MODEL_NOT_CONFIGURED。
+    const gwCheck = this.requireGateway();
+    if ('error' in gwCheck) {
+      return { ok: false, error: gwCheck.error };
+    }
+    const gateway = gwCheck.gateway;
     // 流式形态（S5A-SEMANTIC-FREEZE-01 v1.2.0 / CR-38）：
     // 提供方网关经可选 proposeStream 增量产出——chunk 事件随
-    // SSE delta 逐片到达（真流式呈现）；提案于流末构造并验证
-    // （llm_request_completed / 验证 / llm_output_validated /
-    // 决策轨迹于流末产出——完成时机差异经冻结文本 §1 登记，
-    // 事件契约 / 名称 / 形状不变）。静态形态（合成 / 故障
-    // 注入网关）保持单次完整提案路径（行为零变化——黄金回归
-    // 不变式）；STOP 永不流式（策略硬边界——不产出内容分块，
-    // stopped 事件纪律不变）。
+    // SSE delta 逐片到达（真流式呈现）；提案于流末构造并验证。
+    // STOP 永不流式（策略硬边界——不产出内容分块）。
     const streamingForm =
-      policy.policyAction !== 'STOP' && typeof this.gateway.proposeStream === 'function';
+      policy.policyAction !== 'STOP' && typeof gateway.proposeStream === 'function';
     let proposal: LlmProposal | undefined;
     if (!streamingForm) {
       try {
-        proposal = await this.gateway.propose(llmRequest);
+        proposal = await gateway.propose(llmRequest);
       } catch {
-        return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'synthetic gateway failed', true) };
+        return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'model call failed', true) };
       }
       await this.recordEvent('llm_request_completed', {
         identity: { user_id: this.userId, session_id: input.sessionId },
@@ -868,9 +869,13 @@ export class RuntimeActions extends RuntimeCoreBase {
       source: { layer: 'llm', component: 'llm-gateway' },
       properties: { generation_id: generationId, semantic_action: policy.semanticAction, allowed_action: policy.policyAction },
     });
+    const gwCheck3 = this.requireGateway();
+    if ('error' in gwCheck3) {
+      return { ok: false, error: gwCheck3.error };
+    }
     let proposal;
     try {
-      proposal = await this.gateway.propose({
+      proposal = await gwCheck3.gateway.propose({
         request_id: llmRequestId,
         session_id: input.sessionId,
         experience_id: input.experienceId,
@@ -1520,7 +1525,8 @@ export class RuntimeActions extends RuntimeCoreBase {
     // 确定性渲染进用户消息）；合成网关保持既有静态语料路径
     // （行为零变化——黄金回归不变式）。
     const llmRequestId = `req_${generationId}`;
-    const streamingForm = typeof this.gateway.proposeStream === 'function';
+    const gwCheck5 = this.requireGateway();
+    const streamingForm = !('error' in gwCheck5) && typeof gwCheck5.gateway.proposeStream === 'function';
 
     const stateTransitions = await this.recordEvent('state_transitioned', {
       identity: { user_id: this.userId, session_id: input.sessionId },
@@ -2221,9 +2227,13 @@ export class RuntimeActions extends RuntimeCoreBase {
       source: { layer: 'llm', component: 'llm-gateway' },
       properties: { generation_id: generationId, semantic_action: policy.semanticAction, allowed_action: policy.policyAction },
     });
+    const gwCheck4 = this.requireGateway();
+    if ('error' in gwCheck4) {
+      return { ok: false, error: gwCheck4.error };
+    }
     let proposal;
     try {
-      proposal = await this.gateway.propose({
+      proposal = await gwCheck4.gateway.propose({
         request_id: llmRequestId,
         session_id: input.sessionId,
         experience_id: input.experienceId,
@@ -2831,23 +2841,24 @@ export class RuntimeActions extends RuntimeCoreBase {
       allowed_action: policy.policyAction,
       context: await this.buildGenerationContext(input),
     };
+    // 网关可用性检查——无配置真实模型时进入 MODEL_NOT_CONFIGURED。
+    const gwCheck2 = this.requireGateway();
+    if ('error' in gwCheck2) {
+      return { ok: false, error: gwCheck2.error };
+    }
+    const gateway = gwCheck2.gateway;
     // 流式形态（S5A-SEMANTIC-FREEZE-01 v1.2.0 / CR-38）：
     // 提供方网关经可选 proposeStream 增量产出——chunk 事件随
-    // SSE delta 逐片到达（真流式呈现）；提案于流末构造并验证
-    // （llm_request_completed / 验证 / llm_output_validated /
-    // 模拟结果登记 / 决策轨迹于流末产出——完成时机差异经
-    // 冻结文本 §1 登记，事件契约 / 名称 / 形状不变）。静态
-    // 形态（合成 / 故障注入网关）保持单次完整提案路径（行为
-    // 零变化——黄金回归不变式）；STOP 永不流式（策略硬边界——
-    // 不产出内容分块，stopped 事件纪律不变）。
+    // SSE delta 逐片到达（真流式呈现）；提案于流末构造并验证。
+    // STOP 永不流式（策略硬边界——不产出内容分块）。
     const streamingForm =
-      policy.policyAction !== 'STOP' && typeof this.gateway.proposeStream === 'function';
+      policy.policyAction !== 'STOP' && typeof gateway.proposeStream === 'function';
     let proposal: LlmProposal | undefined;
     if (!streamingForm) {
       try {
-        proposal = await this.gateway.propose(llmRequest);
+        proposal = await gateway.propose(llmRequest);
       } catch {
-        return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'synthetic gateway failed', true) };
+        return { ok: false, error: runtimeError('LLM_UNAVAILABLE', 'model call failed', true) };
       }
       await this.recordEvent('llm_request_completed', {
         identity: { user_id: this.userId, session_id: input.sessionId },
@@ -3346,14 +3357,13 @@ export class RuntimeActions extends RuntimeCoreBase {
     let content = '';
     let produced = 0;
     let streamFailure: Error | null = null;
-    if (!this.gateway.proposeStream) {
-      // 不应到达（调用方经 streamingForm 门控）——防御性直接
-      // 结束（无事件产出；wrapGenerationStream 的完成提交
-      // 守卫由此不执行——与静态路径 stopped 形态同纪律）。
+    const gwStream = this.requireGateway();
+    if ('error' in gwStream || !gwStream.gateway.proposeStream) {
+      // 无网关或网关不支持流式——防御性直接结束。
       return;
     }
     try {
-      for await (const delta of this.gateway.proposeStream(options.request)) {
+      for await (const delta of gwStream.gateway.proposeStream(options.request)) {
         if (options.request.signal?.aborted) {
           const cancelled: StreamEvent = {
             policyAction: options.policyAction,

@@ -12,6 +12,7 @@ export type RuntimeErrorCode =
   | 'POLICY_REJECTED'
   | 'LLM_SCHEMA_INVALID'
   | 'LLM_UNAVAILABLE'
+  | 'MODEL_NOT_CONFIGURED'
   | 'REQUEST_DUPLICATE'
   | 'INTERNAL_ERROR';
 
@@ -31,6 +32,8 @@ export function errorCodeStatus(code: RuntimeErrorCode): number {
     case 'REQUEST_DUPLICATE':
       return 409;
     case 'LLM_UNAVAILABLE':
+      return 503;
+    case 'MODEL_NOT_CONFIGURED':
       return 503;
     case 'INTERNAL_ERROR':
       return 500;

@@ -1,28 +1,32 @@
 /**
- * 提供方配置持久化（对齐参考仓库 D-3 多记录配置纪律）。
+ * 提供方配置持久化（统一配置源——读取主应用 config-store 格式）。
  *
- * 密钥分离（2026-10-14）：
- * - 共享配置 providers.json（服务根目录，入库）：提供方形态
- *   （id / name / baseUrl / model / enabled / isDefault …），
- *   绝不含密钥——每个拉取代码的人看到同一份提供方配置。
- * - 本地密钥 data/secrets.json（gitignored，绝不入库）：
- *   仅 {"keys": {id: apiKey}}——每个本地环境用自己的密钥。
- * - 运行时 load() 合并两者：record.apiKey = secrets[id]（缺失 → 空串，
- *   hasKey=false；调用时明确报「未配置密钥」而非伪装请求）。
+ * 2026-10-14 统一重构：
+ * 废弃旧的 providers.json + secrets.json 双文件形态，改为读取主应用
+ * 的 data/config/provider-configs.json（AES-256-GCM 加密密钥存储）。
+ * 这是唯一的配置真相源——/config 页面经主应用 API 管理，
+ * model-gateway 只读取运行时需要的配置。
  *
- * 其余纪律不变：
- * - 原子写：先写临时文件（同目录 + pid + 时间戳后缀）再 rename，
- *   绝不出现半写状态；rename 失败时清理 tmp 残留。
- * - 容错：文件缺失 / 损坏（非法 JSON、records 非数组）返回空记录列表，
- *   不崩溃（区别于参考仓库的“损坏拒绝启动”——本网关是可独立重启的
- *   mini-service，空列表即安全回退，等价于无自定义提供方）。
- * - isDefault 唯一性：写入时保证——设置 isDefault=true 时把其它记录
- *   的 isDefault 置 false（同一时刻至多一条 default）。
- * - 读操作永不返回明文 key 的完整形态：对外摘要只含掩码 + hasKey。
+ * 数据格式映射（主应用 → 网关）：
+ * - provider → name（显示名）
+ * - endpoint → baseUrl（网关拼生成端点用）
+ * - keyCiphertext → 解密为 apiKey（需 EXPERIENCE_CONFIG_ENCRYPTION_KEY）
+ * - enabledAt !== null → enabled
+ * - modality 模态字段直接对应
+ * - isDefault 由网关按模态推导（enabled 记录中第一条为 default）
+ *
+ * 密钥纪律：
+ * - API key 仅以 AES-256-GCM 密文持久化（主应用 config-store 格式）
+ * - 加密密钥经环境变量 EXPERIENCE_CONFIG_ENCRYPTION_KEY 注入（32 字节 hex）
+ * - 解密仅在 load() 时内存持有，绝不落盘、不进日志
+ * - 读操作永不返回明文 key 的完整形态：对外摘要只含掩码 + hasKey
+ *
+ * 容错：文件缺失/损坏返回空记录列表，不崩溃。
  */
 
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { createDecipheriv } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 /** 提供方模态（按模态路由：文本/图像/视频/语音各自独立选提供方）。 */
 export type ProviderModality = 'text' | 'image' | 'video' | 'voice';
@@ -42,17 +46,17 @@ export function isProviderModality(value: unknown): value is ProviderModality {
 }
 
 export interface ProviderConfigRecord {
-  id: string; // crypto.randomUUID()
-  name: string; // 显示名，唯一（如 "agnes-com"、"火山云语音"）
+  id: string;
+  name: string; // 主应用 record.provider
   kind: 'openai-compatible';
-  baseUrl: string; // 完整 base，如 https://api.example.com/v1（网关按契约拼生成端点）
-  apiKey?: string; // 运行时形态：load() 从 data/secrets.json 合并；持久化（providers.json）绝不写
-  model: string; // 模型名（如 gpt-4o / agnes-image-2.5-flash / seed-audio-1.0）
-  modality: ProviderModality; // 模态绑定——一条记录只服务一个模态
-  enabled: boolean;
-  isDefault: boolean; // 同一模态至多一条 isDefault=true（enforceDefaultUniqueness 按模态归一）
-  createdAt: string; // ISO 时间
-  updatedAt: string; // ISO 时间
+  baseUrl: string; // 主应用 record.endpoint
+  apiKey?: string; // 运行时解密形态
+  model: string;
+  modality: ProviderModality;
+  enabled: boolean; // 主应用 record.enabledAt !== null
+  isDefault: boolean; // 网关推导：同模态第一条 enabled
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** 对外摘要（API 读形态——绝不回完整 key，仅掩码 + hasKey 标记）。 */
@@ -67,7 +71,7 @@ export interface ProviderConfigSummary {
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;
-  apiKeyMasked: string; // "sk-***后4位" 形式；无密钥时全掩蔽
+  apiKeyMasked: string;
   hasKey: boolean;
 }
 
@@ -98,156 +102,150 @@ export function summarizeRecord(record: ProviderConfigRecord): ProviderConfigSum
 }
 
 /**
- * isDefault 唯一性（纯函数，按模态）：同一模态多条 isDefault=true
- * 时仅保留第一条，其余置 false；无 default 时保持原状（删除
- * default 记录后允许短暂没有 default——解析链按模态回退）。
+ * isDefault 唯一性（纯函数，按模态）：同一模态多条 enabled 时
+ * 第一条标记为 default，其余 false。
  */
 export function enforceDefaultUniqueness(
   records: ProviderConfigRecord[],
 ): ProviderConfigRecord[] {
   const seen = new Set<ProviderModality>();
   return records.map((record) => {
-    if (record.isDefault && !seen.has(record.modality)) {
+    if (record.enabled && !seen.has(record.modality)) {
       seen.add(record.modality);
-      return record;
+      return { ...record, isDefault: true };
     }
     return { ...record, isDefault: false };
   });
 }
 
-/** 单条记录形态防御（加载时过滤掉关键字段缺失/类型错误的垃圾行）。 */
-function isRecordLike(value: unknown): value is ProviderConfigRecord {
-  if (value === null || typeof value !== 'object') return false;
-  const r = value as Record<string, unknown>;
-  return (
-    typeof r.id === 'string' &&
-    typeof r.name === 'string' &&
-    typeof r.baseUrl === 'string' &&
-    typeof r.model === 'string' &&
-    isProviderModality(r.modality)
-  );
+// ──────────────────────────────────────────────────────────────────
+// 主应用 config-store 格式（只读适配层）
+// ──────────────────────────────────────────────────────────────────
+
+/** 主应用配置记录格式（data/config/provider-configs.json 中的形态）。 */
+interface MainAppRecord {
+  id: string;
+  provider: string;
+  model: string;
+  endpoint: string;
+  modality: string;
+  keyCiphertext: string;
+  createdAt: string;
+  updatedAt: string;
+  enabledAt: string | null;
 }
 
-/** 原子写：tmp 文件 + rename；rename 失败清残留并抛出。 */
-async function writeAtomic(filePath: string, content: string): Promise<void> {
-  await mkdir(dirname(filePath), { recursive: true });
-  const tmp = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  await writeFile(tmp, content, 'utf8');
+interface MainAppStoreData {
+  records: MainAppRecord[];
+}
+
+/** AES-256-GCM 密文格式：base64(iv).base64(ciphertext).base64(tag)。 */
+function decryptApiKey(ciphertext: string): string | undefined {
+  const encKeyHex = process.env.EXPERIENCE_CONFIG_ENCRYPTION_KEY;
+  if (!encKeyHex) {
+    console.error('[model-gateway] EXPERIENCE_CONFIG_ENCRYPTION_KEY not set — cannot decrypt API keys');
+    return undefined;
+  }
   try {
-    await rename(tmp, filePath);
+    const key = Buffer.from(encKeyHex, 'hex');
+    if (key.length !== 32) {
+      console.error('[model-gateway] EXPERIENCE_CONFIG_ENCRYPTION_KEY must be 32 bytes (64 hex chars)');
+      return undefined;
+    }
+    const parts = ciphertext.split('.');
+    if (parts.length !== 3) return undefined;
+    const iv = Buffer.from(parts[0], 'base64');
+    const encrypted = Buffer.from(parts[1], 'base64');
+    const tag = Buffer.from(parts[2], 'base64');
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    return decrypted.toString('utf8');
   } catch (error) {
-    await rm(tmp, { force: true }).catch(() => undefined); // 不留 tmp 残余
-    throw error;
+    console.error('[model-gateway] failed to decrypt API key:', error instanceof Error ? error.message : String(error));
+    return undefined;
   }
 }
 
-/**
- * 本地密钥存储（data/secrets.json，绝不入库）。
- * 形态：{"keys": {<providerId>: <apiKey>}}；文件缺失/损坏 → 空映射。
- */
-export class SecretsStore {
-  constructor(private readonly filePath: string) {}
-
-  async load(): Promise<Record<string, string>> {
-    let raw: string;
-    try {
-      raw = await readFile(this.filePath, 'utf8');
-    } catch {
-      return {}; // 文件缺失等 → 空映射
-    }
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return {}; // 损坏 JSON → 空映射（不崩溃）
-    }
-    if (parsed === null || typeof parsed !== 'object') return {};
-    const keys = (parsed as { keys?: unknown }).keys;
-    if (keys === null || typeof keys !== 'object') return {};
-    const out: Record<string, string> = {};
-    for (const [id, key] of Object.entries(keys as Record<string, unknown>)) {
-      if (typeof id === 'string' && id.length > 0 && typeof key === 'string' && key.length > 0) {
-        out[id] = key;
-      }
-    }
-    return out;
-  }
-
-  async save(keys: Record<string, string>): Promise<void> {
-    await writeAtomic(this.filePath, `${JSON.stringify({ keys }, null, 2)}\n`);
-  }
+/** 主应用记录 → 网关记录格式转换。 */
+function mapMainAppRecord(record: MainAppRecord): ProviderConfigRecord | null {
+  if (!isProviderModality(record.modality)) return null;
+  const apiKey = record.keyCiphertext ? decryptApiKey(record.keyCiphertext) : undefined;
+  return {
+    id: record.id,
+    name: record.provider,
+    kind: 'openai-compatible' as const,
+    baseUrl: record.endpoint,
+    apiKey,
+    model: record.model,
+    modality: record.modality,
+    enabled: record.enabledAt !== null,
+    isDefault: false, // 后续由 enforceDefaultUniqueness 推导
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  };
 }
 
 export class ConfigStore {
-  constructor(
-    private readonly filePath: string,
-    private readonly secretsStore: SecretsStore,
-  ) {}
+  constructor(private readonly filePath: string) {}
 
   /**
-   * 读取记录（合并本地密钥）。文件缺失 / 损坏 → 空列表，
-   * 不抛异常（调用方无需 try/catch）。
+   * 读取记录（从主应用 config-store 格式文件读取并解密密钥）。
+   * 文件缺失/损坏 → 空列表，不抛异常。
    */
   async load(): Promise<ProviderConfigRecord[]> {
     let raw: string;
     try {
       raw = await readFile(this.filePath, 'utf8');
     } catch {
-      return []; // ENOENT（文件缺失）等 → 空列表
+      return []; // ENOENT → 空列表
     }
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
     } catch {
-      return []; // 损坏 JSON → 空列表（不崩溃）
+      return []; // 损坏 JSON → 空列表
     }
     if (parsed === null || typeof parsed !== 'object') return [];
     const records = (parsed as { records?: unknown }).records;
     if (!Array.isArray(records)) return [];
-    const secrets = await this.secretsStore.load();
-    return records.filter(isRecordLike).map((record) => ({
-      ...record,
-      kind: 'openai-compatible' as const,
-      modality: record.modality, // 模态绑定（isRecordLike 已校验合法值）
-      enabled: record.enabled === true,
-      isDefault: record.isDefault === true,
-      apiKey: secrets[record.id], // 密钥只来自本地 secrets（缺失 → undefined，hasKey=false）
-    }));
+
+    const mapped: ProviderConfigRecord[] = [];
+    for (const record of records) {
+      const r = record as MainAppRecord;
+      if (typeof r.id !== 'string' || typeof r.provider !== 'string' || typeof r.model !== 'string') continue;
+      const converted = mapMainAppRecord(r);
+      if (converted) mapped.push(converted);
+    }
+
+    return enforceDefaultUniqueness(mapped);
   }
 
   /**
-   * 原子写：共享配置与本地密钥分文件落盘。
-   * - providers.json：记录本体（剥离 apiKey——共享配置绝不含密钥）
-   * - secrets.json：仅当前记录集中有密钥的 id（删除记录即清其密钥）
-   * 写入前执行 isDefault 唯一性归一；返回归一化后的记录列表（含 apiKey）。
+   * 写入操作——统一配置源后，model-gateway 不再直接写入配置。
+   * 所有配置变更经主应用 /config 页面 → 主应用 config-store API。
+   * 此方法保留签名兼容但抛出明确错误。
    */
-  async save(records: ProviderConfigRecord[]): Promise<ProviderConfigRecord[]> {
-    const normalized = enforceDefaultUniqueness(records);
-    const shared = normalized.map((record) => {
-      const { apiKey: _omit, ...rest } = record;
-      return rest;
-    });
-    await writeAtomic(this.filePath, `${JSON.stringify({ records: shared }, null, 2)}\n`);
-    const keys: Record<string, string> = {};
-    for (const record of normalized) {
-      if (typeof record.apiKey === 'string' && record.apiKey.length > 0) {
-        keys[record.id] = record.apiKey;
-      }
-    }
-    await this.secretsStore.save(keys);
-    return normalized;
+  async save(_records: ProviderConfigRecord[]): Promise<ProviderConfigRecord[]> {
+    throw new Error(
+      'model-gateway config-store is read-only after unification — use /config page (main app API) to manage providers',
+    );
   }
 }
 
-/** 共享配置路径：<mini-service>/providers.json（入库，人人同一份）。 */
+// ──────────────────────────────────────────────────────────────────
+// 路径解析
+// ──────────────────────────────────────────────────────────────────
+
+/**
+ * 统一配置路径：主应用的 data/config/provider-configs.json。
+ * 环境变量 EXPERIENCE_CONFIG_STORE_PATH 可覆盖（与主应用 config-store.ts 对齐）。
+ */
 export function defaultStorePath(): string {
-  return join(import.meta.dir, '..', 'providers.json');
+  return (
+    process.env.EXPERIENCE_CONFIG_STORE_PATH ??
+    join(process.cwd(), 'data/config/provider-configs.json')
+  );
 }
 
-/** 本地密钥路径：<mini-service>/data/secrets.json（gitignored，绝不入库）。 */
-export function defaultSecretsPath(): string {
-  return join(import.meta.dir, '..', 'data', 'secrets.json');
-}
-
-export const secretsStore = new SecretsStore(defaultSecretsPath());
-export const configStore = new ConfigStore(defaultStorePath(), secretsStore);
+export const configStore = new ConfigStore(defaultStorePath());

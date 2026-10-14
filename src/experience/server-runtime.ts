@@ -1,46 +1,22 @@
 /**
  * HTTP 形态的运行时单例（Next.js 服务器进程内唯一）。
  *
- * 路由处理器（app/api/**）通过 getServerRuntime() 取得同一实例，
- * 使跨请求的状态（Session / Experience / StateStore / generation epoch）
- * 在单个服务器进程内一致。事件汇与决策追踪汇由环境变量注入路径：
- * - EXPERIENCE_EVENT_LOG：C6 事件流（NDJSON）
- * - EXPERIENCE_DECISION_TRACE_LOG：决策追踪（NDJSON，C6 §23 分离）
- * - EXPERIENCE_AUDIT_LOG：流式审计汇（F-1 形态）
- * - EXPERIENCE_LLM_GATEWAY_SEAM：LlmGateway 注入缝（S2a F-1 / OBL-01；
- *   CR-18 选项 A 形态）——仅当值为 '1' 时解析证据故障注入网关
- *   （EvidenceFaultLlmGateway，源语料与合成模式相同）；未设置时
- *   运行时保持默认合成网关，行为与 S1 完全一致（SEAM-INERT 不变式）
- * - EXPERIENCE_LLM_MODE：LLM 模式（S5；S5A-SEMANTIC-FREEZE-01
- *   v1.0.0）——值为 'provider' 时经 loadProviderGatewayConfig 解析
- *   提供方配置（环境变量：EXPERIENCE_LLM_PROVIDER / EXPERIENCE_LLM_MODEL
- *   / EXPERIENCE_LLM_API_KEY）并构造 ProviderLlmGateway（model-agnostic
- *   提供方抽象——LlmGateway 接口实现）；未登记提供方或 API key 缺失
- *   时拒绝启动并报错（不静默回退合成模式）。无该变量时运行时保持
- *   默认合成网关——行为与 S1–S4 完全一致。证据注入缝（上一条）
- *   优先于 LLM 模式。
- * - 页面持久化配置（S5B；S5B-CONFIG-SURFACE-PROPOSAL-01 裁决
- *   选项 A——产品负责人指令 2026-10-10）：运行时配置解析优先级
- *   为证据注入缝 > 页面持久化配置 > 环境变量 > 合成默认。持久化
- *   配置经 PersistedConfigLlmGateway 委托网关每次调用解析——用户
- *   在配置面启用 / 禁用 / 删除提供方配置即时生效（单进程内存缓存，
- *   无需重启）；无启用配置时委托合成网关，行为与 S1–S4 默认形态
- *   完全一致（SEAM-INERT 不变式保持）。
- * - EXPERIENCE_GATEWAY_FAULT_MODE：注入网关故障形态——
- *   'unavailable'（默认，每次调用均失败）/ 'fail_once'（首次失败，
- *   后续委托合成网关）
- *   / 'succeed_once'（首次委托合成网关，后续均失败——
- *   成功后故障形态，支撑“失败后 STOP 合法”证据）
+ * 2026-10-14 统一重构：取消合成回退——无已配置的真实模型时，
+ * 运行时不假装回答，明确进入 MODEL_NOT_CONFIGURED 状态。
  *
- * 进程内证据形态由执行器直接构造 ExperienceRuntime 并注入内存汇，
- * 不经本模块。
+ * 配置优先级：
+ * 1. 证据注入缝（EXPERIENCE_LLM_GATEWAY_SEAM=1——仅证据/测试环境）
+ * 2. 页面持久化配置（data/config/provider-configs.json——经 /config 管理）
+ * 3. 环境变量配置（EXPERIENCE_LLM_MODE=provider）
+ * 4. 无配置 → undefined（运行时进入 MODEL_NOT_CONFIGURED）
+ *
+ * 不再有合成网关回退。没有真实模型能力 = 产品诚实告知用户。
  */
 
 import { ExperienceRuntime } from './runtime';
 import {
   EvidenceFaultLlmGateway,
   ProviderLlmGateway,
-  SyntheticLlmGateway,
   loadProviderGatewayConfig,
   type LlmGateway,
   type LlmProposal,
@@ -57,74 +33,66 @@ import {
 import { createServerAuditSink, serverAuditLogPath } from './audit';
 
 /**
- * 解析服务端 LLM 网关（OBL-01 注入缝；S5 LLM 模式；S5B 页面
- * 持久化配置）。
- * 优先级：EXPERIENCE_LLM_GATEWAY_SEAM === '1'（证据故障注入——
- * 证据 / 测试环境）> 页面持久化配置（S5B——用户页面添加的提供方
- * 配置，单条启用）> EXPERIENCE_LLM_MODE === 'provider'（LLM 模式——
- * S5A-SEMANTIC-FREEZE-01）> 合成默认网关。
+ * 解析服务端 LLM 网关。
  *
- * S5B 委托网关（PersistedConfigLlmGateway）：每次调用解析当前
- * 启用的持久化配置——启用 / 禁用 / 删除经配置面即时生效；无启用
- * 配置时委托 SyntheticLlmGateway（与运行时默认构造完全一致——
- * 行为零变化）。环境变量形态保持 S5A 启动期校验语义（仅当无
- * 持久化配置时解析——未登记提供方或 API key 缺失拒绝启动并报错，
- * 不静默回退）。
+ * 优先级：证据注入缝 > 页面持久化配置 > 环境变量 > 无配置(undefined)。
+ *
+ * 无配置时返回 undefined——运行时据此进入 MODEL_NOT_CONFIGURED 状态，
+ * 不回退合成网关，不假装回答。
  */
 function resolveServerGateway(): LlmGateway | undefined {
-  // 证据注入缝（S2a F-1 / OBL-01——证据 / 测试环境最高优先级）。
-  if (process.env.EXPERIENCE_LLM_GATEWAY_SEAM !== '1') {
-    // S5B（D-1 选项 A）：页面持久化配置优先于环境变量形态。
-    if (hasEnabledPersistedConfigSync()) {
-      return new PersistedConfigLlmGateway();
-    }
-    const providerConfig = loadProviderGatewayConfig();
-    if (providerConfig) {
-      return new ProviderLlmGateway(providerConfig);
-    }
-    // 无任何配置时返回委托网关：无启用配置即委托合成网关——
-    // 与 S1–S4 默认形态行为完全一致；用户在配置面启用配置后
-    // 即时生效（无需重启）。
+  // 证据注入缝（仅证据/测试环境——最高优先级）。
+  if (process.env.EXPERIENCE_LLM_GATEWAY_SEAM === '1') {
+    return new EvidenceFaultLlmGateway(allFixtures());
+  }
+
+  // 页面持久化配置（经 /config 页面管理——用户配置的真实模型）。
+  if (hasEnabledPersistedConfigSync()) {
     return new PersistedConfigLlmGateway();
   }
-  return new EvidenceFaultLlmGateway(allFixtures());
+
+  // 环境变量配置（S5A 形态——经 EXPERIENCE_LLM_MODE=provider 启用）。
+  const providerConfig = loadProviderGatewayConfig();
+  if (providerConfig) {
+    return new ProviderLlmGateway(providerConfig);
+  }
+
+  // 无任何配置——返回 undefined，运行时进入 MODEL_NOT_CONFIGURED。
+  // 不回退合成网关，不假装回答。
+  return undefined;
 }
 
 /**
- * S5B 页面持久化配置委托网关（model-agnostic——按已启用配置
- * 记录的端点直连构造 ProviderLlmGateway；任何 OpenAI 兼容提供方
- * 由用户自定义配置（S5B-SEMANTIC-FREEZE-01 v1.1.0——取消提供方
- * 准入登记，PROVIDER_PROFILES 仅作预设），产品代码不写死任何提供方）。
+ * 页面持久化配置委托网关——每次调用解析当前启用的持久化配置，
+ * 构造 ProviderLlmGateway 发起真实 API 调用。
+ *
+ * 无启用配置时抛出 MODEL_NOT_CONFIGURED 错误——不回退合成。
  */
 class PersistedConfigLlmGateway implements LlmGateway {
-  private synthetic?: SyntheticLlmGateway;
-
   async propose(request: LlmRequest): Promise<LlmProposal> {
     const persisted = await getEnabledProviderConfig();
-    if (persisted) {
-      return new ProviderLlmGateway({
-        provider: persisted.provider,
-        endpoint: persisted.endpoint,
-        model: persisted.model,
-        temperature: persisted.temperature,
-        apiKey: persisted.apiKey,
-        systemPrompt: persisted.systemPrompt,
-        ...(persisted.maxTokens !== undefined ? { maxTokens: persisted.maxTokens } : {}),
-        ...(persisted.topP !== undefined ? { topP: persisted.topP } : {}),
-        ...(persisted.enableThinking !== undefined ? { enableThinking: persisted.enableThinking } : {}),
-      }).propose(request);
+    if (!persisted) {
+      // 没有真实模型配置——不假装回答。
+      throw new Error('MODEL_NOT_CONFIGURED: 未配置文本模型——请前往 /config 页面配置并启用模型');
     }
-    this.synthetic ??= new SyntheticLlmGateway(allFixtures());
-    return this.synthetic.propose(request);
+    return new ProviderLlmGateway({
+      provider: persisted.provider,
+      endpoint: persisted.endpoint,
+      model: persisted.model,
+      temperature: persisted.temperature,
+      apiKey: persisted.apiKey,
+      systemPrompt: persisted.systemPrompt,
+      ...(persisted.maxTokens !== undefined ? { maxTokens: persisted.maxTokens } : {}),
+      ...(persisted.topP !== undefined ? { topP: persisted.topP } : {}),
+      ...(persisted.enableThinking !== undefined ? { enableThinking: persisted.enableThinking } : {}),
+    }).propose(request);
   }
 
   /**
-   * 增量流式能力（S5A-SEMANTIC-FREEZE-01 v1.2.0 / CR-38）：
-   * 随启用配置即时变化——有启用持久化配置时返回真流式
-   * 委托（ProviderLlmGateway.proposeStream——SSE delta
-   * 逐片产出）；无启用配置时返回 undefined（运行期经
-   * 可选方法存在性判定回退静态路径——合成形态行为
-   * 零变化，黄金回归不变式）。
+   * 增量流式能力：有启用持久化配置时返回真流式委托
+   * （ProviderLlmGateway.proposeStream——SSE delta 逐片产出）；
+   * 无启用配置时返回 undefined（运行期经可选方法存在性判定
+   * 回退静态路径——进入 MODEL_NOT_CONFIGURED）。
    */
   get proposeStream(): ((request: LlmRequest) => AsyncIterable<string>) | undefined {
     if (!hasEnabledPersistedConfigSync()) {
@@ -134,9 +102,9 @@ class PersistedConfigLlmGateway implements LlmGateway {
       const persisted = await getEnabledProviderConfig();
       if (!persisted) {
         // 配置于判定后禁用（竞态）——失败上抛，由运行期
-        // 按流中断处理（不静默回退——与失败语义一致）。
+        // 按流中断处理（不静默回退）。
         throw new Error(
-          'llm provider upstream unavailable (persisted config disabled mid-request)',
+          'MODEL_NOT_CONFIGURED: 未配置文本模型——配置已被禁用',
         );
       }
       yield* new ProviderLlmGateway({
@@ -155,13 +123,9 @@ class PersistedConfigLlmGateway implements LlmGateway {
 }
 
 // 单例挂载于进程级 globalThis（dev 形态存活）：Turbopack
-// 热重载会重求值本模块——模块级变量随重置（2026-10-11 实测
-// 用户会话在代码编辑后被清空：unknown session），globalThis
+// 热重载会重求值本模块——模块级变量随重置，globalThis
 // 不随重置。挂载于此，热重载后 Session / Experience / 内存
-// 创作会话跨请求保持连续。注意 trade-off：网关构造参数随
-// 实例冻结——但 PersistedConfigLlmGateway 每次调用重新解析
-// 持久化配置，配置面启用 / 禁用仍即时生效；仅网关类代码
-// 本身的修改需完整重启 dev 服务器。
+// 创作会话跨请求保持连续。
 const globalStore = globalThis as { __experienceRuntime?: ExperienceRuntime };
 
 export function getServerRuntime(): ExperienceRuntime {

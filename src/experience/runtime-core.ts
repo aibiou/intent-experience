@@ -138,7 +138,7 @@ export class RuntimeCoreBase {
   protected readonly recorder: EventRecorder;
   protected readonly traceSink: DecisionTraceSink;
   protected readonly auditSink: AuditSink;
-  protected readonly gateway: LlmGateway;
+  protected readonly gateway: LlmGateway | undefined;
   protected readonly userId: string;
   /** 请求幂等（C6 §27 / API 契约 §2.4）：request_id 去重，重复提交拒绝。 */
   protected readonly requestIds = new Set<string>();
@@ -158,11 +158,28 @@ export class RuntimeCoreBase {
     this.recorder = new EventRecorder(options.eventSink ?? (() => undefined));
     this.traceSink = options.decisionTraceSink ?? (() => undefined);
     this.auditSink = options.auditSink ?? (() => undefined);
-    this.gateway = options.gateway ?? new SyntheticLlmGateway(allFixtures());
+    this.gateway = options.gateway;
     this.memories = new MemoryStore({ persist: options.memoryPersist });
     if (options.initialMemoryRecords !== undefined && options.initialMemoryRecords.length > 0) {
       this.memories.restore(options.initialMemoryRecords);
     }
+  }
+
+  /**
+   * 网关可用性检查——无配置真实模型时返回 MODEL_NOT_CONFIGURED 错误。
+   * 取消合成回退后的产品纪律：没有真实模型能力 = 诚实告知用户。
+   */
+  protected requireGateway(): { gateway: LlmGateway } | { error: RuntimeError } {
+    if (!this.gateway) {
+      return {
+        error: runtimeError(
+          'MODEL_NOT_CONFIGURED',
+          '未配置模型——请前往 /config 页面配置并启用模型',
+          false,
+        ),
+      };
+    }
+    return { gateway: this.gateway };
   }
 
   /**

@@ -8,12 +8,12 @@
 
 import { useState, type FormEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Coffee, Hammer, SendHorizontal, Shuffle, Sparkles, Telescope } from 'lucide-react';
+import { Coffee, Hammer, SendHorizontal, Settings2, Shuffle, Sparkles, Telescope } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MemoryPanel } from './memory-panel';
-import { SettingsPanel } from './settings-panel';
 import {
   formatRelativeTime,
   STATE_ENTRIES,
@@ -61,7 +61,14 @@ export function HomeScreen({
     <main className="relative flex flex-1 flex-col items-center px-4 pb-10 pt-14 md:pt-24">
       {/* 安静的右上角入口：记忆查看 + 模型网关设置 */}
       <MemoryPanel />
-      <SettingsPanel />
+      <Link
+        href="/config"
+        aria-label="模型网关设置"
+        title="模型网关设置"
+        className="absolute right-4 top-4 rounded-full text-stone-400 transition-colors hover:text-stone-600"
+      >
+        <Settings2 className="h-5 w-5" />
+      </Link>
 
       <h1 className="text-center text-3xl font-medium tracking-wide text-stone-800 md:text-5xl">
         现在想要什么？
