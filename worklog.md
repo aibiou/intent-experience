@@ -357,3 +357,20 @@ Work Log:
 Stage Summary:
 - G1-2 完成：作品墙从「产物已落盘」到「首页可回看」闭环
 - 待办：视频作品卡片（上游 Agnes 队列恢复后自动出现在墙上）；G1-3 配置可发现性（设置页展示各模态当前默认）
+
+---
+Task ID: 13
+Agent: Z.ai Code (主控)
+Task: 网关纯函数单测——解析链 / 输入校验 / 瞬态重试 / 配置存储
+
+Work Log:
+- 新增 mini-services/model-gateway/tests/ 四文件（bun test；根 vitest 只扫 tools/unit，互不干扰）
+- resolve.test.ts（15 例）：解析链全分支——显式 id（未找到·已停用·模态不匹配）/ 默认且启用 / 首个启用回退 / 同模态多默认第一条 / 空串空白视为未指定 / 该模态无记录 MEDIA_PROVIDER_MISSING（不兜底、不伪装）/ 模态隔离
+- validate.test.ts（14 例）：非对象输入、必填字段、baseUrl 协议、apiKey 类型（可空串）、modality 合法值域、名称重复（含修剪后比较）、enabled/isDefault 布尔、缺省值与修剪归一
+- retry.test.ts（18 例）：可重试状态码集合、z-ai-sdk 消息状态码提取、网络异常判定（包装类/TimeoutError/AbortError/TypeError/消息模式）、瞬态分类（空内容永不重试）、withRetry 注入 sleep 验证（首次成功/瞬态重试成功/非瞬态立即抛/两次瞬态恰好等待 1 次）
+- config-store.test.ts（13 例）：掩码后 4 位、摘要 hasKey；默认推导（同模态首条启用 / 跨模态互不影响 / 停用不参与 / 全停用无默认）；ConfigStore 主应用格式只读读取（字段映射、enabledAt 推导、垃圾行过滤、损坏文件→空列表不抛）；AES-256-GCM 密钥解密（合法密文→内存明文、无环境变量→undefined、损坏密文不丢记录）；save 只读断言；defaultStorePath 环境变量覆盖
+- 架构对齐：统一配置层后重写——ConfigStore 只读主应用 provider-configs.json（密钥 AES 加密存储，无 SecretsStore/无 secrets.json）；解析链消除内置 zai 兜底（无 BUILTIN_ZAI，text 模态无配置同样 MEDIA_PROVIDER_MISSING）
+- 验证：bun test 60 pass / 0 fail；tsc 零新增错误
+
+Stage Summary:
+- 网关纯函数测试覆盖解析链/校验/重试/配置存储四层，统一配置层后架构下全绿
