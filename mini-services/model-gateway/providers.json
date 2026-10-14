@@ -10,7 +10,7 @@
       "enabled": true,
       "isDefault": true,
       "createdAt": "2026-10-11T13:57:48.385Z",
-      "updatedAt": "2026-10-13T20:30:03.666Z"
+      "updatedAt": "2026-10-14T10:00:00.000Z"
     },
     {
       "id": "pc_8247f3efe8f8afc0",
@@ -22,7 +22,7 @@
       "enabled": true,
       "isDefault": true,
       "createdAt": "2026-10-11T13:57:48.418Z",
-      "updatedAt": "2026-10-13T20:30:03.667Z"
+      "updatedAt": "2026-10-14T10:00:00.000Z"
     },
     {
       "id": "pc_6339f56507b16e2b",
@@ -34,7 +34,7 @@
       "enabled": true,
       "isDefault": true,
       "createdAt": "2026-10-11T13:57:48.442Z",
-      "updatedAt": "2026-10-13T20:30:03.667Z"
+      "updatedAt": "2026-10-14T10:00:00.000Z"
     },
     {
       "id": "pc_94c8ae48ebf4cee9",
@@ -46,7 +46,7 @@
       "enabled": true,
       "isDefault": false,
       "createdAt": "2026-10-13T07:03:24.300Z",
-      "updatedAt": "2026-10-13T20:30:03.667Z"
+      "updatedAt": "2026-10-14T10:00:00.000Z"
     },
     {
       "id": "pc_7473458bdd18c240",
@@ -58,7 +58,19 @@
       "enabled": true,
       "isDefault": true,
       "createdAt": "2026-10-13T07:37:49.686Z",
-      "updatedAt": "2026-10-13T20:30:03.667Z"
+      "updatedAt": "2026-10-14T10:00:00.000Z"
+    },
+    {
+      "id": "3541a238-bfb4-455d-9d82-103aa174c6fc",
+      "name": "test-provider",
+      "kind": "openai-compatible",
+      "baseUrl": "https://apihub.agnes-ai.com/v1",
+      "model": "agnes-3.0-flash",
+      "modality": "text",
+      "enabled": true,
+      "isDefault": false,
+      "createdAt": "2026-10-14T03:54:10.952Z",
+      "updatedAt": "2026-10-14T03:54:10.952Z"
     }
   ]
 }

@@ -494,7 +494,7 @@ function extractProviderDelta(parsed: unknown): string | undefined {
  */
 const SEMANTIC_ACTION_GUIDANCE: Record<string, string> = {
   DIRECT_ANSWER: '直接回答用户的问题或回应用户的输入。',
-  WHY: '解释原因与底层机制。',
+  WHY: '解释推荐或当前方案的原因。给出 2-3 条具体理由，每条理由基于上下文中的事实或数据。结构化为「原因一…原因二…原因三…」的形式，不要泛泛而谈。',
   WHAT_IF: '展开假设推演，并区分事实 / 推断 / 假设 / 模拟结果。',
   DEEPEN: '在既有话题上向更深处推进一层。',
   SIMPLIFY: '把当前创作对象（或话题）以更简单直白的方式重述——结构保持，表达降阶。',

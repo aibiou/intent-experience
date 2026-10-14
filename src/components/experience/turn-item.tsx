@@ -260,6 +260,13 @@ function KindBadge({ kind, creationVersion }: { kind: SettledKind; creationVersi
       </Badge>
     );
   }
+  if (kind === 'EXPLANATION') {
+    return (
+      <Badge variant="outline" className="mb-3 rounded-full border-sky-300/70 bg-sky-50/80 text-sky-600">
+        解释
+      </Badge>
+    );
+  }
   if (kind === 'CREATION_ASK') {
     return (
       <Badge
@@ -314,6 +321,9 @@ function contentCardClass(kind: SettledKind): string {
   }
   if (kind === 'ANSWER') {
     return `${base} border-l-2 border-l-amber-500/80`;
+  }
+  if (kind === 'EXPLANATION') {
+    return `${base} border-l-2 border-l-sky-400/80`;
   }
   return base;
 }
