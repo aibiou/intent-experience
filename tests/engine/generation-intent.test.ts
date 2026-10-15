@@ -60,7 +60,7 @@ describe('generation-intent：VIDEO_PATTERNS 词表逐条（优先级最高层�
   });
 
   it('视频再生成：逗号后约束提取为提示词（无约束时换介质表达 → useContext）', () => {
-    expectIntent('换一个视频，慢一点的', { modality: 'video', prompt: '慢一点的' });
+    expectIntent('换一个视频，慢一点的', { modality: 'video', prompt: '慢一点的', regen: true });
     expectIntent('换一个视频', { modality: 'video', prompt: '换一个视频', useContext: true });
     // 「来一段视频」被 v11 认领（「来」在换/再/来再生成词表内）——与 MAKE_VERBS 注释
     // 「『来』不再单独作开头」存在张力，但词表行为为准（与参考实现逐字段一致）。
@@ -250,10 +250,19 @@ describe('generation-intent：promptBase 三级回退（regen 逗号后约束 > 
   });
 
   it('regen：逗号后即用户对下一张的要求，提取为提示词（且优先排除 presentation——自带主题非换介质）', () => {
-    expectIntent('换一张图片，夏天的服装', { modality: 'image', prompt: '夏天的服装' });
-    expectIntent('换一个视频，慢一点的', { modality: 'video', prompt: '慢一点的' });
+    expectIntent('换一张图片，夏天的服装', { modality: 'image', prompt: '夏天的服装', regen: true });
+    expectIntent('换一个视频，慢一点的', { modality: 'video', prompt: '慢一点的', regen: true });
     // trim + 分隔符类 [，,、\s]：全角逗号加空格同样提取。
-    expectIntent(' 换一张图片， 夏天的服装 ', { modality: 'image', prompt: '夏天的服装' });
+    expectIntent(' 换一张图片， 夏天的服装 ', { modality: 'image', prompt: '夏天的服装', regen: true });
+  });
+
+  it('G2-5 创作闭环：regen 是图生图参考图的挂载信号（runtime 据此挂会话最新产物）', () => {
+    // 再生成（带逗号约束）→ regen：对上一张产物的修改
+    expectIntent('换一张图片，背景换成海边', { modality: 'image', prompt: '背景换成海边', regen: true });
+    // 无逗号约束的换介质表达 → useContext 而非 regen（确定性区分，不挂参考图）
+    expectIntent('换一张图片', { modality: 'image', prompt: '换一张图片', useContext: true });
+    // 直接创作（「画一只在月光下的猫」）→ 无任何情境标记——从零文生图
+    expectIntent('画一只在月光下的猫', { modality: 'image', prompt: '画一只在月光下的猫' });
   });
 
   it('regen 空约束回退：逗号后无内容 → 不提取（保原句），换介质 presentation 仍生效', () => {

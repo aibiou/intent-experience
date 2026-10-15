@@ -188,6 +188,13 @@ export async function generateImage(
 ): Promise<MediaArtifact> {
   const tier = DEFAULT_IMAGE_TIER;
   const refs = options?.referenceImages ?? [];
+  // 参考图透传日志（CR-61 实证链——确认 dataURI 参考图
+  // 确实到达上游，而非被参数兼容降级静默丢弃）。
+  if (refs.length > 0) {
+    console.log(
+      `[image-gen] referenceImages=${refs.length} first=${refs[0]?.slice(0, 32)}… len=${refs[0]?.length ?? 0}`,
+    );
+  }
   const hasRatio = options?.aspectRatio !== undefined;
 
   // 三段调用形态：带画幅 + 带参考图 → 仅参考图（画幅被拒）

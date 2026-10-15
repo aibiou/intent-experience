@@ -29,6 +29,10 @@ export interface GenerationIntent {
   /** 指代类表达（「生成一个对应的猫图片」）：主体在对话上文——
    * 提示词优先由上一轮助手内容解析（而非用户原话）。 */
   referential?: boolean;
+  /** 再生成表达（「换一张图片，夏天的服装」）：对上一张产物
+   * 的修改——提示词为逗号后的新约束；会话最新图像产物
+   * 据此作为参考图（图生图）。 */
+  regen?: boolean;
 }
 
 // 生成动词表（显式创作表达）。消费意图
@@ -183,6 +187,7 @@ export function recognizeGenerationIntent(rawInput: string): GenerationIntent | 
       prompt: promptBase,
       ...(presentation ? { useContext: true } : {}),
       ...(referentialPresentation ? { referential: true } : {}),
+      ...(regen !== null ? { regen: true } : {}),
     };
   }
   if (IMAGE_PATTERNS.some((pattern) => pattern.test(input))) {
@@ -191,6 +196,7 @@ export function recognizeGenerationIntent(rawInput: string): GenerationIntent | 
       prompt: promptBase,
       ...(presentation ? { useContext: true } : {}),
       ...(referentialPresentation ? { referential: true } : {}),
+      ...(regen !== null ? { regen: true } : {}),
     };
   }
   if (VOICE_PATTERNS.some((pattern) => pattern.test(input))) {
