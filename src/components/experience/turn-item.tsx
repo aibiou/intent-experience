@@ -449,19 +449,28 @@ function MediaBlock({ media }: { media: TurnMedia }) {
   }
   if (media.modality === 'image' && media.url) {
     return (
-      <figure className="overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_1px_2px_rgba(87,83,78,0.05)]">
-        <a href={media.url} target="_blank" rel="noreferrer" aria-label="查看原图">
+      // 作品卡：居中限宽——图像为本轮产物而非正文，
+      // 满宽铺开会与上下文字卡挤成一片灰墙；限宽后
+      // 竖构图呈画廊感，横构图也不失作品焦点。
+      <figure className="mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_6px_24px_rgba(87,83,78,0.12)]">
+        <a
+          href={media.url}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="查看原图"
+          className="group relative block"
+        >
           {/* 生成产物为任意尺寸位图，经产物端点提供（非 Next 静态资源）。 */}
           <img
             src={media.url}
             alt={media.promptUsed ?? '根据这次体验内容生成的图片'}
-            className="w-full object-cover"
+            className="w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.015]"
             loading="lazy"
           />
         </a>
         <figcaption className="flex items-start gap-2 px-4 py-2.5">
           <ImageIcon
-            className="mt-0.5 size-3.5 shrink-0 text-stone-400"
+            className="mt-0.5 size-3.5 shrink-0 text-amber-500/80"
             aria-hidden="true"
           />
           <span className="line-clamp-2 min-w-0 flex-1 text-sm leading-relaxed text-stone-500">
@@ -471,7 +480,7 @@ function MediaBlock({ media }: { media: TurnMedia }) {
             href={media.url}
             target="_blank"
             rel="noreferrer"
-            className="shrink-0 text-xs text-stone-400 underline-offset-2 hover:text-stone-600 hover:underline"
+            className="shrink-0 rounded-full border border-stone-200/90 px-2.5 py-0.5 text-xs text-stone-400 underline-offset-2 transition-colors hover:border-amber-300/70 hover:text-amber-700"
           >
             查看原图
           </a>
