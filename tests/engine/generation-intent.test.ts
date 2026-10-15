@@ -2,6 +2,8 @@
 import { describe, expect, it } from 'bun:test';
 import { recognizeGenerationIntent, shouldCompactReplay } from '../../src/lib/experience/generation-intent';
 import type { GenerationIntent } from '../../src/lib/experience/generation-intent';
+import { latestImageRecord } from '../../src/lib/experience/media-gateway';
+import type { MediaArtifactRecord } from '../../src/lib/experience/media-gateway';
 
 /**
  * 生成意图识别（generation-intent.ts）——确定性词表识别 + 优先级 video > image > voice。
@@ -307,6 +309,51 @@ describe('generation-intent：presentation / referential 判定', () => {
 
   it('直接创作（「画一张风图」）无 useContext——呈现类标记不误加', () => {
     expectIntent('画一张风图', { modality: 'image', prompt: '画一张风图' });
+  });
+});
+
+describe('generation-intent：多轮意图链（创作闭环——直接创作 → 再生成 → 再生成 → 直接创作）', () => {
+  /** 运行时挂载条件（与 runtime.runGeneration 同一判据——
+   * 情境意图才把会话最新图像挂为参考图）。 */
+  const isContextual = (intent: GenerationIntent | null): boolean =>
+    intent !== null &&
+    intent.modality === 'image' &&
+    Boolean(intent.useContext || intent.referential || intent.regen);
+
+  it('四轮脚本：逐轮意图分类 + 参考图目标断言', () => {
+    // 合成产物索引：同一会话第 1/2 轮各一张图像（追加序
+    // 即时间序），含会话隔离与模态过滤负样本。
+    const records: MediaArtifactRecord[] = [
+      { id: 'g1', sessionId: 's1', turn: 1, modality: 'image', file: 'a.png', mime: 'image/png', promptUsed: '画一只在月光下的猫，画面温馨自然，细节丰富', at: '' },
+      { id: 'g2', sessionId: 's1', turn: 2, modality: 'image', file: 'b.png', mime: 'image/png', promptUsed: '背景换成海边，画面温馨自然，细节丰富', at: '' },
+      { id: 'g3', sessionId: 's2', turn: 1, modality: 'image', file: 'c.png', mime: 'image/png', promptUsed: '它会话的猫', at: '' },
+      { id: 'g4', sessionId: 's1', turn: 3, modality: 'voice', file: 'd.mp3', mime: 'audio/mpeg', promptUsed: '读给我听', at: '' },
+    ];
+
+    // 第 1 轮：直接创作——无情境标记，从零文生图，不挂参考图
+    const turn1 = recognizeGenerationIntent('画一只在月光下的猫');
+    expect(turn1).toEqual({ modality: 'image', prompt: '画一只在月光下的猫' });
+    expect(isContextual(turn1)).toBe(false);
+
+    // 第 2 轮：再生成——regen 标记；挂会话最新产物（第 1 轮）
+    const turn2 = recognizeGenerationIntent('换一张图片，背景换成海边');
+    expect(turn2).toEqual({ modality: 'image', prompt: '背景换成海边', regen: true });
+    expect(isContextual(turn2)).toBe(true);
+    // 第 1 轮产物落盘后的索引末条 = 第 1 轮记录
+    expect(latestImageRecord(records.slice(0, 1), 's1')?.turn).toBe(1);
+
+    // 第 3 轮：再再生成——引用第 2 轮产物（多轮链核心：
+    // 取末条而非首条——否则修改轨迹断裂回第一张）
+    const turn3 = recognizeGenerationIntent('再换一张图，猫在打盹');
+    expect(turn3).toEqual({ modality: 'image', prompt: '猫在打盹', regen: true });
+    expect(isContextual(turn3)).toBe(true);
+    // 第 2 轮产物落盘后：末条 = 第 2 轮记录（会话隔离 + 模态过滤下依然）
+    expect(latestImageRecord(records, 's1')?.turn).toBe(2);
+
+    // 第 4 轮：直接创作新主题——无情境标记，不携带陈旧引用
+    const turn4 = recognizeGenerationIntent('画一只在樱花下的狗');
+    expect(turn4).toEqual({ modality: 'image', prompt: '画一只在樱花下的狗' });
+    expect(isContextual(turn4)).toBe(false);
   });
 });
 

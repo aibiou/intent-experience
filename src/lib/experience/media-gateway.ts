@@ -249,6 +249,25 @@ export async function toReferenceDataUri(
   return null;
 }
 
+/**
+ * 会话最新图像产物记录（多轮链的选择核心——纯函数：
+ * 索引按追加序即时间序，同一会话的图像记录取末条。
+ * 第 N 轮「再换一张」引用第 N-1 轮产物；直接创作
+ * （无情境标记）不调用本函数，不携带陈旧引用。
+ */
+export function latestImageRecord(
+  records: readonly MediaArtifactRecord[],
+  sessionId: string,
+): MediaArtifactRecord | null {
+  let latest: MediaArtifactRecord | null = null;
+  for (const record of records) {
+    if (record.sessionId === sessionId && record.modality === 'image') {
+      latest = record;
+    }
+  }
+  return latest;
+}
+
 /** mime → 落盘扩展名。 */
 const EXT_BY_MIME: Readonly<Record<string, string>> = {
   'image/png': 'png',
@@ -283,16 +302,14 @@ export class MediaGateway {
   /**
    * 会话最新图像产物（dataURI——图生图参考，G2-5 创作闭环：
    * 「换一张」/ 按材料修改时把上一张产物作为参考图，而非
-   * 每次从零开始）。索引按追加序（追加即时间序），取末条；
-   * 无图像产物 / 文件读取失败 → null（降级为文生图——不
-   * 阻断生成，诚实边界）。
+   * 每次从零开始）。索引按追加序（追加即时间序），取末条
+   * （多轮链：第 N 轮再生成引用第 N-1 轮产物）；无图像产物
+   * / 文件读取失败 → null（降级为文生图——不阻断生成，
+   * 诚实边界）。
    */
   async loadSessionImageReference(sessionId: string): Promise<string | null> {
     const index = await this.readIndex();
-    const images = index.filter(
-      (record) => record.sessionId === sessionId && record.modality === 'image',
-    );
-    const latest = images[images.length - 1];
+    const latest = latestImageRecord(index, sessionId);
     if (!latest) return null;
     try {
       const buffer = await readFile(path.join(MEDIA_DIR, latest.file));
