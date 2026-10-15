@@ -271,6 +271,27 @@ describe('generation-intent：promptBase 三级回退（regen 逗号后约束 > 
     expectIntent('换一张图片，', { modality: 'image', prompt: '换一张图片，', useContext: true });
   });
 
+  it('regen 自然形态：量词后直接逗号（模态词省略）→ 图像再生成（实测缺口 2026-10-15）', () => {
+    // 「换一张，窗边加一只打盹的猫」——分类器 /换一/ 命中
+    // CHANGE_DIRECTION，本层认领后由 runtime 再生成特例
+    // （CHANGE_DIRECTION → CREATE）改道；约束经逗号提取。
+    expectIntent('换一张，窗边加一只打盹的猫', {
+      modality: 'image',
+      prompt: '窗边加一只打盹的猫',
+      regen: true,
+    });
+    expectIntent('再来一张，明亮点', { modality: 'image', prompt: '明亮点', regen: true });
+    expectIntent('换一幅，油画风', { modality: 'image', prompt: '油画风', regen: true });
+  });
+
+  it('regen 自然形态边界：泛化量词「一个」与裸量词不误判（仍按换方向 / 不识别）', () => {
+    // 「一个」为泛化量词——「换一个，更好的」语义偏换方向，
+    // 不认领（分类器 CHANGE_DIRECTION 语义保持不变）。
+    expectIntent('换一个，更好的', null);
+    // 裸量词无逗号约束 → 不构成再生成表达。
+    expectIntent('换一张', null);
+  });
+
   it('无裁剪时保原句（直接创作类）', () => {
     expectIntent('画一张赛博朋克城市插画', { modality: 'image', prompt: '画一张赛博朋克城市插画' });
     expectIntent('做一段清晨森林雾气的视频', { modality: 'video', prompt: '做一段清晨森林雾气的视频' });
