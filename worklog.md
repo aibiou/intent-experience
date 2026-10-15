@@ -480,3 +480,32 @@ Stage Summary:
 - 产品验证矩阵收口：文本 ✓ / 语音 ✓ / 文生图 ✓ / 图生图（会话内 + 跨会话续作）✓ 真实出图 / 多轮链 ✓ / 续作 ✓；视频 ✗（上游 503 队列饱和——容量问题，Task 14 记录）
 - 历史一致性缺口解释：cmv8uztpa 第 1→2 轮主体不一致（两只不同的猫）系第 2 轮生成于 regen 参考接线落地之前（纯文生图必然换主体）——该缺口正是 G2-5/G2-7 修复的对象，修复后经真实出图目视证实一致
 - 待办：视频模态待上游队列恢复后重验；推送仍阻塞（GitHub 认证凭据缺失——需用户本地推送或提供 PAT，勿在聊天中粘贴 token）
+
+---
+Task ID: 18
+Agent: Z.ai Code (主控)
+Task: Agnes 官方契约合规审计 + 429 限速退避修复（产品负责人指令：限速遵守、最佳实践核对、多模型接入预案）
+
+Work Log:
+- 审计依据：官方文档（agnes-ai.com → wiki.agnes-ai.com/en/docs/）——overview（Base URL + Bearer + OpenAI 兼容）、agnes-image-25-flash 图像契约、code.md 错误码（429 = 免费档 RPM 20，指引「等待 1 分钟后重试」）、pricing
+- 调用正确性核对（全部通过）：POST /v1/images/generations；model 必填（agnes-image-2.5-flash，与官方当前版本一致）；prompt 必填；size 档位 1K/2K/3K/4K（默认 2K）；ratio 八种官方值；response_format 置 extra_body 内（官方警告勿放顶层——我们从未放顶层）；图生图 extra_body.image = Data URI Base64（官方接受形态）；无 tags（官方不要求）；超时 120s ∈ 官方建议 60–360s
+- 模型版本核对：data/config/provider-configs.json 各模态 model id 与官方当前版本一致（agnes-3.0-flash / agnes-image-2.5-flash / agnes-video-2.5-flash / doubao-seed-2-0-lite-260428 / doubao-seedream-4-5-251128 / seed-audio-1.0；密钥为 AES-256-GCM 密文，不落日志）
+- 合规缺口（唯一）：429 退避——网关 mediaFetch / withRetry / 参考树 callProvider 均固定 2s 重试，违反官方「等待 1 分钟」指引（免费档 RPM 20 下 2s 后仍在限速窗口，重发必再撞限速、白白消耗重试）
+- 修复（状态感知退避，429→60s、其余瞬态 2s 不变）：
+  - 网关 retry.ts：RATE_LIMIT_DELAY_MS=60_000 + transientDelayMs(status)（429→1 分钟，其余/null→2s）；withRetry 按错误携带状态选择退避（UpstreamHttpError.status 或 z-ai-sdk 消息形态提取）；delayMs 显式注入优先（测试/特殊场景）
+  - 网关 media.ts mediaFetch：重试点 sleep(transientDelayMs(response.status))（网络失败无状态码保持 2s）
+  - 参考树 generation-gateway.ts callProvider：同策略对齐（本地常量 + transientDelayMs）
+  - 覆盖面确认：index.ts:218 chat 路径即 withRetry(callOpenAICompatible)——对话通道同样按官方指引退避；视频创建退避序列 [30s,60s,90s,120s] 本就合规不动；轮询自身限速等待 5s 不变（任务仍在队列）
+- 测试：retry.test.ts +6 例（transientDelayMs 映射 ×2、withRetry 429 UpstreamHttpError/z-ai 消息形态/网络异常/503 对照）；generation-retry.test.ts +2 例（429 等待 60s 重试成功、两次 429 抛 retryable 不消耗第三次）
+- 回归：bun test tests/engine/ 319 pass / 网关 bun test 75 pass（+6）/ tools/unit vitest 143 pass（+2）/ tsc 零新增错误
+- 部署：网关进程带新代码重启（注：从仓库根 cwd + .env.local 环境启动——ConfigStore 路径相对 cwd，此前误从 mini-services/ 根启动导致 defaultProvider=(none)，已纠正）；文本通道探活真实应答 1.9s（图像通道零调用，遵守限速纪律）
+- 多模型接入预案（答复「后续还会接入更多模型」）：
+  - OpenAI 兼容模型：零代码——provider-configs.json 增一条记录（provider/model/endpoint/modality/keyCiphertext），按模态解析链自动生效（G2-6 故障转移已验证）
+  - 模型版本漂移：仅改配置行 model id（如 agnes-image-2.5-flash → 2.6）——契约不变则代码零改
+  - 非兼容契约（如豆包语音 openspeech）：扩 adapter + 契约路由（isDoubaoVoiceContract 模式）+ 契约测试锁定
+  - 限速策略可配置化：RATE_LIMIT_DELAY_MS 当前为常量——多提供方时代应按提供方/档位存为配置数据（每家 RPM 不同），此为下一步抽象点（本切片保持简单，429 指引全网统一为 1 分钟）
+
+Stage Summary:
+- 审计结论：调用形态严格按官方契约（参数位置/档位/参考图形态/超时全部合规）；唯一偏差是 429 退避时长，已按官方指引修复并测试锁定
+- 速率限制合规：429 → 等待 1 分钟后重试（官方原文指引），覆盖 chat / 图像 / 语音 / 视频创建四条通道
+- 视频模态仍待上游队列恢复后重验（503 饱和为容量问题，非合规问题）

@@ -5,11 +5,16 @@
  * 瞬态 = 网络异常（fetch throw，含超时）或 HTTP 408/429/500/502/503/504。
  * 策略：等待 2 秒重试 1 次（共 2 次尝试），两次都失败才抛；
  * 400/401/403/404 等其它状态码与空内容错误不重试。
+ * 限速（429）例外：官方错误码指引——免费档 RPM 20，
+ * 「等待 1 分钟后重试」。2 秒后仍在限速窗口内，重发
+ * 必再撞限速、白白消耗一次重试，故按官方指引等待 1 分钟。
  *
  * 全部纯逻辑（withRetry 的等待函数可注入），单测不发真实网络请求。
  */
 
 export const RETRY_DELAY_MS = 2000;
+/** 限速退避（官方 429 指引：等待 1 分钟）。 */
+export const RATE_LIMIT_DELAY_MS = 60_000;
 export const MAX_ATTEMPTS = 2;
 
 /** 可重试的 HTTP 状态码（瞬态）。 */
@@ -67,6 +72,21 @@ export function extractUpstreamStatus(message: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
+/**
+ * 瞬态退避时长：限速（429）按官方指引等待 1 分钟，
+ * 其余瞬态（网络异常 / 408 / 5xx）等待 2 秒。
+ */
+export function transientDelayMs(status: number | null): number {
+  return status === 429 ? RATE_LIMIT_DELAY_MS : RETRY_DELAY_MS;
+}
+
+/** 错误携带的上游状态码（两种形态归一；网络异常无状态码 → null）。 */
+function upstreamStatusOf(error: unknown): number | null {
+  if (error instanceof UpstreamHttpError) return error.status;
+  if (error instanceof Error) return extractUpstreamStatus(error.message);
+  return null;
+}
+
 /** 瞬态判定：可重试的才重试。 */
 export function isTransientFailure(error: unknown): boolean {
   if (error instanceof UpstreamHttpError) return isRetryableStatus(error.status);
@@ -89,11 +109,11 @@ export interface RetryOptions {
 }
 
 /**
- * 有界重试：瞬态失败等待 delayMs 后重试 1 次（共 2 次尝试）；
- * 非瞬态失败立即抛出；两次瞬态失败都失败才抛。
+ * 有界重试：瞬态失败等待（限速 429 等 1 分钟、其余 2 秒）
+ * 后重试 1 次（共 2 次尝试）；非瞬态失败立即抛出；
+ * 两次瞬态失败都失败才抛。
  */
 export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
-  const delayMs = options.delayMs ?? RETRY_DELAY_MS;
   const sleep = options.sleep ?? defaultSleep;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
@@ -102,6 +122,10 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
       if (attempt >= MAX_ATTEMPTS || !isTransientFailure(error)) {
         throw error; // 非瞬态立即报 / 已达上限
       }
+      // delayMs 显式注入优先（测试 / 特殊场景）；
+      // 否则按错误携带的状态选择退避时长（429 → 1 分钟）。
+      const delayMs =
+        options.delayMs ?? transientDelayMs(upstreamStatusOf(error));
       await sleep(delayMs);
     }
   }

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   EmptyContentError,
   MAX_ATTEMPTS,
+  RATE_LIMIT_DELAY_MS,
   RETRY_DELAY_MS,
   UpstreamHttpError,
   UpstreamNetworkError,
@@ -10,6 +11,7 @@ import {
   isNetworkFailure,
   isRetryableStatus,
   isTransientFailure,
+  transientDelayMs,
   withRetry,
 } from '../src/retry';
 
@@ -161,5 +163,85 @@ describe('withRetry 有界重试', () => {
     // 这里锁常量契约，避免有人悄悄改策略而不被发现。
     expect(RETRY_DELAY_MS).toBe(2000);
     expect(MAX_ATTEMPTS).toBe(2);
+  });
+});
+
+describe('限速退避（官方 429 指引：免费档 RPM 20——等待 1 分钟后重试）', () => {
+  it('transientDelayMs：429 → 1 分钟（RATE_LIMIT_DELAY_MS）', () => {
+    expect(RATE_LIMIT_DELAY_MS).toBe(60_000);
+    expect(transientDelayMs(429)).toBe(RATE_LIMIT_DELAY_MS);
+  });
+
+  it('transientDelayMs：其余瞬态状态码 / 无状态码（网络异常）→ 2 秒', () => {
+    for (const status of [408, 500, 502, 503, 504]) {
+      expect(transientDelayMs(status)).toBe(RETRY_DELAY_MS);
+    }
+    expect(transientDelayMs(null)).toBe(RETRY_DELAY_MS);
+  });
+
+  it('withRetry：429（UpstreamHttpError）→ 等待 1 分钟后重试成功', async () => {
+    let calls = 0;
+    const slept: number[] = [];
+    const result = await withRetry(
+      async () => {
+        calls++;
+        if (calls === 1) throw new UpstreamHttpError(429, 'rate limit exceeded');
+        return 'ok';
+      },
+      { sleep: async (ms) => { slept.push(ms); } },
+    );
+    expect(result).toBe('ok');
+    expect(calls).toBe(2);
+    expect(slept).toEqual([RATE_LIMIT_DELAY_MS]);
+  });
+
+  it('withRetry：429（z-ai-sdk 消息形态）→ 同样等待 1 分钟', async () => {
+    let calls = 0;
+    const slept: number[] = [];
+    const result = await withRetry(
+      async () => {
+        calls++;
+        if (calls === 1) {
+          throw new Error('API request failed with status 429: Too Many Requests');
+        }
+        return 'ok';
+      },
+      { sleep: async (ms) => { slept.push(ms); } },
+    );
+    expect(result).toBe('ok');
+    expect(calls).toBe(2);
+    expect(slept).toEqual([RATE_LIMIT_DELAY_MS]);
+  });
+
+  it('withRetry：网络异常（无状态码）→ 仍等 2 秒（行为不变）', async () => {
+    let calls = 0;
+    const slept: number[] = [];
+    const result = await withRetry(
+      async () => {
+        calls++;
+        if (calls === 1) throw new UpstreamNetworkError('fetch failed');
+        return 'ok';
+      },
+      { sleep: async (ms) => { slept.push(ms); } },
+    );
+    expect(result).toBe('ok');
+    expect(calls).toBe(2);
+    expect(slept).toEqual([RETRY_DELAY_MS]);
+  });
+
+  it('withRetry：503 → 仍等 2 秒（行为不变）', async () => {
+    let calls = 0;
+    const slept: number[] = [];
+    const result = await withRetry(
+      async () => {
+        calls++;
+        if (calls === 1) throw new UpstreamHttpError(503, 'queue full');
+        return 'ok';
+      },
+      { sleep: async (ms) => { slept.push(ms); } },
+    );
+    expect(result).toBe('ok');
+    expect(calls).toBe(2);
+    expect(slept).toEqual([RETRY_DELAY_MS]);
   });
 });
