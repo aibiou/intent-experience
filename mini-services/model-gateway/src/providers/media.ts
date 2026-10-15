@@ -16,16 +16,17 @@
  *   （/videos 创建 + /agnesapi?video_id=&model_name= 轮询，
  *   产物顶层 url）
  *
- * 瞬态纪律（与 chat 一致）：网络异常 / 408/429/5xx 等 2 秒
- * 重试 1 次；4xx 立即报。视频队列满（503/queue_full）按
- * 退避序列 [30s,60s,90s,120s] ride out 短时波动。
+ * 瞬态纪律（与 chat 一致）：网络异常 / 408/5xx 等 2 秒
+ * 重试 1 次；限速（429）按官方指引等 1 分钟；4xx 立即报。
+ * 视频队列满（503/queue_full）按退避序列 [30s,60s,90s,120s]
+ * ride out 短时波动。
  *
  * 错误纪律：错误信息仅含 provider / 状态码 / 提供方原文
  * 片段——不含 key、不含完整请求体。
  */
 
 import type { ProviderConfigRecord } from '../config-store';
-import { isRetryableStatus } from '../retry';
+import { isRetryableStatus, transientDelayMs } from '../retry';
 
 /** 统一产物形态：远程 url 或内联 dataUri（二选一）。 */
 export interface MediaArtifact {
@@ -88,7 +89,9 @@ async function mediaFetch(
     if (response.ok) return response;
     const detail = await readProviderError(response);
     if (!isLast && detail.retryable) {
-      await sleep(2_000);
+      // 退避按状态选择：限速（429）按官方指引
+      // 等待 1 分钟，其余瞬态 2 秒。
+      await sleep(transientDelayMs(response.status));
       continue;
     }
     const reason = detail.message.length > 0 ? `：${detail.message}` : '';

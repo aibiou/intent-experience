@@ -66,6 +66,34 @@ describe('generation transient auto-retry', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('限速 429 → 等待 60s（官方指引）后重试并成功', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(errJson(429, 'rate limit exceeded, RPM 20'))
+      .mockResolvedValueOnce(okImage('https://x.example/after-429.png'));
+    vi.stubGlobal('fetch', fetchMock);
+    const promise = generateImage(CONFIG, 'prompt');
+    // 官方错误码指引：429 免费档 RPM 20——等待 1 分钟后重试。
+    await vi.advanceTimersByTimeAsync(60_000);
+    const artifact = await promise;
+    expect(artifact.url).toBe('https://x.example/after-429.png');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('两次 429 → 等待 60s 后抛 retryable=true（不消耗第三次请求）', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(errJson(429, 'rate limit exceeded'));
+    vi.stubGlobal('fetch', fetchMock);
+    const promise = generateImage(CONFIG, 'prompt');
+    const assertion = expect(promise).rejects.toMatchObject({
+      name: 'GenerationError',
+      retryable: true,
+      status: 429,
+    });
+    await vi.advanceTimersByTimeAsync(60_000);
+    await assertion;
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('网络失败一次（fetch 抛错）→ 重试一次并成功', async () => {
     const fetchMock = vi
       .fn()

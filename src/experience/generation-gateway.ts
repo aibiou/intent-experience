@@ -134,15 +134,25 @@ function headers(apiKey: string): Record<string, string> {
   };
 }
 
+/** 常规瞬态重试等待（毫秒）。 */
+const RETRY_DELAY_MS = 2_000;
+/** 限速退避（官方错误码指引：429 免费档 RPM 20——「等待 1 分钟后重试」）。 */
+const RATE_LIMIT_DELAY_MS = 60_000;
+
+/** 瞬态退避时长：限速（429）按官方指引等待 1 分钟，其余瞬态 2 秒。 */
+function transientDelayMs(status: number | null): number {
+  return status === 429 ? RATE_LIMIT_DELAY_MS : RETRY_DELAY_MS;
+}
+
 async function callProvider(
   config: EnabledProviderConfig,
   path: string,
   body: Record<string, unknown>,
 ): Promise<Response> {
   // 瞬态自动重试一次：网络波动 / 限速 / 队列满 / 服务端临时
-  // 错误（免费档常态）——等待 2s 后重发，两次仍失败才向上抛。
-  // 间歇性失败在产品内消化，用户无感；不把「服务正忙」甩给
-  // 用户自己重试。
+  // 错误（免费档常态）——网络异常等 2s、限速按官方指引等
+  // 1 分钟后重发，两次仍失败才向上抛。间歇性失败在产品内
+  // 消化，用户无感；不把「服务正忙」甩给用户自己重试。
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     const isLastAttempt = attempt === 2;
     let response: Response;
@@ -174,7 +184,9 @@ async function callProvider(
     // 状态码。瞬态失败标记 retryable。
     const detail = await readProviderError(response);
     if (!isLastAttempt && detail.retryable) {
-      await sleep(2_000);
+      // 退避按状态选择：限速（429）按官方指引等 1 分钟
+      //（2s 后仍在限速窗口内，重发必再撞限速），其余瞬态 2s。
+      await sleep(transientDelayMs(response.status));
       continue;
     }
     const reason = detail.message.length > 0 ? `: ${detail.message}` : '';
