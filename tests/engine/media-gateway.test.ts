@@ -3,9 +3,11 @@ import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'bun:test';
 import sharp from 'sharp';
 import {
+  latestImageRecord,
   toReferenceDataUri,
   validateReferenceImages,
 } from '../../src/lib/experience/media-gateway';
+import type { MediaArtifactRecord } from '../../src/lib/experience/media-gateway';
 
 /**
  * 参考图校验与适配（media-gateway.ts）——
@@ -105,5 +107,43 @@ describe('参考图适配（toReferenceDataUri——CR-61 尺寸硬约束）', (
     const garbage = randomBytes(2_000_000);
     const uri = await toReferenceDataUri(garbage, 'image/png');
     expect(uri).toBeNull();
+  });
+});
+
+describe('会话最新图像产物（latestImageRecord——多轮链的选择核心）', () => {
+  const record = (
+    turn: number,
+    sessionId = 's1',
+    modality: 'image' | 'voice' = 'image',
+  ): MediaArtifactRecord => ({
+    id: `g${turn}`,
+    sessionId,
+    turn,
+    modality,
+    file: `f${turn}.png`,
+    mime: 'image/png',
+    promptUsed: `p${turn}`,
+    at: '',
+  });
+
+  it('取末条（追加序即时间序——第 N 轮再生成引用第 N-1 轮产物）', () => {
+    const records = [record(1), record(2), record(3)];
+    expect(latestImageRecord(records, 's1')?.turn).toBe(3);
+  });
+
+  it('会话隔离（它会话产物不参与——参考图不串会话）', () => {
+    const records = [record(1), record(2, 's2'), record(3)];
+    expect(latestImageRecord(records, 's1')?.turn).toBe(3);
+    expect(latestImageRecord(records, 's2')?.turn).toBe(2);
+  });
+
+  it('模态过滤（语音产物不作图像参考）', () => {
+    const records = [record(1), record(2, 's1', 'voice')];
+    expect(latestImageRecord(records, 's1')?.turn).toBe(1);
+  });
+
+  it('空索引 / 无该会话图像产物 → null（降级文生图）', () => {
+    expect(latestImageRecord([], 's1')).toBeNull();
+    expect(latestImageRecord([record(1, 's2')], 's1')).toBeNull();
   });
 });

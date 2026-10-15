@@ -357,7 +357,17 @@ export function useExperienceSession(options?: {
           const setMedia = (t: DisplayTurn): DisplayTurn => {
             if (t.turn !== event.turn || t.kind === undefined) return t;
             if (event.status === 'started') {
-              return { ...t, media: { modality: event.modality, status: 'pending' } };
+              return {
+                ...t,
+                media: {
+                  modality: event.modality,
+                  status: 'pending',
+                  // 生成进程透明（started 事件携带提示词）——
+                  // 呈现层显示「正在生成什么」，慢速上游
+                  // （图像约一两分钟）下用户有明确预期。
+                  promptUsed: event.prompt,
+                },
+              };
             }
             if (event.status === 'completed') {
               return {

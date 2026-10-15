@@ -19,7 +19,7 @@
 
 import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { AudioLines, ImageIcon } from 'lucide-react';
+import { AlertCircle, AudioLines, ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { DisplayTurn, TurnMedia } from './use-experience-session';
 import { ThinkingIndicator } from './thinking-indicator';
@@ -360,14 +360,25 @@ function TextParagraphs({ content, kind }: { content: string; kind: SettledKind 
 // S2b：轮次内嵌媒体渲染（音频 / 图片 / 生成中 / 失败与未接入说明）
 // ---------------------------------------------------------------------------
 
-function MediaPending({ label }: { label: string }) {
+function MediaPending({
+  label,
+  prompt,
+}: {
+  label: string;
+  prompt?: string;
+}) {
   return (
     <div className="flex items-center gap-2.5 rounded-2xl border border-stone-200/80 bg-white/70 px-4 py-3">
       <span className="relative flex size-2">
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/70" />
         <span className="relative inline-flex size-2 rounded-full bg-amber-500/90" />
       </span>
-      <p className="text-sm text-stone-500">{label}</p>
+      <p className="min-w-0 text-sm text-stone-500">
+        {label}
+        {prompt ? (
+          <span className="block truncate text-stone-400">「{prompt}」</span>
+        ) : null}
+      </p>
     </div>
   );
 }
@@ -380,16 +391,21 @@ function MediaBlock({ media }: { media: TurnMedia }) {
           media.modality === 'voice'
             ? '正在合成语音，马上就好…'
             : media.modality === 'video'
-              ? '正在生成视频，可能需要一两分钟…'
-              : '正在生成图片，马上就好…'
+              ? '正在生成视频，可能需要数分钟…'
+              : '正在生成图片，可能需要一两分钟…'
         }
+        prompt={media.promptUsed}
       />
     );
   }
   if (media.status === 'failed') {
     return (
-      <div className="rounded-2xl border border-dashed border-stone-300 px-4 py-3">
-        <p className="text-sm text-stone-500">
+      <div className="flex items-start gap-2.5 rounded-2xl border border-dashed border-stone-300 px-4 py-3">
+        <AlertCircle
+          className="mt-0.5 size-3.5 shrink-0 text-stone-400"
+          aria-hidden="true"
+        />
+        <p className="text-sm text-stone-600">
           {media.modality === 'voice'
             ? '这段语音'
             : media.modality === 'video'
@@ -443,9 +459,22 @@ function MediaBlock({ media }: { media: TurnMedia }) {
             loading="lazy"
           />
         </a>
-        <figcaption className="flex items-start gap-2 px-4 py-2.5 text-xs text-stone-400">
-          <ImageIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-          <span className="line-clamp-2">{media.promptUsed}</span>
+        <figcaption className="flex items-start gap-2 px-4 py-2.5">
+          <ImageIcon
+            className="mt-0.5 size-3.5 shrink-0 text-stone-400"
+            aria-hidden="true"
+          />
+          <span className="line-clamp-2 min-w-0 flex-1 text-sm leading-relaxed text-stone-500">
+            {media.promptUsed}
+          </span>
+          <a
+            href={media.url}
+            target="_blank"
+            rel="noreferrer"
+            className="shrink-0 text-xs text-stone-400 underline-offset-2 hover:text-stone-600 hover:underline"
+          >
+            查看原图
+          </a>
         </figcaption>
       </figure>
     );
@@ -484,6 +513,22 @@ export function TurnItem({
     );
   }
 
+  // 已定格轮次：轮次锚点（多轮会话的修改轨迹可追溯——
+  // 「第 N 轮」与右侧用户气泡同行，创作闭环的
+  // 「上一张 / 上一版」有了可视坐标）
+  const anchoredBubble = (
+    <div className="flex items-end justify-end gap-2">
+      {item.turn > 0 ? (
+        <span className="shrink-0 pb-1.5 text-[11px] text-stone-300">
+          第 {item.turn} 轮
+        </span>
+      ) : null}
+      <p className="max-w-[85%] rounded-2xl rounded-br-md border border-stone-200/80 bg-stone-100/80 px-4 py-2 text-sm leading-relaxed text-stone-600">
+        {item.userText}
+      </p>
+    </div>
+  );
+
   const kind = item.kind;
   const isNotice =
     kind === 'ESCALATION_NOTICE' ||
@@ -498,7 +543,7 @@ export function TurnItem({
       transition={{ duration: 0.28, ease: 'easeOut' }}
       className="space-y-2.5"
     >
-      {bubble}
+      {anchoredBubble}
       {kind === 'SIMULATION_RESULT' ? (
         <SimulationCard
           content={item.content}
