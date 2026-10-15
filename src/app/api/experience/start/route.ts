@@ -1,6 +1,6 @@
 /**
- * POST /api/experience/start —— 首页/入口屏 → 建立会话并跑完第一轮。
- * Body: { seedId?: string; entry?: string; freeText?: string }
+ * POST /api/experience/start —— 首页/入口屏/完成后续作 → 建立会话并跑完第一轮。
+ * Body: { seedId?: string; entry?: string; freeText?: string; continueSessionId?: string }
  * 响应：SSE（session → trace → content → state → done / error）
  */
 
@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     seedId?: string;
     entry?: string;
     freeText?: string;
+    continueSessionId?: string;
   };
   const runtime = getRuntime();
   const stream = runtime.start(
@@ -20,6 +21,10 @@ export async function POST(req: NextRequest) {
       seedId: typeof body.seedId === 'string' ? body.seedId : undefined,
       entry: typeof body.entry === 'string' ? body.entry : undefined,
       freeText: typeof body.freeText === 'string' ? body.freeText : undefined,
+      continueSessionId:
+        typeof body.continueSessionId === 'string'
+          ? body.continueSessionId
+          : undefined,
     },
     req.signal
   );

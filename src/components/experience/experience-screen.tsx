@@ -6,7 +6,9 @@
  * 底部输入："直接问……" + 快捷动作（为什么/继续/我大概懂了/换一个/好了）。
  * 生成中输入保持可用（新输入会中止在途轮次）；停止是成功路径——
  * done{ended, user_stop} → 干净的结束层：只有"这次探索到这里"，零推荐。
- * creation_completed（D-05）→ 结束层文案区分："作品完成"——同样是零推荐收束。
+ * creation_completed（D-05）→ 结束层文案区分："作品完成"——零推荐收束，
+ * 但提供用户主动发起的「以此续作」（G2-7：以最新图像产物为参考图
+ * 建立新会话——新一轮创造，不是推荐钩子）。
  */
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -53,9 +55,17 @@ interface ExperienceScreenProps {
   onSend: (text: string) => void;
   onRetry: () => void;
   onBackHome: () => void;
+  /** 作品完成 → 以此续作（以最新图像产物为参考图建立新会话）。 */
+  onContinueCreation?: () => void;
 }
 
-export function ExperienceScreen({ session, onSend, onRetry, onBackHome }: ExperienceScreenProps) {
+export function ExperienceScreen({
+  session,
+  onSend,
+  onRetry,
+  onBackHome,
+  onContinueCreation,
+}: ExperienceScreenProps) {
   const [text, setText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -159,15 +169,31 @@ export function ExperienceScreen({ session, onSend, onRetry, onBackHome }: Exper
       {/* 底部输入区 */}
       {session.readOnly ? (
         <div className="mt-auto flex flex-col items-center gap-3 pb-8 pt-2">
-          <p className="text-sm text-stone-400">这次探索已经结束</p>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBackHome}
-            className="h-11 rounded-full border-stone-300 px-6 text-stone-600 hover:border-amber-400 hover:bg-amber-50/50 hover:text-stone-800"
-          >
-            回到首页
-          </Button>
+          <p className="text-sm text-stone-400">
+            {session.exitReason === 'creation_completed'
+              ? '作品已完成'
+              : '这次探索已经结束'}
+          </p>
+          <div className="flex items-center gap-2.5">
+            {session.exitReason === 'creation_completed' && onContinueCreation ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onContinueCreation}
+                className="h-11 rounded-full border-stone-300 px-6 text-stone-600 hover:border-amber-400 hover:bg-amber-50/50 hover:text-stone-800"
+              >
+                以此续作
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onBackHome}
+              className="h-11 rounded-full border-stone-300 px-6 text-stone-600 hover:border-amber-400 hover:bg-amber-50/50 hover:text-stone-800"
+            >
+              回到首页
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="mt-auto pb-8 pt-2">
@@ -232,7 +258,8 @@ export function ExperienceScreen({ session, onSend, onRetry, onBackHome }: Exper
         </div>
       )}
 
-      {/* 干净的结束层——这次探索到这里；零推荐、零续行 */}
+      {/* 干净的结束层——这次探索到这里；零推荐；
+          作品完成时「以此续作」为用户主动入口（G2-7） */}
       <AnimatePresence>
         {showEndOverlay ? (
           <motion.div
@@ -259,13 +286,25 @@ export function ExperienceScreen({ session, onSend, onRetry, onBackHome }: Exper
                   ? '你的每一步修改都完整保留在这次体验里'
                   : '你想继续的时候随时回来'}
               </p>
-              <Button
-                type="button"
-                onClick={onBackHome}
-                className="mt-2 h-12 rounded-full bg-amber-600 px-8 text-base text-white shadow-sm transition-colors hover:bg-amber-700 focus-visible:ring-amber-300"
-              >
-                回到首页
-              </Button>
+              <div className="mt-2 flex items-center gap-2.5">
+                {isCreationCompleted && onContinueCreation ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onContinueCreation}
+                    className="h-12 rounded-full border-stone-300 px-6 text-base text-stone-600 hover:border-amber-400 hover:bg-amber-50/50 hover:text-stone-800"
+                  >
+                    以此续作
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  onClick={onBackHome}
+                  className="h-12 rounded-full bg-amber-600 px-8 text-base text-white shadow-sm transition-colors hover:bg-amber-700 focus-visible:ring-amber-300"
+                >
+                  回到首页
+                </Button>
+              </div>
             </motion.div>
           </motion.div>
         ) : null}

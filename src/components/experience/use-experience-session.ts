@@ -131,12 +131,14 @@ export interface StartInput {
   seedId?: string;
   entry?: string;
   freeText?: string;
+  /** 完成后续作：种子会话 id（首轮图生图参考图的来源）。 */
+  continueSessionId?: string;
 }
 
 /** start 的呈现层初始信息（topic + 首轮展示文本——种子无角度时为 seed.prompt）。 */
 export interface StartOptions {
   topic: string;
-  origin: 'seed' | 'free';
+  origin: 'seed' | 'free' | 'continuation';
   /** 首轮待定气泡的文本；缺省时回退 freeText / entry。 */
   firstUserText?: string | null;
 }
@@ -264,7 +266,7 @@ function enrichTurns(
 
 export function useExperienceSession(options?: {
   onDirectionChanged?: () => void;
-  onStartFailed?: (origin: 'seed' | 'free') => void;
+  onStartFailed?: (origin: 'seed' | 'free' | 'continuation') => void;
 }) {
   const [session, setSession] = useState<ExperienceSessionState | null>(null);
   const sessionRef = useRef<ExperienceSessionState | null>(null);
@@ -272,7 +274,7 @@ export function useExperienceSession(options?: {
   const retryRef = useRef<{
     input: StartInput;
     topic: string;
-    origin: 'seed' | 'free';
+    origin: 'seed' | 'free' | 'continuation';
     firstUserText: string | null;
   } | null>(null);
   const cbRef = useRef(options);
@@ -511,7 +513,9 @@ export function useExperienceSession(options?: {
       ),
       generating: false,
       ended: completed,
-      exitReason: completed ? null : loaded.exitReason,
+      // 结束原因原样保留（呈现层据此区分「作品完成」——
+      // 可续作——与普通停止；与 syncFromServer 同一规则）。
+      exitReason: loaded.exitReason,
       readOnly: completed,
       branches,
       currentBranchId,
