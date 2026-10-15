@@ -97,6 +97,8 @@ export interface StartInput {
   seedId?: string;
   entry?: string; // 入口屏选定的角度 prompt（或种子默认 prompt）
   freeText?: string; // 首页自由输入（意图解析入口）
+  /** 完成后续作：以其最新图像产物为参考图种子建立新会话。 */
+  continueSessionId?: string;
 }
 
 const BOUNDARY_NOTICES: Record<string, string> = {
@@ -124,18 +126,49 @@ const WHAT_IF_IN_CREATION_NOTICE =
   '创作进行时暂时不能开新的模拟。你可以继续修改这个作品，说"就这样"完成它，或者直接提问题；想结束可以说"好了"。';
 
 export class ExperienceRuntime {
+  /** 续作种子：sessionId → 其图像参考图来源会话（内存态——
+   * 服务重启后回落为无参考图的纯文生图，诚实降级）。 */
+  private readonly continuationSeeds = new Map<string, string>();
+
   constructor(
     private readonly gateway: LlmGateway,
     private readonly media: MediaGateway = getMediaGateway()
   ) {}
 
-  /** 首页/入口屏 → 建立会话并跑完第一轮（意图解析 → 体验）。 */
+  /** 图像参考图解析：会话自身最新图像产物优先——
+   * 续作会话尚无产物时回落到种子会话（完成后续作的
+   * 一致性来源），再无则文生图。 */
+  private async loadTurnImageReference(sessionId: string): Promise<string | null> {
+    const own = await this.media.loadSessionImageReference(sessionId);
+    if (own !== null) return own;
+    const seedSessionId = this.continuationSeeds.get(sessionId);
+    return seedSessionId !== undefined
+      ? this.media.loadSessionImageReference(seedSessionId)
+      : null;
+  }
+
+  /** 首页/入口屏/完成后续作 → 建立会话并跑完第一轮（意图解析 → 体验）。 */
   async *start(input: StartInput, signal: AbortSignal): AsyncGenerator<TurnEvent> {
     let seedId: string | null = null;
     let topic = '';
     let firstInput = '';
+    let continueFrom: string | null = null;
 
-    if (input.seedId) {
+    if (input.continueSessionId) {
+      const prior = await store.loadSession(input.continueSessionId);
+      if (!prior) {
+        yield { type: 'error', code: 'INVALID_INPUT', message: '未找到该会话' };
+        return;
+      }
+      const continuation = input.freeText?.trim() ?? '';
+      if (!continuation) {
+        yield { type: 'error', code: 'INVALID_INPUT', message: '缺少续作输入' };
+        return;
+      }
+      continueFrom = prior.id;
+      topic = `${prior.topic}·续作`;
+      firstInput = continuation;
+    } else if (input.seedId) {
       const seed = getSeed(input.seedId);
       if (!seed) {
         yield { type: 'error', code: 'INVALID_INPUT', message: '未找到该体验' };
@@ -180,6 +213,7 @@ export class ExperienceRuntime {
       topic,
       experienceId: seedId ?? 'custom',
     });
+    if (continueFrom !== null) this.continuationSeeds.set(session.id, continueFrom);
     yield {
       type: 'session',
       sessionId: session.id,
@@ -685,10 +719,12 @@ export class ExperienceRuntime {
       // useContext / referential / regen 意图）时，会话最新
       // 图像产物作为参考图（图生图——官方 extra_body.image
       // 契约，dataURI 实证链 CR-61）；无既有产物 → 文生图。
+      // G2-7 续作：新会话首轮回落种子会话最新产物（见
+      // loadTurnImageReference）。
       const imageReference =
         intent.modality === 'image' &&
         (intent.useContext || intent.referential || intent.regen)
-          ? await this.media.loadSessionImageReference(sessionId)
+          ? await this.loadTurnImageReference(sessionId)
           : null;
       const record =
         intent.modality === 'image'

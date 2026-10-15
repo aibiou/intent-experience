@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 import { getSeed } from '@/lib/experience/catalog';
+import { ContinuationScreen } from '@/components/experience/continuation-screen';
 import { EntranceScreen } from '@/components/experience/entrance-screen';
 import { ExperienceScreen } from '@/components/experience/experience-screen';
 import { HomeScreen } from '@/components/experience/home-screen';
@@ -49,13 +50,20 @@ export default function Page() {
   const [works, setWorks] = useState<WorkSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [entranceSeed, setEntranceSeed] = useState<CatalogSeed | null>(null);
+  /** 完成后续作待输入态（G2-7）：种子会话 + 主题。 */
+  const [continuationOf, setContinuationOf] = useState<{
+    sessionId: string;
+    topic: string;
+  } | null>(null);
 
   const sessionApi = useExperienceSession({
     onDirectionChanged: () => {
       sessionApi.reset();
+      setContinuationOf(null);
       setPhase('home');
     },
     onStartFailed: (origin) => {
+      setContinuationOf(null);
       setPhase(origin === 'seed' && entranceSeed ? 'entrance' : 'home');
     },
   });
@@ -153,6 +161,34 @@ export default function Page() {
     [sessionApi]
   );
 
+  /** 作品完成 / 回看完成作品 → 以此续作：记住种子会话，
+   *  进入续作输入态（首轮输入即续作表达）。 */
+  const handleContinueCreation = useCallback(() => {
+    const current = sessionApi.session;
+    if (!current) return;
+    const seed = { sessionId: current.sessionId, topic: current.topic };
+    sessionApi.reset();
+    setContinuationOf(seed);
+  }, [sessionApi]);
+
+  /** 续作输入提交：以种子会话最新图像产物为参考图建立新会话。 */
+  const handleContinuationSubmit = useCallback(
+    (text: string) => {
+      const pending = continuationOf;
+      if (!pending) return;
+      sessionApi.start(
+        { continueSessionId: pending.sessionId, freeText: text },
+        {
+          topic: `${pending.topic}·续作`,
+          origin: 'continuation',
+          firstUserText: text,
+        }
+      );
+      setContinuationOf(null);
+    },
+    [continuationOf, sessionApi]
+  );
+
   /** 最近探索 / 作品墙 → 只读恢复历史轮次，继续当前会话（含媒体产物挂回）。 */
   const handleOpenRecent = useCallback(
     async (id: string) => {
@@ -171,6 +207,7 @@ export default function Page() {
 
   const handleBackHome = useCallback(() => {
     sessionApi.reset();
+    setContinuationOf(null);
     setPhase('home');
   }, [sessionApi]);
 
@@ -199,6 +236,18 @@ export default function Page() {
               onSubmitFreeText={handleFreeText}
             />
           </motion.div>
+        ) : phase === 'experience' && continuationOf && !sessionApi.session ? (
+          <motion.div
+            key="phase-continuation"
+            {...PHASE_MOTION}
+            className="flex flex-1 flex-col"
+          >
+            <ContinuationScreen
+              topic={continuationOf.topic}
+              onSubmit={handleContinuationSubmit}
+              onCancel={handleBackHome}
+            />
+          </motion.div>
         ) : phase === 'experience' && sessionApi.session ? (
           <motion.div key="phase-experience" {...PHASE_MOTION} className="flex flex-1 flex-col">
             <ExperienceScreen
@@ -206,6 +255,7 @@ export default function Page() {
               onSend={sessionApi.send}
               onRetry={sessionApi.retry}
               onBackHome={handleBackHome}
+              onContinueCreation={handleContinueCreation}
             />
           </motion.div>
         ) : null}
