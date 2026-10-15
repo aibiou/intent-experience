@@ -399,3 +399,26 @@ Stage Summary:
 - G2-6 多提供方容灾完成：单元层（链解析 + 转移接线 + 15 例新增单测）+ 真实上游全矩阵验证（转移成功 / 显式确定性失败 / 全链死亡如实汇总 / 稳态恢复）
 - G1 配置面收口：测试按钮真实连通性经浏览器验收
 - 待办：视频生成受上游队列饱和阻塞（503 queue full——容量问题，待上游恢复后重验）；G2-5 图像编辑端点、G2-4 语义记忆召回为后续阶段；推送仍阻塞（GitHub 认证凭据缺失——需用户本地推送或提供 PAT，勿在聊天中粘贴 token）
+
+---
+Task ID: 15
+Agent: Z.ai Code (主控)
+Task: G2-5 创作闭环——会话内图生图（「换一张」再生成）
+
+Work Log:
+- 意图识别（generation-intent.ts）：再生成表达（「换一张图片，夏天的服装」）此前只把逗号后约束提取为提示词、不暴露情境标记——新增 regen 意图标记（对上一张产物的修改），视频 / 图像两模态返回处携带；直接创作 / 换介质（useContext）/ 指代（referential）标记不变（+1 测试块 3 断言锁定：带约束再生成 → regen；无约束换介质 → useContext 而非 regen；直接创作「画一只在月光下的猫」无任何情境标记）
+- 运行时接线（runtime.ts）：图像生成前，情境再生成意图（useContext / referential / regen）经 loadSessionImageReference 挂载会话最新图像产物（dataURI）为参考图——图生图（官方 extra_body.image 契约，CR-61）；直接创作（首次「画一只猫」）不挂载（每次从零文生图）；视频 / 语音路径不变
+- 媒体网关客户端（media-gateway.ts）：generateImage 接受 referenceImages（validateReferenceImages 契约校验——仅 data:image/、解码 ≤1.5MB、至多 3 张，非法项静默丢弃）；带参考图时请求体 {prompt, referenceImages}
+- 会话参考图加载：索引按追加序（追加即时间序）取该会话末条图像产物 → dataURI；无产物 / 读取失败 → null（降级文生图，不阻断生成）
+- 实证链修复（e2e 暴露的真实缺陷）：提供方 2K 产物系统性超限（实测 Agnes 2K PNG 1,558,044 字节 > 1.5MB 契约上限）——原样透传被校验层丢弃、图生图退化为纯文生（CR-61 失败模式）。新增 toReferenceDataUri 适配：超限产物经 sharp JPEG q80 重编码（照片类内容体积骤降）适配上限，仍超限按宽度阶梯（1536/1024/768/512）等比缩小；解码失败 → null（防御性边界）；+3 单测（≤1.5MB 原样透传 / 噪声超限产物压缩至 ≤1.5MB 且通过契约校验 / 超限非图像产物 → null）
+- 网关证据日志（mini-gateway media.ts）：[image-gen] referenceImages=N first=… len=…（CR-61 实证链——确认参考图确实到达上游而非被参数兼容降级静默丢弃）
+- 真实验证（真实上游 Agnes hub，浏览器 e2e）：
+  - 直接创作「画一只在月光下的猫」→ 会话建立、Agnes 文本应答（月光猫创作阐述）、图像产物落盘（gen_mv8v98jt_zgvqin.png，1,329,660 字节）+ 会话内渲染（figure + 查看原图）✓——直接创作不挂参考图（gateway.log 无 [image-gen] 行，符合预期）
+  - 再生成「换一张图片，背景换成海边」→ 意图识别 image + prompt「背景换成海边」+ regen → 会话最新图像（月光猫）挂载为参考图 → 网关证据行「[image-gen] referenceImages=1 first=data:image/png;base64,iVBORw0KGg… len=1772902」——长度与产物逐字节对应（1,329,660 字节 → base64 1,772,880 字符 + 22 字符 dataURI 前缀 = 1,772,902，精确匹配）→ 网关按 extra_body.image 契约转发上游
+  - 上游边界（如实报告）：Agnes 图像队列饱和——再生成请求被上游接受入队后返回 HTTP 503「image queue is full, please retry later」（request id: 20261015013825181249630EZcd9rMq，经网关直连重放复现）。503 为可重试瞬态（内部重试 2 次仍满）→ 网关 502 MEDIA_UPSTREAM_ERROR → UI「这张图片没能生成：这次没生成出来，可以稍后再试一次」如实呈现。按 5xx 策略重试多轮（约 13 分钟，01:35–01:48）上游持续饱和（同期 Agnes 文本调用亦挂起 10+ 分钟——上游整体过载，非代码缺陷；对照：饱和前 01:29 同类文生图请求成功）。形态学验证：503 是「入队后满员」响应而非载荷拒绝——畸形参考图会被上游立即 400 拒绝而非入队，故参考图确实按契约到达上游
+- 验证：bun test tests/engine/ 309 pass / 0 fail（+4 测试块）；网关 bun test 69 pass / 0 fail；tsc 零新增错误（仅存量 examples/websocket socket.io 模块缺失与 policy.test.ts 重载错误——均先于本次变更存在）
+
+Stage Summary:
+- G2-5 创作闭环（会话内图生图）完成：意图层（regen 标记）+ 运行时（情境意图自动挂载会话最新产物）+ 客户端（契约校验 + 传输）+ 适配层（2K 产物超限修复——sharp 重编码 / 等比缩小）+ 实证链（网关证据日志）
+- 真实 e2e 验证至上游边界：参考图端到端到达 Agnes（证据行 + 长度精确匹配 + 入队式 503），最终出图受上游队列饱和阻塞（与视频模态同因——容量问题，待上游恢复后重验最终出图）
+- 待办：上游恢复后重验「换一张」最终出图（参考图链路已通，仅差上游执行）；作品墙续作（跨会话参考图）、视频参考参数（首尾帧 / 参考音频）为后续切片；推送仍阻塞（GitHub 认证凭据缺失——需用户本地推送或提供 PAT，勿在聊天中粘贴 token）

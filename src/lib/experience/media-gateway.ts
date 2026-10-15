@@ -17,6 +17,7 @@
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import sharp from 'sharp';
 import type { GenerationModality } from './generation-intent';
 
 const MEDIA_DIR = path.join(process.cwd(), 'data', 'media');
@@ -35,6 +36,9 @@ const REVIVE_THROTTLE_MS = 10_000;
 
 /** 网关拉起后的就绪等待（毫秒）。 */
 const REVIVE_WAIT_MS = 3_000;
+
+/** 参考图解码字节上限（官方 extra_body.image 契约）。 */
+const REFERENCE_MAX_BYTES = 1_500_000;
 
 /** 网关健康检查（静默——不可达走拉起路径）。 */
 let lastReviveAt = 0;
@@ -174,6 +178,77 @@ export interface MediaPersistOptions {
   signal?: AbortSignal;
 }
 
+/** 图像生成选项（G2-5 创作闭环——参考图生图）。 */
+export interface ImageGenerateOptions extends MediaPersistOptions {
+  /** 参考图 dataURI 数组（官方 extra_body.image 契约——
+   * 生成与参考图主体一致；校验后 ≤3 张）。 */
+  referenceImages?: string[];
+}
+
+/**
+ * 参考图校验（官方 extra_body.image 契约——dataURI 白名单：
+ * 仅 data:image/、解码后 ≤1.5MB、至多 3 张；非法项静默丢弃。
+ * CR-61：按 base64 负载估算解码字节（len×3/4，padding 略高估——
+ * 判定保守不误放），避免大图被字符串长度误杀导致图生图
+ * 退化为纯文生。
+ */
+export function validateReferenceImages(refs: readonly string[]): string[] {
+  const valid = refs.filter((item) => {
+    if (typeof item !== 'string' || !item.startsWith('data:image/')) {
+      return false;
+    }
+    const metaEnd = item.indexOf(',');
+    if (metaEnd < 0) return false;
+    const payloadLength = item.length - metaEnd - 1;
+    if (payloadLength <= 0) return false;
+    return (payloadLength * 3) / 4 <= REFERENCE_MAX_BYTES;
+  });
+  return valid.slice(0, 3);
+}
+
+/**
+ * 参考图 dataURI 适配（CR-61 契约硬约束——解码后 ≤1.5MB）：
+ * 提供方 2K 产物系统性超限（实测 Agnes 2K PNG ~1.56MB），
+ * 原样透传会被校验层丢弃、图生图退化为纯文生图（CR-61
+ * 失败模式）。超限产物经 JPEG q80 重编码（照片类内容体积
+ * 骤降）适配；仍超限再等比缩小（宽度阶梯），直至适配；
+ * 全部候选耗尽 / 产物解码失败 → null（降级文生图——防御
+ * 性边界，真实图像在 512 宽度内必然适配）。
+ */
+export async function toReferenceDataUri(
+  buffer: Buffer,
+  mime: string,
+): Promise<string | null> {
+  if (buffer.byteLength <= REFERENCE_MAX_BYTES) {
+    return `data:${mime};base64,${buffer.toString('base64')}`;
+  }
+  try {
+    const widthSteps: ReadonlyArray<number | undefined> = [
+      undefined,
+      1536,
+      1024,
+      768,
+      512,
+    ];
+    for (const width of widthSteps) {
+      let pipeline = sharp(buffer);
+      if (width !== undefined) {
+        pipeline = pipeline.resize({
+          width,
+          withoutEnlargement: true,
+        });
+      }
+      const encoded = await pipeline.jpeg({ quality: 80 }).toBuffer();
+      if (encoded.byteLength <= REFERENCE_MAX_BYTES) {
+        return `data:image/jpeg;base64,${encoded.toString('base64')}`;
+      }
+    }
+  } catch {
+    // 产物解码失败——降级为文生图（不阻断生成）
+  }
+  return null;
+}
+
 /** mime → 落盘扩展名。 */
 const EXT_BY_MIME: Readonly<Record<string, string>> = {
   'image/png': 'png',
@@ -186,18 +261,45 @@ const EXT_BY_MIME: Readonly<Record<string, string>> = {
 };
 
 export class MediaGateway {
-  /** 图像生成（体验流内嵌卡片与宽内容卡一致）。 */
+  /** 图像生成（体验流内嵌卡片与宽内容卡一致；带参考图时为图生图）。 */
   async generateImage(
     prompt: string,
-    options: MediaPersistOptions,
+    options: ImageGenerateOptions,
   ): Promise<MediaArtifactRecord> {
+    const referenceImages = validateReferenceImages(
+      options.referenceImages ?? [],
+    );
     const artifact = await callMediaEndpoint(
       '/v1/images/generations',
-      { prompt },
+      referenceImages.length > 0
+        ? { prompt, referenceImages }
+        : { prompt },
       MEDIA_TIMEOUT_MS,
     );
     const { buffer, mime } = await artifactToBuffer(artifact);
     return this.persist(buffer, mime, 'image', prompt, options);
+  }
+
+  /**
+   * 会话最新图像产物（dataURI——图生图参考，G2-5 创作闭环：
+   * 「换一张」/ 按材料修改时把上一张产物作为参考图，而非
+   * 每次从零开始）。索引按追加序（追加即时间序），取末条；
+   * 无图像产物 / 文件读取失败 → null（降级为文生图——不
+   * 阻断生成，诚实边界）。
+   */
+  async loadSessionImageReference(sessionId: string): Promise<string | null> {
+    const index = await this.readIndex();
+    const images = index.filter(
+      (record) => record.sessionId === sessionId && record.modality === 'image',
+    );
+    const latest = images[images.length - 1];
+    if (!latest) return null;
+    try {
+      const buffer = await readFile(path.join(MEDIA_DIR, latest.file));
+      return await toReferenceDataUri(buffer, latest.mime);
+    } catch {
+      return null;
+    }
   }
 
   /** 语音合成（朗读——提供方默认音色；TTS 单次输入上限 1024 字符）。 */

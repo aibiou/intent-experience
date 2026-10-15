@@ -680,9 +680,24 @@ export class ExperienceRuntime {
         return;
       }
       yield { type: 'generation', status: 'started', turn, modality: intent.modality, prompt: promptUsed };
+      // G2-5 创作闭环：情境再生成（「换一张图片，X」再生成 /
+      // 「用图片展现刚才的内容」呈现 / 「对应的猫图片」指代——
+      // useContext / referential / regen 意图）时，会话最新
+      // 图像产物作为参考图（图生图——官方 extra_body.image
+      // 契约，dataURI 实证链 CR-61）；无既有产物 → 文生图。
+      const imageReference =
+        intent.modality === 'image' &&
+        (intent.useContext || intent.referential || intent.regen)
+          ? await this.media.loadSessionImageReference(sessionId)
+          : null;
       const record =
         intent.modality === 'image'
-          ? await this.media.generateImage(promptUsed, { sessionId, turn, signal })
+          ? await this.media.generateImage(promptUsed, {
+              sessionId,
+              turn,
+              signal,
+              ...(imageReference ? { referenceImages: [imageReference] } : {}),
+            })
           : intent.modality === 'video'
             ? await this.media.generateVideo(promptUsed, { sessionId, turn, signal })
             : await this.media.generateVoice(promptUsed, { sessionId, turn, signal });
