@@ -20,7 +20,6 @@ import { Input } from '@/components/ui/input';
 import type { ExperienceStage } from '@/lib/experience/types';
 import type { ExperienceSessionState } from './use-experience-session';
 import { BranchPanel } from './branch-panel';
-import { ThinkingIndicator } from './thinking-indicator';
 import { TurnItem } from './turn-item';
 
 const STAGE_LABELS: Record<ExperienceStage, string> = {
@@ -99,6 +98,9 @@ export function ExperienceScreen({
     Boolean(session.sessionId);
   // 媒体入口仅在有已呈现内容后出现（朗读/呈现的材料是上一轮内容）。
   const hasSettledContent = session.turns.some((t) => t.kind !== undefined);
+  // 阶段徽章只在有真实内容（或正在生成）时可信——restore 失败会话
+  // 零内容仍挂「阶段·好奇/刚开始」是虚假标签（2026-10-16 模拟用户⑧）。
+  const showStageBadge = hasSettledContent || session.generating;
 
   return (
     <main className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col px-4">
@@ -108,17 +110,21 @@ export function ExperienceScreen({
           <h1 className="line-clamp-2 text-base font-medium leading-snug text-stone-800 md:text-lg">
             {session.topic}
           </h1>
-          <div className="mt-1.5 flex items-center gap-2.5">
-            <Badge
-              variant="outline"
-              className="rounded-full border-amber-300/70 bg-amber-50/60 px-2.5 font-normal text-amber-700/90"
-            >
-              阶段 · {STAGE_LABELS[session.stage] ?? session.stage}
-            </Badge>
-            <span className="text-xs text-stone-400">
-              {session.turn > 0 ? `已 ${session.turn} 轮` : '刚开始'}
-            </span>
-          </div>
+          {showStageBadge ? (
+            <div className="mt-1.5 flex items-center gap-2.5">
+              <Badge
+                variant="outline"
+                className="rounded-full border-amber-300/70 bg-amber-50/60 px-2.5 font-normal text-amber-700/90"
+              >
+                阶段 · {STAGE_LABELS[session.stage] ?? session.stage}
+              </Badge>
+              <span className="text-xs text-stone-400">
+                {session.turn > 0 ? `已 ${session.turn} 轮` : '刚开始'}
+              </span>
+            </div>
+          ) : (
+            <div className="mt-1.5 text-xs text-stone-400">还没有生成内容</div>
+          )}
         </div>
         {session.readOnly ? (
           <span className="mt-1 shrink-0 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs text-stone-400">
@@ -148,14 +154,6 @@ export function ExperienceScreen({
         {session.turns.map((item) => (
           <TurnItem key={item.key} item={item} totalBranches={session.branches.length} />
         ))}
-
-        {/* 生成进行中且存在尚未收到内容的轮次 → 明确"正在生成"反馈
-            （2026-10-16 模拟用户实测：原条件 every(kind!==undefined) 语义
-            反了——生成中恰好是 kind 未定的轮，导致无任何进行中指示、
-            静默死屏）。 */}
-        {session.generating && session.turns.some((t) => t.kind === undefined) ? (
-          <ThinkingIndicator />
-        ) : null}
 
         {showRetry ? (
           <div className="rounded-2xl border border-dashed border-stone-300 px-6 py-8 text-center">

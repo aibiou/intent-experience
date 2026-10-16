@@ -21,6 +21,7 @@ import { EntranceScreen } from '@/components/experience/entrance-screen';
 import { ExperienceScreen } from '@/components/experience/experience-screen';
 import { HomeScreen } from '@/components/experience/home-screen';
 import { MottoFooter } from '@/components/experience/motto-footer';
+import { WorkViewer } from '@/components/experience/work-viewer';
 import {
   useExperienceSession,
   type LoadedSession,
@@ -55,6 +56,8 @@ export default function Page() {
     sessionId: string;
     topic: string;
   } | null>(null);
+  /** 孤儿作品兜底查看（会话已不存在但媒体仍在——历史残留语音/图像）。 */
+  const [viewingWork, setViewingWork] = useState<WorkSummary | null>(null);
 
   const sessionApi = useExperienceSession({
     onDirectionChanged: () => {
@@ -189,9 +192,10 @@ export default function Page() {
     [continuationOf, sessionApi]
   );
 
-  /** 最近探索 / 作品墙 → 只读恢复历史轮次，继续当前会话（含媒体产物挂回）。 */
+  /** 最近探索 / 作品墙 → 只读恢复历史轮次，继续当前会话（含媒体产物挂回）。
+   *  作品墙点击若会话已不存在（孤儿媒体），兜底为作品本体查看而非 toast 拒绝。 */
   const handleOpenRecent = useCallback(
-    async (id: string) => {
+    async (id: string, fallbackWork?: WorkSummary) => {
       try {
         const res = await fetch(`/api/experience/session?id=${encodeURIComponent(id)}`);
         if (!res.ok) throw new Error('session failed');
@@ -199,6 +203,10 @@ export default function Page() {
         sessionApi.restore({ ...data.session, media: data.media });
         setPhase('experience');
       } catch {
+        if (fallbackWork) {
+          setViewingWork(fallbackWork);
+          return;
+        }
         toast({ description: '这个会话暂时打不开，稍后再试试。' });
       }
     },
@@ -261,6 +269,11 @@ export default function Page() {
         ) : null}
       </AnimatePresence>
       <MottoFooter />
+      <AnimatePresence>
+        {viewingWork ? (
+          <WorkViewer work={viewingWork} onClose={() => setViewingWork(null)} />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
