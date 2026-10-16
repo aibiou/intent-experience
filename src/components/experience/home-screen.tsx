@@ -37,7 +37,7 @@ interface HomeScreenProps {
   onPickState: (category: 'relax' | 'discover' | 'deep' | 'create') => void;
   onWild: () => void;
   onSubmitFreeText: (text: string) => void;
-  onOpenRecent: (id: string) => void;
+  onOpenRecent: (id: string, work?: WorkSummary) => void;
 }
 
 const MODALITY_LABEL: Readonly<Record<WorkSummary['modality'], string>> = {
@@ -217,13 +217,13 @@ export function HomeScreen({
   );
 }
 
-/** 作品墙卡片——图像缩略图；语音/视频内联播放；点击回看所属会话。 */
+/** 作品墙卡片——图像缩略图；语音/视频内联播放；点击回看所属会话（会话缺失时兜底为作品查看）。 */
 function WorkCard({
   work,
   onOpen,
 }: {
   work: WorkSummary;
-  onOpen: (sessionId: string) => void;
+  onOpen: (sessionId: string, work?: WorkSummary) => void;
 }) {
   const caption = (
     <span className="block px-3 py-2.5">
@@ -245,7 +245,7 @@ function WorkCard({
     return (
       <button
         type="button"
-        onClick={() => onOpen(work.sessionId)}
+        onClick={() => onOpen(work.sessionId, work)}
         className="block w-full overflow-hidden rounded-2xl border border-stone-200/90 bg-white text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-300/80 hover:shadow-[0_2px_8px_rgba(87,83,78,0.08)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
       >
         <img
@@ -274,7 +274,7 @@ function WorkCard({
       </div>
       <button
         type="button"
-        onClick={() => onOpen(work.sessionId)}
+        onClick={() => onOpen(work.sessionId, work)}
         aria-label={`回看会话：${work.topic ?? work.promptUsed}`}
         className="block w-full text-left transition-colors hover:bg-amber-50/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber-500"
       >
