@@ -25,8 +25,9 @@
  */
 
 import { createDecipheriv } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 /** 提供方模态（按模态路由：文本/图像/视频/语音各自独立选提供方）。 */
 export type ProviderModality = 'text' | 'image' | 'video' | 'voice';
@@ -240,10 +241,29 @@ export class ConfigStore {
 /**
  * 统一配置路径：主应用的 data/config/provider-configs.json。
  * 环境变量 EXPERIENCE_CONFIG_STORE_PATH 可覆盖（与主应用 config-store.ts 对齐）。
+ *
+ * cwd 无关解析（2026-10-16 修复）：网关可能从不同目录被拉起——
+ * 主应用 spawn（cwd=主应用根）、手动 bun index.ts（cwd=mini-services/
+ * model-gateway）——默认路径若按 process.cwd() 死解析，后者会读到
+ * mini-services/model-gateway/data/config/...（不存在 → 空配置 →
+ * MEDIA_PROVIDER_MISSING，所有模态"未配置"）。改为从 cwd 向上逐级
+ * 探测 data/config/provider-configs.json，任何启动目录都能定位统一配置源。
  */
+function findUnifiedConfigPath(startDir: string): string | undefined {
+  let dir = startDir;
+  for (;;) {
+    const candidate = join(dir, 'data', 'config', 'provider-configs.json');
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) return undefined; // 已到文件系统根
+    dir = parent;
+  }
+}
+
 export function defaultStorePath(): string {
   return (
     process.env.EXPERIENCE_CONFIG_STORE_PATH ??
+    findUnifiedConfigPath(process.cwd()) ??
     join(process.cwd(), 'data/config/provider-configs.json')
   );
 }

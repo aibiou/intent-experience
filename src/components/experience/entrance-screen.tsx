@@ -14,6 +14,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { CatalogSeed } from './client-types';
 
+/** 入口顶部标签按种子类别呈现（与首页四状态入口呼应，不再写死「一个问题」）。 */
+const ENTRANCE_LABEL: Record<CatalogSeed['category'], string> = {
+  discover: '一个发现',
+  deep: '一个问题',
+  create: '一个创作',
+  relax: '一个放松',
+  wild: '一次探索',
+};
+
 interface EntranceScreenProps {
   seed: CatalogSeed;
   onStart: (entry: string | null) => void;
@@ -41,7 +50,9 @@ export function EntranceScreen({ seed, onStart, onChange, onSubmitFreeText }: En
         transition={{ duration: 0.35, ease: 'easeOut' }}
         className="w-full max-w-xl"
       >
-        <p className="text-center text-xs tracking-[0.3em] text-amber-600/90">一个问题</p>
+        <p className="text-center text-xs tracking-[0.3em] text-amber-600/90">
+          {ENTRANCE_LABEL[seed.category] ?? '一次探索'}
+        </p>
 
         <h1 className="mt-6 text-center text-2xl font-medium leading-snug text-stone-800 md:text-4xl md:leading-snug">
           {seed.hook}

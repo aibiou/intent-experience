@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   transitionExperience,
   initialExperienceView,
-} from '../../src/experience/state-machine';
+} from '../../src/lib/experience/state-machine';
 
 /**
  * 状态机（state-machine.ts）——体验状态/阶段转移表。
@@ -116,6 +116,14 @@ describe('state-machine：非法 / 终态拒绝', () => {
     );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe('INVALID_STATE_TRANSITION');
+  });
+
+  it('ENTERING 上 CHANGE_DIRECTION 合法（失败态可换方向——2026-10-16 实测缺口回归锁）', () => {
+    const r = transitionExperience(
+      { status: 'ENTERING', stage: 'CURIOSITY' },
+      'CHANGE_DIRECTION',
+    );
+    expect(r).toEqual({ ok: true, next: { status: 'ENTERING', stage: 'CURIOSITY' } });
   });
 
   it('WAITING 上 EXPERIENCE_STARTED 不合法（READY 目标需 ENTERING 源）', () => {

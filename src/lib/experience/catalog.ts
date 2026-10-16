@@ -317,22 +317,44 @@ const GENERIC_TAG_STOPWORDS: ReadonlySet<string> = new Set([
   '问题',
 ]);
 
+/** 种子匹配结果（含得分与强命中标记——runtime 据此决定是否承接种子）。 */
+export interface SeedMatch {
+  seed: ExperienceSeed;
+  score: number;
+  /** 标题 / 入口 prompt 命中（score≥3 中的标题或 entries 命中）——
+   * 用户明确点了这个种子；仅 tag 组合命中不算强命中。 */
+  strong: boolean;
+}
+
 /** 按关键词匹配目录种子（首页自由输入的意图解析用——确定性规则）。 */
-export function matchSeed(freeText: string): ExperienceSeed | null {
-  let best: { seed: ExperienceSeed; score: number } | null = null;
+export function matchSeedScored(freeText: string): SeedMatch | null {
+  let best: { seed: ExperienceSeed; score: number; strong: boolean } | null = null;
   for (const seed of EXPERIENCE_CATALOG) {
     let score = 0;
     for (const tag of seed.tags) {
       if (GENERIC_TAG_STOPWORDS.has(tag)) continue;
       if (freeText.includes(tag)) score += 2;
     }
-    if (freeText.includes(seed.title)) score += 3;
-    if (seed.entries.some((e) => freeText.includes(e.prompt))) score += 3;
+    const titleHit = freeText.includes(seed.title);
+    const entryHit = seed.entries.some((e) => freeText.includes(e.prompt));
+    if (titleHit) score += 3;
+    if (entryHit) score += 3;
     if (score > 0 && (!best || score > best.score)) {
-      best = { seed, score };
+      best = { seed, score, strong: titleHit || entryHit };
     }
   }
-  return best ? best.seed : null;
+  // 匹配强度门槛（2026-10-16 修复，对应 worklog 已知边界①）：
+  // 仅 tag 组合沾边（如「雨」+「咖啡」→ 雨夜咖啡馆声音漫游种子）不
+  // 视为用户明确选择该种子——否则「帮我做一张雨夜咖啡馆的图」会被
+  // 吸进种子体验、topic 显示种子 hook 而非用户原话
+  // （自由输入"用户的话没被接住"，模拟用户实测 P0）。
+  // score≥3 才可能承接；是否承接由 runtime 结合语义动作决定
+  // （创作意图仅 strong 命中才承接——见 runtime.start）。
+  return best && best.score >= 3 ? best : null;
+}
+
+export function matchSeed(freeText: string): ExperienceSeed | null {
+  return matchSeedScored(freeText)?.seed ?? null;
 }
 
 export function getSeed(seedId: string): ExperienceSeed | null {

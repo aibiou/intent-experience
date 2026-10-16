@@ -47,6 +47,11 @@ const LEGAL_TRANSITIONS: ReadonlyArray<TransitionRule> = [
   { from: 'READY', to: 'ENTERING', toStage: 'CURIOSITY' },
   { from: 'ACTIVE', to: 'ENTERING', toStage: 'CURIOSITY' },
   { from: 'WAITING', to: 'ENTERING', toStage: 'CURIOSITY' },
+  // 失败态可换方向（模拟用户实测缺口 2026-10-16：首轮生成失败后
+  // 会话停在 ENTERING/CURIOSITY，用户说「换一个」被拒绝——违反
+  // 「用户始终能纠正、深入、改变方向或停止」。修复语义：ENTERING
+  // 上 CHANGE_DIRECTION 合法（按 S3B 会话结束语义收束回首页）。
+  { from: 'ENTERING', to: 'ENTERING', toStage: 'CURIOSITY' },
 ];
 
 /** WHAT_IF 的阶段迁移（§15.2 UNDERSTANDING→SIMULATION；§15.3 SIMULATION→SIMULATION）。 */

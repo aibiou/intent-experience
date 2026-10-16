@@ -96,12 +96,22 @@ const LEGAL_TRANSITIONS: ReadonlyArray<TransitionRule> = [
   { from: 'WAITING', to: 'ACTIVE' },
   { from: 'ACTIVE', to: 'COMPLETED', toStage: 'COMPLETION' },
   { from: 'WAITING', to: 'COMPLETED', toStage: 'COMPLETION' },
+  // 缺口修复（单测发现的 ENTERING 卡死缺陷）：首轮生成失败会话遗留
+  // ENTERING 视图时，用户 STOP 无处可去 → 会话永久 ACTIVE（GS-04 违背）。
+  // 修复语义：ENTERING / READY 上 STOP 合法（用户主权：任何时刻可停）。
+  { from: 'ENTERING', to: 'COMPLETED', toStage: 'COMPLETION' },
+  { from: 'READY', to: 'COMPLETED', toStage: 'COMPLETION' },
   { from: 'READY', to: 'ENTERING', toStage: 'CURIOSITY' },
   { from: 'ACTIVE', to: 'ENTERING', toStage: 'CURIOSITY' },
   // 生成中断归位（S6）把悬挂生成落回 WAITING 后，用户重试 CHANGE——
   // WAITING 下换方向语义合法（状态机规范 §13 未限制源状态）；缺此规则致
   // G05-FR 故障恢复死锁（INVALID_STATE_TRANSITION）。（G05-FR 缺陷修复）
   { from: 'WAITING', to: 'ENTERING', toStage: 'CURIOSITY' },
+  // 失败态可换方向（模拟用户实测缺口 2026-10-16：首轮生成失败后
+  // 会话停在 ENTERING/CURIOSITY，用户说「换一个」被拒绝——违反
+  // 「用户始终能纠正、深入、改变方向或停止」。修复语义：ENTERING
+  // 上 CHANGE_DIRECTION 合法（按 S3B 会话结束语义收束回首页）。
+  { from: 'ENTERING', to: 'ENTERING', toStage: 'CURIOSITY' },
 ];
 
 /** WHAT_IF 的阶段迁移（§15.2 UNDERSTANDING→SIMULATION；§15.3 SIMULATION→SIMULATION）。 */
