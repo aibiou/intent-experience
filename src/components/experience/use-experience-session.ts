@@ -498,7 +498,20 @@ export function useExperienceSession(options?: {
   const restore = useCallback((loaded: LoadedSession) => {
     abortInFlight();
     const completed = loaded.status === 'COMPLETED';
-    retryRef.current = null;
+    // 2026-10-16 修复：失败/未完成的恢复会话要能「再试一次」——
+    // 此前 retryRef 恒为 null，restore 会话点「再试一次」静默 return
+    // （模拟用户实测：等满 4 分钟零反馈）。重发首条用户输入即可。
+    const firstUserTurn = loaded.state.history.find((h) => h.userText);
+    retryRef.current = completed
+      ? null
+      : firstUserTurn
+        ? {
+            input: { freeText: firstUserTurn.userText },
+            topic: loaded.topic,
+            origin: 'free',
+            firstUserText: firstUserTurn.userText,
+          }
+        : null;
     const { branches, currentBranchId } = deriveBranches(loaded.state);
     const restored: ExperienceSessionState = {
       sessionId: loaded.id,
