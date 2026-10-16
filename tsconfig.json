@@ -41,6 +41,8 @@
     "reference",
     "src/experience",
     "tools",
+    "tests",
+    "examples",
     "artifacts",
     "spike",
     "vitest.config.ts"
