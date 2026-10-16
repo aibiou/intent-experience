@@ -45,6 +45,7 @@ export const RESTORE_PATTERNS: ReadonlyArray<RegExp> = [
   /刚才那个更好/,
   /退回刚才那个/,
   /撤销刚才修改/,
+  /撤销刚才的修改/,
 ];
 
 /** 指代词表（D-02 选项 A：命中 → 上一候选；确定性规则，无新增模型调用）。 */

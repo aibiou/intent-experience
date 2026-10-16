@@ -478,6 +478,17 @@ export class ExperienceRuntime {
     expectedVersion: number
   ): AsyncGenerator<TurnEvent> {
     void session;
+    // 首轮（ENTERING）时先启动体验（与 runTurn 同规则）：用户第一条消息
+    // 即记忆操作不应被拒——先进入体验，再执行记忆变异。
+    const isFirstTurn = state.turn === 0 && state.view.status === 'ENTERING';
+    if (isFirstTurn) {
+      const started = transitionExperience(state.view, 'EXPERIENCE_STARTED');
+      if (!started.ok) {
+        yield { type: 'error', code: 'INVALID_INPUT', message: '体验启动状态非法' };
+        return;
+      }
+      state.view = started.next;
+    }
     // 前置视图迁移校验（先于任何记忆变异——被拒绝的轮次不得留下副作用）：
     // 纯状态机检查（零写入），失败即整轮拒绝（OBL-01 同族纪律——
     // 记忆写入与轮次提交必须同为"全成或全不成"，不允许"轮次被拒但记忆已变"）。
