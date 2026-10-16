@@ -305,6 +305,14 @@ const AXIS_CONFLICT_PATTERNS: ReadonlyArray<{ pattern: RegExp; axis: string }> =
   { pattern: /为什么|为何|为啥/, axis: 'WHY' },
 ];
 
+/** 冲突轴 → 用户话术（澄清问题展示用；不透出内部轴名）。 */
+const AXIS_USER_LABELS: Readonly<Record<string, string>> = {
+  CHANGE_DIRECTION: '换个方向',
+  CORRECTION: '纠正一下刚才的理解',
+  WHAT_IF: '做个假设推演',
+  WHY: '追问原因',
+};
+
 /**
  * 创作会话内输入解释（08 §13 理解职责）。
  * 仅当通用分类器返回 UNKNOWN 时由运行时调用（通用分类权威不变；
@@ -370,10 +378,11 @@ export function interpretCreationInput(
   //    至多一个澄清问题）。
   for (const axis of AXIS_CONFLICT_PATTERNS) {
     if (axis.pattern.test(rawInput)) {
+      const label = AXIS_USER_LABELS[axis.axis] ?? axis.axis;
       return {
         kind: 'ambiguous',
         conflictingAxis: axis.axis,
-        question: `你的输入同时涉及修改当前作品与${axis.axis}意图。请确认：要把它作为当前作品的修改，还是作为${axis.axis}处理？（创作 ASK 纪律：至多一个澄清问题，08 §16）`,
+        question: `这一句既像在修改当前作品，又像想${label}。先确认一下：它是作为作品的修改，还是作为${label}？`,
       };
     }
   }
