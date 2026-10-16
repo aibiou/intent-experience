@@ -153,27 +153,70 @@ export const DEFAULT_PROVIDER_TEMPERATURE = 0.7;
 export const DEFAULT_PROVIDER_SYSTEM_PROMPT =
   '你是个人体验引擎的回应生成器。依据提供的上下文，生成对用户的回应内容。';
 
-/** 已验证提供方预设（S5B v1.1.0 起：预设非准入——自定义配置无需登记）。 */
-export const PROVIDER_PROFILES: Readonly<
-  Record<string, { endpoint: string; defaultModel: string; temperature: number; systemPrompt: string }>
-> = {
+/**
+ * 提供方预设（S5B v1.1.0 起：预设非准入——自定义配置无需登记）。
+ *
+ * label / modality 供配置页「快捷接入」使用（按模态归组）；
+ * 未标注的条目视为文本模态的纯端点预设。
+ */
+export interface ProviderProfile {
+  endpoint: string;
+  defaultModel: string;
+  temperature: number;
+  systemPrompt: string;
+  /** 配置页显示名（缺省用预设 key）。 */
+  label?: string;
+  /** 预设所属模态（缺省 text——配置页快捷接入按此归组）。 */
+  modality?: 'text' | 'voice' | 'image' | 'video';
+}
+
+export const PROVIDER_PROFILES: Readonly<Record<string, ProviderProfile>> = {
   dashscope: {
     endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
     defaultModel: 'qwen-plus',
     temperature: DEFAULT_PROVIDER_TEMPERATURE,
     systemPrompt: DEFAULT_PROVIDER_SYSTEM_PROMPT,
+    label: '阿里云百炼（通义千问）',
+    modality: 'text',
   },
   volcengine: {
     endpoint: 'https://ark.cn-beijing.volces.com/api/v3',
     defaultModel: 'doubao-seed-2-0-lite-260428',
     temperature: DEFAULT_PROVIDER_TEMPERATURE,
     systemPrompt: DEFAULT_PROVIDER_SYSTEM_PROMPT,
+    label: '火山方舟（豆包）',
+    modality: 'text',
   },
   'doubao-voice': {
     endpoint: 'https://openspeech.bytedance.com',
     defaultModel: 'seed-audio-1.0',
     temperature: DEFAULT_PROVIDER_TEMPERATURE,
     systemPrompt: DEFAULT_PROVIDER_SYSTEM_PROMPT,
+    label: '豆包语音（火山引擎）',
+    modality: 'voice',
+  },
+  // 腾讯混元生图（TokenHub）——元宝 App「AI 生图」同源模型：
+  // 端点走官方自有路径 /wand/hunyuan-image/*（由 image-contract
+  // 按模型名路由），非 OpenAI 兼容 images/generations。
+  '元宝生图': {
+    endpoint: 'https://tokenhub.tencentmaas.com/v1',
+    defaultModel: 'hy-image-v3.5-preview',
+    temperature: DEFAULT_PROVIDER_TEMPERATURE,
+    systemPrompt: DEFAULT_PROVIDER_SYSTEM_PROMPT,
+    label: '元宝生图（腾讯混元 Hy-Image）',
+    modality: 'image',
+  },
+  // 元宝 App 本机桥接（tools/yuanbao-bridge）——直接驱动本机元宝
+  // 「AI 生图」出图。桥接对外暴露 OpenAI 兼容 /v1/images/generations，
+  // 产物落到本机文件后经 GET /v1/images/<id> 回传字节。密钥字段
+  // 仅作表单必填占位，桥接不校验（填 local 即可）。
+  '元宝本机': {
+    endpoint: 'http://127.0.0.1:3210/v1',
+    defaultModel: 'yuanbao-app-local',
+    temperature: DEFAULT_PROVIDER_TEMPERATURE,
+    systemPrompt: DEFAULT_PROVIDER_SYSTEM_PROMPT,
+    label: '元宝 App 本机生图（AI 生图）',
+    modality: 'image',
   },
 };
 

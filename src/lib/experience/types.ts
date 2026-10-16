@@ -125,6 +125,7 @@ export type TurnEvent =
       status: 'completed';
       turn: number;
       modality: GenerationModality;
+      urls: string[];
       url: string;
       promptUsed: string;
       mime: string;

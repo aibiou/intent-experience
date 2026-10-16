@@ -12,10 +12,20 @@ import { sessionTopicsByIds } from '@/lib/experience/store';
 const WORKS_LIMIT = 48;
 
 export async function GET() {
-  const records = (await getMediaGateway().readIndex())
+  const allRecords = (await getMediaGateway().readIndex())
     .slice()
     .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
     .slice(0, WORKS_LIMIT);
+
+  // 同一轮多候选只占作品墙一个位置，避免一次 4 图把回看流刷满；
+  // 全部候选仍保留在所属会话里供用户选择。
+  const seenTurns = new Set<string>();
+  const records = allRecords.filter((record) => {
+    const key = `${record.sessionId}:${record.turn}`;
+    if (seenTurns.has(key)) return false;
+    seenTurns.add(key);
+    return true;
+  });
 
   const topics = await sessionTopicsByIds([
     ...new Set(records.map((r) => r.sessionId)),

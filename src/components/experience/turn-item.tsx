@@ -17,7 +17,7 @@
  * 不改变轮次本身的呈现语义。
  */
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, AudioLines, ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -383,6 +383,95 @@ function MediaPending({
   );
 }
 
+function imageUrls(media: TurnMedia): string[] {
+  const urls = media.urls?.filter((url) => typeof url === 'string' && url.length > 0)
+    ?? (media.url ? [media.url] : []);
+  return [...new Set(urls)];
+}
+
+function ImageResultBlock({ media }: { media: TurnMedia }) {
+  const urls = imageUrls(media);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  if (urls.length === 0) return null;
+
+  const safeIndex = Math.min(Math.max(selectedIndex, 0), urls.length - 1);
+  const selectedUrl = urls[safeIndex];
+
+  return (
+    <figure
+      data-media-result
+      className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_6px_24px_rgba(87,83,78,0.10)]"
+    >
+      <a
+        href={selectedUrl}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`查看第 ${safeIndex + 1} 张原图`}
+        className="group flex max-h-[min(24dvh,220px)] items-center justify-center overflow-hidden bg-stone-50 md:max-h-[min(34dvh,420px)]"
+      >
+        <img
+          src={selectedUrl}
+          alt={media.promptUsed ?? '根据这次体验内容生成的图片'}
+          className="max-h-[min(24dvh,220px)] w-auto max-w-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.01] md:max-h-[min(34dvh,420px)]"
+          loading="lazy"
+        />
+      </a>
+
+      {urls.length > 1 ? (
+        <nav
+          aria-label="选择生成候选"
+          className="grid grid-cols-4 gap-2 border-t border-stone-100 bg-white p-2"
+        >
+          {urls.map((url, index) => (
+            <button
+              key={url}
+              type="button"
+              onClick={() => setSelectedIndex(index)}
+              aria-pressed={index === safeIndex}
+              aria-label={`查看候选 ${index + 1}`}
+              className={`h-16 overflow-hidden rounded-lg border transition-all duration-200 ${
+                index === safeIndex
+                  ? 'border-amber-400/90 ring-2 ring-amber-400/20'
+                  : 'border-stone-200/80 opacity-80 hover:border-amber-300/80 hover:opacity-100'
+              }`}
+            >
+              <img
+                src={url}
+                alt=""
+                className="size-full object-cover"
+                loading="lazy"
+              />
+            </button>
+          ))}
+        </nav>
+      ) : null}
+
+      <figcaption className="flex items-start gap-2 border-t border-stone-100 px-4 py-2.5">
+        <ImageIcon
+          className="mt-0.5 size-3.5 shrink-0 text-amber-500/80"
+          aria-hidden="true"
+        />
+        <span className="line-clamp-2 min-w-0 flex-1 text-sm leading-relaxed text-stone-500">
+          {media.promptUsed}
+        </span>
+        {urls.length > 1 ? (
+          <span className="shrink-0 rounded-full border border-stone-200/90 px-2 py-0.5 text-xs text-stone-400">
+            {safeIndex + 1}/{urls.length}
+          </span>
+        ) : null}
+        <a
+          href={selectedUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="shrink-0 rounded-full border border-stone-200/90 px-2.5 py-0.5 text-xs text-stone-400 underline-offset-2 transition-colors hover:border-amber-300/70 hover:text-amber-700"
+        >
+          查看原图
+        </a>
+      </figcaption>
+    </figure>
+  );
+}
+
 function MediaBlock({ media }: { media: TurnMedia }) {
   if (media.status === 'pending') {
     return (
@@ -447,46 +536,8 @@ function MediaBlock({ media }: { media: TurnMedia }) {
       </figure>
     );
   }
-  if (media.modality === 'image' && media.url) {
-    return (
-      // 作品卡：居中限宽——图像为本轮产物而非正文，
-      // 满宽铺开会与上下文字卡挤成一片灰墙；限宽后
-      // 竖构图呈画廊感，横构图也不失作品焦点。
-      <figure className="mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_6px_24px_rgba(87,83,78,0.12)]">
-        <a
-          href={media.url}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="查看原图"
-          className="group relative block"
-        >
-          {/* 生成产物为任意尺寸位图，经产物端点提供（非 Next 静态资源）。 */}
-          <img
-            src={media.url}
-            alt={media.promptUsed ?? '根据这次体验内容生成的图片'}
-            className="w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.015]"
-            loading="lazy"
-          />
-        </a>
-        <figcaption className="flex items-start gap-2 px-4 py-2.5">
-          <ImageIcon
-            className="mt-0.5 size-3.5 shrink-0 text-amber-500/80"
-            aria-hidden="true"
-          />
-          <span className="line-clamp-2 min-w-0 flex-1 text-sm leading-relaxed text-stone-500">
-            {media.promptUsed}
-          </span>
-          <a
-            href={media.url}
-            target="_blank"
-            rel="noreferrer"
-            className="shrink-0 rounded-full border border-stone-200/90 px-2.5 py-0.5 text-xs text-stone-400 underline-offset-2 transition-colors hover:border-amber-300/70 hover:text-amber-700"
-          >
-            查看原图
-          </a>
-        </figcaption>
-      </figure>
-    );
+  if (media.modality === 'image') {
+    return <ImageResultBlock media={media} />;
   }
   return null;
 }
@@ -563,6 +614,7 @@ export function TurnItem({
       className="space-y-2.5"
     >
       {anchoredBubble}
+      {imageDone && item.media ? <MediaBlock media={item.media} /> : null}
       {commitmentOnly ? null : kind === 'SIMULATION_RESULT' ? (
         <SimulationCard
           content={item.content}
@@ -579,7 +631,7 @@ export function TurnItem({
           </div>
         </article>
       )}
-      {item.media ? <MediaBlock media={item.media} /> : null}
+      {item.media && !imageDone ? <MediaBlock media={item.media} /> : null}
     </motion.div>
   );
 }

@@ -80,11 +80,18 @@ async function ensureGateway(): Promise<void> {
 }
 
 /** 网关媒体产物形态（url 或 dataUri 二选一）。 */
+interface GatewayMediaArtifactEntry {
+  url?: string;
+  dataUri?: string;
+  mime?: string;
+}
+
 interface GatewayMediaArtifact {
   ok: boolean;
   url?: string;
   dataUri?: string;
   mime?: string;
+  artifacts?: GatewayMediaArtifactEntry[];
   error?: { message?: string; code?: string };
 }
 
@@ -127,6 +134,27 @@ async function artifactToBuffer(
     };
   }
   throw new MediaGatewayError('提供方返回了空产物（无 url 或 dataUri）', true);
+}
+
+/** 批次响应归一：新 artifacts 契约优先，旧单产物响应自动兼容。 */
+function gatewayArtifactBatch(artifact: GatewayMediaArtifact): GatewayMediaArtifact[] {
+  if (Array.isArray(artifact.artifacts) && artifact.artifacts.length > 0) {
+    return artifact.artifacts
+      .filter((item) => item !== null && typeof item === 'object')
+      .map((item) => ({ ok: true, ...item }));
+  }
+  return [artifact];
+}
+
+/** 逐个下载批次产物：避免四张 2K 原图同时占用带宽与内存。 */
+async function artifactBatchToBuffers(
+  artifact: GatewayMediaArtifact,
+): Promise<Array<{ buffer: Buffer; mime: string }>> {
+  const buffers: Array<{ buffer: Buffer; mime: string }> = [];
+  for (const item of gatewayArtifactBatch(artifact)) {
+    buffers.push(await artifactToBuffer(item));
+  }
+  return buffers;
 }
 
 /** 调用网关媒体端点（请求驱动保活 + 错误归一）。 */
@@ -289,10 +317,10 @@ const EXT_BY_MIME: Readonly<Record<string, string>> = {
 
 export class MediaGateway {
   /** 图像生成（体验流内嵌卡片与宽内容卡一致；带参考图时为图生图）。 */
-  async generateImage(
+  async generateImages(
     prompt: string,
     options: ImageGenerateOptions,
-  ): Promise<MediaArtifactRecord> {
+  ): Promise<MediaArtifactRecord[]> {
     const referenceImages = validateReferenceImages(
       options.referenceImages ?? [],
     );
@@ -303,8 +331,21 @@ export class MediaGateway {
         : { prompt },
       MEDIA_TIMEOUT_MS,
     );
-    const { buffer, mime } = await artifactToBuffer(artifact);
-    return this.persist(buffer, mime, 'image', prompt, options);
+    const artifacts = await artifactBatchToBuffers(artifact);
+    const records: MediaArtifactRecord[] = [];
+    for (const { buffer, mime } of artifacts) {
+      records.push(await this.persist(buffer, mime, 'image', prompt, options));
+    }
+    return records;
+  }
+
+  /** 兼容旧调用方：返回首选图像。 */
+  async generateImage(
+    prompt: string,
+    options: ImageGenerateOptions,
+  ): Promise<MediaArtifactRecord> {
+    const [record] = await this.generateImages(prompt, options);
+    return record;
   }
 
   /**

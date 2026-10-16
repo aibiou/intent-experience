@@ -19,6 +19,11 @@
 
 import type { EnabledProviderConfig } from './config-store';
 import {
+  buildHunyuanImageRequest,
+  imageProviderOf,
+  parseHunyuanImageUrl,
+} from './image-contract';
+import {
   buildZhipuVideoCreate,
   parseZhipuCreateId,
   parseZhipuPoll,
@@ -587,12 +592,63 @@ async function generateVideoZhipu(
   }
 }
 
+/**
+ * 混元生图执行器（腾讯混元——元宝 App「AI 生图」同源模型）。
+ *
+ * 契约与 OpenAI 兼容 /images/generations 不同：官方走自有
+ * 路径 /wand/hunyuan-image/{v3,v35}-generation，同步返回
+ * （一次请求直接出图，无任务轮询），产物在
+ * choices[0].delta.image.url（3.5）或 data[0].url（3.0）。
+ * 请求体 / 响应解析为纯函数（image-contract.ts——单测锁定）；
+ * 错误映射与瞬态重试复用 callProvider（429/5xx 退避一次）。
+ */
+async function generateImageHunyuan(
+  config: EnabledProviderConfig,
+  prompt: string,
+  options?: GenerationOptions,
+): Promise<GenerationArtifact> {
+  const request = buildHunyuanImageRequest(config.model, prompt, {
+    ...(options?.aspectRatio !== undefined
+      ? { aspectRatio: options.aspectRatio }
+      : {}),
+    ...(options?.imageTier !== undefined ? { imageTier: options.imageTier } : {}),
+    ...(options?.referenceImages !== undefined
+      ? { referenceImages: options.referenceImages }
+      : {}),
+    ...(options?.seed !== undefined ? { seed: options.seed } : {}),
+  });
+  const response = await callProvider(config, request.path, request.body);
+  let raw: string;
+  try {
+    raw = await response.text();
+  } catch {
+    throw new GenerationError(
+      `generation provider response malformed (provider=${config.provider}, modality=image: unreadable body)`,
+      'image',
+    );
+  }
+  const url = parseHunyuanImageUrl(raw);
+  if (url === undefined) {
+    throw new GenerationError(
+      `generation provider response malformed (provider=${config.provider}, modality=image: no image url in hunyuan response)`,
+      'image',
+    );
+  }
+  return { url, mime: 'image/png' };
+}
+
 export async function generateImage(
   config: EnabledProviderConfig,
   prompt: string,
   _onProgress?: (progress: number) => void,
   options?: GenerationOptions,
 ): Promise<GenerationArtifact> {
+  // 契约路由：混元生图（hy-image 系列）走自有
+  // /wand/hunyuan-image/* 端点；其余按 OpenAI 兼容
+  // /images/generations（原实现，纯增量零回归）。
+  if (imageProviderOf(config) === 'hunyuan') {
+    return generateImageHunyuan(config, prompt, options);
+  }
   // 官方契约（官方图像文档）：size 用档位
   // （1K/2K/3K/4K），ratio 指定宽高比；response_format 放
   // extra_body 内（官方警告：勿放顶层）。

@@ -67,6 +67,15 @@ interface ProbeState {
   error: string | null;
 }
 
+/** /api/config/profiles 返回的预设条目（快捷接入用）。 */
+interface ProfileOption {
+  name: string;
+  label: string;
+  modality: string;
+  endpoint: string;
+  defaultModel: string;
+}
+
 // ────────────────────────── 常量 ──────────────────────────
 
 const MODALITIES = ['text', 'image', 'video', 'voice'] as const;
@@ -358,6 +367,15 @@ export default function ConfigPage() {
   const [probe, setProbe] = useState<ProbeState>(EMPTY_PROBE);
   /** 开发者视图：默认关闭——普通用户不被模型名/API 地址/密钥状态淹没。 */
   const [devMode, setDevMode] = useState(false);
+  const [profiles, setProfiles] = useState<ProfileOption[]>([]);
+
+  // 预设清单（快捷接入）——一次拉取，静态展示。
+  useEffect(() => {
+    void (async () => {
+      const r = await apiFetch<{ profiles: ProfileOption[] }>('/api/config/profiles');
+      if (r.ok && r.data?.profiles) setProfiles(r.data.profiles);
+    })();
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -549,6 +567,21 @@ export default function ConfigPage() {
     setShowAddForm(true);
   }, []);
 
+  /** 快捷接入：套用预设（名称 / 模态 / 端点 / 缺省模型），保留已填密钥。 */
+  const applyProfile = useCallback((profile: ProfileOption) => {
+    setProbe(EMPTY_PROBE);
+    // 本机桥接不校验密钥，但表单必填——直接补占位值，省一步。
+    const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])/.test(profile.endpoint);
+    setForm((f) => ({
+      ...f,
+      name: profile.name,
+      modality: profile.modality,
+      baseUrl: profile.endpoint,
+      model: profile.defaultModel,
+      apiKey: f.apiKey || (isLocal ? 'local' : ''),
+    }));
+  }, []);
+
   const closeAddForm = useCallback(() => {
     setShowAddForm(false);
     setForm(EMPTY_FORM);
@@ -654,8 +687,33 @@ export default function ConfigPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-dashed border-stone-300 bg-white p-6">
               <div className="text-sm font-medium text-stone-700">
-                接入新提供方（OpenAI 兼容）· {MODALITY_LABEL[form.modality as Modality] ?? form.modality}
+                接入新提供方 · {MODALITY_LABEL[form.modality as Modality] ?? form.modality}
               </div>
+              {profiles.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">快捷接入</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {profiles.map((profile) => (
+                      <button
+                        key={profile.name}
+                        type="button"
+                        onClick={() => applyProfile(profile)}
+                        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors ${
+                          form.name === profile.name
+                            ? 'border-amber-300 bg-amber-50 text-amber-800'
+                            : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'
+                        }`}
+                      >
+                        <span>{MODALITY_ICON[profile.modality as Modality] ?? '⚙️'}</span>
+                        {profile.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-stone-400">
+                    选中后自动填好端点与缺省模型，只需再填 API 密钥
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="gw-name" className="text-xs">名称</Label>
