@@ -193,7 +193,10 @@ export class ExperienceRuntime {
       } else {
         const matched = matchSeedScored(freeText);
         const isCreate = classification.semanticAction === 'CREATE';
-        if (matched && !(isCreate && !matched.strong)) {
+        // 记忆操作（withdraw/correct）不承接任何种子——用户在做记忆管理，
+        // 主题保留原话，避免被无关种子覆盖输入语义。
+        const isMemoryOp = classification.memoryIntent != null;
+        if (matched && !(isCreate && !matched.strong) && !isMemoryOp) {
           seedId = matched.seed.id;
           topic = matched.seed.hook;
           firstInput = freeText;
