@@ -545,6 +545,16 @@ export function TurnItem({
     kind === 'BRANCH_NOTICE' ||
     kind === 'MEMORY_NOTICE';
 
+  // 2026-10-16 模拟用户（轻①）：图像完成后"正在生成，马上就好"承诺轮
+  // 与成品并存、读起来自相矛盾——图像已完成的承诺型短文本不再渲染为
+  // 内容卡，以作品（图片）为本体；长正文或失败态仍正常呈现。
+  const imageDone = item.media?.modality === 'image' && item.media.status === 'completed';
+  const commitmentOnly =
+    imageDone &&
+    typeof item.content === 'string' &&
+    item.content.trim().length <= 80 &&
+    /正在|马上就好|稍等|请稍候|马上|这就/.test(item.content);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -553,7 +563,7 @@ export function TurnItem({
       className="space-y-2.5"
     >
       {anchoredBubble}
-      {kind === 'SIMULATION_RESULT' ? (
+      {commitmentOnly ? null : kind === 'SIMULATION_RESULT' ? (
         <SimulationCard
           content={item.content}
           branchOrdinal={item.branchOrdinal}

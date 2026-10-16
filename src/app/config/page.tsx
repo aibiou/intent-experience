@@ -177,7 +177,7 @@ function ModelSelectDropdown({
 
 function ProviderCard({
   provider, onTest, onDelete, onSetDefault, onRefreshModels, onUpdateModel,
-  testing, refreshingModels, modelList,
+  testing, refreshingModels, modelList, devMode,
 }: {
   provider: ProviderSummary;
   onTest: (p: ProviderSummary) => void;
@@ -188,6 +188,8 @@ function ProviderCard({
   testing: boolean;
   refreshingModels: boolean;
   modelList: string[];
+  /** 开发者视图：关闭时隐藏 Base URL 等内部细节。 */
+  devMode: boolean;
 }) {
   const [showModels, setShowModels] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -251,8 +253,10 @@ function ProviderCard({
           </div>
         )}
 
-        {/* Base URL */}
-        <div className="mt-2 truncate text-xs text-stone-400">{provider.baseUrl}</div>
+        {/* Base URL——开发者视图才显示（内部细节不向普通用户裸露） */}
+        {devMode ? (
+          <div className="mt-2 truncate text-xs text-stone-400">{provider.baseUrl}</div>
+        ) : null}
       </div>
 
       {/* 卡片底部：密钥状态 + 操作 */}
@@ -260,11 +264,11 @@ function ProviderCard({
         <div className="flex items-center gap-1 text-xs">
           {provider.hasKey ? (
             <span className="inline-flex items-center gap-1 text-emerald-600">
-              <Check className="h-3.5 w-3.5" /> 已配置密钥
+              <Check className="h-3.5 w-3.5" /> {devMode ? '已配置密钥' : '已连接'}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 text-red-400">
-              <X className="h-3.5 w-3.5" /> 未配置密钥
+              <X className="h-3.5 w-3.5" /> {devMode ? '未配置密钥' : '未连接'}
             </span>
           )}
         </div>
@@ -352,6 +356,8 @@ export default function ConfigPage() {
   const [modelLists, setModelLists] = useState<Record<string, string[]>>({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [probe, setProbe] = useState<ProbeState>(EMPTY_PROBE);
+  /** 开发者视图：默认关闭——普通用户不被模型名/API 地址/密钥状态淹没。 */
+  const [devMode, setDevMode] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -389,6 +395,13 @@ export default function ConfigPage() {
       const def = grouped[mod].find((p) => p.isDefault && p.enabled);
       return def ? `${MODALITY_LABEL[mod]}: ${def.name}` : null;
     }).filter(Boolean).join(' · ');
+  }, [grouped]);
+
+  /** 用户向默认摘要：不含内部提供方名（模型层零打扰——2026-10-16）。 */
+  const userSummary = useMemo(() => {
+    const ready = MODALITIES.filter((mod) => grouped[mod].some((p) => p.isDefault && p.enabled));
+    if (ready.length === 0) return '还没有可用的服务';
+    return ready.map((mod) => MODALITY_LABEL[mod]).join(' · ');
   }, [grouped]);
 
   // ── 添加表单：自动拉取模型 ──
@@ -561,10 +574,28 @@ export default function ConfigPage() {
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-6">
+        {/* 用户向说明（开发者视图关闭时）——模型层零打扰 */}
+        {!devMode ? (
+          <div className="mb-5 rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-500">
+            这里管理背后提供 AI 能力的大模型服务。日常使用时不用关心——
+            需要调整时打开「开发者视图」再操作。
+          </div>
+        ) : null}
+
         {/* 默认摘要 */}
         <div className="mb-6 rounded-xl border border-stone-200 bg-white px-4 py-3">
-          <div className="text-xs text-stone-400">当前默认</div>
-          <div className="mt-1 text-sm font-medium text-stone-700">{defaultSummary || '未配置'}</div>
+          <div className="text-xs text-stone-400">当前可用</div>
+          <div className="mt-1 text-sm font-medium text-stone-700">
+            {devMode ? (defaultSummary || '未配置') : (userSummary || '未配置')}
+          </div>
+        </div>
+
+        {/* 开发者视图开关 */}
+        <div className="mb-6 flex items-center justify-end gap-2.5 border-t border-stone-200/70 pt-4">
+          <label htmlFor="gw-dev" className="flex cursor-pointer items-center gap-2 text-sm text-stone-600">
+            <Switch id="gw-dev" checked={devMode} onCheckedChange={setDevMode} />
+            开发者视图（显示模型与接口详情）
+          </label>
         </div>
 
         {/* 按模态分组 */}
@@ -603,6 +634,7 @@ export default function ConfigPage() {
                         testing={testingId === p.id}
                         refreshingModels={refreshingId === p.id}
                         modelList={modelLists[p.id] ?? []}
+                        devMode={devMode}
                       />
                     ))}
                   </div>
