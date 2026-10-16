@@ -41,6 +41,7 @@ export type ContentKind = TurnKind | 'ESCALATION_NOTICE' | 'BOUNDARY_NOTICE';
 export interface TurnMedia {
   modality: 'image' | 'voice' | 'video';
   status: 'pending' | 'completed' | 'failed';
+  urls?: string[];
   url?: string;
   promptUsed?: string;
   mime?: string;
@@ -158,7 +159,8 @@ function historyToTurns(history: TurnRecord[], media?: SessionMediaRecord[]): Di
     mediaByTurn.set(record.turn, list);
   }
   return history.map((h) => {
-    const record = mediaByTurn.get(h.turn)?.[0];
+    const records = mediaByTurn.get(h.turn) ?? [];
+    const record = records[0];
     return {
       key: `h-${h.turn}`,
       turn: h.turn,
@@ -170,6 +172,7 @@ function historyToTurns(history: TurnRecord[], media?: SessionMediaRecord[]): Di
             media: {
               modality: record.modality,
               status: 'completed' as const,
+              urls: records.map((item) => item.url),
               url: record.url,
               promptUsed: record.promptUsed,
               mime: record.mime,
@@ -377,6 +380,7 @@ export function useExperienceSession(options?: {
                 media: {
                   modality: event.modality,
                   status: 'completed',
+                  urls: event.urls,
                   url: event.url,
                   promptUsed: event.promptUsed,
                   mime: event.mime,

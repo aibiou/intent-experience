@@ -27,6 +27,12 @@
 
 import type { ProviderConfigRecord } from '../config-store';
 import { isRetryableStatus, transientDelayMs } from '../retry';
+import {
+  buildHunyuanImageRequest,
+  imageProviderOf,
+  parseHunyuanImageUrl,
+  type ImageAspectRatio,
+} from './image-contract';
 
 /** 统一产物形态：远程 url 或内联 dataUri（二选一）。 */
 export interface MediaArtifact {
@@ -163,6 +169,28 @@ function firstDataEntry(parsed: unknown): Record<string, unknown> | null {
   return null;
 }
 
+/** OpenAI 图像响应中的全部有效产物（元宝桥接一次会返回 4 张候选）。 */
+function imageDataArtifacts(parsed: unknown): MediaArtifact[] {
+  if (parsed === null || typeof parsed !== 'object') return [];
+  const data = (parsed as { data?: unknown }).data;
+  if (!Array.isArray(data)) return [];
+  const artifacts: MediaArtifact[] = [];
+  for (const item of data) {
+    if (item === null || typeof item !== 'object') continue;
+    const entry = item as Record<string, unknown>;
+    const url = extractUrl(entry);
+    if (typeof url === 'string' && url.length > 0) {
+      artifacts.push({ url, mime: 'image/png' });
+      continue;
+    }
+    const b64 = entry.b64_json;
+    if (typeof b64 === 'string' && b64.length > 0) {
+      artifacts.push({ dataUri: `data:image/png;base64,${b64}`, mime: 'image/png' });
+    }
+  }
+  return artifacts;
+}
+
 function extractUrl(entry: Record<string, unknown>): string | undefined {
   const direct = entry.url;
   if (typeof direct === 'string' && direct.length > 0) return direct;
@@ -184,11 +212,69 @@ function extractUrl(entry: Record<string, unknown>): string | undefined {
 /** Agnes 官方契约：size 档位 + ratio 组合（缺省 2K 档位）。 */
 const DEFAULT_IMAGE_TIER = '2K';
 
-export async function generateImage(
+/**
+ * 混元生图执行器（腾讯混元——元宝 App「AI 生图」同源模型）。
+ *
+ * 契约与 OpenAI 兼容 /images/generations 不同：官方走自有
+ * 路径 /wand/hunyuan-image/{v3,v35}-generation，同步返回
+ * （一次请求直接出图，无任务轮询），产物在
+ * choices[0].delta.image.url（3.5）或 data[0].url（3.0）。
+ * 请求体 / 响应解析为纯函数（image-contract.ts）；瞬态重试与
+ * 错误归一复用 mediaFetch（429/5xx 退避一次）。
+ */
+async function generateImageHunyuan(
   record: ProviderConfigRecord,
   prompt: string,
   options?: { aspectRatio?: string; referenceImages?: string[] },
 ): Promise<MediaArtifact> {
+  const request = buildHunyuanImageRequest(record.model, prompt, {
+    ...(options?.aspectRatio !== undefined
+      ? { aspectRatio: options.aspectRatio as ImageAspectRatio }
+      : {}),
+    ...(options?.referenceImages !== undefined
+      ? { referenceImages: options.referenceImages }
+      : {}),
+  });
+  const response = await mediaFetch(
+    `${baseUrl(record.baseUrl)}${request.path}`,
+    {
+      method: 'POST',
+      headers: bearerHeaders(record.apiKey ?? ''),
+      body: JSON.stringify(request.body),
+      signal: AbortSignal.timeout(120_000),
+    },
+    record.name,
+    '图像',
+  );
+  let raw: string;
+  try {
+    raw = await response.text();
+  } catch {
+    throw new MediaProviderError(
+      `提供方「${record.name}」图像响应读取失败`,
+    );
+  }
+  const url = parseHunyuanImageUrl(raw);
+  if (url === undefined) {
+    throw new MediaProviderError(
+      `提供方「${record.name}」图像响应无产物地址（混元生图）`,
+    );
+  }
+  return { url, mime: 'image/png' };
+}
+
+/** 图像生成（返回提供方本批返回的全部候选）。 */
+export async function generateImageSet(
+  record: ProviderConfigRecord,
+  prompt: string,
+  options?: { aspectRatio?: string; referenceImages?: string[] },
+): Promise<MediaArtifact[]> {
+  // 契约路由：混元生图（hy-image 系列——元宝 App 同源模型）走
+  // 自有 /wand/hunyuan-image/* 端点；其余按 OpenAI 兼容
+  // /images/generations（原实现，纯增量零回归）。
+  if (imageProviderOf(record) === 'hunyuan') {
+    return [await generateImageHunyuan(record, prompt, options)];
+  }
   const tier = DEFAULT_IMAGE_TIER;
   const refs = options?.referenceImages ?? [];
   // 参考图透传日志（CR-61 实证链——确认 dataURI 参考图
@@ -266,23 +352,23 @@ export async function generateImage(
       `提供方「${record.name}」图像响应无法解析（非 JSON）`,
     );
   }
-  const entry = firstDataEntry(parsed);
-  if (entry === null) {
+  const artifacts = imageDataArtifacts(parsed);
+  if (artifacts.length === 0) {
     throw new MediaProviderError(
-      `提供方「${record.name}」图像响应缺少 data[0]`,
+      `提供方「${record.name}」图像响应没有可用产物`,
     );
   }
-  const url = extractUrl(entry);
-  if (url !== undefined) {
-    return { url, mime: 'image/png' };
-  }
-  const b64 = entry.b64_json;
-  if (typeof b64 === 'string' && b64.length > 0) {
-    return { dataUri: `data:image/png;base64,${b64}`, mime: 'image/png' };
-  }
-  throw new MediaProviderError(
-    `提供方「${record.name}」图像响应无 url 或 b64_json`,
-  );
+  return artifacts;
+}
+
+/** 兼容旧调用方：返回首选图像。 */
+export async function generateImage(
+  record: ProviderConfigRecord,
+  prompt: string,
+  options?: { aspectRatio?: string; referenceImages?: string[] },
+): Promise<MediaArtifact> {
+  const [artifact] = await generateImageSet(record, prompt, options);
+  return artifact;
 }
 
 // ───────────────────────── 语音 ─────────────────────────

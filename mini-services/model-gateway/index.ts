@@ -49,7 +49,7 @@ import {
 } from './src/openai';
 import { callOpenAICompatible } from './src/providers/openai-compatible';
 import {
-  generateImage,
+  generateImageSet,
   generateVoice,
   generateVideo,
   MediaProviderError,
@@ -281,8 +281,15 @@ function optionalStringArray(
   return value.filter((item): item is string => typeof item === 'string');
 }
 
-/** 媒体产物响应（url 或 dataUri 二选一）。 */
-function mediaOk(artifact: MediaArtifact): Response {
+/** 媒体产物响应（url 或 dataUri 二选一；图像可携带 artifacts 批次）。 */
+function mediaOk(artifact: MediaArtifact | MediaArtifact[]): Response {
+  if (Array.isArray(artifact)) {
+    return json({
+      ok: true,
+      ...(artifact[0] ?? { mime: 'application/octet-stream' }),
+      artifacts: artifact,
+    });
+  }
   return json({ ok: true, ...artifact });
 }
 
@@ -329,7 +336,7 @@ function isMediaFailoverEligible(error: unknown): boolean {
  * 候选链容错：当前候选瞬态/凭据失败自动切换下一候选）。 */
 async function runMediaGeneration(
   modality: ProviderModality,
-  generate: (record: ProviderConfigRecord) => Promise<MediaArtifact>,
+  generate: (record: ProviderConfigRecord) => Promise<MediaArtifact | MediaArtifact[]>,
 ): Promise<Response> {
   const records = await configStore.load();
   let chain: ProviderConfigRecord[];
@@ -353,6 +360,9 @@ async function runMediaGeneration(
     lastRecord = record;
     try {
       const artifact = await generate(record);
+      if (Array.isArray(artifact) ? artifact.length === 0 : false) {
+        throw new MediaProviderError(`提供方「${record.name}」返回了空产物批次`);
+      }
       return mediaOk(artifact);
     } catch (error) {
       lastError = error;
@@ -394,7 +404,7 @@ async function handleImageGenerations(req: Request): Promise<Response> {
     return json(buildApiErrorBody(prompt.message, 'invalid_request_error', 'INVALID_REQUEST'), 400);
   }
   return runMediaGeneration('image', (record) =>
-    generateImage(record, prompt.value, {
+    generateImageSet(record, prompt.value, {
       aspectRatio: optionalString(bodyObj, 'aspectRatio'),
       referenceImages: optionalStringArray(bodyObj, 'referenceImages'),
     }),
@@ -456,7 +466,8 @@ async function handleTestProvider(id: string): Promise<Response> {
   }
   try {
     if (record.modality === 'image') {
-      const artifact = await generateImage(record, '一个红色的圆点，纯色背景');
+      const artifacts = await generateImageSet(record, '一个红色的圆点，纯色背景');
+      const artifact = artifacts[0];
       return json({
         ok: true,
         sample: artifact.url ?? `dataUri:${(artifact.dataUri ?? '').slice(0, 40)}…`,

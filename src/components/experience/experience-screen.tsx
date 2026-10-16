@@ -71,7 +71,21 @@ export function ExperienceScreen({
   // 新内容到达 → 温和地滚到最新
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    if (!el) return;
+
+    // 图片完成时以图片为本体：不要滚到下方长文，避免主图和候选被顶出视野。
+    const media = [...el.querySelectorAll('[data-media-result]')].at(-1);
+    if (media instanceof HTMLElement) {
+      const offset =
+        media.getBoundingClientRect().top -
+        el.getBoundingClientRect().top +
+        el.scrollTop -
+        8;
+      el.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
+      return;
+    }
+
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [session.turns, session.generating]);
 
   const inputLocked =

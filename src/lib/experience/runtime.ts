@@ -744,23 +744,25 @@ export class ExperienceRuntime {
         (intent.useContext || intent.referential || intent.regen)
           ? await this.loadTurnImageReference(sessionId)
           : null;
-      const record =
+      const records =
         intent.modality === 'image'
-          ? await this.media.generateImage(promptUsed, {
+          ? await this.media.generateImages(promptUsed, {
               sessionId,
               turn,
               signal,
               ...(imageReference ? { referenceImages: [imageReference] } : {}),
             })
           : intent.modality === 'video'
-            ? await this.media.generateVideo(promptUsed, { sessionId, turn, signal })
-            : await this.media.generateVoice(promptUsed, { sessionId, turn, signal });
-      if (signal.aborted) return; // 产物已落盘但用户已离开：不投递
+            ? [await this.media.generateVideo(promptUsed, { sessionId, turn, signal })]
+            : [await this.media.generateVoice(promptUsed, { sessionId, turn, signal })];
+      const record = records[0];
+      if (signal.aborted || !record) return; // 产物已落盘但用户已离开：不投递
       yield {
         type: 'generation',
         status: 'completed',
         turn,
         modality: intent.modality,
+        urls: records.map((item) => `/api/experience/media/${item.file}`),
         url: `/api/experience/media/${record.file}`,
         promptUsed,
         mime: record.mime,
