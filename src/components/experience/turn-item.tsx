@@ -392,7 +392,7 @@ function MediaBlock({ media }: { media: TurnMedia }) {
             ? '正在合成语音，马上就好…'
             : media.modality === 'video'
               ? '正在生成视频，可能需要数分钟…'
-              : '正在生成图片，可能需要一两分钟…'
+              : '正在生成图片，可能需要数分钟…'
         }
         prompt={media.promptUsed}
       />

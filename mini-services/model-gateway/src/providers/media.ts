@@ -218,7 +218,10 @@ export async function generateImage(
             ...(withRefs && refs.length > 0 ? { image: refs } : {}),
           },
         }),
-        signal: AbortSignal.timeout(120_000),
+        // 图像超时 240s（实测缺口 2026-10-15——上游图像队列
+        // 饱和期请求挂起 >120s 无响应，连续 4 轮 120s 超时失败；
+        // 官方建议超时区间 60–360s，240s 给排队请求留足完成时间）。
+        signal: AbortSignal.timeout(240_000),
       },
       record.name,
       '图像',
