@@ -93,7 +93,9 @@ export function ExperienceScreen({
     !session.readOnly &&
     !session.ended &&
     !session.generating &&
-    session.turns.length === 0 &&
+    // 没有任何已生成内容（含空轮/仅用户输入的首轮失败）才可重试——
+    // 已呈现过内容、但后续轮失败的不弹重试（用户可自由继续输入）。
+    session.turns.every((t) => t.kind === undefined) &&
     Boolean(session.sessionId);
   // 媒体入口仅在有已呈现内容后出现（朗读/呈现的材料是上一轮内容）。
   const hasSettledContent = session.turns.some((t) => t.kind !== undefined);
@@ -147,7 +149,11 @@ export function ExperienceScreen({
           <TurnItem key={item.key} item={item} totalBranches={session.branches.length} />
         ))}
 
-        {session.generating && session.turns.every((t) => t.kind !== undefined) ? (
+        {/* 生成进行中且存在尚未收到内容的轮次 → 明确"正在生成"反馈
+            （2026-10-16 模拟用户实测：原条件 every(kind!==undefined) 语义
+            反了——生成中恰好是 kind 未定的轮，导致无任何进行中指示、
+            静默死屏）。 */}
+        {session.generating && session.turns.some((t) => t.kind === undefined) ? (
           <ThinkingIndicator />
         ) : null}
 
