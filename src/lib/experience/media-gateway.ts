@@ -58,8 +58,12 @@ async function ensureGateway(): Promise<void> {
   try {
     const { spawn } = await import('node:child_process');
     const pathModule = await import('node:path');
-    const child = spawn('bun', ['index.ts'], {
-      cwd: pathModule.join(process.cwd(), 'mini-services', 'model-gateway'),
+    // 以主应用根为 cwd 拉起：网关默认配置路径
+    // （data/config/provider-configs.json）按 process.cwd() 解析——
+    // cwd 若为 mini-services/model-gateway 会读不到统一配置源
+    // （实测 MEDIA_PROVIDER_MISSING，所有模态"未配置"）。
+    const child = spawn('bun', [pathModule.join(process.cwd(), 'mini-services', 'model-gateway', 'index.ts')], {
+      cwd: process.cwd(),
       detached: true,
       stdio: 'ignore',
       env: { ...process.env },

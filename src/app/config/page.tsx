@@ -551,7 +551,7 @@ export default function ConfigPage() {
             <Link href="/" className="rounded-lg p-1 text-stone-400 transition-colors hover:bg-stone-200/50 hover:text-stone-600" title="返回首页">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <h1 className="text-lg font-medium text-stone-800">模型网关</h1>
+            <h1 className="text-lg font-medium text-stone-800">模型配置</h1>
           </div>
           <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={loading}>
             {loading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1 h-4 w-4" />}

@@ -52,7 +52,7 @@
  */
 
 import { classifyInput } from './classifier';
-import { getSeed, matchSeed, randomSeed } from './catalog';
+import { getSeed, matchSeedScored, randomSeed } from './catalog';
 import type { CreationInterpretation, CreationObject, CreationPatch, CreationPhase } from './creation';
 import {
   applyCreationPatchMeta,
@@ -182,16 +182,20 @@ export class ExperienceRuntime {
       const classification = classifyInput(freeText);
       // 首页自由输入的意图解析（确定性）：
       // 换一个/随便 → 惊喜种子；命中目录 → 该种子；否则 → 自定义体验。
+      // 创作意图（CREATE）不承接 tag 级弱命中——用户明确要"做/画/写
+      // 什么"，主题保留用户原话（用户的话没被接住 = 模拟用户实测 P0）；
+      // 仅标题/入口 prompt 级强命中（用户明确点了该种子）才承接。
       if (classification.semanticAction === 'CHANGE_DIRECTION') {
         const seed = randomSeed();
         seedId = seed.id;
         topic = seed.hook;
         firstInput = seed.prompt;
       } else {
-        const matched = matchSeed(freeText);
-        if (matched) {
-          seedId = matched.id;
-          topic = matched.hook;
+        const matched = matchSeedScored(freeText);
+        const isCreate = classification.semanticAction === 'CREATE';
+        if (matched && !(isCreate && !matched.strong)) {
+          seedId = matched.seed.id;
+          topic = matched.seed.hook;
           firstInput = freeText;
         } else {
           topic = freeText.length > 40 ? `${freeText.slice(0, 40)}…` : freeText;

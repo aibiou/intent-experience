@@ -72,8 +72,8 @@ export function HomeScreen({
       <MemoryPanel />
       <Link
         href="/config"
-        aria-label="模型网关设置"
-        title="模型网关设置"
+        aria-label="设置"
+        title="设置"
         className="absolute right-4 top-4 rounded-full text-stone-400 transition-colors hover:text-stone-600"
       >
         <Settings2 className="h-5 w-5" />
