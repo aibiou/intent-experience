@@ -502,14 +502,19 @@ export function useExperienceSession(options?: {
     // 此前 retryRef 恒为 null，restore 会话点「再试一次」静默 return
     // （模拟用户实测：等满 4 分钟零反馈）。重发首条用户输入即可。
     const firstUserTurn = loaded.state.history.find((h) => h.userText);
+    // 2026-10-16 复测缺口：首轮即失败的会话（如 turn=0、生成未落盘）
+    // history 可能没有任何 userText 记录，此前 firstUserTurn=undefined →
+    // retryRef=null → 点「再试一次」静默 return（复测：90s 零反馈零请求）。
+    // 用 loaded.topic 兜底（topic=用户最初输入/种子标题，恒非空）。
+    const retryInput = firstUserTurn?.userText ?? loaded.topic;
     retryRef.current = completed
       ? null
-      : firstUserTurn
+      : retryInput
         ? {
-            input: { freeText: firstUserTurn.userText },
+            input: { freeText: retryInput },
             topic: loaded.topic,
             origin: 'free',
-            firstUserText: firstUserTurn.userText,
+            firstUserText: retryInput,
           }
         : null;
     const { branches, currentBranchId } = deriveBranches(loaded.state);
