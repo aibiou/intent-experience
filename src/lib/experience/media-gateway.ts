@@ -27,7 +27,11 @@ const INDEX_FILE = path.join(MEDIA_DIR, 'index.json');
 const MODEL_GATEWAY_URL = 'http://127.0.0.1:3031';
 
 /** 单次图像 / 语音调用超时（秒级上游响应）。 */
-const MEDIA_TIMEOUT_MS = 120_000;
+// 媒体调用总超时：与网关侧图像超时（240s）对齐——上游图像队列
+// 饱和时可排队 >120s（实测缺口 2026-10-15/10-16：体验层 120s 先于
+// 网关 240s 超时，排队请求被体验层误判为失败；统一 240s 让
+// 排队请求留足完成时间）。
+const MEDIA_TIMEOUT_MS = 240_000;
 /** 视频调用超时（异步任务：免费档排队可达数分钟）。 */
 const VIDEO_TIMEOUT_MS = 480_000;
 
