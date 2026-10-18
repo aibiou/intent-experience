@@ -8,7 +8,7 @@
  */
 
 import { useState, type FormEvent } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, RefreshCw, SendHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,7 @@ interface EntranceScreenProps {
 
 export function EntranceScreen({ seed, onStart, onChange, onSubmitFreeText }: EntranceScreenProps) {
   const [freeText, setFreeText] = useState('');
+  const reduceMotion = useReducedMotion();
 
   const handleFreeSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -45,9 +46,9 @@ export function EntranceScreen({ seed, onStart, onChange, onSubmitFreeText }: En
     <main className="experience-shell flex flex-1 flex-col items-center justify-center px-5 py-10 sm:px-8 md:py-16">
       <motion.section
         aria-label="一个值得进入的问题"
-        initial={{ opacity: 0, y: 14 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: 'easeOut' }}
+        transition={reduceMotion ? { duration: 0 } : { duration: 0.35, ease: 'easeOut' }}
         className="w-full max-w-2xl rounded-[28px] border border-stone-300/70 bg-white/55 px-5 py-8 shadow-[0_18px_60px_rgba(48,43,31,0.045)] backdrop-blur-sm sm:px-10 sm:py-11"
       >
         <p className="flex items-center justify-center gap-2 text-xs font-medium text-amber-800/80">

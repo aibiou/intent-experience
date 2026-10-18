@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, House, SendHorizontal } from 'lucide-react';
 import { recognizeGenerationIntent } from '@/lib/experience/generation-intent';
 import {
@@ -78,6 +78,7 @@ export function ExperienceScreen({
 }: ExperienceScreenProps) {
   const [text, setText] = useState('');
   const [videoConfirmation, setVideoConfirmation] = useState<string | null>(null);
+  const reduceMotion = useReducedMotion();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // 新内容到达 → 温和地滚到最新
@@ -379,18 +380,18 @@ export function ExperienceScreen({
         {showEndOverlay ? (
           <motion.div
             key="end-overlay"
-            initial={{ opacity: 0 }}
+            initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.4, ease: 'easeOut' }}
             className="absolute inset-0 z-20 flex items-center justify-center bg-[#faf9f7]/95 backdrop-blur-sm"
             role="dialog"
             aria-label="探索结束"
           >
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
+              transition={reduceMotion ? { duration: 0 } : { duration: 0.45, delay: 0.1, ease: 'easeOut' }}
               className="flex flex-col items-center gap-5 px-6 text-center"
             >
               <p className="text-2xl font-medium text-stone-800 md:text-3xl">

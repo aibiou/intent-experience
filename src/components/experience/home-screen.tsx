@@ -257,7 +257,7 @@ export function HomeScreen({
             <h2 className="text-sm font-semibold text-stone-800">作品</h2>
             <p className="mt-1 text-xs text-stone-400">探索留下的图像、声音与影像</p>
           </div>
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {works.map((work) => (
               <li key={work.id}>
                 <WorkCard work={work} onOpen={onOpenRecent} />

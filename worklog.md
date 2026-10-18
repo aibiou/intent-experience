@@ -692,3 +692,22 @@ Work Log:
 Stage Summary:
 - 首页→回看→候选选择→失败恢复→结束回看的 UI 全流程反馈更诚实、可恢复、可移动使用
 - 元宝本机桥当前仍 `trusted=false`，本轮不触发真实生图；不静默切换提供方，待重新授权后再做新鲜真实图像 E2E
+
+---
+
+Task ID: 28
+Agent: Codex
+Task: FigCraft 思路第三轮——作品查看器无障碍与全流程密度优化
+
+Work Log:
+- 将孤儿作品查看器从自研 motion overlay 重构为项目既有 Radix Dialog：获得原生模态层级、焦点圈定、Escape 关闭和稳定关闭路径，避免继续维护一套弹窗行为
+- 查看器补齐显式 `aria-modal`，通用 Dialog 关闭按钮读屏文案由 `Close` 改为「关闭」；标题与说明继续由 `DialogTitle` / `DialogDescription` 关联
+- 页面切换、入口屏、结束覆盖层、会话轮次和媒体等待指示统一接入 reduced-motion：弱动效偏好下不再位移/脉冲，只保留必要状态表达
+- 首页作品墙从桌面两列调整为三列，降低大量作品回看时的卡片密度；移动端仍保持两列，不挤压标题与元信息
+- 无头 Chrome 真实页面回归：桌面首页、状态入口、最近会话恢复、4 候选切换与持久化、失败兜底查看器、配置页，以及移动 390px 首页/媒体恢复/查看器均通过；桌面与移动均无横向溢出
+- 真实交互复核：候选切换后显示「已记住」并恢复原选择；查看器初始焦点落在关闭按钮，Escape 可关闭，`aria-modal=true` 生效
+- 回归：`test:engine` 338 pass；`test:unit` 166 pass；`test:gateway` 82 pass；`lint` 0；`tsc --noEmit` 0
+
+Stage Summary:
+- 借鉴 FigCraft 的组件状态、栅格密度与可访问性组织方式，完成查看器、过渡动效、弱动效偏好和首页作品墙的第三轮全流程 UI/UX 优化
+- 服务保持运行：Next.js `:3000`、model gateway `:3031`、YuanbaoBridge `:3210`

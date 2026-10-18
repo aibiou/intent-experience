@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { AlertCircle, AudioLines, ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { DisplayTurn, TurnMedia } from './use-experience-session';
@@ -370,6 +370,7 @@ function MediaPending({
   startedAt?: number;
 }) {
   const [now, setNow] = useState(() => Date.now());
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (!startedAt) return;
@@ -390,7 +391,11 @@ function MediaPending({
     <div className="rounded-2xl border border-stone-200/80 bg-white/70 px-4 py-3">
       <div className="flex items-center gap-2.5">
         <span className="relative flex size-2 shrink-0">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/70" />
+          {reduceMotion ? (
+            <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400/35" />
+          ) : (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/70" />
+          )}
           <span className="relative inline-flex size-2 rounded-full bg-amber-500/90" />
         </span>
         <p className="min-w-0 flex-1 text-sm text-stone-500">
@@ -667,6 +672,13 @@ export function TurnItem({
   sessionId?: string;
   onRetryMedia?: (text: string) => void;
 }) {
+  const reduceMotion = useReducedMotion();
+  const itemMotion = {
+    initial: reduceMotion ? false : { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    transition: reduceMotion ? { duration: 0 } : { duration: 0.28, ease: 'easeOut' as const },
+  };
+
   // 用户气泡（小）——始终呈现这一轮"人说了什么"
   const bubble = (
     <div className="flex justify-end">
@@ -680,9 +692,7 @@ export function TurnItem({
   if (item.kind === undefined || item.content === undefined) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.28, ease: 'easeOut' }}
+        {...itemMotion}
         className="space-y-2.5"
       >
         {bubble}
@@ -726,9 +736,7 @@ export function TurnItem({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: 'easeOut' }}
+      {...itemMotion}
       className="space-y-2.5"
     >
       {anchoredBubble}

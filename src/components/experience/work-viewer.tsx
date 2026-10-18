@@ -7,9 +7,13 @@
  * 会话存在时仍走完整 restore（可续作），本组件仅作兜底。
  */
 
-import { useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { WorkSummary } from './client-types';
 
 export function WorkViewer({
@@ -19,52 +23,27 @@ export function WorkViewer({
   work: WorkSummary;
   onClose: () => void;
 }) {
-  // Esc 关闭
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-label="作品查看"
-      onClick={onClose}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      <motion.div
-        initial={{ scale: 0.96, y: 8 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.96, y: 8 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+      <DialogContent
+        className="flex max-h-[88dvh] w-full max-w-2xl flex-col gap-0 overflow-hidden rounded-3xl border-stone-200 bg-white p-0 shadow-2xl"
+        aria-label="作品查看"
+        aria-modal="true"
       >
-        <div className="flex items-center justify-between gap-3 border-b border-stone-100 px-5 py-3.5">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-stone-800">{work.topic ?? '作品'}</p>
-            <p className="mt-0.5 text-xs text-stone-400">
-              {work.modality === 'image' ? '图像' : work.modality === 'voice' ? '语音' : '视频'}
-              {work.promptUsed ? ` · ${work.promptUsed}` : ''}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="关闭"
-            className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <DialogHeader className="border-b border-stone-100 px-5 py-3.5">
+          <DialogTitle className="truncate text-sm font-medium text-stone-800">
+            {work.topic ?? '作品'}
+          </DialogTitle>
+          <DialogDescription className="mt-0.5 text-xs text-stone-400">
+            {work.modality === 'image' ? '图像' : work.modality === 'voice' ? '语音' : '视频'}
+            {work.promptUsed ? ` · ${work.promptUsed}` : ''}
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="exp-scrollbar min-h-0 flex-1 overflow-y-auto bg-[#faf9f7] p-5">
           {work.modality === 'image' ? (
@@ -84,8 +63,8 @@ export function WorkViewer({
             <video src={work.url} controls className="mx-auto max-h-[60dvh] rounded-2xl" />
           )}
         </div>
-      </motion.div>
-    </motion.div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

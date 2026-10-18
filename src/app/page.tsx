@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 import { getSeed } from '@/lib/experience/catalog';
 import { ContinuationScreen } from '@/components/experience/continuation-screen';
@@ -44,6 +44,13 @@ const PHASE_MOTION = {
   transition: { duration: 0.25, ease: 'easeOut' as const },
 };
 
+const STILL_PHASE_MOTION = {
+  initial: { opacity: 1 },
+  animate: { opacity: 1 },
+  exit: { opacity: 1 },
+  transition: { duration: 0 },
+};
+
 export default function Page() {
   const [phase, setPhase] = useState<Phase>('home');
   const [seeds, setSeeds] = useState<CatalogSeed[]>([]);
@@ -58,6 +65,7 @@ export default function Page() {
   } | null>(null);
   /** 孤儿作品兜底查看（会话已不存在但媒体仍在——历史残留语音/图像）。 */
   const [viewingWork, setViewingWork] = useState<WorkSummary | null>(null);
+  const reduceMotion = useReducedMotion();
 
   const sessionApi = useExperienceSession({
     onDirectionChanged: () => {
@@ -242,7 +250,11 @@ export default function Page() {
     >
       <AnimatePresence mode="wait" initial={false}>
         {phase === 'home' ? (
-          <motion.div key="phase-home" {...PHASE_MOTION} className="flex flex-1 flex-col">
+          <motion.div
+            key="phase-home"
+            {...(reduceMotion ? STILL_PHASE_MOTION : PHASE_MOTION)}
+            className="flex flex-1 flex-col"
+          >
             <HomeScreen
               seeds={seeds}
               recent={recent}
@@ -255,7 +267,11 @@ export default function Page() {
             />
           </motion.div>
         ) : phase === 'entrance' && entranceSeed ? (
-          <motion.div key="phase-entrance" {...PHASE_MOTION} className="flex flex-1 flex-col">
+          <motion.div
+            key="phase-entrance"
+            {...(reduceMotion ? STILL_PHASE_MOTION : PHASE_MOTION)}
+            className="flex flex-1 flex-col"
+          >
             <EntranceScreen
               seed={entranceSeed}
               onStart={handleEntranceStart}
@@ -266,7 +282,7 @@ export default function Page() {
         ) : phase === 'experience' && continuationOf && !sessionApi.session ? (
           <motion.div
             key="phase-continuation"
-            {...PHASE_MOTION}
+            {...(reduceMotion ? STILL_PHASE_MOTION : PHASE_MOTION)}
             className="flex flex-1 flex-col"
           >
             <ContinuationScreen
@@ -276,7 +292,11 @@ export default function Page() {
             />
           </motion.div>
         ) : phase === 'experience' && sessionApi.session ? (
-          <motion.div key="phase-experience" {...PHASE_MOTION} className="flex min-h-0 flex-1 flex-col">
+          <motion.div
+            key="phase-experience"
+            {...(reduceMotion ? STILL_PHASE_MOTION : PHASE_MOTION)}
+            className="flex min-h-0 flex-1 flex-col"
+          >
             <ExperienceScreen
               session={sessionApi.session}
               onSend={sessionApi.send}
