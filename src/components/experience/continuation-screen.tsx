@@ -44,8 +44,8 @@ export function ContinuationScreen({
           <ArrowLeft className="size-3.5" aria-hidden="true" />
           返回
         </button>
-        <p className="mb-2 text-[11px] font-semibold tracking-[0.18em] text-amber-800/75">继续创作</p>
-        <h1 className="home-title line-clamp-2 text-2xl font-medium leading-snug tracking-[-0.02em] text-stone-900 md:text-3xl">
+        <p className="mb-2 text-[11px] font-semibold text-amber-800/75">继续创作</p>
+        <h1 className="home-title line-clamp-2 text-2xl font-medium leading-snug text-stone-900 md:text-3xl">
           《{topic}》
         </h1>
         <p className="mt-2 max-w-xl text-sm leading-6 text-stone-500">

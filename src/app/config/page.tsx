@@ -290,7 +290,16 @@ function ProviderCard({
             </Button>
           )}
           {!provider.isDefault && (
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onSetDefault(provider)}>设默认</Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 px-2 text-xs"
+              onClick={() => onSetDefault(provider)}
+              title={`设为${provider.name}所在能力的默认服务`}
+            >
+              <Star className="h-3 w-3" aria-hidden="true" />
+              设默认
+            </Button>
           )}
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onTest(provider)} disabled={testing} title="测试连通">
             {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlugZap className="h-3.5 w-3.5" />}
@@ -599,7 +608,7 @@ export default function ConfigPage() {
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <p className="text-[10px] font-semibold tracking-[0.18em] text-amber-800/70">个人体验引擎</p>
+              <p className="text-[10px] font-semibold text-amber-800/70">个人体验引擎</p>
               <h1 className="text-base font-semibold text-stone-900">模型服务</h1>
             </div>
           </div>

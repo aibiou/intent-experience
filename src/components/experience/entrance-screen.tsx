@@ -50,13 +50,13 @@ export function EntranceScreen({ seed, onStart, onChange, onSubmitFreeText }: En
         transition={{ duration: 0.35, ease: 'easeOut' }}
         className="w-full max-w-2xl rounded-[28px] border border-stone-300/70 bg-white/55 px-5 py-8 shadow-[0_18px_60px_rgba(48,43,31,0.045)] backdrop-blur-sm sm:px-10 sm:py-11"
       >
-        <p className="flex items-center justify-center gap-2 text-xs font-medium tracking-[0.2em] text-amber-800/80">
+        <p className="flex items-center justify-center gap-2 text-xs font-medium text-amber-800/80">
           <span className="h-px w-6 bg-amber-700/50" />
           {ENTRANCE_LABEL[seed.category] ?? '一次探索'}
           <span className="h-px w-6 bg-amber-700/50" />
         </p>
 
-        <h1 className="home-title mt-6 text-center text-3xl font-medium leading-[1.35] tracking-[-0.025em] text-stone-900 md:text-4xl md:leading-[1.35]">
+        <h1 className="home-title mt-6 text-center text-3xl font-medium leading-[1.35] text-stone-900 md:text-4xl md:leading-[1.35]">
           {seed.hook}
         </h1>
 

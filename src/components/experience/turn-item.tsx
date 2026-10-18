@@ -409,6 +409,10 @@ function MediaPending({
         <p className="mt-2 border-t border-stone-100 pt-2 text-xs leading-relaxed text-stone-400">
           视频通常约 5–10 分钟完成；可以先继续对话或稍后回到本会话，生成完成会自动显示。
         </p>
+      ) : label.startsWith('正在生成图片') ? (
+        <p className="mt-2 border-t border-stone-100 pt-2 text-xs leading-relaxed text-stone-400">
+          图片通常几十秒到几分钟完成；可以先继续对话，稍后回到本会话查看结果。
+        </p>
       ) : null}
     </div>
   );
@@ -420,28 +424,54 @@ function imageUrls(media: TurnMedia): string[] {
   return [...new Set(urls)];
 }
 
-function ImageResultBlock({ media, sessionId, turn }: { media: TurnMedia; sessionId?: string; turn?: number }) {
+function ImageResultBlock({
+  media,
+  sessionId,
+  turn,
+}: {
+  media: TurnMedia;
+  sessionId?: string;
+  turn?: number;
+}) {
   const urls = imageUrls(media);
-  const [selectedIndex, setSelectedIndex] = useState(() => {
-    if (!media.selectedFile) return 0;
-    const index = urls.findIndex((url) => url.split('/').pop() === media.selectedFile);
-    return index >= 0 ? index : 0;
-  });
+  // 本地值是保存请求的乐观视图；服务端返回的新产物仍可立即展示。
+  const [selectedFile, setSelectedFile] = useState<string | null>(media.selectedFile ?? null);
+  const [selectionState, setSelectionState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   if (urls.length === 0) return null;
 
-  const safeIndex = Math.min(Math.max(selectedIndex, 0), urls.length - 1);
+  const activeFile = selectedFile ?? media.selectedFile;
+  const matchedIndex = activeFile ? urls.findIndex((url) => url.split('/').pop() === activeFile) : -1;
+  const safeIndex = Math.min(Math.max(matchedIndex, 0), urls.length - 1);
   const selectedUrl = urls[safeIndex];
 
   const selectAndPersist = (index: number) => {
-    setSelectedIndex(index);
+    if (index === safeIndex || selectionState === 'saving') return;
+    const previousFile = activeFile;
     const file = urls[index]?.split('/').pop();
-    if (sessionId && turn !== undefined && file) {
-      fetch('/api/experience/select-media', {
+    setSelectedFile(file ?? null);
+    setSelectionState('saving');
+    if (!sessionId || turn === undefined || !file) {
+      setSelectionState('idle');
+      return;
+    }
+    void fetch('/api/experience/select-media', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, turn, file }),
-      }).catch(() => {});
-    }
+      })
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => null)) as { ok?: boolean } | null;
+        if (response.ok && payload?.ok) {
+          setSelectionState('saved');
+        } else {
+          setSelectedFile(typeof previousFile === 'string' ? previousFile : null);
+          setSelectionState('error');
+        }
+      })
+      .catch(() => {
+        setSelectedFile(typeof previousFile === 'string' ? previousFile : null);
+        setSelectionState('error');
+      });
   };
 
   return (
@@ -474,13 +504,15 @@ function ImageResultBlock({ media, sessionId, turn }: { media: TurnMedia; sessio
               key={url}
               type="button"
               onClick={() => selectAndPersist(index)}
+              disabled={selectionState === 'saving' || !sessionId || turn === undefined}
               aria-pressed={index === safeIndex}
               aria-label={`查看候选 ${index + 1}`}
+              aria-current={index === safeIndex}
               className={`h-16 overflow-hidden rounded-lg border transition-all duration-200 ${
                 index === safeIndex
                   ? 'border-amber-400/90 ring-2 ring-amber-400/20'
                   : 'border-stone-200/80 opacity-80 hover:border-amber-300/80 hover:opacity-100'
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-50`}
             >
               <img
                 src={url}
@@ -506,6 +538,15 @@ function ImageResultBlock({ media, sessionId, turn }: { media: TurnMedia; sessio
             {safeIndex + 1}/{urls.length}
           </span>
         ) : null}
+        {selectionState !== 'idle' && selectionState !== 'saving' ? (
+          <span aria-live="polite" className="shrink-0 text-xs">
+            {selectionState === 'saved' ? (
+              <span className="text-emerald-600">已记住</span>
+            ) : (
+              <span className="text-red-500">未记住</span>
+            )}
+          </span>
+        ) : null}
         <a
           href={selectedUrl}
           target="_blank"
@@ -519,7 +560,17 @@ function ImageResultBlock({ media, sessionId, turn }: { media: TurnMedia; sessio
   );
 }
 
-function MediaBlock({ media, sessionId, turn }: { media: TurnMedia; sessionId?: string; turn?: number }) {
+function MediaBlock({
+  media,
+  sessionId,
+  turn,
+  onRetry,
+}: {
+  media: TurnMedia;
+  sessionId?: string;
+  turn?: number;
+  onRetry?: (text: string) => void;
+}) {
   if (media.status === 'pending') {
     return (
       <MediaPending
@@ -550,6 +601,21 @@ function MediaBlock({ media, sessionId, turn }: { media: TurnMedia; sessionId?: 
               : '这张图片'}
           {media.message ? `没能生成：${media.message}` : '没能生成出来'}
         </p>
+        {onRetry && media.modality !== 'video' ? (
+          <button
+            type="button"
+            onClick={() =>
+              onRetry(
+                media.modality === 'image'
+                  ? `重新生成这张图片：${media.promptUsed ?? ''}`
+                  : `重新合成这段语音：${media.promptUsed ?? ''}`
+              )
+            }
+            className="ml-auto shrink-0 rounded-full border border-stone-200 bg-white px-3 py-1 text-xs text-stone-600 transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
+          >
+            {media.modality === 'image' ? '重试生成' : '重试合成'}
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -594,10 +660,12 @@ export function TurnItem({
   item,
   totalBranches = 1,
   sessionId,
+  onRetryMedia,
 }: {
   item: DisplayTurn;
   totalBranches?: number;
   sessionId?: string;
+  onRetryMedia?: (text: string) => void;
 }) {
   // 用户气泡（小）——始终呈现这一轮"人说了什么"
   const bubble = (
@@ -664,7 +732,9 @@ export function TurnItem({
       className="space-y-2.5"
     >
       {anchoredBubble}
-      {imageDone && item.media ? <MediaBlock media={item.media} sessionId={sessionId} turn={item.turn} /> : null}
+      {imageDone && item.media ? (
+        <MediaBlock media={item.media} sessionId={sessionId} turn={item.turn} onRetry={onRetryMedia} />
+      ) : null}
       {commitmentOnly ? null : kind === 'SIMULATION_RESULT' ? (
         <SimulationCard
           content={item.content}
@@ -681,7 +751,9 @@ export function TurnItem({
           </div>
         </article>
       )}
-      {item.media && !imageDone ? <MediaBlock media={item.media} sessionId={sessionId} turn={item.turn} /> : null}
+      {item.media && !imageDone ? (
+        <MediaBlock media={item.media} sessionId={sessionId} turn={item.turn} onRetry={onRetryMedia} />
+      ) : null}
     </motion.div>
   );
 }

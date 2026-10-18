@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, CheckCircle2, SendHorizontal } from 'lucide-react';
+import { AlertCircle, CheckCircle2, House, SendHorizontal } from 'lucide-react';
 import { recognizeGenerationIntent } from '@/lib/experience/generation-intent';
 import {
   AlertDialog,
@@ -148,8 +148,10 @@ export function ExperienceScreen({
       {/* 头部：主题 + 阶段 + 轮次 */}
       <header className="flex items-start justify-between gap-3 border-b border-stone-300/70 pb-5 pt-6 sm:pt-8">
         <div className="min-w-0">
-          <p className="mb-2 text-[10px] font-semibold tracking-[0.18em] text-amber-800/70">正在探索</p>
-          <h1 className="home-title line-clamp-2 text-xl font-medium leading-snug tracking-[-0.02em] text-stone-900 md:text-2xl">
+          <p className="mb-2 text-[10px] font-semibold text-amber-800/70">
+            {session.readOnly ? '回顾' : '正在探索'}
+          </p>
+          <h1 className="home-title line-clamp-2 text-xl font-medium leading-snug text-stone-900 md:text-2xl">
             {session.topic}
           </h1>
           {showStageBadge ? (
@@ -165,14 +167,27 @@ export function ExperienceScreen({
               </span>
             </div>
           ) : (
-            <div className="mt-1.5 text-xs text-stone-400">还没有生成内容</div>
+            <div className="mt-1.5 text-xs text-stone-400">
+              {session.readOnly ? '这段会话没有可回看的内容' : '还没有生成内容'}
+            </div>
           )}
         </div>
-        {session.readOnly ? (
-          <span className="mt-1 shrink-0 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs text-stone-400">
-            已结束
-          </span>
-        ) : null}
+        <div className="flex shrink-0 items-center gap-2">
+          {session.readOnly ? (
+            <span className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs text-stone-400">
+              已结束
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={onBackHome}
+            aria-label="返回首页"
+            title="返回首页"
+            className="flex size-10 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-white hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+          >
+            <House className="size-[18px]" aria-hidden="true" />
+          </button>
+        </div>
       </header>
 
       {/* S2a：模拟分支面板（有分支记录才出现；安静折叠） */}
@@ -194,7 +209,13 @@ export function ExperienceScreen({
         aria-live="polite"
       >
         {session.turns.map((item) => (
-          <TurnItem key={item.key} item={item} totalBranches={session.branches.length} sessionId={session.sessionId} />
+          <TurnItem
+            key={item.key}
+            item={item}
+            totalBranches={session.branches.length}
+            sessionId={session.sessionId}
+            onRetryMedia={onSend}
+          />
         ))}
 
         {showRetry ? (
@@ -284,7 +305,7 @@ export function ExperienceScreen({
           </div>
           {session.generating ? (
             <p className="mb-2 px-2 text-xs leading-5 text-stone-500" role="status" aria-live="polite">
-              正在生成回应。发送新内容会结束当前这一轮。
+              正在处理这一轮。你也可以继续输入；新输入会结束当前这一轮。
             </p>
           ) : null}
           <form

@@ -79,7 +79,7 @@ export function HomeScreen({
       <header className="relative z-10 flex w-full max-w-6xl items-center justify-between border-b border-stone-300/70 py-5">
         <a href="#home" className="inline-flex items-center gap-2.5 text-stone-800" aria-label="个人体验引擎首页">
           <span className="home-mark" aria-hidden="true"><span /></span>
-          <span className="text-sm font-semibold tracking-[0.08em]">体验引擎</span>
+          <span className="text-sm font-semibold">体验引擎</span>
         </a>
         <div className="flex items-center gap-1">
           <MemoryPanel />
@@ -97,11 +97,11 @@ export function HomeScreen({
       <div id="home" className="relative z-10 w-full max-w-6xl">
         <section className="home-hero relative grid min-h-[370px] items-center gap-8 py-14 sm:py-16 lg:min-h-[420px] lg:grid-cols-[1.1fr_0.9fr] lg:gap-14 lg:py-20">
           <div className="relative z-10 max-w-2xl">
-            <p className="mb-5 flex items-center gap-2 text-[11px] font-semibold tracking-[0.2em] text-amber-800/80">
+            <p className="mb-5 flex items-center gap-2 text-[11px] font-semibold text-amber-800/80">
               <span className="h-px w-7 bg-amber-700/60" />
               给当下的自己，一点空间
             </p>
-            <h1 className="home-title max-w-xl text-[clamp(2.8rem,7vw,5.7rem)] font-medium leading-[1.05] tracking-[-0.055em] text-stone-900">
+            <h1 className="home-title max-w-xl text-5xl font-medium leading-[1.05] text-stone-900 sm:text-6xl lg:text-7xl">
               现在，想要<br className="hidden sm:block" />什么？
             </h1>
             <p className="mt-5 max-w-md text-[15px] leading-7 text-stone-500 sm:text-base">
@@ -146,7 +146,7 @@ export function HomeScreen({
             <span className="home-orbit-point home-orbit-point--two"><Sparkles /></span>
             <span className="home-orbit-point home-orbit-point--three"><Telescope /></span>
             <span className="home-orbit-point home-orbit-point--four"><Hammer /></span>
-            <span className="absolute bottom-4 right-5 text-[10px] font-medium tracking-[0.2em] text-stone-400">FOLLOW YOUR CURIOSITY</span>
+            <span className="absolute bottom-4 right-5 text-[10px] font-medium text-stone-400">FOLLOW YOUR CURIOSITY</span>
           </div>
         </section>
 
@@ -286,12 +286,12 @@ function WorkCard({
         {work.topic ?? work.promptUsed}
       </span>
       <span className="mt-0.5 flex items-center gap-1.5 text-xs text-stone-400">
-        <span className="rounded-full border border-stone-200 bg-stone-50 px-1.5 py-px">
+        <span className="whitespace-nowrap rounded-full border border-stone-200 bg-stone-50 px-1.5 py-px">
           {MODALITY_LABEL[work.modality]}
         </span>
-        <span>第 {work.turn} 轮</span>
+        <span className="whitespace-nowrap">第 {work.turn} 轮</span>
         <span aria-hidden="true">·</span>
-        <span>{formatRelativeTime(work.at)}</span>
+        <span className="min-w-0 flex-1 truncate text-right">{formatRelativeTime(work.at)}</span>
       </span>
     </span>
   );
