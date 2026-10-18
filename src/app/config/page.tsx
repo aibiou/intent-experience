@@ -48,6 +48,7 @@ interface ProviderConfigSummaryRaw {
   endpoint: string;
   modality: string;
   enabled: boolean;
+  isDefault: boolean;
   providerConfirmed: boolean;
   hasKey: boolean;
 }
@@ -214,13 +215,13 @@ function ProviderCard({
   }, [showModels]);
 
   return (
-    <div className={`group relative rounded-xl border transition-colors ${
+    <div className={`group relative rounded-2xl border shadow-[0_8px_28px_rgba(48,43,31,0.035)] transition-all ${
       provider.isDefault
-        ? 'border-amber-300/60 bg-amber-50/30'
-        : 'border-stone-200 bg-white hover:border-stone-300'
+        ? 'border-amber-300/70 bg-[#fffdf7]'
+        : 'border-stone-200/80 bg-white/85 hover:border-stone-300 hover:shadow-[0_10px_32px_rgba(48,43,31,0.07)]'
     }`}>
       {/* 卡片头部 */}
-      <div className="px-4 pt-3 pb-2">
+      <div className="px-5 pb-3 pt-5">
         <div className="flex items-center gap-2">
           {provider.isDefault && <Star className="h-4 w-4 shrink-0 fill-amber-400 text-amber-400" />}
           <span className="font-medium text-stone-800">{provider.name}</span>
@@ -269,7 +270,7 @@ function ProviderCard({
       </div>
 
       {/* 卡片底部：密钥状态 + 操作 */}
-      <div className="flex items-center justify-between border-t border-stone-100 px-4 py-2">
+      <div className="flex items-center justify-between border-t border-stone-100/90 px-4 py-2.5">
         <div className="flex items-center gap-1 text-xs">
           {provider.hasKey ? (
             <span className="inline-flex items-center gap-1 text-emerald-600">
@@ -389,7 +390,7 @@ export default function ConfigPage() {
           model: c.model,
           modality: c.modality,
           enabled: c.enabled,
-          isDefault: c.enabled,
+          isDefault: c.isDefault ?? false,
           hasKey: c.hasKey,
         }));
         setProviders(mapped);
@@ -589,15 +590,18 @@ export default function ConfigPage() {
   }, []);
 
   return (
-    <div className="min-h-dvh bg-[#faf9f7]">
+    <div className="config-shell min-h-dvh">
       {/* 顶栏 */}
-      <header className="sticky top-0 z-10 border-b border-stone-200/70 bg-[#faf9f7]/90 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
+      <header className="sticky top-0 z-10 border-b border-stone-300/70 bg-[#f7f6f1]/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3 sm:px-8">
           <div className="flex items-center gap-3">
-            <Link href="/" className="rounded-lg p-1 text-stone-400 transition-colors hover:bg-stone-200/50 hover:text-stone-600" title="返回首页">
+            <Link href="/" className="flex size-10 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-white hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600" title="返回首页">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <h1 className="text-lg font-medium text-stone-800">模型配置</h1>
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.18em] text-amber-800/70">个人体验引擎</p>
+              <h1 className="text-base font-semibold text-stone-900">模型服务</h1>
+            </div>
           </div>
           <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={loading}>
             {loading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1 h-4 w-4" />}
@@ -606,25 +610,25 @@ export default function ConfigPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-6">
+      <main className="mx-auto max-w-5xl px-5 py-7 sm:px-8 sm:py-10">
         {/* 用户向说明（开发者视图关闭时）——模型层零打扰 */}
         {!devMode ? (
-          <div className="mb-5 rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-500">
+          <div className="mb-5 rounded-2xl border border-stone-300/70 bg-white/70 px-5 py-4 text-sm leading-6 text-stone-600">
             这里管理背后提供 AI 能力的大模型服务。日常使用时不用关心——
             需要调整时打开「开发者视图」再操作。
           </div>
         ) : null}
 
         {/* 默认摘要 */}
-        <div className="mb-6 rounded-xl border border-stone-200 bg-white px-4 py-3">
-          <div className="text-xs text-stone-400">当前可用</div>
+        <div className="mb-6 rounded-2xl border border-stone-300/70 bg-white/80 px-5 py-4 shadow-[0_8px_28px_rgba(48,43,31,0.035)]">
+          <div className="text-[11px] font-medium tracking-wide text-stone-400">当前可用能力</div>
           <div className="mt-1 text-sm font-medium text-stone-700">
             {devMode ? (defaultSummary || '未配置') : (userSummary || '未配置')}
           </div>
         </div>
 
         {/* 开发者视图开关 */}
-        <div className="mb-6 flex items-center justify-end gap-2.5 border-t border-stone-200/70 pt-4">
+        <div className="mb-7 flex items-center justify-end gap-2.5 border-t border-stone-300/70 pt-4">
           <label htmlFor="gw-dev" className="flex cursor-pointer items-center gap-2 text-sm text-stone-600">
             <Switch id="gw-dev" checked={devMode} onCheckedChange={setDevMode} />
             开发者视图（显示模型与接口详情）
@@ -632,17 +636,17 @@ export default function ConfigPage() {
         </div>
 
         {/* 按模态分组 */}
-        <div className="space-y-8">
+        <div className="space-y-10">
           {MODALITIES.map((mod) => {
             const list = grouped[mod];
             return (
               <section key={mod}>
-                <div className="mb-3 flex items-center gap-2">
+                <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-stone-300/60 pb-3">
                   <span className="text-xl">{MODALITY_ICON[mod]}</span>
                   <h2 className="text-base font-semibold text-stone-800">{MODALITY_LABEL[mod]}</h2>
                   <span className="text-xs text-stone-400">{MODALITY_DESC[mod]}</span>
                   <div className="ml-auto flex items-center gap-2">
-                    <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-500">{list.length}</span>
+                  <span className="rounded-full border border-stone-200 bg-white/80 px-2.5 py-1 text-[11px] tabular-nums text-stone-500">{list.length}</span>
                     <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => openAddForm(mod)}>
                       <Plus className="h-3.5 w-3.5" /> 添加
                     </Button>
@@ -650,11 +654,11 @@ export default function ConfigPage() {
                 </div>
 
                 {list.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-stone-200 px-4 py-8 text-center text-sm text-stone-400">
-                    尚未配置——点击上方"添加"
+                  <div className="rounded-2xl border border-dashed border-stone-300/80 bg-white/40 px-4 py-9 text-center text-sm text-stone-500">
+                    还没有服务，使用右侧「添加」接入
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {list.map((p) => (
                       <ProviderCard
                         key={p.id}
@@ -685,7 +689,7 @@ export default function ConfigPage() {
               添加提供方
             </Button>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-dashed border-stone-300 bg-white p-6">
+            <form onSubmit={handleSubmit} className="space-y-5 rounded-[24px] border border-stone-300/80 bg-white/85 p-5 shadow-[0_12px_36px_rgba(48,43,31,0.05)] sm:p-7">
               <div className="text-sm font-medium text-stone-700">
                 接入新提供方 · {MODALITY_LABEL[form.modality as Modality] ?? form.modality}
               </div>

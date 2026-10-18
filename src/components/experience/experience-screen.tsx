@@ -13,7 +13,18 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { SendHorizontal } from 'lucide-react';
+import { AlertCircle, CheckCircle2, SendHorizontal } from 'lucide-react';
+import { recognizeGenerationIntent } from '@/lib/experience/generation-intent';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +41,7 @@ const STAGE_LABELS: Record<ExperienceStage, string> = {
   COMPLETION: '完成',
 };
 
-const QUICK_ACTIONS = ['为什么？', '继续', '我大概懂了', '换一个', '好了'] as const;
+const QUICK_ACTIONS = ['为什么？', '继续', '我大概懂了', '换一个'] as const;
 
 /**
  * S2b：媒体快捷动作（发现性入口——能力直达，无需知道说法）。
@@ -66,6 +77,7 @@ export function ExperienceScreen({
   onContinueCreation,
 }: ExperienceScreenProps) {
   const [text, setText] = useState('');
+  const [videoConfirmation, setVideoConfirmation] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // 新内容到达 → 温和地滚到最新
@@ -89,12 +101,27 @@ export function ExperienceScreen({
   }, [session.turns, session.generating]);
 
   const inputLocked =
-    !session.sessionId || session.ended || session.readOnly || session.exitReason !== null;
+    !session.sessionId ||
+    session.ended ||
+    session.readOnly ||
+    session.exitReason !== null;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (inputLocked) return;
     const value = text.trim();
+    if (!value) return;
+    if (recognizeGenerationIntent(value)?.modality === 'video') {
+      setVideoConfirmation(value);
+      return;
+    }
+    setText('');
+    onSend(value);
+  };
+
+  const confirmVideo = () => {
+    const value = videoConfirmation?.trim();
+    setVideoConfirmation(null);
     if (!value) return;
     setText('');
     onSend(value);
@@ -117,18 +144,19 @@ export function ExperienceScreen({
   const showStageBadge = hasSettledContent || session.generating;
 
   return (
-    <main className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col px-4">
+    <main className="experience-shell relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-5 sm:px-8">
       {/* 头部：主题 + 阶段 + 轮次 */}
-      <header className="flex items-start justify-between gap-3 border-b border-stone-200/70 pb-4 pt-6">
+      <header className="flex items-start justify-between gap-3 border-b border-stone-300/70 pb-5 pt-6 sm:pt-8">
         <div className="min-w-0">
-          <h1 className="line-clamp-2 text-base font-medium leading-snug text-stone-800 md:text-lg">
+          <p className="mb-2 text-[10px] font-semibold tracking-[0.18em] text-amber-800/70">正在探索</p>
+          <h1 className="home-title line-clamp-2 text-xl font-medium leading-snug tracking-[-0.02em] text-stone-900 md:text-2xl">
             {session.topic}
           </h1>
           {showStageBadge ? (
             <div className="mt-1.5 flex items-center gap-2.5">
               <Badge
                 variant="outline"
-                className="rounded-full border-amber-300/70 bg-amber-50/60 px-2.5 font-normal text-amber-700/90"
+              className="rounded-full border-amber-300/70 bg-amber-50/70 px-2.5 font-normal text-amber-800"
               >
                 阶段 · {STAGE_LABELS[session.stage] ?? session.stage}
               </Badge>
@@ -162,11 +190,11 @@ export function ExperienceScreen({
       {/* 内容区——分层内容 + 安静等待 */}
       <div
         ref={scrollRef}
-        className="exp-scrollbar my-5 max-h-[52dvh] space-y-7 overflow-y-auto pr-1 md:max-h-[58dvh]"
+        className="exp-scrollbar my-4 min-h-0 flex-1 space-y-8 overflow-y-auto pr-1"
         aria-live="polite"
       >
         {session.turns.map((item) => (
-          <TurnItem key={item.key} item={item} totalBranches={session.branches.length} />
+          <TurnItem key={item.key} item={item} totalBranches={session.branches.length} sessionId={session.sessionId} />
         ))}
 
         {showRetry ? (
@@ -207,7 +235,7 @@ export function ExperienceScreen({
               type="button"
               variant="outline"
               onClick={onBackHome}
-              className="h-11 rounded-full border-stone-300 px-6 text-stone-600 hover:border-amber-400 hover:bg-amber-50/50 hover:text-stone-800"
+              className="h-11 rounded-full border-stone-300 px-6 text-stone-600 hover:border-amber-400 hover:bg-amber-50/50 hover:text-stone-900"
             >
               回到首页
             </Button>
@@ -244,11 +272,25 @@ export function ExperienceScreen({
                   </button>
                 ))
               : null}
+            <button
+              type="button"
+              disabled={inputLocked}
+              onClick={() => onSend('好了')}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-stone-300 bg-stone-100/80 px-4 text-sm text-stone-600 transition-colors hover:border-stone-400 hover:bg-stone-200/70 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-500 disabled:opacity-40"
+            >
+              <CheckCircle2 className="size-4" aria-hidden="true" />
+              结束探索
+            </button>
           </div>
+          {session.generating ? (
+            <p className="mb-2 px-2 text-xs leading-5 text-stone-500" role="status" aria-live="polite">
+              正在生成回应。发送新内容会结束当前这一轮。
+            </p>
+          ) : null}
           <form
             aria-label="继续问"
             onSubmit={handleSubmit}
-            className="flex items-center gap-1.5 rounded-full border border-stone-300/90 bg-white py-1.5 pl-5 pr-1.5 shadow-[0_1px_3px_rgba(87,83,78,0.05)] transition-colors focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/20"
+            className="flex items-center gap-1.5 rounded-2xl border border-stone-300/90 bg-white py-1.5 pl-5 pr-1.5 shadow-[0_8px_30px_rgba(48,43,31,0.06)] transition-colors focus-within:border-amber-500/70 focus-within:ring-4 focus-within:ring-amber-500/10 sm:rounded-full"
           >
             <Input
               value={text}
@@ -268,7 +310,7 @@ export function ExperienceScreen({
               size="icon"
               aria-label="发送"
               disabled={inputLocked || !text.trim()}
-              className="size-11 shrink-0 rounded-full bg-stone-800 text-stone-50 hover:bg-stone-700 disabled:opacity-40"
+              className="size-11 shrink-0 rounded-xl bg-stone-900 text-stone-50 hover:bg-amber-800 disabled:opacity-40 sm:rounded-full"
             >
               <SendHorizontal className="size-4.5" aria-hidden="true" />
             </Button>
@@ -279,6 +321,40 @@ export function ExperienceScreen({
       {/* 干净的结束层——这次探索到这里；零推荐；
           作品完成时「以此续作」为用户主动入口（G2-7） */}
       <AnimatePresence>
+        {videoConfirmation ? (
+          <AlertDialog
+            key="video-confirmation"
+            open
+            onOpenChange={(open) => {
+              if (!open) setVideoConfirmation(null);
+            }}
+          >
+            <AlertDialogContent className="max-w-md rounded-[24px] border-stone-200 bg-[#faf9f7] p-6">
+              <AlertDialogHeader className="text-left">
+                <div className="mb-1 flex items-center gap-2">
+                  <AlertCircle className="size-5 text-amber-700" aria-hidden="true" />
+                  <AlertDialogTitle className="text-base font-semibold text-stone-900">
+                    确认生成视频
+                  </AlertDialogTitle>
+                </div>
+                <AlertDialogDescription className="text-sm leading-6 text-stone-600">
+                  视频通常约 5–10 分钟。如果免费额度已用完，上游可能消耗付费额度。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="mt-2 sm:flex-row">
+                <AlertDialogCancel className="h-11 rounded-full border-stone-300 px-5 text-stone-600">
+                  先不生成
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={confirmVideo}
+                  className="h-11 rounded-full bg-stone-900 px-5 text-white hover:bg-amber-800"
+                >
+                  继续生成
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
         {showEndOverlay ? (
           <motion.div
             key="end-overlay"

@@ -40,6 +40,7 @@ let keyV: CGKeyCode = 0x09
 let keyA: CGKeyCode = 0x00
 let keyReturn: CGKeyCode = 0x24
 let keyBackspace: CGKeyCode = 0x33
+let axManualAccessibility = "AXManualAccessibility" as CFString
 let keyEscape: CGKeyCode = 0x35
 let keyG: CGKeyCode = 0x05
 
@@ -496,7 +497,11 @@ func ensureYuanbaoRunning(timeout: Double = 30) -> NSRunningApplication? {
 
 func applicationElement() -> AXUIElement? {
   guard let app = ensureYuanbaoRunning() else { return nil }
-  return AXUIElementCreateApplication(app.processIdentifier)
+  let element = AXUIElementCreateApplication(app.processIdentifier)
+  // Tauri/WKWebView 的辅助树在无人使用 VoiceOver 时会休眠。
+  // 显式请求手动可访问性，避免“CUA 能看到输入区、桥接却为 0”。
+  _ = AXUIElementSetAttributeValue(element, axManualAccessibility, kCFBooleanTrue)
+  return element
 }
 
 func windows(_ appElement: AXUIElement) -> [AXUIElement] {
@@ -635,7 +640,7 @@ func pressNewConversation(appElement: AXUIElement) {
 /// 分组输入框的占位符会带上分组名（「在 ai 中发送消息」），
 /// 这比猜测 DOM 状态或读取私有前端状态可靠。已在该分组时
 /// 不点击任何控件；否则只后台 AXPress 左侧分组标题。
-func ensureAiGroupConversation(appElement: AXUIElement) -> Bool {
+func ensureAiGroupConversation(appElement: AXUIElement, freshConversation: Bool = false) -> Bool {
   let window = mainChatWindow(appElement) ?? appElement
   func aiPlaceholderVisible() -> Bool {
     axFindAll(root: window, maxDepth: 34, maxNodes: 7000) { element in
@@ -666,6 +671,42 @@ func ensureAiGroupConversation(appElement: AXUIElement) -> Bool {
       return true
     }
     return false
+  }
+
+  // 分组标题右侧的加号是“新建组内对话”。每次生图请求都
+  // 从干净会话开始，避免上一轮候选把风格、季节等约束带进
+  // 下一轮。加号通常没有标题，只能靠分组行内的几何位置
+  // 和小尺寸图标识别。
+  if freshConversation {
+    let plusCandidates = axFindAll(root: window, maxDepth: 30, maxNodes: 7000) { element in
+      guard let frame = axFrame(element) else { return false }
+      let role = axRole(element)
+      guard role == "AXButton" || role == "AXImage" || role == "AXGroup" else { return false }
+      guard (14...38).contains(Int(frame.1.width)),
+            (14...38).contains(Int(frame.1.height))
+      else { return false }
+      return frame.0.x >= aiFrame.0.x + 120
+        && frame.0.x <= aiFrame.0.x + 260
+        && abs(frame.0.y + frame.1.height / 2 - (aiFrame.0.y + aiFrame.1.height / 2)) <= 14
+    }.sorted { left, right in
+      (axFrame(left.element)?.0.x ?? 0) > (axFrame(right.element)?.0.x ?? 0)
+    }
+
+    if let plus = plusCandidates.first?.element, pressElement(plus) {
+      let deadline = Date().addingTimeInterval(5)
+      while Date() < deadline {
+        usleep(300_000)
+        let freshMarkerVisible = !axFindAll(root: window, maxDepth: 34, maxNodes: 7000) { element in
+          axRole(element) == "AXStaticText"
+            && axValueText(element) == "您已新建组内对话"
+        }.isEmpty
+        if freshMarkerVisible {
+          blog("generate: 已新建 ai 分组内干净会话")
+          return true
+        }
+      }
+      blog("generate: 新建 ai 分组会话未确认")
+    }
   }
 
   // 分组和组内会话都在 x=46。展开后下一个分组会整体下移，
@@ -1143,6 +1184,30 @@ private func recentRecords(in database: URL, limit: Int) -> [(recordID: Int, val
   return databaseRecords
 }
 
+/// 从 WebKit 结构化序列化数据中提取 ASCII URL。
+///
+/// 较新版元宝会把 downloadUrl 与 originUrl 同时写入同一条记录；
+/// 两者文件名一致，去重后可以互为编码兜底。
+private func asciiImageURLs(in data: Data) -> [String] {
+  var results: [String] = []
+  var cursor = 0
+  let bytes = [UInt8](data)
+  let prefix = Array("https://".utf8)
+
+  while cursor < bytes.count {
+    guard let start = bytes[cursor...].firstRange(of: prefix)?.lowerBound else { break }
+    var position = start
+    while position < bytes.count, bytes[position] >= 32, bytes[position] < 127 {
+      position += 1
+    }
+    if position - start >= 20 {
+      results.append(String(decoding: bytes[start..<position], as: UTF8.self))
+    }
+    cursor = max(position, start + 1)
+  }
+  return results
+}
+
 /// 从 WebKit 结构化序列化数据中提取 UTF-16LE 字符串。
 ///
 /// downloadUrl 在记录里多为 ASCII；originUrl 是 UTF-16。
@@ -1197,6 +1262,33 @@ private func originImageTime(_ url: String, relativeTo now: TimeInterval) -> Tim
   return seconds
 }
 
+/// 原始扫描 IndexedDB 主库和 WAL。
+///
+/// 外部进程没有 WebKit 的 IDBKEY collation，而且活跃 WAL 里的提交
+/// 对外部 SQLite 连接可能暂不可见；结构化序列化字节本身足够稳定，
+/// 直接扫描可以避免“页面已出图、桥接却取到 0”的窗口。
+private func rawIndexedDBURLs() -> [String] {
+  var files: [URL] = []
+  for database in yuanbaoIndexedDatabases() {
+    files.append(database)
+    let wal = URL(fileURLWithPath: database.path + "-wal")
+    if FileManager.default.fileExists(atPath: wal.path) {
+      files.append(wal)
+    }
+  }
+
+  var urls: [String] = []
+  for file in files.prefix(32) {
+    guard let data = try? Data(contentsOf: file) else { continue }
+    for url in utf16Strings(in: data) + asciiImageURLs(in: data) {
+      // 百分号编码形态来自响应缓存；originUrl 的签名参数是原始分隔符。
+      guard !url.contains("%"), !urls.contains(url) else { continue }
+      urls.append(url)
+    }
+  }
+  return urls
+}
+
 /// 轮询 IndexedDB，等待本轮候选 originUrl 写入。
 func latestOriginImageURLs(since: Date, minimum: Int, timeout: Double) -> [String] {
   let cutoff = since.timeIntervalSince1970 - 2
@@ -1208,19 +1300,18 @@ func latestOriginImageURLs(since: Date, minimum: Int, timeout: Double) -> [Strin
   while Date() < deadline {
     let records = recentIndexedDBRecords(limit: 50)
     var candidates: [String] = []
-    for record in records {
-      let strings = utf16Strings(in: record.value)
-      for url in strings {
-        guard url.contains("hunyuan-prod-"),
-              url.contains("/text2img/"),
-              !url.contains("thumbnail_"),
-              !url.contains("/app/icon/"),
-              let generatedAt = originImageTime(url, relativeTo: now),
-              generatedAt >= cutoff,
-              !candidates.contains(url)
-        else { continue }
-        candidates.append(url)
-      }
+    let recordURLs = records.flatMap { utf16Strings(in: $0.value) } + rawIndexedDBURLs()
+    for url in recordURLs {
+      guard url.contains("hunyuan-prod-"),
+            url.contains("/text2img/"),
+            url.contains("?q-sign-algorithm=sha1&q-ak="),
+            !url.contains("thumbnail_"),
+            !url.contains("/app/icon/"),
+            let generatedAt = originImageTime(url, relativeTo: now),
+            generatedAt >= cutoff,
+            !candidates.contains(url)
+      else { continue }
+      candidates.append(url)
     }
     // 同一响应的候选文件名携带纳秒级时间戳，通常只相差几秒；
     // 只取最新簇，避免从同一条会话历史缓存里拿旧图。
@@ -1310,8 +1401,17 @@ func runGenerate(prompt: String, imageCount: Int, timeout: Double) throws -> [Ge
   blog("generate: 开始 promptLength=\(prompt.count)")
 
   // 固定在用户创建的 ai 分组内；不再点全局新建对话。
-  guard ensureAiGroupConversation(appElement: appElement) else {
-    throw BridgeError.message("无法切换到 ai 分组")
+  if ensureAiGroupConversation(appElement: appElement, freshConversation: true) {
+    blog("generate: 使用 ai 分组内新建会话")
+  } else {
+    // 分组加号不可用时退回全局新建。干净上下文比分组路由
+    // 更重要；用户说过此时可以不用分组生成。
+    pressNewConversation(appElement: appElement)
+    usleep(1_500_000)
+    guard textAreaInMainWindow(appElement) != nil else {
+      throw BridgeError.message("无法创建干净生图会话")
+    }
+    blog("generate: ai 分组不可用，使用全局新建会话兜底")
   }
   usleep(2_000_000)
 
@@ -1899,6 +1999,19 @@ func route(_ request: HTTPRequest) -> Data {
 
   if path == "/health" {
     let app = runningYuanbao()
+    var ready = false
+    if let app {
+      let appElement = AXUIElementCreateApplication(app.processIdentifier)
+      _ = AXUIElementSetAttributeValue(appElement, axManualAccessibility, kCFBooleanTrue)
+      let deadline = Date().addingTimeInterval(2.5)
+      while Date() < deadline {
+        if !windows(appElement).isEmpty && textAreaInMainWindow(appElement) != nil {
+          ready = true
+          break
+        }
+        usleep(200_000)
+      }
+    }
     return httpResponse(
       status: 200,
       reason: "OK",
@@ -1908,6 +2021,9 @@ func route(_ request: HTTPRequest) -> Data {
         "trusted": AXIsProcessTrusted(),
         "yuanbaoRunning": app != nil,
         "yuanbaoPid": app.map { Int($0.processIdentifier) } ?? 0,
+        "axReady": ready,
+        "inputReady": ready,
+        "ready": ready,
       ])
     )
   }

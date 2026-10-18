@@ -27,6 +27,10 @@ describe('videoProviderOf', () => {
     expect(videoProviderOf({ provider: 'agnes-com', model: 'agnes-video-2.5-flash', endpoint: 'https://apihub.agnes-ai.com/v1' })).toBe('agnes');
     expect(videoProviderOf({ provider: 'other', model: 'foo', endpoint: 'https://example.com/v1' })).toBe('agnes');
   });
+  it('豆包本机桥接（127.0.0.1:3220 / doubao-app-local 模型）→ zhipu（OpenAI 兼容 /videos/generations）', () => {
+    expect(videoProviderOf({ provider: '豆包本机视频', model: 'doubao-app-local-video', endpoint: 'http://127.0.0.1:3220/v1' })).toBe('zhipu');
+    expect(videoProviderOf({ provider: '豆包本机视频', model: 'doubao-app-local-video', endpoint: 'http://127.0.0.1:9999/v1' })).toBe('zhipu');
+  });
 });
 
 describe('zhipuSizeOf', () => {

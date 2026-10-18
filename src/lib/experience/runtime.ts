@@ -51,6 +51,7 @@
  *   无可重放内容时回退内容轮（回答照常进行 + 生成随流追加）。
  */
 
+import { createHash } from 'node:crypto';
 import { classifyInput } from './classifier';
 import { getSeed, matchSeedScored, randomSeed } from './catalog';
 import type { CreationInterpretation, CreationObject, CreationPatch, CreationPhase } from './creation';
@@ -62,7 +63,8 @@ import {
   nextCreationPhase,
 } from './creation';
 import type { LlmGateway } from './llm-gateway';
-import { getMediaGateway, MediaGatewayError, type MediaGateway } from './media-gateway';
+import { getMediaGateway, MediaGatewayError, type MediaArtifactRecord, type MediaGateway } from './media-gateway';
+import { getMediaJobStore, MediaJobStore, type MediaJob } from './media-job-store';
 import {
   recognizeGenerationIntent,
   shouldCompactReplay,
@@ -92,6 +94,7 @@ import * as store from './store';
 import type { SessionRow } from './store';
 import type { ExperienceState, TurnEvent, TurnKind } from './types';
 import { validateProposal } from './validator';
+import { applyVisualPromptContract } from './visual-prompt';
 
 export interface StartInput {
   seedId?: string;
@@ -125,14 +128,36 @@ const UNKNOWN_NOTICE =
 const WHAT_IF_IN_CREATION_NOTICE =
   '创作进行时暂时不能开新的模拟。你可以继续修改这个作品，说"就这样"完成它，或者直接提问题；想结束可以说"好了"。';
 
+interface MediaJobExecution {
+  ok: boolean;
+  job: MediaJob;
+  records?: MediaArtifactRecord[];
+  error?: string;
+}
+
+function mimeFromFile(file: string): string {
+  if (file.endsWith('.png')) return 'image/png';
+  if (file.endsWith('.jpg') || file.endsWith('.jpeg')) return 'image/jpeg';
+  if (file.endsWith('.webp')) return 'image/webp';
+  if (file.endsWith('.mp3')) return 'audio/mpeg';
+  if (file.endsWith('.wav')) return 'audio/wav';
+  if (file.endsWith('.ogg')) return 'audio/ogg';
+  if (file.endsWith('.mp4')) return 'video/mp4';
+  return 'application/octet-stream';
+}
+
 export class ExperienceRuntime {
   /** 续作种子：sessionId → 其图像参考图来源会话（内存态——
    * 服务重启后回落为无参考图的纯文生图，诚实降级）。 */
   private readonly continuationSeeds = new Map<string, string>();
 
+  /** 后台媒体任务的进程内等待表（持久事实源在 MediaJobStore）。 */
+  private readonly activeMediaJobs = new Map<string, Promise<MediaJobExecution>>();
+
   constructor(
     private readonly gateway: LlmGateway,
-    private readonly media: MediaGateway = getMediaGateway()
+    private readonly media: MediaGateway = getMediaGateway(),
+    private readonly mediaJobs: MediaJobStore = getMediaJobStore()
   ) {}
 
   /** 图像参考图解析：会话自身最新图像产物优先——
@@ -271,12 +296,22 @@ export class ExperienceRuntime {
       return;
     }
 
-    // ── S2b：生成意图路由（只认领 UNKNOWN / CHANGE_DIRECTION 层——零黄金
+    // ── S2b：生成意图路由（认领 UNKNOWN / CHANGE_DIRECTION / CONTINUE / CREATE 层——零黄金
     // 回归面；对话回应照常进行，媒体产物随流追加）──
     let generationIntent: GenerationIntent | null = null;
     {
       const semanticActionBefore = classification.semanticAction;
-      if (semanticActionBefore === 'UNKNOWN' || semanticActionBefore === 'CHANGE_DIRECTION') {
+      if (semanticActionBefore === 'CORRECTION') {
+        // “根据选中的图重新生成：…” 会被通用修正词表（替换/改成）
+        // 抢先命中；只有带明确再生成标记的媒体请求才可越过修正层。
+        const candidate = recognizeGenerationIntent(raw);
+        if (candidate?.regen === true) generationIntent = candidate;
+      } else if (
+        semanticActionBefore === 'UNKNOWN' ||
+        semanticActionBefore === 'CHANGE_DIRECTION' ||
+        semanticActionBefore === 'CONTINUE' ||
+        semanticActionBefore === 'CREATE'
+      ) {
         generationIntent = recognizeGenerationIntent(raw);
       }
     }
@@ -336,7 +371,26 @@ export class ExperienceRuntime {
         // 再生成特例（「换一张图片，夏天的服装」）：模态词在场时「换」
         // 指向媒体再生成而非体验方向变更——否则会误触会话结束。
         semanticAction = 'CREATE';
+      } else if (semanticAction === 'CONTINUE') {
+        // 「继续生成一张图片…」是明确的继续创作，不是「继续」触发
+        // 下一层讲解；引用上文（useContext）的继续呈现仍保留重放。
+        semanticAction = generationIntent.useContext ? 'REPEAT' : 'CREATE';
+      } else if (semanticAction === 'CREATE') {
+        // 明确的图像 / 视频 / 语音请求优先于泛化文字创作补丁；
+        // 没有生成动词的「加一个出口」仍保留创作域补丁。
+        creationIntent = null;
+      } else if (semanticAction === 'CORRECTION' && generationIntent.regen === true) {
+        semanticAction = 'CREATE';
+        creationIntent = null;
       }
+    }
+
+    // 产品兜底：分类器认不出的普通自然输入不再打断体验。语义动作仍是
+    // 确定性的 DIRECT_ANSWER；内容理解交给 LLM，并由系统提示中的当前
+    // 主题 / 最近轮次约束住。停止、修改、生成、记忆等识别层仍然优先，
+    // 不会因为兜底而被模型改写。
+    if (semanticAction === 'UNKNOWN') {
+      semanticAction = 'DIRECT_ANSWER';
     }
 
     const resolution = resolvePolicy(semanticAction);
@@ -688,7 +742,7 @@ export class ExperienceRuntime {
     yield { type: 'content', turn: turnNumber, kind: 'ANSWER', text: content, stateVersion: expectedVersion + 1 };
     yield { type: 'state', stateVersion: expectedVersion + 1, view: state.view, state };
     if (generationIntent) {
-      yield* this.runGeneration(generationIntent, last.content, sessionId, turnNumber, signal);
+      yield* this.runGeneration(generationIntent, last.content, generationIntent.prompt, sessionId, turnNumber, signal);
     }
     yield { type: 'done', stateVersion: expectedVersion + 1, ended: false, exitReason: null };
   }
@@ -704,6 +758,7 @@ export class ExperienceRuntime {
   private async *runGeneration(
     intent: GenerationIntent,
     material: string,
+    userRequest: string,
     sessionId: string,
     turn: number,
     signal: AbortSignal
@@ -715,11 +770,14 @@ export class ExperienceRuntime {
         // 朗读类：材料是重放/回答内容；直接语音类（「用语音说…」）用用户原话。
         promptUsed = (intent.useContext || intent.referential ? material : intent.prompt).slice(0, 1000);
       } else if (intent.useContext || intent.referential) {
-        promptUsed = await this.distillVisualPrompt(material, signal);
+        promptUsed = await this.distillVisualPrompt(material, signal, userRequest);
       } else {
         // 直接创作（CREATE 路由）：用户原话就是画面主题；短输入轻量增富
         // （对齐参考 enrichPrompt——裸短语直达 t2i 会因无主体回落默认人像）。
         promptUsed = intent.prompt.trim().length < 16 ? `${intent.prompt.trim()}，画面温馨自然，细节丰富` : intent.prompt.trim();
+      }
+      if (intent.modality !== 'voice') {
+        promptUsed = applyVisualPromptContract(promptUsed);
       }
       if (promptUsed.trim().length === 0) {
         yield {
@@ -732,41 +790,48 @@ export class ExperienceRuntime {
         return;
       }
       yield { type: 'generation', status: 'started', turn, modality: intent.modality, prompt: promptUsed };
-      // G2-5 创作闭环：情境再生成（「换一张图片，X」再生成 /
-      // 「用图片展现刚才的内容」呈现 / 「对应的猫图片」指代——
-      // useContext / referential / regen 意图）时，会话最新
-      // 图像产物作为参考图（图生图——官方 extra_body.image
-      // 契约，dataURI 实证链 CR-61）；无既有产物 → 文生图。
-      // G2-7 续作：新会话首轮回落种子会话最新产物（见
-      // loadTurnImageReference）。
+      // G2-5/G2-7：情境再生成 / 呈现 / 续作用最新图像产物作为参考图；
+      // 无既有产物时自然退化为文生图。
       const imageReference =
         intent.modality === 'image' &&
         (intent.useContext || intent.referential || intent.regen)
           ? await this.loadTurnImageReference(sessionId)
           : null;
-      const records =
-        intent.modality === 'image'
-          ? await this.media.generateImages(promptUsed, {
-              sessionId,
-              turn,
-              signal,
-              ...(imageReference ? { referenceImages: [imageReference] } : {}),
-            })
-          : intent.modality === 'video'
-            ? [await this.media.generateVideo(promptUsed, { sessionId, turn, signal })]
-            : [await this.media.generateVoice(promptUsed, { sessionId, turn, signal })];
-      const record = records[0];
-      if (signal.aborted || !record) return; // 产物已落盘但用户已离开：不投递
-      yield {
-        type: 'generation',
-        status: 'completed',
+      const job = await this.mediaJobs.create({
+        sessionId,
         turn,
         modality: intent.modality,
-        urls: records.map((item) => `/api/experience/media/${item.file}`),
-        url: `/api/experience/media/${record.file}`,
-        promptUsed,
-        mime: record.mime,
-      };
+        prompt: promptUsed,
+        idempotencyKey: createHash('sha256')
+          .update([sessionId, turn, intent.modality, promptUsed].join('\n'))
+          .digest('hex'),
+      });
+
+      if (job.status === 'completed') {
+        yield this.completedGenerationEvent(job, promptUsed);
+        return;
+      }
+
+      // 同 key 的运行中任务复用进程内执行，不发起第二次付费调用。
+      let execution = this.activeMediaJobs.get(job.id);
+      if (!execution) {
+        execution = this.executeMediaJob(job, new AbortController().signal, imageReference);
+        this.activeMediaJobs.set(job.id, execution);
+      }
+      const result = await execution.finally(() => {
+        this.activeMediaJobs.delete(job.id);
+      });
+      if (!result.ok) {
+        yield {
+          type: 'generation',
+          status: 'failed',
+          turn,
+          modality: intent.modality,
+          message: result.error ?? '这次没生成出来，可以稍后再试一次',
+        };
+        return;
+      }
+      yield this.completedGenerationEvent(result.job, promptUsed, result.records);
     } catch (error) {
       if (signal.aborted) return;
       const message =
@@ -777,18 +842,95 @@ export class ExperienceRuntime {
     }
   }
 
+  /** 媒体任务脱离请求生命周期执行；结果与产物先落账本再投递 SSE。 */
+  private async executeMediaJob(
+    job: MediaJob,
+    signal: AbortSignal,
+    imageReference: string | null
+  ): Promise<MediaJobExecution> {
+    try {
+      const records =
+        job.modality === 'image'
+          ? await this.media.generateImages(job.prompt, {
+              sessionId: job.sessionId,
+              turn: job.turn,
+              signal,
+              ...(imageReference ? { referenceImages: [imageReference] } : {}),
+            })
+          : job.modality === 'video'
+            ? [
+                await this.media.generateVideo(job.prompt, {
+                  sessionId: job.sessionId,
+                  turn: job.turn,
+                  signal,
+                  ...(imageReference ? { referenceImages: [imageReference] } : {}),
+                }),
+              ]
+            : [
+                await this.media.generateVoice(job.prompt, {
+                  sessionId: job.sessionId,
+                  turn: job.turn,
+                  signal,
+                }),
+              ];
+      const completed = await this.mediaJobs.complete(
+        job.id,
+        records.map((record) => record.file)
+      );
+      if (!completed) throw new MediaGatewayError('媒体任务账本丢失', false);
+      return { ok: true, job: completed, records };
+    } catch (error) {
+      const message =
+        error instanceof MediaGatewayError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : '这次没生成出来，可以稍后再试一次';
+      const failed = await this.mediaJobs.fail(job.id, message);
+      return { ok: false, job: failed ?? job, error: message };
+    }
+  }
+
+  /** 完成事件从账本产物构造，live 与恢复共享同一事实源。 */
+  private completedGenerationEvent(
+    job: MediaJob,
+    promptUsed: string,
+    records?: readonly MediaArtifactRecord[]
+  ): Extract<TurnEvent, { type: 'generation'; status: 'completed' }> {
+    const urls = job.artifactFiles.map((file) => `/api/experience/media/${file}`);
+    return {
+      type: 'generation',
+      status: 'completed',
+      turn: job.turn,
+      modality: job.modality,
+      urls,
+      url: urls[0] ?? '',
+      promptUsed,
+      mime: records?.[0]?.mime ?? mimeFromFile(urls[0] ?? ''),
+    };
+  }
+
   /**
    * S2b：视觉提示词蒸馏——上一轮内容 → 40-80 字画面描述。
    * 蒸馏是增强项绝不阻塞：LLM 失败时回退确定性首段（≤90 字）。
    */
-  private async distillVisualPrompt(material: string, signal: AbortSignal): Promise<string> {
+  private async distillVisualPrompt(
+    material: string,
+    signal: AbortSignal,
+    userRequest?: string
+  ): Promise<string> {
     const source = material.slice(0, 700);
     const fallback = source.split(/\n{2,}/)[0]?.slice(0, 90) ?? source.slice(0, 90);
     try {
       const proposal = await this.gateway.generate({
-        systemPrompt:
+        systemPrompt: [
           '你是画面导演。把给定内容浓缩成一句 40 到 80 字的中文画面描述：只描述可见的画面（主体、场景、光线、氛围），不出现「画」「图片」字样，不做任何解释，不加引号，直接输出这一句描述。',
-        userPrompt: source,
+          '用户最新要求中的时间、天气、季节、主体、数量、材质、动作和保留对象都是硬约束；明确否定的事物必须保持缺席，不要为了氛围新增相反设定。',
+        ].join(''),
+        userPrompt: [
+          `画面素材：${source}`,
+          userRequest ? `用户最新要求：${userRequest}` : '',
+        ].filter(Boolean).join('\n'),
         signal,
       });
       const text = proposal.text
@@ -949,7 +1091,7 @@ export class ExperienceRuntime {
     if (generationIntent) {
       // S2b：直接创作类的媒体随流追加（「画一张风图」→ 作品预览 + 图片）。
       // 材料参数在直接创作分支不参与（runGeneration 用 intent.prompt）。
-      yield* this.runGeneration(generationIntent, raw, sessionId, turnNumber, signal);
+      yield* this.runGeneration(generationIntent, raw, raw, sessionId, turnNumber, signal);
     }
     yield { type: 'done', stateVersion: expectedVersion + 1, ended: false, exitReason: null };
   }
@@ -1496,7 +1638,7 @@ export class ExperienceRuntime {
     yield { type: 'state', stateVersion: expectedVersion + 1, view: state.view, state };
     if (generationIntent) {
       // S2b：首条输入即呈现类表达的回退路径——新生成的回答即生成材料。
-      yield* this.runGeneration(generationIntent, proposalText, sessionId, turnNumber, signal);
+      yield* this.runGeneration(generationIntent, proposalText, raw, sessionId, turnNumber, signal);
     }
     yield { type: 'done', stateVersion: expectedVersion + 1, ended: false, exitReason: null };
   }

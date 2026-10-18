@@ -620,7 +620,9 @@ async function handleExecutionForm(
     // WAITING/CREATION 阶段非法，曾以英文原文报错）。
     // 不发明新语义动作，policy_v2.3.0 词汇表不变。
     const routedClassification =
-      classification.semanticAction === 'CHANGE_DIRECTION' && generation !== null
+      generation !== null &&
+      (classification.semanticAction === 'CHANGE_DIRECTION' ||
+        (classification.semanticAction === 'CONTINUE' && generation.useContext !== true))
         ? 'CREATE'
         : classification.semanticAction;
     const semanticAction =

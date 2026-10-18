@@ -81,3 +81,6 @@ data/
 # browser automation state / demo screenshots
 .playwright-mcp/
 product-home.png
+.runtime/
+/e2e-*.png
+tools/yuanbao-bridge/*.app.before-*/

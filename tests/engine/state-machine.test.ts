@@ -219,9 +219,12 @@ describe('state-machine：非法迁移一律拒绝（S1-04）', () => {
     }
   });
 
-  it('ENTERING 仅接受 EXPERIENCE_STARTED / STOP——其余触发器全部拒绝（越级跳步）', () => {
+  it('ENTERING 接受 START / STOP / CHANGE_DIRECTION——其余触发器全部拒绝（越级跳步）', () => {
     const triggersWithoutLegal = ALL_TRIGGERS.filter(
-      (t) => t !== 'EXPERIENCE_STARTED' && t !== 'STOP'
+      (t) =>
+        t !== 'EXPERIENCE_STARTED' &&
+        t !== 'STOP' &&
+        t !== 'CHANGE_DIRECTION'
     );
     for (const trigger of triggersWithoutLegal) {
       expectIllegal(view('ENTERING', 'CURIOSITY'), trigger);

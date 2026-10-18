@@ -12,6 +12,7 @@
  *   POST {base}/videos/generations（model/prompt/size/duration），
  *   创建响应 id；轮询 GET {base}/async-result/{id}，
  *   task_status=SUCCESS 时 data[0].url / data[0].video_result。
+ *   豆包 App 本机桥接（tools/doubao-bridge，同步产物）同属此族。
  */
 
 import type { AspectRatio } from './generation-gateway';
@@ -21,7 +22,9 @@ export type VideoProvider = 'agnes' | 'zhipu';
 
 /**
  * 判定视频请求走哪套契约。优先按模型名识别（cogvideox / vidu
- * 均为智谱），其次按端点域名（bigmodel.cn）；其余默认 agnes。
+ * 均为智谱），其次按端点域名（bigmodel.cn）；豆包 App 本机桥接
+ * （tools/doubao-bridge）同属 OpenAI 兼容 /videos/generations 契约
+ * （同步产物——执行器的同步兜底直接取 data[0].url）；其余默认 agnes。
  */
 export function videoProviderOf(config: {
   provider: string;
@@ -32,6 +35,15 @@ export function videoProviderOf(config: {
     return 'zhipu';
   }
   if (config.endpoint.includes('bigmodel.cn')) {
+    return 'zhipu';
+  }
+  // 本机桥接端点（127.0.0.1:3220，与 callProvider 超时特判同源）
+  // 或桥接预设模型名——agnes 契约的 POST /videos 会被桥接
+  // 未知路径兜底拒成 404（实测 2026-10-16）。
+  if (
+    /127\.0\.0\.1:3220/.test(config.endpoint) ||
+    /doubao-app-local/i.test(config.model)
+  ) {
     return 'zhipu';
   }
   return 'agnes';

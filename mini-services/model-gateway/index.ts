@@ -225,6 +225,9 @@ async function handleChatCompletions(req: Request): Promise<Response> {
       }
     }
   }
+  if (lastError instanceof MediaProviderError && lastError.failoverBlocked) {
+    return mapMediaError(lastError);
+  }
   if (lastError === undefined) {
     // 链上候选全部未配置密钥
     return json(
@@ -324,6 +327,7 @@ function mapMediaError(error: unknown, detail?: string): Response {
  * 与凭据类（401/403）可切换下一候选；其它 4xx 不切换。 */
 function isMediaFailoverEligible(error: unknown): boolean {
   if (error instanceof MediaProviderError) {
+    if (error.failoverBlocked) return false;
     if (error.retryable || error.status === undefined) {
       return true;
     }
@@ -445,7 +449,11 @@ async function handleVideoGenerations(req: Request): Promise<Response> {
   if (!prompt.ok) {
     return json(buildApiErrorBody(prompt.message, 'invalid_request_error', 'INVALID_REQUEST'), 400);
   }
-  return runMediaGeneration('video', (record) => generateVideo(record, prompt.value));
+  return runMediaGeneration('video', (record) =>
+    generateVideo(record, prompt.value, undefined, {
+      referenceImages: optionalStringArray(bodyObj, 'referenceImages'),
+    }),
+  );
 }
 
 /** 测试端点总是 200，用 body 区分成败。按模态路由：文本走对话，图像/语音走最小真实调用，视频为异步任务（创建+轮询数分钟）指引实际生成验证。 */

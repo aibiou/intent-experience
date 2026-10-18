@@ -11,7 +11,7 @@
  * - 负面对照：普通新会话无种子、无产物 → 文生图（无参考）
  * - 输入校验（会话不存在 / 缺续作输入）
  */
-import { copyFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
@@ -20,10 +20,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 // 全部引擎模块经动态 import 加载。
 const tmpDir = mkdtempSync(join(tmpdir(), 'exp-continuation-'));
 process.env.DATABASE_URL = `file:${join(tmpDir, 'test.db').replace(/\\/g, '/')}`;
-copyFileSync(
-  join(import.meta.dir, '..', '..', 'prisma', 'dev.db'),
-  join(tmpDir, 'test.db')
-);
 
 // 类型导入经 ts 擦除——不触发模块加载，env 设置顺序安全。
 import type { StartInput } from '../../src/lib/experience/runtime';
@@ -31,6 +27,7 @@ import type { MediaGateway } from '../../src/lib/experience/media-gateway';
 import type { TurnEvent } from '../../src/lib/experience/types';
 
 const { ExperienceRuntime } = await import('../../src/lib/experience/runtime');
+const { MediaJobStore } = await import('../../src/lib/experience/media-job-store');
 const store = await import('../../src/lib/experience/store');
 
 type SessionEvent = Extract<TurnEvent, { type: 'session' }>;
@@ -49,21 +46,23 @@ function makeFakeMedia(refs: Map<string, string>, calls: ImageCall[]) {
     async loadSessionImageReference(sessionId: string): Promise<string | null> {
       return refs.get(sessionId) ?? null;
     },
-    async generateImage(
+    async generateImages(
       prompt: string,
       options: { sessionId: string; turn: number; referenceImages?: string[] }
     ) {
       calls.push({ prompt, referenceImages: options.referenceImages });
-      return {
-        id: `fake-img-${calls.length}`,
-        sessionId: options.sessionId,
-        turn: options.turn,
-        modality: 'image' as const,
-        file: 'fake.png',
-        mime: 'image/png',
-        promptUsed: prompt,
-        at: new Date().toISOString(),
-      };
+      return [
+        {
+          id: `fake-img-${calls.length}`,
+          sessionId: options.sessionId,
+          turn: options.turn,
+          modality: 'image' as const,
+          file: 'fake.png',
+          mime: 'image/png',
+          promptUsed: prompt,
+          at: new Date().toISOString(),
+        },
+      ];
     },
     async generateVoice(): Promise<never> {
       throw new Error('语音生成不在本测试预期内');
@@ -98,13 +97,56 @@ let imageCalls: ImageCall[];
 let priorSessionId: string;
 
 beforeAll(async () => {
+  const { db } = await import('../../src/lib/db');
+  await db.$executeRawUnsafe(`CREATE TABLE "ExperienceSession" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "seedId" TEXT,
+    "topic" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+    "exitReason" TEXT,
+    "stateVersion" INTEGER NOT NULL DEFAULT 1,
+    "generation" INTEGER NOT NULL DEFAULT 0,
+    "state" JSONB NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  )`);
+  await db.$executeRawUnsafe(`CREATE TABLE "ExperienceEvent" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "sessionId" TEXT NOT NULL,
+    "seq" INTEGER NOT NULL,
+    "type" TEXT NOT NULL,
+    "payload" JSONB,
+    "stateVersion" INTEGER NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("sessionId") REFERENCES "ExperienceSession" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  )`);
+  await db.$executeRawUnsafe(
+    'CREATE UNIQUE INDEX "ExperienceEvent_sessionId_seq_key" ON "ExperienceEvent"("sessionId", "seq")',
+  );
+  await db.$executeRawUnsafe(`CREATE TABLE "MemoryRecord" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "topic" TEXT NOT NULL,
+    "intentSignal" TEXT NOT NULL,
+    "lifecycle" TEXT NOT NULL,
+    "source" TEXT NOT NULL,
+    "confidence" REAL NOT NULL,
+    "interestSignal" REAL NOT NULL,
+    "corrections" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastRecalledAt" DATETIME,
+    "withdrawnAt" DATETIME,
+    "expiredAt" DATETIME,
+    "deletionAudit" JSONB
+  )`);
   refs = new Map();
   imageCalls = [];
   const fakeMedia = makeFakeMedia(refs, imageCalls);
   // 媒体网关为类（名义类型）——结构等价对象经断言转型。
   runtime = new ExperienceRuntime(
     fakeLlm,
-    fakeMedia as unknown as MediaGateway
+    fakeMedia as unknown as MediaGateway,
+    new MediaJobStore(join(tmpDir, 'media-jobs.json'))
   );
   // 种子会话：已完成创作的「月光下的猫」（最新图像产物为参考来源）。
   const prior = await store.createSession({
@@ -124,6 +166,18 @@ afterAll(async () => {
 });
 
 describe('G2-7 完成后续作：续作启动', () => {
+  it('自由叙事指令不再触发 UNKNOWN 边界，而是作为普通回答承接', async () => {
+    const events = await collect({
+      freeText: '带我走一圈宇宙，从房间到太阳系边缘再回来',
+    });
+    const content = events.find((e): e is Extract<TurnEvent, { type: 'content' }> => e.type === 'content');
+    const done = events.find((e): e is DoneEvent => e.type === 'done');
+    expect(content?.kind).toBe('FIRST_LAYER');
+    expect(content?.text).toContain('（测试回答');
+    expect(events.some((event) => event.kind === 'BOUNDARY_NOTICE')).toBe(false);
+    expect(done?.ended).toBe(false);
+  });
+
   it('主题继承为「原主题·续作」，首轮图生图参考图回落到种子会话最新产物', async () => {
     const events = await collect({
       continueSessionId: priorSessionId,
@@ -168,6 +222,25 @@ describe('G2-7 完成后续作：续作启动', () => {
       (e): e is SessionEvent => e.type === 'session'
     );
     expect(sessionEvent?.topic).toBe('月光下的猫·续作');
+  });
+
+  it('“根据选中图重新生成”越过修正澄清，直接进入图生图', async () => {
+    const before = imageCalls.length;
+    const events = await collect({
+      continueSessionId: priorSessionId,
+      freeText: '根据刚才选中的那张图重新生成一张：把邮局换成红砖小火车站',
+    });
+
+    // 通用修正词表会命中“换成”；若运行时路由错误，这里会先
+    // 追加 CREATION_ASK 澄清轮，而不是发起媒体生成。
+    expect(events.some((event) => event.type === 'content' && event.kind === 'CREATION_ASK')).toBe(false);
+    expect(imageCalls.length).toBe(before + 1);
+    expect(imageCalls[before]?.prompt).toBe(
+      '把邮局换成红砖小火车站，画面温馨自然，细节丰富。严格遵循上述画面中的主体、数量、时间、天气、季节、光线、场景、材质、动作、位置和保留对象；不得替换成相反的时间、天气或场景，不得增删关键限定物，不得加入水印或文字签名。',
+    );
+    expect(imageCalls[before]?.referenceImages).toEqual([
+      'data:image/png;base64,QUJDREVG',
+    ]);
   });
 
   it('负面对照：种子会话无图像产物 → 文生图（诚实降级，不阻断生成）', async () => {

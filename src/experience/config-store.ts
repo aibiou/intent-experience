@@ -94,6 +94,8 @@ export interface ProviderConfigSummary {
   createdAt: string;
   updatedAt: string;
   enabled: boolean;
+  /** 同模态第一条已启用记录——运行期按它路由默认提供方。 */
+  isDefault: boolean;
   providerConfirmed: boolean;
   hasKey: true;
 }
@@ -265,7 +267,11 @@ function confirmedProviders(confirmations: PrivacyConfirmationRecord[]): Set<str
   return new Set(confirmations.map((record) => record.provider));
 }
 
-function summarize(record: ProviderConfigRecord, isConfirmed: boolean): ProviderConfigSummary {
+function summarize(
+  record: ProviderConfigRecord,
+  isConfirmed: boolean,
+  isDefault = false,
+): ProviderConfigSummary {
   return {
     id: record.id,
     provider: record.provider,
@@ -275,9 +281,22 @@ function summarize(record: ProviderConfigRecord, isConfirmed: boolean): Provider
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     enabled: record.enabledAt !== null,
+    isDefault,
     providerConfirmed: isConfirmed,
     hasKey: true,
   };
+}
+
+/** 默认归属与运行期同源：同模态第一条已启用记录。 */
+function defaultConfigIds(records: readonly ProviderConfigRecord[]): Set<string> {
+  const defaultIds = new Set<string>();
+  const seenModalities = new Set<ProviderModality>();
+  for (const record of records) {
+    if (record.enabledAt === null || seenModalities.has(record.modality)) continue;
+    seenModalities.add(record.modality);
+    defaultIds.add(record.id);
+  }
+  return defaultIds;
 }
 
 // ---------------------------------------------------------------------------
@@ -406,7 +425,10 @@ export function providerPresetEndpoint(provider: string): string | undefined {
 export async function listProviderConfigs(): Promise<ProviderConfigSummary[]> {
   const store = await loadStore();
   const confirmed = confirmedProviders((await loadConfirmations()).confirmations);
-  return store.records.map((record) => summarize(record, confirmed.has(record.provider)));
+  const defaults = defaultConfigIds(store.records);
+  return store.records.map((record) =>
+    summarize(record, confirmed.has(record.provider), defaults.has(record.id)),
+  );
 }
 
 export async function listPrivacyConfirmations(): Promise<PrivacyConfirmationRecord[]> {
@@ -632,7 +654,7 @@ export async function enableProviderConfig(id: string): Promise<ProviderConfigSu
   promoteToModalityFront(store.records, record);
   record.updatedAt = new Date().toISOString();
   await persistStore(store);
-  return summarize(record, true);
+  return summarize(record, true, true);
 }
 
 export async function disableProviderConfig(id: string): Promise<ProviderConfigSummary> {

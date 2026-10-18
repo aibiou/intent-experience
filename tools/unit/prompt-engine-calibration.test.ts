@@ -71,6 +71,7 @@ describe('buildDistillSystemPrompt', () => {
   it('非冥想图像蒸馏 = 基础 system + 通用画面纪律（CR-59 全题材生效）', () => {
     const prompt = buildDistillSystemPrompt('image', false);
     expect(prompt).toContain('文生图提示词工程师');
+    expect(prompt).toContain('多候选视觉多样性');
     expect(prompt).toContain('禁止解剖式呈现');
     expect(prompt).toContain('不得出现任何文字');
     expect(prompt).not.toContain('意境化');

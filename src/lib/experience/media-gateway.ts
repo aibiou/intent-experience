@@ -32,8 +32,12 @@ const MODEL_GATEWAY_URL = 'http://127.0.0.1:3031';
 // 网关 240s 超时，排队请求被体验层误判为失败；统一 240s 让
 // 排队请求留足完成时间）。
 const MEDIA_TIMEOUT_MS = 240_000;
-/** 视频调用超时（异步任务：免费档排队可达数分钟）。 */
-const VIDEO_TIMEOUT_MS = 480_000;
+/** 视频调用超时（异步任务：免费档排队可达数分钟）。
+ * 豆包本机桥接为同步长请求（官方预估 10 分钟、网关侧上限
+ * 900s，另有创建瞬态退避最长 5 分钟）——480s 会先于网关
+ * 掐断仍会成功的生成（同类缺口见 2026-10-15/10-16 图像
+ * 120s/240s 实测），统一放宽到 960s 覆盖最坏链路。 */
+const VIDEO_TIMEOUT_MS = 960_000;
 
 /** 网关拉起限频窗口（毫秒）——避免并发请求时重复 spawn。 */
 const REVIVE_THROTTLE_MS = 10_000;
@@ -203,6 +207,8 @@ export interface MediaArtifactRecord {
   mime: string;
   promptUsed: string;
   at: string;
+  /** 用户选中为创作素材（G1.1 目标 4——后续引用此产物而非隐式末条）。 */
+  selected?: boolean;
 }
 
 /** 本网关支持的模态（全模态——各自由网关按模态路由提供方）。 */
@@ -212,6 +218,9 @@ export interface MediaPersistOptions {
   sessionId: string;
   turn: number;
   signal?: AbortSignal;
+  /** 参考图 dataURI 数组——图像→视频 / 图生图上下文接续。
+   * 图像用 extra_body.image 契约；视频提供方各自适配。 */
+  referenceImages?: string[];
 }
 
 /** 图像生成选项（G2-5 创作闭环——参考图生图）。 */
@@ -304,6 +313,22 @@ export function latestImageRecord(
   return latest;
 }
 
+/** 用户选中的图像记录（G1.1 目标 4——优先用户选择，兜底末条）。
+ * 同会话同轮多候选中最多一条 selected=true；无选中时退回 latest。 */
+export function selectedImageRecord(
+  records: readonly MediaArtifactRecord[],
+  sessionId: string,
+): MediaArtifactRecord | null {
+  let selected: MediaArtifactRecord | null = null;
+  let latest: MediaArtifactRecord | null = null;
+  for (const record of records) {
+    if (record.sessionId !== sessionId || record.modality !== 'image') continue;
+    if (record.selected) selected = record;
+    latest = record;
+  }
+  return selected ?? latest;
+}
+
 /** mime → 落盘扩展名。 */
 const EXT_BY_MIME: Readonly<Record<string, string>> = {
   'image/png': 'png',
@@ -358,14 +383,33 @@ export class MediaGateway {
    */
   async loadSessionImageReference(sessionId: string): Promise<string | null> {
     const index = await this.readIndex();
-    const latest = latestImageRecord(index, sessionId);
-    if (!latest) return null;
+    const chosen = selectedImageRecord(index, sessionId);
+    if (!chosen) return null;
     try {
-      const buffer = await readFile(path.join(MEDIA_DIR, latest.file));
-      return await toReferenceDataUri(buffer, latest.mime);
+      const buffer = await readFile(path.join(MEDIA_DIR, chosen.file));
+      return await toReferenceDataUri(buffer, chosen.mime);
     } catch {
       return null;
     }
+  }
+
+  /** 持久化用户候选选择（G1.1 目标 4——同一会话同轮内互斥）。 */
+  async selectCandidate(
+    sessionId: string,
+    turn: number,
+    file: string,
+  ): Promise<boolean> {
+    const index = await this.readIndex();
+    let found = false;
+    const updated = index.map((record) => {
+      if (record.sessionId !== sessionId || record.turn !== turn || record.modality !== 'image') return record;
+      const isSelected = record.file === file;
+      if (isSelected) found = true;
+      return { ...record, selected: isSelected || undefined };
+    });
+    if (!found) return false;
+    await this.writeIndex(updated);
+    return true;
   }
 
   /** 语音合成（朗读——提供方默认音色；TTS 单次输入上限 1024 字符）。 */
@@ -391,9 +435,10 @@ export class MediaGateway {
     prompt: string,
     options: MediaPersistOptions,
   ): Promise<MediaArtifactRecord> {
+    const referenceImages = validateReferenceImages(options.referenceImages ?? []);
     const artifact = await callMediaEndpoint(
       '/v1/videos',
-      { prompt },
+      referenceImages.length > 0 ? { prompt, referenceImages } : { prompt },
       VIDEO_TIMEOUT_MS,
     );
     const { buffer, mime } = await artifactToBuffer(artifact);
@@ -441,6 +486,11 @@ export class MediaGateway {
     } catch {
       return [];
     }
+  }
+
+  /** 写入产物索引（selectCandidate 用——全量替换，调用方已做好互斥清理）。 */
+  private async writeIndex(records: MediaArtifactRecord[]): Promise<void> {
+    await writeFile(INDEX_FILE, JSON.stringify(records, null, 1), 'utf8');
   }
 }
 

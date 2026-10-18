@@ -141,6 +141,8 @@ function headers(apiKey: string): Record<string, string> {
 
 /** 常规瞬态重试等待（毫秒）。 */
 const RETRY_DELAY_MS = 2_000;
+/** 本机桥接的产物等待上限（豆包视频官方预估 10 分钟）。 */
+const LOCAL_BRIDGE_TIMEOUT_MS = 900_000;
 /** 限速退避（官方错误码指引：429 免费档 RPM 20——「等待 1 分钟后重试」）。 */
 const RATE_LIMIT_DELAY_MS = 60_000;
 
@@ -154,6 +156,9 @@ async function callProvider(
   path: string,
   body: Record<string, unknown>,
 ): Promise<Response> {
+  const timeoutMs = /127\.0\.0\.1:3220/.test(config.endpoint)
+    ? LOCAL_BRIDGE_TIMEOUT_MS
+    : 120_000;
   // 瞬态自动重试一次：网络波动 / 限速 / 队列满 / 服务端临时
   // 错误（免费档常态）——网络异常等 2s、限速按官方指引等
   // 1 分钟后重发，两次仍失败才向上抛。间歇性失败在产品内
@@ -166,7 +171,7 @@ async function callProvider(
         method: 'POST',
         headers: headers(config.apiKey),
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(120_000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } catch {
       // 网络失败（超时 / 连接中断——dev 冷启动、上游波动均属

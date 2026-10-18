@@ -409,14 +409,14 @@ describe('creation：输入解释——modify 分支（08 §10 子型，rebalanc
 });
 
 describe('creation：输入解释——冲突判据（08 §16：命中修改意图又命中冲突轴 → ambiguous）', () => {
-  const QUESTION = (axis: string) =>
-    `你的输入同时涉及修改当前作品与${axis}意图。请确认：要把它作为当前作品的修改，还是作为${axis}处理？（创作 ASK 纪律：至多一个澄清问题，08 §16）`;
+  const QUESTION = (label: string) =>
+    `这一句既像在修改当前作品，又像想${label}。先确认一下：它是作为作品的修改，还是作为${label}？`;
 
   it('"换个角度改一下" → ambiguous / CHANGE_DIRECTION', () => {
     expect(interpretCreationInput('换个角度改一下', makeCreation())).toEqual({
       kind: 'ambiguous',
       conflictingAxis: 'CHANGE_DIRECTION',
-      question: QUESTION('CHANGE_DIRECTION'),
+      question: QUESTION('换个方向'),
     });
   });
 
@@ -424,7 +424,7 @@ describe('creation：输入解释——冲突判据（08 §16：命中修改意�
     expect(interpretCreationInput('不要这个了，去掉障碍', makeCreation())).toEqual({
       kind: 'ambiguous',
       conflictingAxis: 'CHANGE_DIRECTION',
-      question: QUESTION('CHANGE_DIRECTION'),
+      question: QUESTION('换个方向'),
     });
   });
 
@@ -432,7 +432,7 @@ describe('creation：输入解释——冲突判据（08 §16：命中修改意�
     expect(interpretCreationInput('如果加两个障碍', makeCreation())).toEqual({
       kind: 'ambiguous',
       conflictingAxis: 'WHAT_IF',
-      question: QUESTION('WHAT_IF'),
+      question: QUESTION('做个假设推演'),
     });
   });
 
@@ -440,7 +440,7 @@ describe('creation：输入解释——冲突判据（08 §16：命中修改意�
     expect(interpretCreationInput('为什么这里改了', makeCreation())).toEqual({
       kind: 'ambiguous',
       conflictingAxis: 'WHY',
-      question: QUESTION('WHY'),
+      question: QUESTION('追问原因'),
     });
   });
 
@@ -448,7 +448,7 @@ describe('creation：输入解释——冲突判据（08 §16：命中修改意�
     expect(interpretCreationInput('不是，把出口改一下', makeCreation())).toEqual({
       kind: 'ambiguous',
       conflictingAxis: 'CORRECTION',
-      question: QUESTION('CORRECTION'),
+      question: QUESTION('纠正一下刚才的理解'),
     });
   });
 });

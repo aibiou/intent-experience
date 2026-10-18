@@ -121,6 +121,205 @@
   }
 }
 
+/* 首页：像一张安静的探索地图，把自由表达放在第一位。 */
+.home-shell {
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 78% 16%, rgb(238 225 187 / 30%), transparent 30rem),
+    linear-gradient(180deg, #f7f6f1 0%, #f3f1ea 100%);
+}
+
+.experience-shell {
+  background:
+    radial-gradient(ellipse at 8% 14%, rgb(238 225 187 / 14%), transparent 23rem),
+    linear-gradient(180deg, #f7f6f1 0%, #f4f2ec 100%);
+}
+
+.config-shell {
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse at 90% 0%, rgb(238 225 187 / 24%), transparent 34rem),
+    linear-gradient(180deg, #f7f6f1 0%, #f3f1ea 100%);
+}
+
+.home-shell::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image: radial-gradient(rgb(84 77 58 / 11%) 0.65px, transparent 0.65px);
+  background-size: 15px 15px;
+  content: "";
+  opacity: 0.22;
+  pointer-events: none;
+  mask-image: linear-gradient(90deg, transparent 2%, #000 100%);
+}
+
+.home-mark {
+  position: relative;
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid rgb(120 113 108 / 50%);
+  border-radius: 50%;
+}
+
+.home-mark::before,
+.home-mark::after {
+  position: absolute;
+  width: 16px;
+  height: 7px;
+  border: 1px solid #a26b2d;
+  border-radius: 50%;
+  content: "";
+  transform: rotate(42deg);
+}
+
+.home-mark::after {
+  transform: rotate(-42deg);
+}
+
+.home-mark span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #a26b2d;
+}
+
+.home-title {
+  font-family: Georgia, "Songti SC", "Noto Serif CJK SC", serif;
+}
+
+.home-orbit {
+  overflow: hidden;
+}
+
+.home-orbit-ring,
+.home-orbit-axis {
+  position: absolute;
+  border-color: rgb(139 125 97 / 22%);
+}
+
+.home-orbit-ring {
+  width: min(29vw, 340px);
+  aspect-ratio: 1;
+  border: 1px solid rgb(139 125 97 / 23%);
+  border-radius: 50%;
+}
+
+.home-orbit-ring--inner {
+  width: min(19vw, 224px);
+  border-color: rgb(139 125 97 / 18%);
+  border-style: dashed;
+}
+
+.home-orbit-axis--x {
+  width: min(34vw, 410px);
+  height: 1px;
+  background: rgb(139 125 97 / 17%);
+}
+
+.home-orbit-axis--y {
+  width: 1px;
+  height: min(32vw, 380px);
+  background: rgb(139 125 97 / 17%);
+}
+
+.home-orbit-core {
+  position: relative;
+  display: grid;
+  width: 84px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgb(150 104 42 / 35%);
+  border-radius: 50%;
+  background: rgb(250 247 236 / 86%);
+  color: #795321;
+  font-family: Georgia, "Songti SC", "Noto Serif CJK SC", serif;
+  font-size: 15px;
+  box-shadow: 0 8px 35px rgb(96 75 39 / 10%);
+}
+
+.home-orbit-core i {
+  position: absolute;
+  right: 8px;
+  bottom: 12px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b57b2d;
+  box-shadow: 0 0 0 5px rgb(181 123 45 / 12%);
+}
+
+.home-orbit-point {
+  position: absolute;
+  display: grid;
+  width: 42px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgb(120 113 108 / 22%);
+  border-radius: 50%;
+  background: #f6f4ed;
+  color: #82745d;
+  box-shadow: 0 5px 18px rgb(62 54 38 / 8%);
+}
+
+.home-orbit-point svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.5;
+}
+
+.home-orbit-point--one { top: 20%; left: 22%; }
+.home-orbit-point--two { top: 21%; right: 19%; color: #a76d27; }
+.home-orbit-point--three { right: 17%; bottom: 19%; }
+.home-orbit-point--four { bottom: 17%; left: 20%; color: #a76d27; }
+
+.home-state-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(153 139 111 / 22%);
+  border-radius: 14px;
+  background: #f5f2e9;
+  color: #947342;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.home-state-card:hover .home-state-icon {
+  border-color: rgb(166 111 37 / 30%);
+  background: #f8edda;
+  color: #88591f;
+}
+
+.home-library-grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 28px;
+}
+
+.home-library-grid > :only-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 767px) {
+  .home-library-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-state-card,
+  .home-state-icon {
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ── 个人体验引擎：柔和的自定义滚动条 ── */
 .exp-scrollbar {
   scrollbar-width: thin;

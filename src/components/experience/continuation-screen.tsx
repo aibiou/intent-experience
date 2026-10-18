@@ -34,29 +34,30 @@ export function ContinuationScreen({
   };
 
   return (
-    <main className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col px-4">
-      <header className="border-b border-stone-200/70 pb-4 pt-6">
+    <main className="experience-shell relative mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 sm:px-8">
+      <header className="border-b border-stone-300/70 pb-6 pt-6 sm:pt-8">
         <button
           type="button"
           onClick={onCancel}
-          className="mb-3 inline-flex items-center gap-1 text-xs text-stone-400 transition-colors hover:text-stone-600"
+          className="mb-4 inline-flex min-h-10 items-center gap-1.5 rounded-full pr-3 text-xs font-medium text-stone-500 transition-colors hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
         >
           <ArrowLeft className="size-3.5" aria-hidden="true" />
           返回
         </button>
-        <h1 className="line-clamp-2 text-base font-medium leading-snug text-stone-800 md:text-lg">
-          《{topic}》续作
+        <p className="mb-2 text-[11px] font-semibold tracking-[0.18em] text-amber-800/75">继续创作</p>
+        <h1 className="home-title line-clamp-2 text-2xl font-medium leading-snug tracking-[-0.02em] text-stone-900 md:text-3xl">
+          《{topic}》
         </h1>
-        <p className="mt-1.5 text-sm text-stone-500">
+        <p className="mt-2 max-w-xl text-sm leading-6 text-stone-500">
           以上一步作品为基础继续创作——想改哪里，直接说……
         </p>
       </header>
 
-      <div className="mt-auto pb-8 pt-2">
+      <div className="mt-auto pb-8 pt-8">
         <form
           aria-label="续作输入"
           onSubmit={handleSubmit}
-          className="flex items-center gap-1.5 rounded-full border border-stone-300/90 bg-white py-1.5 pl-5 pr-1.5 shadow-[0_1px_3px_rgba(87,83,78,0.05)] transition-colors focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/20"
+          className="flex items-center gap-1.5 rounded-2xl border border-stone-300/90 bg-white py-1.5 pl-5 pr-1.5 shadow-[0_8px_30px_rgba(48,43,31,0.06)] transition-colors focus-within:border-amber-500/70 focus-within:ring-4 focus-within:ring-amber-500/10 sm:rounded-full"
         >
           <Input
             value={text}
@@ -72,7 +73,7 @@ export function ContinuationScreen({
             size="icon"
             aria-label="发送"
             disabled={!text.trim()}
-            className="size-11 shrink-0 rounded-full bg-stone-800 text-stone-50 hover:bg-stone-700 disabled:opacity-40"
+            className="size-11 shrink-0 rounded-xl bg-stone-900 text-stone-50 hover:bg-amber-800 disabled:opacity-40 sm:rounded-full"
           >
             <SendHorizontal className="size-4.5" aria-hidden="true" />
           </Button>

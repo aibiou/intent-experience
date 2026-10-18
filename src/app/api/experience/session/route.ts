@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { loadSession } from '@/lib/experience/store';
 import { getMediaGateway } from '@/lib/experience/media-gateway';
+import { getMediaJobProcessOwnerId, getMediaJobStore } from '@/lib/experience/media-job-store';
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id');
@@ -25,10 +26,27 @@ export async function GET(req: NextRequest) {
     .map((record) => ({
       turn: record.turn,
       modality: record.modality,
+      file: record.file,
       url: `/api/experience/media/${record.file}`,
       promptUsed: record.promptUsed,
       mime: record.mime,
       at: record.at,
+      selected: record.selected === true,
+    }));
+  const jobStore = getMediaJobStore();
+  await jobStore.markForeignRunning(getMediaJobProcessOwnerId());
+  const mediaJobs = (await jobStore.listBySession(id))
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+    .map((job) => ({
+      id: job.id,
+      turn: job.turn,
+      modality: job.modality,
+      status: job.status,
+      prompt: job.prompt,
+      startedAt: job.startedAt,
+      updatedAt: job.updatedAt,
+      error: job.error,
+      artifactFiles: job.artifactFiles,
     }));
   return NextResponse.json({
     session: {
@@ -42,5 +60,6 @@ export async function GET(req: NextRequest) {
       updatedAt: session.updatedAt.toISOString(),
     },
     media,
+    mediaJobs,
   });
 }

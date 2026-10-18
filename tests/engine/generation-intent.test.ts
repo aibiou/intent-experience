@@ -113,6 +113,13 @@ describe('generation-intent：IMAGE_PATTERNS 词表逐条（13 条移植 + 2 条
     expectIntent('一张夏天的照片', { modality: 'image', prompt: '一张夏天的照片' });
   });
 
+  it('“生成一张…”即使省略图字也识别为图像创作', () => {
+    const intent = recognizeGenerationIntent('生成一张清晨薄雾中的灯塔观鸟站，保留门口的蓝色信封和长草');
+    expect(intent?.modality).toBe('image');
+    expect(intent?.prompt).toBe('生成一张清晨薄雾中的灯塔观鸟站，保留门口的蓝色信封和长草');
+    expect(intent?.useContext).toBeUndefined();
+  });
+
   it('宽松锚 /画.{0,30}/ 如实锁定：任何含「画」字的输入都命中（消费语气「我想看动画片」→ image）', () => {
     // 参考实现 IMAGE_PATTERNS 首条即此宽松锚（无生成动词/模态词门槛）——按指令「如实移植，
     // 不修复」，行为与参考逐字段一致（差分脚本验证）。
@@ -312,6 +319,24 @@ describe('generation-intent：presentation / referential 判定', () => {
       prompt: '调用相应的图片模型生成图片',
       useContext: true,
       referential: true,
+    });
+    // 候选选择后的真实入口：用户点选产物，再说“根据选中的图…”。
+    // 带明确“重新生成 + 新约束”时，这是选中产物的图生图：
+    // 冒号后约束直达提供方，而不是把上一轮文字重新蒸馏。
+    expectIntent('根据刚才选中的图片生成一张新图：加一只玻璃杯', {
+      modality: 'image',
+      prompt: '加一只玻璃杯',
+      regen: true,
+    });
+    expectIntent('根据刚才选中的那张图重新生成一张：把邮局换成红砖小火车站，保留薄雾、水面反光和门口的蓝色信封', {
+      modality: 'image',
+      prompt: '把邮局换成红砖小火车站，保留薄雾、水面反光和门口的蓝色信封',
+      regen: true,
+    });
+    expectIntent('基于刚才选中的那张图重新生成：换成红砖小火车站', {
+      modality: 'image',
+      prompt: '换成红砖小火车站',
+      regen: true,
     });
   });
 

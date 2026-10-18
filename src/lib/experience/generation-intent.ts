@@ -77,6 +77,10 @@ const VIDEO_PATTERNS: ReadonlyArray<RegExp> = [
 
 const IMAGE_PATTERNS: ReadonlyArray<RegExp> = [
   /画.{0,30}/,
+  // “生成一张…”是明确的图像创作量词；主题可省略“图/画”字
+  //（如“生成一张清晨薄雾中的灯塔观鸟站”）。视频 / 动画 / 语音
+  // 已在前置模态命中，不会落入这里。
+  new RegExp(`(?:帮我)?${MAKE_VERBS}\\s*(?:一张|一幅)`),
   new RegExp(`${MAKE_VERBS}.{0,40}(?:图|图片|画像|插画|插图|壁纸|头像|背景|封面)`),
   /(?:图|图片|画像|插画|插图|壁纸|头像|背景|封面).{0,6}(?:生成|制作|创作)/,
   /(?:设计|画).{0,8}(?:头像|像素)/,
@@ -163,8 +167,12 @@ export function recognizeGenerationIntent(rawInput: string): GenerationIntent | 
   // 量词后直接跟逗号、模态词省略时，约束同样经逗号提取。
   // 第二分支限张/幅强视觉量词——不含泛化「一个」（「换一个，
   // 更好的」语义偏换方向，不认领）。
-  const regen = /(?:换|再|来)(?:一张|一幅|一个|张|幅)?(?:图片|照片|图像|画|图|插画|头像|壁纸|视频|动画|短片)[，,、\s]+(.+)$|(?:换|再|来)(?:一张|一幅|张|幅)[，,、\s]+(.+)$/.exec(input);
-  const regenGroup = regen?.[1] ?? regen?.[2];
+  // 选中候选后的图生图入口（G1.1）：“根据/基于选中那张图重新生成：
+  // 新约束”。它是对明确选中产物的修改，不是把上一轮文字重放成画；
+  // 冒号后的内容才是提供方应消费的画面约束。先于通用“换一张”
+  // 识别，兜住“生成/换/改”等动词被通用分类器先判成纠正的场景。
+  const regen = /(?:根据|基于|参考|以|用).{0,24}(?:选中|刚才选|上一张|那张).{0,16}(?:图|图片|图像|插画).{0,24}(?:重新|再次)?(?:生成|画|做|制作|创作)(?:一张|一幅|一个|张|幅|个)?(?:新图)?[：:，,、](.+)$|(?:换|再|来)(?:一张|一幅|一个|张|幅)?(?:图片|照片|图像|画|图|插画|头像|壁纸|视频|动画|短片)[，,、\s]+(.+)$|(?:换|再|来)(?:一张|一幅|张|幅)[，,、\s]+(.+)$/.exec(input);
+  const regenGroup = regen?.[1] ?? regen?.[2] ?? regen?.[3];
   const promptBase =
     regenGroup !== undefined && regenGroup.trim().length > 0
       ? regenGroup.trim()
@@ -181,9 +189,12 @@ export function recognizeGenerationIntent(rawInput: string): GenerationIntent | 
   // 指代类表达（2026-10-11 实测缺口——「生成一个对应的猫
   // 图片」「调用相应的图片模型生成图片」：主体在对话上文，
   // 裸短语直达 t2i 会因无主体回落提供方默认人像）。
+  const selectedImageRegen =
+    /(?:根据|基于|参考|以|用).{0,24}(?:选中|刚才选|上一张|那张).{0,16}(?:图|图片|图像|插画).{0,24}(?:重新|再次)?(?:生成|画|做|制作|创作)/.test(input);
   const referentialPresentation =
-    regen === null &&
-    /(?:对应的?|相应|调用).{0,24}(?:图|图片|图像|插画|头像|壁纸|封面|视频|动画|短片)/.test(input);
+    (regen === null || !selectedImageRegen) &&
+    (/(?:选中|刚才选|上一张|那张).{0,12}(?:图片|图像|插画|图)/.test(input) ||
+      /(?:对应的?|相应|调用).{0,24}(?:图|图片|图像|插画|头像|壁纸|封面|视频|动画|短片)/.test(input));
   const presentation =
     regen === null &&
     (referentialPresentation ||

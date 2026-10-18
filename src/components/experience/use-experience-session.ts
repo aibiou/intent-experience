@@ -41,6 +41,10 @@ export type ContentKind = TurnKind | 'ESCALATION_NOTICE' | 'BOUNDARY_NOTICE';
 export interface TurnMedia {
   modality: 'image' | 'voice' | 'video';
   status: 'pending' | 'completed' | 'failed';
+  /** 客户端等待透明度计时起点（恢复历史媒体时缺省）。 */
+  startedAt?: number;
+  /** 恢复会话时还原用户持久化选择的候选。 */
+  selectedFile?: string;
   urls?: string[];
   url?: string;
   promptUsed?: string;
@@ -52,10 +56,25 @@ export interface TurnMedia {
 interface SessionMediaRecord {
   turn: number;
   modality: 'image' | 'voice' | 'video';
+  file: string;
   url: string;
   promptUsed: string;
   mime: string;
   at: string;
+  selected?: boolean;
+}
+
+/** 会话恢复时 GET /api/experience/session 附带的媒体任务。 */
+interface SessionMediaJob {
+  id: string;
+  turn: number;
+  modality: TurnMedia['modality'];
+  status: 'running' | 'completed' | 'failed' | 'canceled';
+  prompt: string;
+  startedAt: string;
+  updatedAt: string;
+  error: string | null;
+  artifactFiles: string[];
 }
 
 /** 分支域的呈现视图（序号从 1 起——与后端分支记录顺序一致）。 */
@@ -108,6 +127,7 @@ export interface LoadedSession {
   updatedAt: string;
   /** S2b：该会话的媒体产物（按 turn 号挂回轮次）。 */
   media?: SessionMediaRecord[];
+  mediaJobs?: SessionMediaJob[];
 }
 
 export interface ExperienceSessionState {
@@ -151,34 +171,72 @@ function stripPending(turns: DisplayTurn[]): DisplayTurn[] {
   return turns.filter((t) => t.kind !== undefined);
 }
 
-function historyToTurns(history: TurnRecord[], media?: SessionMediaRecord[]): DisplayTurn[] {
+function historyToTurns(
+  history: TurnRecord[],
+  media?: SessionMediaRecord[],
+  jobs?: SessionMediaJob[]
+): DisplayTurn[] {
   const mediaByTurn = new Map<number, SessionMediaRecord[]>();
   for (const record of media ?? []) {
     const list = mediaByTurn.get(record.turn) ?? [];
     list.push(record);
     mediaByTurn.set(record.turn, list);
   }
+  const latestJobByTurn = new Map<number, SessionMediaJob>();
+  for (const job of jobs ?? []) {
+    latestJobByTurn.set(job.turn, job);
+  }
+  const mimeFromUrl = (url: string): TurnMedia['mime'] => {
+    if (url.endsWith('.png')) return 'image/png';
+    if (url.endsWith('.jpg') || url.endsWith('.jpeg')) return 'image/jpeg';
+    if (url.endsWith('.webp')) return 'image/webp';
+    if (url.endsWith('.mp3')) return 'audio/mpeg';
+    if (url.endsWith('.wav')) return 'audio/wav';
+    if (url.endsWith('.ogg')) return 'audio/ogg';
+    if (url.endsWith('.mp4')) return 'video/mp4';
+    return 'application/octet-stream';
+  };
   return history.map((h) => {
     const records = mediaByTurn.get(h.turn) ?? [];
-    const record = records[0];
+    const record = records.find((item) => item.selected) ?? records[0];
+    const job = latestJobByTurn.get(h.turn);
+    // 已落盘产物优先；running/failed 任务在没有产物时负责还原状态。
+    const restoredMedia =
+      record
+        ? ({
+            modality: record.modality,
+            status: 'completed' as const,
+            urls: records.map((item) => item.url),
+            url: record.url,
+            ...(record.selected ? { selectedFile: record.file } : {}),
+            promptUsed: record.promptUsed,
+            mime: record.mime,
+          } satisfies TurnMedia)
+        : job && (job.status === 'running' || job.status === 'failed')
+          ? ({
+              modality: job.modality,
+              status: job.status === 'running' ? 'pending' : 'failed',
+              startedAt: new Date(job.startedAt).getTime(),
+              promptUsed: job.prompt,
+              message: job.error ?? undefined,
+            } satisfies TurnMedia)
+          : job && job.status === 'completed' && job.artifactFiles.length > 0
+            ? ({
+                modality: job.modality,
+                status: 'completed' as const,
+                urls: job.artifactFiles.map((file) => `/api/experience/media/${file}`),
+                url: `/api/experience/media/${job.artifactFiles[0]}`,
+                promptUsed: job.prompt,
+                mime: mimeFromUrl(job.artifactFiles[0]!),
+              } satisfies TurnMedia)
+          : undefined;
     return {
       key: `h-${h.turn}`,
       turn: h.turn,
       userText: h.userText,
       kind: h.kind,
       content: h.content,
-      ...(record
-        ? {
-            media: {
-              modality: record.modality,
-              status: 'completed' as const,
-              urls: records.map((item) => item.url),
-              url: record.url,
-              promptUsed: record.promptUsed,
-              mime: record.mime,
-            },
-          }
-        : {}),
+      ...(restoredMedia ? { media: restoredMedia } : {}),
     };
   });
 }
@@ -314,7 +372,7 @@ export function useExperienceSession(options?: {
         turn: loaded.state.turn,
         expectedStateVersion: loaded.stateVersion,
         turns: enrichTurns(
-          historyToTurns(loaded.state.history, loaded.media),
+          historyToTurns(loaded.state.history, loaded.media, loaded.mediaJobs),
           loaded.state.history,
           loaded.state.simulation
         ),
@@ -371,6 +429,7 @@ export function useExperienceSession(options?: {
                   // 呈现层显示「正在生成什么」，慢速上游
                   // （图像约一两分钟）下用户有明确预期。
                   promptUsed: event.prompt,
+                  startedAt: Date.now(),
                 },
               };
             }
@@ -529,7 +588,7 @@ export function useExperienceSession(options?: {
       turn: loaded.state.turn,
       expectedStateVersion: loaded.stateVersion,
       turns: enrichTurns(
-        historyToTurns(loaded.state.history, loaded.media),
+        historyToTurns(loaded.state.history, loaded.media, loaded.mediaJobs),
         loaded.state.history,
         loaded.state.simulation
       ),
@@ -624,6 +683,49 @@ export function useExperienceSession(options?: {
     sessionRef.current = null;
     setSession(null);
   }, [abortInFlight]);
+
+  /** 恢复出的后台任务轮询：切走再回来后，产物完成即自动挂回轮次。 */
+  const hasRestoredPendingMedia =
+    Boolean(session?.sessionId) &&
+    !session?.generating &&
+    session?.turns.some((turn) => turn.media?.status === 'pending') === true;
+  useEffect(() => {
+    if (!hasRestoredPendingMedia || !session?.sessionId) return;
+    const sessionId = session.sessionId;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/experience/session?id=${encodeURIComponent(sessionId)}`);
+        if (!res.ok) throw new Error('media job sync failed');
+        const data = (await res.json()) as { session: LoadedSession };
+        if (cancelled) return;
+        const loaded = data.session;
+        apply((prev) => {
+          if (prev.sessionId !== sessionId || prev.generating) return prev;
+          const turns = enrichTurns(
+            historyToTurns(loaded.state.history, loaded.media, loaded.mediaJobs),
+            loaded.state.history,
+            loaded.state.simulation
+          );
+          return { ...prev, turns, expectedStateVersion: loaded.stateVersion };
+        });
+        const stillPending = data.session.mediaJobs?.some((job) => job.status === 'running') === true;
+        if (stillPending && !cancelled) {
+          timer = setTimeout(() => void poll(), 3000);
+        }
+      } catch {
+        if (!cancelled) timer = setTimeout(() => void poll(), 5000);
+      }
+    };
+
+    void poll();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [apply, hasRestoredPendingMedia, session?.sessionId]);
 
   /** direction_changed = 会话结束（S3B 语义）→ 交还页面回到首页。 */
   useEffect(() => {

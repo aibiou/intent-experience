@@ -536,3 +536,139 @@ Stage Summary:
 - 多轮验证（>2 轮，7 轮）全部通过：文本连续性 ✓ 上下文构建 ✓ 文生图真实出图 ✓ 自然再生成意图认领（修复后）✓ 图生图参考挂载（网关层证据）✓ 多轮记忆召回 ✓ 完成层闭环 ✓
 - 诚实记录的失败：第 4/5 轮图像生成失败（Agnes 图像队列饱和，上游容量问题）——失败 UX 符合设计（诚实提示 + 重试建议），意图/路由/参考图挂载各层均正确
 - 待办：视频模态待上游恢复重验（Task 14）；图像队列恢复后补拍图生图成功出图证据；推送仍阻塞（GitHub 凭据——用户本地推送或提供 PAT，勿在聊天粘贴 token）
+
+---
+Task ID: 20
+Agent: Codex
+Task: 愿景目标 V1.1——阶段推进到「可靠连续体验闭环」
+
+Work Log:
+- 复核 vision-and-goals-v1、产品价值迭代纲领、模型基建说明、provider-configs 与当前视频/媒体运行链路；确认文档仍停留在 2026-10-14 能力边界
+- 将愿景文档升版到 1.1.0（2026-10-17）：登记元宝本机生图为主链路默认、4 候选画廊已通；明确豆包本机桥为已实现但非默认；明确视频当前只剩「确认 + 等待 + 长超时」局部修复，长任务仍绑定请求生命周期
+- 当前阶段定义为 G1.1「可靠连续体验闭环」，排序为：长耗时媒体任务后台化/可恢复 → 图像到视频上下文接续 → 提供方与默认策略稳定 → 候选图选择成为创作素材 → 成本与等待预期前置
+- 补充不变式：元宝本机桥不冒充视频能力；本机桥不得抢占用户焦点或干扰手动使用；未确认不触发付费/长耗时视频；不为接入数量添加未经真实链路验证的提供方
+- 回归暴露并修复测试基线：状态机测试补上 ENTERING→CHANGE_DIRECTION 的失败恢复路径；创作冲突澄清测试改锁用户话术而非内部轴名；续作集成测试改为临时 SQLite schema，不再依赖已清理的 `prisma/dev.db`；假媒体网关从单图 `generateImage` 对齐为多候选 `generateImages`
+- 不新增治理文档；本轮只修订既有愿景文档并记录工作日志，不改动运行时代码
+
+Stage Summary:
+- 产品目标从「能力已打通」推进到「真实使用中连续、可恢复、不误导、不重复扣费」
+- 下一切片应优先实现长耗时媒体任务后台化与可恢复查询；验证前不自动消耗豆包视频额度
+- 核心引擎回归恢复全绿：`bun test tests/engine` 321 pass / 0 fail
+- 门禁复核：`bun run lint` 0；`bunx tsc --noEmit` 0；`bun test mini-services/model-gateway/tests` 79 pass / 0 fail
+
+---
+
+Task ID: 21
+Agent: Codex
+Task: G1.1 第一切片——长耗时媒体任务后台化与可恢复查询
+
+Work Log:
+- 新增 `MediaJobStore`（`data/media/jobs.json`）：running / completed / failed / canceled 账本；原子临时文件替换写入；记录 sessionId、turn、modality、prompt、幂等 key、时间、错误和产物清单
+- 幂等键由 sessionId + turn + modality + prompt 组成；同一 key 的 running / completed 任务不重复创建，不重复触发付费调用；failed / canceled 允许显式重试
+- 媒体调用改用独立 `AbortController`，不再跟随浏览器 SSE 请求信号；产物与终态先写账本，再投递 live SSE；页面断开或切会话后后台继续
+- 恢复链路：`GET /api/experience/session` 返回 `mediaJobs`；前端把 running / failed / completed 挂回对应轮次；停留在恢复会话时每 3 秒轮询账本，完成后自动展示产物
+- 服务重启语义：任务记录带进程属主；新进程查询恢复时把旧进程遗留 running 诚实转为「服务已重启……请重新发起」，避免无限等待或伪装继续
+- 交互调整：视频 pending 不再锁输入；等待文案改为「可继续对话或稍后回到本会话」，符合后台任务事实
+- 测试基建补齐：正式加入 Vitest dev dependency 和 `test:engine` / `test:unit` / `test:gateway` scripts；runtime continuation 测试注入临时媒体账本，不再污染真实 `data/media`
+- 回归：`test:engine` 326 pass / 0 fail（新增 5 个账本用例）；`test:gateway` 79 pass / 0 fail；`test:unit` 164 pass / 0 fail；`lint` 0；`tsc --noEmit` 0
+- 真实端到端：启动 3000 / 3031 / 3210，通过产品 start API 发起「落雨天里的旧书摊」元宝生图；SSE 在 generation started 后主动断开，约 50 秒后 session 恢复显示 completed；产物 HTTP 200，PNG 1024×1024、1.72MB
+
+Stage Summary:
+- G1.1 的「发起即持久化、后台继续、刷新/切会话可查、失败可读、重启不伪装」闭环已建立并通过真实元宝图像链路验证
+- 未触发豆包视频；下一切片继续推进图像到视频上下文接续、默认提供方策略稳定、候选图选择创作化和等待/成本预期前置
+
+---
+
+Task ID: 22
+Agent: Codex
+Task: 自然口语确认缺口修复——「好」不再误判 UNKNOWN
+
+Work Log:
+- 真实端到端回归发现：用户在首轮内容后输入「好」，分类器落入 UNKNOWN 并提示「这句话我还没能理解」；既有测试反而把「好的」锁为 UNKNOWN，说明该自然口语路径此前未进入验收面
+- 修复 `classifier.ts`：新增裸确认词整句锚定词表（好 / 好的 / 行 / 可以 / 嗯 / 没问题 / 同意等），映射为既有 CONTINUE；策略链保持 CONTINUE → ANSWER
+- 明确边界：只认领裸确认短句；「好问题」「好大的图」「可以帮我……」「行不行呢」等不被误伤，普通陈述和「嗯嗯啊啊」仍诚实 UNKNOWN
+- 测试：删除旧有「好的 → UNKNOWN」锁定；新增正反例回归，覆盖标点尾缀和常见口语确认形态
+- 回归：`test:engine` 328 pass / 0 fail；`test:unit` 164 pass / 0 fail；`test:gateway` 79 pass / 0 fail；`lint` 0；`bunx tsc --noEmit` 0
+- 真实 API 验证：`:3000` 新会话以「讲讲傍晚海边风是怎么形成的」进入第 1 轮；随后发送「好」，trace 为 `CONTINUE → ANSWER`，第 2 轮正常承接海风/陆风解释，未出现 UNKNOWN 提示
+
+Stage Summary:
+- 自然口语确认词修复完成，`:3000` / `:3031` / `:3210` 保持运行
+
+---
+
+Task ID: 23
+Agent: Codex
+Task: G1.1 第二切片——图像→视频上下文接续管道 + 多候选视觉多样性纪律
+
+Work Log:
+- 图像→视频管道接通：`runtime.ts` video 分支传递 `imageReference`；`media-gateway.ts` `generateVideo` 新增 `referenceImages` 参数；`MediaPersistOptions` 补充可选 `referenceImages` 字段——图像和视频共用同一条参考图管道
+- 网关端接通：`handleVideoGenerations` 从请求体提取 `referenceImages` 传递给 `generateVideo`；`generateVideo` 新增 `options` 参数——default (Agnes) 契约在有 http:// 参考图时切换 `mode:'reference'` 并挂载 `images`（≤5）；本机桥接契约在有 http:// 参考图时在请求体中传递（桥接后续适配）；Seedance 契约暂不传（契约不支持）
+- 多候选视觉多样性：`DISTILL_SYSTEM_PROMPT_IMAGE` 新增「多候选视觉多样性」纪律——蒸馏产出的提示词须在保持主题一致的前提下鼓励不同构图角度或视觉焦点，使四张候选各有画面差异；测试锁定该纪律存在
+- 真实验证：生图会话返回 4 张候选（~50 秒），构图以水彩黄昏海边为主但 4 张仍高度相似（同一构图的微调）——根因是元宝模型对单条 prompt 的 4 候选输出以采样随机性为主，提示词的多样性指令只能改善但不能突破上游模型行为；蒸馏纪律作为上限保护保留，候选多样性仍受元宝单 prompt 4 候选行为边界约束
+- 回归：`test:engine` 328 pass / 0 fail；`test:unit` 164 pass / 0 fail（新增蒸馏多样性锁定）；`test:gateway` 79 pass / 0 fail；`bunx tsc --noEmit` 0
+
+Stage Summary:
+- G1.1 第 2 项「图像到视频上下文接续」的管道已全链路接通（runtime → media gateway → model gateway → upstream provider），支持 http:// 参考图的提供方自动切换 reference 模式；dataURI 参考图的提供方适配是后续切片
+- 多候选多样性在蒸馏层加入上限纪律，但真实验证确认元宝单 prompt 4 候选的视觉差异仍有模型行为边界——产品级解法需多次生成（每张不同 prompt）或缩减候选数，待产品负责人定方案
+- `:3000` / `:3031` / `:3210` 保持运行
+
+---
+
+Task ID: 24
+Agent: Codex
+Task: G1.1 第三切片——元宝 4 候选选择闭环 + 选中图再生成路由修复
+
+Work Log:
+- 元宝图像默认链路增加可用性预检：生成前访问本机桥 `/health`；AX 路由失败标记 `failoverBlocked`，统一网关禁止静默从元宝回落到 Agnes，避免用户误以为仍是元宝产物
+- 兼容当前已授权旧桥的 `/health` 缺少 `ready` 字段；后续发现“trusted + running”仍会把元宝进程驻留误判为可操作。网关补上只读 `/v1/ax` 输入区查询：不点击、不抢焦点，AXTextArea 为 0 时直接返回“请打开元宝主窗口”
+- 元宝候选取回数量从 2 提升到 4；真实生成确认桥接日志 `IndexedDB 候选 count=4 request=4`，产品侧返回 4 个独立 2048×2048 PNG 产物
+- 新增 `/api/experience/select-media` 与产物索引 `selected` 字段；同会话同轮候选互斥，持久化选择成功并经索引复核
+- 前端多候选卡片支持 4 缩略图、主图切换、计数与刷新/恢复；会话 API 返回 `file` / `selected`，恢复会话默认显示用户选中的那张而非首张；桌面与移动 Playwright 截图验证通过
+- 真实 E2E 发现并修复选中图再生成缺口：「根据刚才选中的那张图重新生成一张：……」先被通用修正词表判成 `CORRECTION`，又因“选中那张图”被当作上下文呈现，最终落入 `CREATION_ASK`
+  - 意图识别为“选中图 + 重新生成 + 分隔符约束”建立显式 `regen` 分支，冒号/逗号后的约束直达提供方，不再把整句或上一轮文字重新蒸馏
+  - 运行时仅在该明确 `regen` 意图下允许越过 `CORRECTION`，改写为 `CREATE` 并清空创作澄清；普通纠正语义不受影响
+  - 参考图解析优先使用用户 `selected=true` 的产物，无选中时才回落最新产物
+- 回归：`test:engine` 333 pass / 0 fail；`test:gateway` 81 pass / 0 fail；`lint` 0；`tsc --noEmit` 0
+- 真实验证：修复后同一句式端到端 trace 已变为 `CREATE → CREATE`，SSE 无 `CREATION_ASK`，提示词正确裁剪为“把玻璃邮局换成海崖上的木造灯塔……”；但当时元宝只剩后台进程、AX 主窗口和输入区为 0，桥接返回“无法切换到 ai 分组”。失败后网关已立即阻止向 Agnes 静默兜底，等待元宝主窗口恢复后继续同一会话的真实图生图
+
+Stage Summary:
+- 元宝图像候选从“最多看到 2 张”推进到“4 张全量呈现 + 用户选择持久化 + 恢复不丢选择”
+- 选中图成为明确的图生图素材：自然语句路由修复，参考图优先级正确
+- 本机桥可靠性纪律补齐：进程活着不再等于可操作；主窗口丢失时给用户可执行提示，且不静默更换提供方
+- 待完成：元宝主窗口恢复后，用新的灯塔约束完成 4 候选真实返回与前端选择复核
+
+---
+
+Task ID: 25
+Agent: Codex
+Task: YuanbaoBridge 新签名包授权修复 + 选中图真实图生图闭环复核
+
+Work Log:
+- 定位授权失败根因：项目内 `tools/yuanbao-bridge/YuanbaoBridge.app` 与旧 `/Applications/YuanbaoBridge.app` 共用 `com.local.yuanbao-bridge`，但旧包是 ad-hoc 签名，新包是 fixed local identity 签名；系统授权曾解析到旧副本，导致进程路径正确但 `AXIsProcessTrusted` 仍为 false
+- 处理方式：仅执行 `tccutil reset Accessibility com.local.yuanbao-bridge`，不影响其他应用授权；将旧 `/Applications/YuanbaoBridge.app` 改名保留为隐藏备份，并用软链接指向项目内新包，避免再次添加旧副本
+- 用户重新授权后，重启 `:3210` 桥接进程；健康检查从 `trusted=false/axReady=false/inputReady=false` 恢复为 `trusted=true/ready=true/axReady=true/inputReady=true`，进程可执行文件仍确认在项目路径
+- 真实产品 E2E：在 `cmvdp8max0008n3qsgxmpzuwi` 会话第 6 轮发送全新的“海边灯塔图书馆换成雾中灯塔观鸟站……”请求，SSE trace 为 `CREATE → CREATE`，无 `CREATION_ASK`；提供方保持元宝本机，无 Agnes/豆包兜底
+- 产物复核：任务 `job_mvdym9h8_vrwxfd` completed；会话 API 返回第 6 轮 4 条媒体记录；4 个产物均 HTTP 200、`image/png`、2048×2048，文件为 `gen_mvdyn80x_chhrs7.png`、`gen_mvdyn81x_lbtnwr.png`、`gen_mvdyn82h_oj6k8y.png`、`gen_mvdyn830_l5yxqb.png`
+
+Stage Summary:
+- 新签名桥接授权、健康判定、选中图意图路由、元宝 4 候选取回与产品持久化返回形成完整真实闭环
+- 服务保持运行：Next.js `:3000`、model gateway `:3031`、YuanbaoBridge `:3210`
+
+---
+
+Task ID: 26
+Agent: Codex
+Task: 产品级提示履约修复 + UI/UX 首轮重构 + 分组会话隔离
+
+Work Log:
+- 自然自由输入不再落入 UNKNOWN 打断：内存/生成/创作识别之后兜底为 DIRECT_ANSWER；真实会话验证 trace 为 DIRECT_ANSWER → ANSWER
+- 新增通用视觉提示契约：保留用户正向硬约束，剥除「不是雪夜 / 不是雨天 / 避免人群」等否定子句；避免图像模型把被否定词渲染成正向画面
+- 上下文生图把上一轮素材与用户最新要求一起交给画面蒸馏；「生成一张…」即使省略图/画字也可识别为图像
+- YuanbaoBridge 每次图像请求优先在用户创建的 ai 分组内点「新建组内对话」，确认干净会话后再发送；找不到分组加号时退回全局新建，不复用旧会话
+- 上一轮首页 UI 重构入库：自由输入前置、状态入口、最近探索和作品分区更清晰，并补充桌面/窄屏、焦点与减少动态偏好处理；新增 UI/UX 规范 v1
+- 回归：`test:engine` 338 pass；`test:unit` 164 pass；`test:gateway` 82 pass；`lint` 0；`tsc --noEmit` 0；Swift 桥接构建通过
+- 授权说明：桥接重建后系统显示 `trusted=false`，真实元宝新会话链路待用户重新打开辅助功能授权后复核
+
+Stage Summary:
+- 文本兜底、图像提示履约、四候选画廊选择、长任务后台化与 UI 首屏重构形成一批可提交的产品改进
+- 后续继续按 UI/UX 规范推进体验对话、生成等待、失败恢复、配置页和移动端全流程重构

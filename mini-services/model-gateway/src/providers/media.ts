@@ -12,7 +12,9 @@
  *   audio base64）；否则 OpenAI 兼容 /audio/speech（字节流）
  * - 视频：Seedance 契约（volcengine/volces/ark./api/v3 域
  *   或 seedance 模型名 → /contents/generations/tasks 异步
- *   任务 + 轮询，产物 content.video_url）；否则 Agnes 契约
+ *   任务 + 轮询，产物 content.video_url）；本机桥接契约
+ *   （豆包 App 桥接 127.0.0.1:3220 → 同步 /videos/generations）；
+ *   否则 Agnes 契约
  *   （/videos 创建 + /agnesapi?video_id=&model_name= 轮询，
  *   产物顶层 url）
  *
@@ -46,6 +48,7 @@ export class MediaProviderError extends Error {
     message: string,
     public readonly retryable = false,
     public readonly status?: number,
+    public readonly failoverBlocked = false,
   ) {
     super(message);
     this.name = 'MediaProviderError';
@@ -169,8 +172,120 @@ function firstDataEntry(parsed: unknown): Record<string, unknown> | null {
   return null;
 }
 
-/** OpenAI 图像响应中的全部有效产物（元宝桥接一次会返回 4 张候选）。 */
-function imageDataArtifacts(parsed: unknown): MediaArtifact[] {
+/** 元宝页面本来就会产出 4 个候选；桥接只决定取回几张。
+ * 全量取回可把已经产生的上游产物转成用户可选项，不额外触发生成。 */
+const MAX_IMAGE_CANDIDATES = 4;
+
+/** 目前只有本机桥接能稳定把 n 映射为页面候选下载数量；
+ * 官方 OpenAI 兼容端点可能只允许 n=1，不能把本机约定强加过去。 */
+function supportsImageCandidateCount(record: ProviderConfigRecord): boolean {
+  return (
+    record.baseUrl.toLowerCase().startsWith('http://127.0.0.1:') ||
+    record.baseUrl.toLowerCase().startsWith('http://localhost:') ||
+    record.model.toLowerCase().includes('app-local')
+  );
+}
+
+/** 元宝主窗口是否真的可自动化；进程活着不等于 AX 输入区可用。 */
+async function assertYuanbaoBridgeReady(
+  record: ProviderConfigRecord,
+): Promise<void> {
+  if (!record.model.toLowerCase().includes('yuanbao-app-local')) return;
+  let health: Response;
+  try {
+    health = await fetch(`${new URL(record.baseUrl).origin}/health`, {
+      signal: AbortSignal.timeout(5_000),
+    });
+  } catch (error) {
+    throw new MediaProviderError(
+      `元宝本机桥接不可达：${error instanceof Error ? error.message : String(error)}`,
+      false,
+      undefined,
+      true,
+    );
+  }
+  if (!health.ok) {
+    throw new MediaProviderError(
+      `元宝本机桥接健康检查失败（HTTP ${health.status}）`,
+      false,
+      undefined,
+      true,
+    );
+  }
+  let payload: {
+    ready?: unknown;
+    trusted?: unknown;
+    yuanbaoRunning?: unknown;
+  } | null = null;
+  try {
+    payload = (await health.json()) as { ready?: unknown };
+  } catch {
+    payload = null;
+  }
+  if (payload?.ready === true) return;
+  if (payload?.ready === false) {
+    throw new MediaProviderError(
+      '元宝主窗口当前不可自动化——请打开元宝主窗口后重试',
+      false,
+      undefined,
+      true,
+    );
+  }
+
+  // 兼容已授权但尚未重新编译的旧 bridge：它只暴露 trusted + running。
+  // 进程活着不等于窗口可用，这里用只读 AX 查询确认输入区；
+  // 查询只读取控件树，不点击、不抢焦点。
+  const legacyReady =
+    payload?.ready === undefined
+    && payload?.trusted === true
+    && payload?.yuanbaoRunning === true;
+  if (!legacyReady) {
+    throw new MediaProviderError(
+      '元宝主窗口当前不可自动化——请打开元宝主窗口后重试',
+      false,
+      undefined,
+      true,
+    );
+  }
+  try {
+    const ax = await fetch(`${new URL(record.baseUrl).origin}/v1/ax`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cmd: 'query',
+        match: { role: 'AXTextArea' },
+        limit: 1,
+      }),
+      signal: AbortSignal.timeout(2_500),
+    });
+    const result = (await ax.json()) as { count?: unknown };
+    if (typeof result.count !== 'number' || result.count < 1) {
+      throw new MediaProviderError(
+        '元宝主窗口未打开或输入区不可用——请打开元宝主窗口后重试',
+        false,
+        undefined,
+        true,
+      );
+    }
+  } catch (error) {
+    if (error instanceof MediaProviderError) throw error;
+    throw new MediaProviderError(
+      `元宝 AX 可用性检查失败：${error instanceof Error ? error.message : String(error)}`,
+      false,
+      undefined,
+      true,
+    );
+  }
+}
+
+/** 本机路由丢失时禁止静默切外部模型；用户应得到可操作的窗口提示。 */
+export function isLocalBridgeRouteUnavailable(error: unknown): boolean {
+  return error instanceof MediaProviderError
+    && /无法切换到 ai 分组|未找到元宝输入区|元宝主窗口|无水印 IndexedDB 原图不足|下载无水印原图失败/.test(error.message);
+}
+
+/** OpenAI 图像响应中的有效产物（元宝桥接一次可返回 4 张候选——截取前 N 张）。 */
+function imageDataArtifacts(parsed: unknown, maxCount = MAX_IMAGE_CANDIDATES): MediaArtifact[] {
   if (parsed === null || typeof parsed !== 'object') return [];
   const data = (parsed as { data?: unknown }).data;
   if (!Array.isArray(data)) return [];
@@ -188,7 +303,7 @@ function imageDataArtifacts(parsed: unknown): MediaArtifact[] {
       artifacts.push({ dataUri: `data:image/png;base64,${b64}`, mime: 'image/png' });
     }
   }
-  return artifacts;
+  return artifacts.slice(0, maxCount);
 }
 
 function extractUrl(entry: Record<string, unknown>): string | undefined {
@@ -272,6 +387,7 @@ export async function generateImageSet(
   // 契约路由：混元生图（hy-image 系列——元宝 App 同源模型）走
   // 自有 /wand/hunyuan-image/* 端点；其余按 OpenAI 兼容
   // /images/generations（原实现，纯增量零回归）。
+  await assertYuanbaoBridgeReady(record);
   if (imageProviderOf(record) === 'hunyuan') {
     return [await generateImageHunyuan(record, prompt, options)];
   }
@@ -284,6 +400,9 @@ export async function generateImageSet(
       `[image-gen] referenceImages=${refs.length} first=${refs[0]?.slice(0, 32)}… len=${refs[0]?.length ?? 0}`,
     );
   }
+  const candidateCount = supportsImageCandidateCount(record)
+    ? MAX_IMAGE_CANDIDATES
+    : 1;
   const hasRatio = options?.aspectRatio !== undefined;
 
   // 三段调用形态：带画幅 + 带参考图 → 仅参考图（画幅被拒）
@@ -297,7 +416,7 @@ export async function generateImageSet(
         body: JSON.stringify({
           model: record.model,
           prompt,
-          n: 1,
+          n: candidateCount,
           ...(withSize && hasRatio ? { size: tier, ratio: options!.aspectRatio } : {}),
           extra_body: {
             response_format: 'url',
@@ -317,6 +436,18 @@ export async function generateImageSet(
   try {
     response = await call(hasRatio, refs.length > 0);
   } catch (error) {
+    if (
+      supportsImageCandidateCount(record)
+      && isLocalBridgeRouteUnavailable(error)
+    ) {
+      const routeError = error as MediaProviderError;
+      throw new MediaProviderError(
+        routeError.message,
+        false,
+        routeError.status,
+        true,
+      );
+    }
     // 参数兼容降级：显式画幅被拒（400 非瞬态）→ 无画幅重试
     // （仍带参考图）；再被拒 → 裸重试（丢参考图保底出图）。
     if (
@@ -484,6 +615,20 @@ function isSeedanceContract(record: ProviderConfigRecord): boolean {
   );
 }
 
+/**
+ * 本机桥接视频契约判定（豆包 App 桥接 tools/doubao-bridge）：
+ * 桥接只实现 OpenAI 兼容 /videos/generations（同步产物）——
+ * 落到 Agnes 契约 POST /videos 会被桥接未知路径兜底拒成
+ * 404 "Not Found"（实测 2026-10-16）。按端点（127.0.0.1:3220）
+ * 或桥接预设模型名（doubao-app-local）识别。
+ */
+export function isLocalBridgeVideoContract(record: ProviderConfigRecord): boolean {
+  return (
+    /127\.0\.0\.1:3220/.test(record.baseUrl) ||
+    /doubao-app-local/i.test(record.model)
+  );
+}
+
 function extractTaskId(parsed: unknown): string | undefined {
   if (parsed === null || typeof parsed !== 'object') return undefined;
   const json = parsed as Record<string, unknown>;
@@ -574,6 +719,7 @@ export async function generateVideo(
   record: ProviderConfigRecord,
   prompt: string,
   onProgress?: (progress: number) => void,
+  options?: { referenceImages?: string[] },
 ): Promise<MediaArtifact> {
   if (isSeedanceContract(record)) {
     // Seedance（火山方舟）异步任务契约：创建 + 轮询，产物 content.video_url。
@@ -642,7 +788,46 @@ export async function generateVideo(
     return { url, mime: 'video/mp4' };
   }
 
-  // Agnes 视频契约（Video 2.5 Flash）：/videos 创建任务 + /agnesapi 轮询。
+  // 本机桥接契约（豆包 App 桥接）：同步 /videos/generations——
+  // 桥接在内部驱动豆包出片（官方预估 10 分钟），响应即产物，
+  // 无任务 id 可轮询（超时与 src 参考实现 LOCAL_BRIDGE_TIMEOUT_MS 对齐）。
+  if (isLocalBridgeVideoContract(record)) {
+    const response = await mediaFetch(
+      `${baseUrl(record.baseUrl)}/videos/generations`,
+      {
+        method: 'POST',
+        headers: bearerHeaders(record.apiKey ?? ''),
+        body: JSON.stringify({
+          model: record.model,
+          prompt,
+          ...(options?.referenceImages?.length
+            ? { referenceImages: options.referenceImages.filter((r) => r.startsWith('http')) }
+            : {}),
+        }),
+        signal: AbortSignal.timeout(900_000),
+      },
+      record.name,
+      '视频',
+    );
+    let parsed: unknown;
+    try {
+      parsed = await response.json();
+    } catch {
+      throw new MediaProviderError(
+        `提供方「${record.name}」视频响应无法解析（非 JSON）`,
+      );
+    }
+    const entry = firstDataEntry(parsed);
+    const url =
+      (entry !== null ? extractUrl(entry) : undefined) ??
+      extractUrl(parsed as Record<string, unknown>);
+    if (url === undefined) {
+      throw new MediaProviderError(
+        `提供方「${record.name}」视频响应无产物地址（本机桥接）`,
+      );
+    }
+    return { url, mime: 'video/mp4' };
+  }
   // 模式路由：keyframe > reference > text（本切片仅 text 模式——
   // 首尾帧/参考音频由后续切片开放）。
   const createTask = (): Promise<Response> =>
@@ -654,7 +839,9 @@ export async function generateVideo(
         body: JSON.stringify({
           model: record.model,
           prompt,
-          mode: 'text',
+          ...(options?.referenceImages?.some((r) => r.startsWith('http'))
+            ? { mode: 'reference', images: options.referenceImages.filter((r) => r.startsWith('http')).slice(0, 5) }
+            : { mode: 'text' }),
           seconds: '4',
           size: '720P',
           aspect_ratio: '16:9',

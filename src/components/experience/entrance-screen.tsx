@@ -42,51 +42,53 @@ export function EntranceScreen({ seed, onStart, onChange, onSubmitFreeText }: En
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-4 py-12 md:py-20">
+    <main className="experience-shell flex flex-1 flex-col items-center justify-center px-5 py-10 sm:px-8 md:py-16">
       <motion.section
         aria-label="一个值得进入的问题"
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
-        className="w-full max-w-xl"
+        className="w-full max-w-2xl rounded-[28px] border border-stone-300/70 bg-white/55 px-5 py-8 shadow-[0_18px_60px_rgba(48,43,31,0.045)] backdrop-blur-sm sm:px-10 sm:py-11"
       >
-        <p className="text-center text-xs tracking-[0.3em] text-amber-600/90">
+        <p className="flex items-center justify-center gap-2 text-xs font-medium tracking-[0.2em] text-amber-800/80">
+          <span className="h-px w-6 bg-amber-700/50" />
           {ENTRANCE_LABEL[seed.category] ?? '一次探索'}
+          <span className="h-px w-6 bg-amber-700/50" />
         </p>
 
-        <h1 className="mt-6 text-center text-2xl font-medium leading-snug text-stone-800 md:text-4xl md:leading-snug">
+        <h1 className="home-title mt-6 text-center text-3xl font-medium leading-[1.35] tracking-[-0.025em] text-stone-900 md:text-4xl md:leading-[1.35]">
           {seed.hook}
         </h1>
 
         {seed.context ? (
-          <p className="mx-auto mt-5 max-w-md text-center text-sm leading-relaxed text-stone-500 md:text-[15px]">
+          <p className="mx-auto mt-5 max-w-lg text-center text-sm leading-7 text-stone-500 md:text-[15px]">
             {seed.context}
           </p>
         ) : null}
 
         {/* 入口角度——低门槛参与；点任意角度即开始 */}
-        <div className="mx-auto mt-10 flex max-w-md flex-col gap-2.5">
+        <div className="mx-auto mt-9 flex max-w-lg flex-col gap-2.5">
           {seed.entries.map((entry) => (
             <button
               key={entry.label}
               type="button"
               onClick={() => onStart(entry.prompt)}
-              className="group flex min-h-12 items-center justify-between gap-3 rounded-xl border border-stone-200/90 bg-white px-5 py-3 text-left text-[15px] text-stone-600 transition-all duration-200 hover:border-amber-300/90 hover:bg-amber-50/50 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
+              className="group flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-stone-200/80 bg-[#f9f8f4]/80 px-5 py-3.5 text-left text-[15px] text-stone-600 transition-all duration-200 hover:border-amber-400/70 hover:bg-amber-50/70 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
             >
               <span>{entry.label}</span>
               <ArrowRight
-                className="size-4 shrink-0 text-stone-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-amber-500"
+                className="size-4 shrink-0 text-stone-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-amber-700"
                 aria-hidden="true"
               />
             </button>
           ))}
         </div>
 
-        <div className="mt-9 flex flex-col items-center gap-4">
+        <div className="mt-8 flex flex-col items-center gap-3">
           <Button
             type="button"
             onClick={() => onStart(null)}
-            className="h-12 rounded-full bg-amber-600 px-8 text-base text-white shadow-sm transition-colors hover:bg-amber-700 focus-visible:ring-amber-300"
+            className="h-12 rounded-full bg-stone-900 px-8 text-base text-white shadow-sm transition-colors hover:bg-amber-800 focus-visible:ring-amber-300"
           >
             开始探索
             <ArrowRight className="ml-1.5 size-4" aria-hidden="true" />
@@ -105,7 +107,7 @@ export function EntranceScreen({ seed, onStart, onChange, onSubmitFreeText }: En
         <form
           aria-label="或者直接告诉我"
           onSubmit={handleFreeSubmit}
-          className="mx-auto mt-12 flex max-w-md items-center gap-1.5 rounded-full border border-stone-200/90 bg-white/70 py-1 pl-4 pr-1 transition-colors focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/15"
+            className="mx-auto mt-9 flex max-w-lg items-center gap-1.5 rounded-full border border-stone-300/80 bg-white/80 py-1.5 pl-5 pr-1.5 transition-colors focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/15"
         >
           <Input
             value={freeText}

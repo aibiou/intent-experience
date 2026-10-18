@@ -218,6 +218,25 @@ export const PROVIDER_PROFILES: Readonly<Record<string, ProviderProfile>> = {
     label: '元宝 App 本机生图（AI 生图）',
     modality: 'image',
   },
+  // 豆包 App 本机桥接（tools/doubao-bridge）——通过 CDP 驱动本机
+  // 已打开的豆包会话出图 / 出视频。桥接暴露 OpenAI 形态的同步
+  // 产物 URL；密钥字段仅作表单占位，桥接本身不校验。
+  '豆包本机': {
+    endpoint: 'http://127.0.0.1:3220/v1',
+    defaultModel: 'doubao-app-local-image',
+    temperature: DEFAULT_PROVIDER_TEMPERATURE,
+    systemPrompt: DEFAULT_PROVIDER_SYSTEM_PROMPT,
+    label: '豆包 App 本机生图',
+    modality: 'image',
+  },
+  '豆包本机视频': {
+    endpoint: 'http://127.0.0.1:3220/v1',
+    defaultModel: 'doubao-app-local-video',
+    temperature: DEFAULT_PROVIDER_TEMPERATURE,
+    systemPrompt: DEFAULT_PROVIDER_SYSTEM_PROMPT,
+    label: '豆包 App 本机视频',
+    modality: 'video',
+  },
 };
 
 let providerProposalCounter = 0;

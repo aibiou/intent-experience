@@ -4,6 +4,7 @@ import { describe, expect, it } from 'bun:test';
 import sharp from 'sharp';
 import {
   latestImageRecord,
+  selectedImageRecord,
   toReferenceDataUri,
   validateReferenceImages,
 } from '../../src/lib/experience/media-gateway';
@@ -145,5 +146,44 @@ describe('会话最新图像产物（latestImageRecord——多轮链的选择�
   it('空索引 / 无该会话图像产物 → null（降级文生图）', () => {
     expect(latestImageRecord([], 's1')).toBeNull();
     expect(latestImageRecord([record(1, 's2')], 's1')).toBeNull();
+  });
+});
+
+describe('用户选中图像产物（selectedImageRecord——G1.1 目标 4）', () => {
+  const record = (
+    turn: number,
+    sessionId = 's1',
+    selected?: boolean,
+  ): MediaArtifactRecord => ({
+    id: `g${turn}`,
+    sessionId,
+    turn,
+    modality: 'image',
+    file: `f${turn}.png`,
+    mime: 'image/png',
+    promptUsed: `p${turn}`,
+    at: '',
+    ...(selected ? { selected: true } : {}),
+  });
+
+  it('有选中时优先取选中（不再隐式取末条）', () => {
+    const records = [record(1, 's1', false), record(2, 's1', true)];
+    expect(selectedImageRecord(records, 's1')?.turn).toBe(2);
+  });
+
+  it('无选中时兜底取末条（兼容旧行为）', () => {
+    const records = [record(1, 's1', false), record(2, 's1', false)];
+    expect(selectedImageRecord(records, 's1')?.turn).toBe(2);
+  });
+
+  it('选中的是第 1 张时（末条是第 3 张）仍取选中', () => {
+    const records = [record(1, 's1', true), record(2), record(3)];
+    expect(selectedImageRecord(records, 's1')?.turn).toBe(1);
+  });
+
+  it('会话隔离', () => {
+    const records = [record(1, 's2', true), record(2, 's1')];
+    expect(selectedImageRecord(records, 's2')?.turn).toBe(1);
+    expect(selectedImageRecord(records, 's1')?.turn).toBe(2);
   });
 });

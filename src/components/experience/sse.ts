@@ -11,14 +11,16 @@
  *
  * 2026-10-16（模拟用户实测）：生成触发必须有时限反馈——SSE 上游
  * 长时间无任何事件（文本挂起 / 媒体生成卡死）时主动抛错，调用方
- * toast + 可重试，不再静默死屏。阈值 240s = 图像生成上游超时上限
- * （避免误杀正常慢图像）；文本生成超过该值同样视为挂起。
+ * toast + 可重试，不再静默死屏。默认阈值 240s 对齐图像超时；视频
+ * started 事件到达后放宽到 960s，与视频链路最坏耗时一致。
  */
 
 import type { TurnEvent } from '@/lib/experience/types';
 
-/** 无事件超时（ms）：达到后按上游挂起失败处理。 */
-const INACTIVITY_TIMEOUT_MS = 240_000;
+/** 默认无事件超时（ms）：达到后按上游挂起失败处理。 */
+const DEFAULT_INACTIVITY_TIMEOUT_MS = 240_000;
+/** 视频无事件超时（ms）：豆包本机视频预估可达 10 分钟。 */
+const VIDEO_INACTIVITY_TIMEOUT_MS = 960_000;
 
 /** 解析单帧（不含结尾空行）。 */
 function parseFrame(frame: string): TurnEvent | null {
@@ -55,6 +57,7 @@ export function streamExperienceEvents(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     let finishTimer: ReturnType<typeof setTimeout> | null = null;
+    let inactivityTimeoutMs = DEFAULT_INACTIVITY_TIMEOUT_MS;
     let settled = false;
 
     const fail = (message: string) => {
@@ -67,8 +70,8 @@ export function streamExperienceEvents(
     const armTimer = () => {
       if (finishTimer) clearTimeout(finishTimer);
       finishTimer = setTimeout(
-        () => fail(`等待生成结果超过 ${INACTIVITY_TIMEOUT_MS / 1000} 秒，请再试一次。`),
-        INACTIVITY_TIMEOUT_MS
+        () => fail(`等待生成结果超过 ${inactivityTimeoutMs / 1000} 秒，请再试一次。`),
+        inactivityTimeoutMs
       );
     };
 
@@ -106,6 +109,9 @@ export function streamExperienceEvents(
             buffer = buffer.slice(idx + 2);
             const event = parseFrame(frame);
             if (event) {
+              if (event.type === 'generation' && event.status === 'started' && event.modality === 'video') {
+                inactivityTimeoutMs = VIDEO_INACTIVITY_TIMEOUT_MS;
+              }
               armTimer(); // 有事件 → 重置无事件计时
               onEvent(event);
             }

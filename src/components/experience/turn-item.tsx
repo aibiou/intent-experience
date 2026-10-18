@@ -17,7 +17,7 @@
  * 不改变轮次本身的呈现语义。
  */
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, AudioLines, ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -363,22 +363,53 @@ function TextParagraphs({ content, kind }: { content: string; kind: SettledKind 
 function MediaPending({
   label,
   prompt,
+  startedAt,
 }: {
   label: string;
   prompt?: string;
+  startedAt?: number;
 }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!startedAt) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [startedAt]);
+
+  const elapsedSeconds = startedAt
+    ? Math.max(0, Math.floor((now - startedAt) / 1000))
+    : null;
+  const elapsedLabel = elapsedSeconds === null
+    ? null
+    : elapsedSeconds < 60
+      ? `${elapsedSeconds} 秒`
+      : `${Math.floor(elapsedSeconds / 60)} 分 ${elapsedSeconds % 60} 秒`;
+
   return (
-    <div className="flex items-center gap-2.5 rounded-2xl border border-stone-200/80 bg-white/70 px-4 py-3">
-      <span className="relative flex size-2">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/70" />
-        <span className="relative inline-flex size-2 rounded-full bg-amber-500/90" />
-      </span>
-      <p className="min-w-0 text-sm text-stone-500">
-        {label}
-        {prompt ? (
-          <span className="block truncate text-stone-400">「{prompt}」</span>
+    <div className="rounded-2xl border border-stone-200/80 bg-white/70 px-4 py-3">
+      <div className="flex items-center gap-2.5">
+        <span className="relative flex size-2 shrink-0">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/70" />
+          <span className="relative inline-flex size-2 rounded-full bg-amber-500/90" />
+        </span>
+        <p className="min-w-0 flex-1 text-sm text-stone-500">
+          {label}
+          {prompt ? (
+            <span className="block truncate text-stone-400">「{prompt}」</span>
+          ) : null}
+        </p>
+        {elapsedLabel ? (
+          <span className="shrink-0 rounded-full border border-stone-200 px-2 py-0.5 text-xs tabular-nums text-stone-400">
+            {elapsedLabel}
+          </span>
         ) : null}
-      </p>
+      </div>
+      {label.startsWith('正在生成视频') ? (
+        <p className="mt-2 border-t border-stone-100 pt-2 text-xs leading-relaxed text-stone-400">
+          视频通常约 5–10 分钟完成；可以先继续对话或稍后回到本会话，生成完成会自动显示。
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -389,13 +420,29 @@ function imageUrls(media: TurnMedia): string[] {
   return [...new Set(urls)];
 }
 
-function ImageResultBlock({ media }: { media: TurnMedia }) {
+function ImageResultBlock({ media, sessionId, turn }: { media: TurnMedia; sessionId?: string; turn?: number }) {
   const urls = imageUrls(media);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(() => {
+    if (!media.selectedFile) return 0;
+    const index = urls.findIndex((url) => url.split('/').pop() === media.selectedFile);
+    return index >= 0 ? index : 0;
+  });
   if (urls.length === 0) return null;
 
   const safeIndex = Math.min(Math.max(selectedIndex, 0), urls.length - 1);
   const selectedUrl = urls[safeIndex];
+
+  const selectAndPersist = (index: number) => {
+    setSelectedIndex(index);
+    const file = urls[index]?.split('/').pop();
+    if (sessionId && turn !== undefined && file) {
+      fetch('/api/experience/select-media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, turn, file }),
+      }).catch(() => {});
+    }
+  };
 
   return (
     <figure
@@ -407,13 +454,13 @@ function ImageResultBlock({ media }: { media: TurnMedia }) {
         target="_blank"
         rel="noreferrer"
         aria-label={`查看第 ${safeIndex + 1} 张原图`}
-        className="group flex max-h-[min(24dvh,220px)] items-center justify-center overflow-hidden bg-stone-50 md:max-h-[min(34dvh,420px)]"
+        className="group mx-auto flex aspect-square h-[min(24dvh,220px)] items-center justify-center overflow-hidden bg-stone-50 md:h-[min(28dvh,360px)]"
       >
         <img
           src={selectedUrl}
           alt={media.promptUsed ?? '根据这次体验内容生成的图片'}
-          className="max-h-[min(24dvh,220px)] w-auto max-w-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.01] md:max-h-[min(34dvh,420px)]"
-          loading="lazy"
+          className="size-full object-contain transition-transform duration-300 ease-out group-hover:scale-[1.01]"
+          loading="eager"
         />
       </a>
 
@@ -426,7 +473,7 @@ function ImageResultBlock({ media }: { media: TurnMedia }) {
             <button
               key={url}
               type="button"
-              onClick={() => setSelectedIndex(index)}
+              onClick={() => selectAndPersist(index)}
               aria-pressed={index === safeIndex}
               aria-label={`查看候选 ${index + 1}`}
               className={`h-16 overflow-hidden rounded-lg border transition-all duration-200 ${
@@ -472,7 +519,7 @@ function ImageResultBlock({ media }: { media: TurnMedia }) {
   );
 }
 
-function MediaBlock({ media }: { media: TurnMedia }) {
+function MediaBlock({ media, sessionId, turn }: { media: TurnMedia; sessionId?: string; turn?: number }) {
   if (media.status === 'pending') {
     return (
       <MediaPending
@@ -480,10 +527,11 @@ function MediaBlock({ media }: { media: TurnMedia }) {
           media.modality === 'voice'
             ? '正在合成语音，马上就好…'
             : media.modality === 'video'
-              ? '正在生成视频，可能需要数分钟…'
+              ? '正在生成视频，可能需要 5–10 分钟…'
               : '正在生成图片，可能需要数分钟…'
         }
         prompt={media.promptUsed}
+        startedAt={media.startedAt}
       />
     );
   }
@@ -537,7 +585,7 @@ function MediaBlock({ media }: { media: TurnMedia }) {
     );
   }
   if (media.modality === 'image') {
-    return <ImageResultBlock media={media} />;
+    return <ImageResultBlock media={media} sessionId={sessionId} turn={turn} />;
   }
   return null;
 }
@@ -545,9 +593,11 @@ function MediaBlock({ media }: { media: TurnMedia }) {
 export function TurnItem({
   item,
   totalBranches = 1,
+  sessionId,
 }: {
   item: DisplayTurn;
   totalBranches?: number;
+  sessionId?: string;
 }) {
   // 用户气泡（小）——始终呈现这一轮"人说了什么"
   const bubble = (
@@ -614,7 +664,7 @@ export function TurnItem({
       className="space-y-2.5"
     >
       {anchoredBubble}
-      {imageDone && item.media ? <MediaBlock media={item.media} /> : null}
+      {imageDone && item.media ? <MediaBlock media={item.media} sessionId={sessionId} turn={item.turn} /> : null}
       {commitmentOnly ? null : kind === 'SIMULATION_RESULT' ? (
         <SimulationCard
           content={item.content}
@@ -631,7 +681,7 @@ export function TurnItem({
           </div>
         </article>
       )}
-      {item.media && !imageDone ? <MediaBlock media={item.media} /> : null}
+      {item.media && !imageDone ? <MediaBlock media={item.media} sessionId={sessionId} turn={item.turn} /> : null}
     </motion.div>
   );
 }

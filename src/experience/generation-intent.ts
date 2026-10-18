@@ -135,7 +135,8 @@ export function recognizeGenerationIntent(rawInput: string): GenerationIntent | 
   // 裸短语直达 t2i 会因无主体回落提供方默认人像）。
   const referentialPresentation =
     regen === null &&
-    /(?:对应的?|相应|调用).{0,24}(?:图|图片|图像|插画|头像|壁纸|封面|视频|动画|短片)/.test(input);
+    (/(?:选中|刚才选|上一张|那张).{0,12}(?:图片|图像|插画|图)/.test(input) ||
+      /(?:对应的?|相应|调用).{0,24}(?:图|图片|图像|插画|头像|壁纸|封面|视频|动画|短片)/.test(input));
   const presentation =
     regen === null &&
     (referentialPresentation ||

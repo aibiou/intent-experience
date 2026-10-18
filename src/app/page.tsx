@@ -71,6 +71,21 @@ export default function Page() {
     },
   });
 
+  // 首页可能滚到很深才恢复会话。切换屏幕时回到视口顶部，
+  // 避免入口标题和体验主题被旧页面的滚动位置裁掉。
+  const screenKey =
+    phase !== 'experience'
+      ? phase
+      : continuationOf
+        ? `continuation:${continuationOf.sessionId}`
+        : sessionApi.session
+          ? `session:${sessionApi.session.sessionId}`
+          : 'experience-pending';
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [screenKey]);
+
   const refreshCatalog = useCallback(async () => {
     try {
       const res = await fetch('/api/experience/catalog');
@@ -220,7 +235,11 @@ export default function Page() {
   }, [sessionApi]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#faf9f7] text-stone-900">
+    <div
+      className={`flex min-h-dvh flex-col bg-[#faf9f7] text-stone-900 ${
+        phase === 'experience' && sessionApi.session ? 'h-dvh overflow-hidden' : ''
+      }`}
+    >
       <AnimatePresence mode="wait" initial={false}>
         {phase === 'home' ? (
           <motion.div key="phase-home" {...PHASE_MOTION} className="flex flex-1 flex-col">
@@ -257,7 +276,7 @@ export default function Page() {
             />
           </motion.div>
         ) : phase === 'experience' && sessionApi.session ? (
-          <motion.div key="phase-experience" {...PHASE_MOTION} className="flex flex-1 flex-col">
+          <motion.div key="phase-experience" {...PHASE_MOTION} className="flex min-h-0 flex-1 flex-col">
             <ExperienceScreen
               session={sessionApi.session}
               onSend={sessionApi.send}

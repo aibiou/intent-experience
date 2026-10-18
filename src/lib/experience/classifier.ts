@@ -154,6 +154,11 @@ const QUESTION_MARKERS: ReadonlyArray<RegExp> = [
 
 const CONTINUE_PATTERNS: ReadonlyArray<RegExp> = [/继续当前体验/, /继续/, /往下进行/, /接着来/, /然后呢/, /还有呢/];
 
+// 口语中的裸确认词表示“认可并继续”。整句锚定是关键：避免误伤
+// “好问题”“好大的图”“可以帮我……”等含有普通语义的句子。
+const BARE_CONFIRMATION_PATTERN =
+  /^(?:好的?|好呀|好啊|嗯+|嗯嗯|行(?:吧|的)?|可以(?:的|呀)?|没问题|同意)[。！!～~\s]*$/;
+
 const REPEAT_PATTERNS: ReadonlyArray<RegExp> = [
   /重复上一/,
   /再说一遍/,
@@ -217,6 +222,9 @@ export function classifyInput(rawInput: string): ClassificationResult {
   }
   if (QUESTION_MARKERS.some((pattern) => pattern.test(rawInput))) {
     return { semanticAction: 'DIRECT_ANSWER' };
+  }
+  if (BARE_CONFIRMATION_PATTERN.test(rawInput.trim())) {
+    return { semanticAction: 'CONTINUE' };
   }
   // CONTINUE / REPEAT：仅认领全部既有优先级层未命中的输入。
   if (CONTINUE_PATTERNS.some((pattern) => pattern.test(rawInput))) {

@@ -224,7 +224,6 @@ describe('classifier：DIRECT_ANSWER 兜底（GS-01）', () => {
 
   it('无任何标记的普通陈述 → UNKNOWN（由运行时诚实升级，不假装理解）', () => {
     expectAction('今天天气不错', 'UNKNOWN');
-    expectAction('好的', 'UNKNOWN');
     expectAction('', 'UNKNOWN');
   });
 });
@@ -238,6 +237,21 @@ describe('classifier：CONTINUE / REPEAT 仅认领未被更高层命中的输入
     // 词表冗余的如实记录（当前实现的真实输出，非期望契约的发明）：
     expectAction('然后呢', 'DIRECT_ANSWER');
     expectAction('还有呢', 'DIRECT_ANSWER');
+  });
+
+  it('端到端缺口修复：裸确认词是继续，而不是 UNKNOWN', () => {
+    const confirmedInputs = ['好', '好。', '好的', '好的！', '行', '行吧', '可以', '可以呀', '嗯', '嗯嗯', '没问题', '同意'];
+    for (const input of confirmedInputs) {
+      expectAction(input, 'CONTINUE');
+    }
+  });
+
+  it('裸确认词整句锚定，不误伤含其他语义的句子', () => {
+    expectAction('好问题', 'UNKNOWN');
+    expectAction('好大的图', 'UNKNOWN');
+    expectAction('可以帮我讲讲吗', 'DIRECT_ANSWER');
+    expectAction('行不行呢', 'DIRECT_ANSWER');
+    expectAction('嗯嗯啊啊', 'UNKNOWN');
   });
 
   it('REPEAT 词表命中', () => {
