@@ -22,9 +22,9 @@ cp "$DIR/Info.plist" "$APP/Contents/Info.plist"
 # 固定证书身份让辅助功能授权跨重编译保留；
 # ad-hoc 签名会因 CDHash 变化导致每次都要重新授权。
 codesign --force \
-  --sign "${YUANBAO_BRIDGE_SIGN_IDENTITY:--}" \
+  --sign "${YUANBAO_BRIDGE_SIGN_IDENTITY:-YuanbaoBridge Local Code Sign}" \
   "$APP" >/dev/null 2>&1 || codesign --force \
-  --sign "${YUANBAO_BRIDGE_SIGN_IDENTITY:--}" \
+  --sign "${YUANBAO_BRIDGE_SIGN_IDENTITY:-YuanbaoBridge Local Code Sign}" \
   "$APP"
 
 echo "built: $APP"

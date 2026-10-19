@@ -21,6 +21,8 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { NextRequest } from 'next/server';
 
+export const runtime = 'nodejs';
+
 const GATEWAY_ORIGIN = 'http://127.0.0.1:3031';
 /** 以主应用根目录为 cwd 拉起——网关默认配置路径
  * （data/config/provider-configs.json）按 process.cwd() 解析，

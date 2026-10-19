@@ -1,17 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { CSSProperties } from "react";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+type SystemFontStyle = CSSProperties & {
+  "--font-geist-sans":
+    'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif',
+  "--font-geist-mono":
+    'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+};
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const systemFontVariables = {
+  "--font-geist-sans":
+    'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif',
+  "--font-geist-mono":
+    'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+} as SystemFontStyle;
 
 export const metadata: Metadata = {
   title: "个人体验引擎",
@@ -35,9 +39,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
+    <html lang="zh-CN" suppressHydrationWarning style={systemFontVariables}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className="antialiased bg-background text-foreground"
       >
         {children}
         <Toaster />

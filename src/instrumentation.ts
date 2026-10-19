@@ -20,14 +20,11 @@ const PROBE_INTERVAL_MS = 20_000;
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
 
-  const { spawn } = await import('node:child_process');
-  const path = await import('node:path');
-
   // 以主应用根为 cwd 拉起：网关默认配置路径
   // （data/config/provider-configs.json）按 process.cwd() 解析——
   // cwd 若为 mini-services/model-gateway 会读不到统一配置源
   // （实测 MEDIA_PROVIDER_MISSING，所有模态"未配置"）。
-  const gatewayScript = path.join(process.cwd(), 'mini-services', 'model-gateway', 'index.ts');
+  const { spawn } = globalThis.process.getBuiltinModule('node:child_process');
 
   const probeAndRevive = async (): Promise<void> => {
     try {
@@ -37,8 +34,8 @@ export async function register() {
       // 不可达——拉起
     }
     try {
-      const child = spawn('bun', [gatewayScript], {
-        cwd: process.cwd(),
+      const child = spawn('bun', ['mini-services/model-gateway/index.ts'], {
+        cwd: '.',
         detached: true,
         stdio: 'ignore',
         env: { ...process.env },

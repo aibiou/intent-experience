@@ -469,7 +469,29 @@ func setClipboard(_ text: String) {
 // MARK: - 应用与窗口
 
 func runningYuanbao() -> NSRunningApplication? {
-  NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == yuanbaoBundleId }
+  if let app = NSWorkspace.shared.runningApplications.first(where: {
+    $0.bundleIdentifier == yuanbaoBundleId
+  }) {
+    return app
+  }
+
+  // 后台启动的应用偶尔未及时出现在 NSWorkspace 的 Bundle ID 匹配里，
+  // 但进程和 LaunchServices 已就绪。用主进程名兜底，避免健康检查误报。
+  let output = Pipe()
+  let process = Process()
+  process.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+  process.arguments = ["-x", "yuanbao"]
+  process.standardOutput = output
+  process.standardError = FileHandle.nullDevice
+  guard (try? process.run()) != nil else { return nil }
+  let data = output.fileHandleForReading.readDataToEndOfFile()
+  process.waitUntilExit()
+  guard process.terminationStatus == 0 else { return nil }
+  let pid = String(decoding: data, as: UTF8.self)
+    .split(separator: "\n")
+    .compactMap { pid_t($0.trimmingCharacters(in: .whitespaces)) }
+    .first
+  return pid.flatMap { NSRunningApplication(processIdentifier: $0) }
 }
 
 @discardableResult
