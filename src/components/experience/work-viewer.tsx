@@ -31,7 +31,7 @@ export function WorkViewer({
       }}
     >
       <DialogContent
-        className="flex max-h-[88dvh] w-full max-w-2xl flex-col gap-0 overflow-hidden rounded-3xl border-stone-200 bg-white p-0 shadow-2xl"
+        className="flex max-h-[90dvh] w-full max-w-4xl flex-col gap-0 overflow-hidden rounded-3xl border-stone-200 bg-white p-0 shadow-2xl"
         aria-label="作品查看"
         aria-modal="true"
       >
@@ -45,12 +45,12 @@ export function WorkViewer({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="exp-scrollbar min-h-0 flex-1 overflow-y-auto bg-[#faf9f7] p-5">
+        <div className="exp-scrollbar min-h-0 flex-1 overflow-y-auto bg-experience-canvas p-5 sm:p-8">
           {work.modality === 'image' ? (
             <img
               src={work.url}
               alt={work.promptUsed || work.topic || '作品'}
-              className="mx-auto max-h-[60dvh] rounded-2xl object-contain"
+              className="mx-auto max-h-[70dvh] rounded-2xl object-contain"
             />
           ) : work.modality === 'voice' ? (
             <div className="flex flex-col items-center gap-4 py-8">
@@ -60,7 +60,7 @@ export function WorkViewer({
               <audio src={work.url} controls className="w-full max-w-sm" />
             </div>
           ) : (
-            <video src={work.url} controls className="mx-auto max-h-[60dvh] rounded-2xl" />
+            <video src={work.url} controls className="mx-auto max-h-[70dvh] rounded-2xl" />
           )}
         </div>
       </DialogContent>

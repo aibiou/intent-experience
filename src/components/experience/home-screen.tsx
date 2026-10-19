@@ -10,9 +10,10 @@ import { useState, type FormEvent } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Coffee, Hammer, SendHorizontal, Settings2, Shuffle, Sparkles, Telescope } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { MemoryPanel } from './memory-panel';
 import {
   formatRelativeTime,
@@ -113,7 +114,7 @@ export function HomeScreen({
               onSubmit={handleFreeSubmit}
               className="mt-8 w-full max-w-xl"
             >
-              <div className="home-prompt flex items-center gap-2 rounded-2xl border border-stone-300/90 bg-white/90 p-2 pl-4 shadow-[0_8px_30px_rgba(48,43,31,0.06)] transition-all focus-within:border-amber-500/70 focus-within:ring-4 focus-within:ring-amber-500/10 sm:rounded-full sm:pl-6">
+              <div className="experience-composer gap-2 pl-4 sm:pl-6">
                 <Input
                   value={freeText}
                   onChange={(e) => setFreeText(e.target.value)}
@@ -126,7 +127,8 @@ export function HomeScreen({
                   type="submit"
                   aria-label="开始探索"
                   disabled={!freeText.trim()}
-                  className="h-12 shrink-0 gap-2 rounded-xl bg-stone-900 px-4 text-white transition-colors hover:bg-amber-800 disabled:opacity-35 sm:rounded-full sm:px-5"
+                  variant="ink"
+                  className="h-12 shrink-0 gap-2 rounded-xl px-4 transition-colors disabled:opacity-35 sm:rounded-full sm:px-5"
                 >
                   <span className="hidden sm:inline">开始探索</span>
                   <SendHorizontal className="size-4" aria-hidden="true" />
@@ -179,7 +181,10 @@ export function HomeScreen({
                   animate={{ opacity: 1, y: 0 }}
                   transition={reduceMotion ? { duration: 0 } : { duration: 0.3, delay: index * 0.05, ease: 'easeOut' }}
                   onClick={() => onPickState(entry.category)}
-                  className="home-state-card group flex min-h-[86px] items-center gap-3.5 rounded-2xl border border-stone-300/75 bg-white/70 px-4 text-left text-stone-800 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/60 hover:bg-white hover:shadow-[0_8px_24px_rgba(48,43,31,0.07)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 sm:px-5"
+                  className={cn(
+                    buttonVariants({ variant: 'paper' }),
+                    'home-state-card group flex min-h-[86px] items-center gap-3.5 rounded-2xl border-stone-300/75 bg-white/70 px-4 text-left text-stone-800 shadow-none transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/60 hover:bg-white hover:shadow-[0_8px_24px_rgba(48,43,31,0.07)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 sm:px-5',
+                  )}
                 >
                   <span className="home-state-icon"><Icon className="size-[18px]" aria-hidden="true" /></span>
                   <span className="min-w-0 flex-1">
@@ -301,7 +306,10 @@ function WorkCard({
       <button
         type="button"
         onClick={() => onOpen(work.sessionId, work)}
-        className="block w-full overflow-hidden rounded-2xl border border-stone-200/90 bg-white text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-300/80 hover:shadow-[0_2px_8px_rgba(87,83,78,0.08)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
+        className={cn(
+          buttonVariants({ variant: 'paper' }),
+          'block w-full overflow-hidden rounded-2xl text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_8px_rgba(87,83,78,0.08)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500',
+        )}
       >
         <img
           src={work.url}
@@ -315,7 +323,7 @@ function WorkCard({
   }
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-stone-200/90 bg-white">
+    <article className="experience-panel overflow-hidden rounded-2xl shadow-none">
       <div className="bg-stone-50/80 px-3 py-2.5">
         {work.modality === 'voice' ? (
           <audio controls preload="none" src={work.url} className="h-9 w-full">

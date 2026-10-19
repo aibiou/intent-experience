@@ -482,7 +482,7 @@ function ImageResultBlock({
   return (
     <figure
       data-media-result
-      className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_6px_24px_rgba(87,83,78,0.10)]"
+      className="mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_6px_24px_rgba(87,83,78,0.10)]"
     >
       <a
         href={selectedUrl}

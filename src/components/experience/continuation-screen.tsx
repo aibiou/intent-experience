@@ -34,7 +34,7 @@ export function ContinuationScreen({
   };
 
   return (
-    <main className="experience-shell relative mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 sm:px-8">
+    <main className="experience-shell relative mx-auto flex w-full max-w-5xl flex-1 flex-col px-5 sm:px-8">
       <header className="border-b border-stone-300/70 pb-6 pt-6 sm:pt-8">
         <button
           type="button"
@@ -57,7 +57,7 @@ export function ContinuationScreen({
         <form
           aria-label="续作输入"
           onSubmit={handleSubmit}
-          className="flex items-center gap-1.5 rounded-2xl border border-stone-300/90 bg-white py-1.5 pl-5 pr-1.5 shadow-[0_8px_30px_rgba(48,43,31,0.06)] transition-colors focus-within:border-amber-500/70 focus-within:ring-4 focus-within:ring-amber-500/10 sm:rounded-full"
+          className="experience-composer"
         >
           <Input
             value={text}
@@ -73,7 +73,8 @@ export function ContinuationScreen({
             size="icon"
             aria-label="发送"
             disabled={!text.trim()}
-            className="size-11 shrink-0 rounded-xl bg-stone-900 text-stone-50 hover:bg-amber-800 disabled:opacity-40 sm:rounded-full"
+            variant="ink"
+            className="size-11 shrink-0 disabled:opacity-40"
           >
             <SendHorizontal className="size-4.5" aria-hidden="true" />
           </Button>

@@ -244,7 +244,7 @@ export default function Page() {
 
   return (
     <div
-      className={`flex min-h-dvh flex-col bg-[#faf9f7] text-stone-900 ${
+      className={`flex min-h-dvh flex-col bg-experience-canvas text-stone-900 ${
         phase === 'experience' && sessionApi.session ? 'h-dvh overflow-hidden' : ''
       }`}
     >
@@ -276,6 +276,7 @@ export default function Page() {
               seed={entranceSeed}
               onStart={handleEntranceStart}
               onChange={handleEntranceChange}
+              onBackHome={handleBackHome}
               onSubmitFreeText={handleFreeText}
             />
           </motion.div>

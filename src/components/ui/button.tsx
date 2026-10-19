@@ -11,6 +11,14 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+        ink:
+          "rounded-full bg-experience-ink text-white shadow-sm hover:bg-experience-accent focus-visible:ring-amber-300",
+        paper:
+          "rounded-full border border-experience-line bg-experience-surface text-experience-ink hover:border-experience-accent/50 hover:bg-white",
+        accent:
+          "rounded-full border border-amber-200/80 bg-experience-accent-soft text-amber-900 hover:border-amber-400 hover:bg-amber-100/80",
+        quiet:
+          "rounded-full text-experience-muted hover:bg-white/70 hover:text-experience-accent",
         destructive:
           "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:

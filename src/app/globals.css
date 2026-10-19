@@ -17,6 +17,13 @@
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
+  --color-experience-canvas: var(--experience-canvas);
+  --color-experience-surface: var(--experience-surface);
+  --color-experience-ink: var(--experience-ink);
+  --color-experience-muted: var(--experience-muted);
+  --color-experience-line: var(--experience-line);
+  --color-experience-accent: var(--experience-accent);
+  --color-experience-accent-soft: var(--experience-accent-soft);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
@@ -44,6 +51,18 @@
 }
 
 :root {
+  /* Shared experience palette: canvas, surface, text, line, and action. */
+  --experience-canvas: #f7f6f1;
+  --experience-canvas-deep: #f3f1ea;
+  --experience-surface: #fffefa;
+  --experience-ink: #2b2923;
+  --experience-muted: #77736a;
+  --experience-line: #ddd8cb;
+  --experience-accent: #966826;
+  --experience-accent-soft: #f8efd9;
+  --experience-radius-panel: 1.25rem;
+  --experience-shadow-soft: 0 8px 30px rgb(48 43 31 / 6%);
+
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -127,20 +146,62 @@
   overflow: hidden;
   background:
     radial-gradient(ellipse at 78% 16%, rgb(238 225 187 / 30%), transparent 30rem),
-    linear-gradient(180deg, #f7f6f1 0%, #f3f1ea 100%);
+    linear-gradient(180deg, var(--experience-canvas) 0%, var(--experience-canvas-deep) 100%);
 }
 
 .experience-shell {
   background:
     radial-gradient(ellipse at 8% 14%, rgb(238 225 187 / 14%), transparent 23rem),
-    linear-gradient(180deg, #f7f6f1 0%, #f4f2ec 100%);
+    linear-gradient(180deg, var(--experience-canvas) 0%, #f4f2ec 100%);
 }
 
 .config-shell {
   min-height: 100dvh;
   background:
     radial-gradient(ellipse at 90% 0%, rgb(238 225 187 / 24%), transparent 34rem),
-    linear-gradient(180deg, #f7f6f1 0%, #f3f1ea 100%);
+    linear-gradient(180deg, var(--experience-canvas) 0%, var(--experience-canvas-deep) 100%);
+}
+
+.experience-panel {
+  border: 1px solid var(--experience-line);
+  border-radius: var(--experience-radius-panel);
+  background: var(--experience-surface);
+  box-shadow: var(--experience-shadow-soft);
+}
+
+.experience-panel--quiet {
+  background: rgb(255 254 250 / 72%);
+  box-shadow: none;
+}
+
+.experience-kicker {
+  color: var(--experience-accent);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+.experience-composer {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--experience-line);
+  border-radius: 1rem;
+  background: var(--experience-surface);
+  padding: 0.375rem 0.375rem 0.375rem 1.25rem;
+  box-shadow: var(--experience-shadow-soft);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.experience-composer:focus-within {
+  border-color: color-mix(in srgb, var(--experience-accent) 58%, white);
+  box-shadow: 0 0 0 4px rgb(150 104 38 / 10%), var(--experience-shadow-soft);
+}
+
+@media (min-width: 640px) {
+  .experience-composer {
+    border-radius: 9999px;
+  }
 }
 
 .home-shell::before {
@@ -161,7 +222,7 @@
   width: 28px;
   height: 28px;
   place-items: center;
-  border: 1px solid rgb(120 113 108 / 50%);
+  border: 1px solid color-mix(in srgb, var(--experience-muted) 58%, transparent);
   border-radius: 50%;
 }
 
@@ -170,7 +231,7 @@
   position: absolute;
   width: 16px;
   height: 7px;
-  border: 1px solid #a26b2d;
+  border: 1px solid var(--experience-accent);
   border-radius: 50%;
   content: "";
   transform: rotate(42deg);
@@ -184,7 +245,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #a26b2d;
+  background: var(--experience-accent);
 }
 
 .home-title {
@@ -282,17 +343,17 @@
   height: 42px;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgb(153 139 111 / 22%);
+  border: 1px solid color-mix(in srgb, var(--experience-accent) 22%, transparent);
   border-radius: 14px;
-  background: #f5f2e9;
-  color: #947342;
+  background: var(--experience-accent-soft);
+  color: var(--experience-accent);
   transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
 }
 
 .home-state-card:hover .home-state-icon {
-  border-color: rgb(166 111 37 / 30%);
-  background: #f8edda;
-  color: #88591f;
+  border-color: color-mix(in srgb, var(--experience-accent) 30%, transparent);
+  background: color-mix(in srgb, var(--experience-accent-soft) 82%, white);
+  color: var(--experience-accent);
 }
 
 .home-library-grid {

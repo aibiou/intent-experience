@@ -14,8 +14,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, Check, ChevronDown, Loader2, PlugZap, Plus,
-  RefreshCw, Star, Trash2, X,
+  ArrowLeft, AudioLines, Check, ChevronDown, Image as ImageIcon, Loader2,
+  MessageSquareText, PlugZap, Plus, RefreshCw, Star, Trash2, Video, X,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -89,8 +89,11 @@ const MODALITY_LABEL: Record<Modality, string> = {
   voice: '语音合成',
 };
 
-const MODALITY_ICON: Record<Modality, string> = {
-  text: '💬', image: '🎨', video: '🎬', voice: '🔊',
+const MODALITY_ICON: Record<Modality, typeof MessageSquareText> = {
+  text: MessageSquareText,
+  image: ImageIcon,
+  video: Video,
+  voice: AudioLines,
 };
 
 const MODALITY_DESC: Record<Modality, string> = {
@@ -155,7 +158,7 @@ function ModelSelectDropdown({
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700 hover:border-stone-300 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full items-center justify-between rounded-xl border border-experience-line bg-white px-3.5 py-2.5 text-sm text-stone-700 transition-colors hover:border-experience-accent/45 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className={selected ? 'font-mono' : 'text-stone-400'}>{selected || placeholder}</span>
         {models.length > 0 && (
@@ -163,13 +166,13 @@ function ModelSelectDropdown({
         )}
       </button>
       {open && models.length > 0 && (
-        <div className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-stone-200 bg-white py-1 shadow-lg">
+        <div className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-stone-200 bg-white py-1.5 shadow-[0_14px_38px_rgba(48,43,31,0.10)]">
           {models.map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => { onSelect(m); setOpen(false); }}
-              className={`flex w-full items-center justify-between px-3 py-1.5 text-left font-mono text-xs hover:bg-stone-50 ${
+              className={`flex w-full items-center justify-between px-3 py-2 text-left font-mono text-xs transition-colors hover:bg-amber-50/70 ${
                 m === selected ? 'text-amber-700' : 'text-stone-600'
               }`}
             >
@@ -215,29 +218,29 @@ function ProviderCard({
   }, [showModels]);
 
   return (
-    <div className={`group relative rounded-2xl border shadow-[0_8px_28px_rgba(48,43,31,0.035)] transition-all ${
+    <div className={`experience-panel group relative min-w-0 transition-all ${
       provider.isDefault
         ? 'border-amber-300/70 bg-[#fffdf7]'
-        : 'border-stone-200/80 bg-white/85 hover:border-stone-300 hover:shadow-[0_10px_32px_rgba(48,43,31,0.07)]'
+        : 'bg-white/85 hover:-translate-y-0.5 hover:border-experience-accent/40 hover:shadow-[0_10px_32px_rgba(48,43,31,0.07)]'
     }`}>
       {/* 卡片头部 */}
       <div className="px-5 pb-3 pt-5">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {provider.isDefault && <Star className="h-4 w-4 shrink-0 fill-amber-400 text-amber-400" />}
-          <span className="font-medium text-stone-800">{provider.name}</span>
+          <span className="min-w-0 truncate font-medium text-stone-800">{provider.name}</span>
           {!provider.enabled && <Badge variant="outline" className="text-[10px] text-stone-400">停用</Badge>}
         </div>
 
         {/* 模型名——可点击展开选择 */}
-        <div ref={dropdownRef} className="mt-2">
+        <div ref={dropdownRef} className="mt-2 w-full min-w-0">
           <button
             type="button"
             onClick={() => setShowModels((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-sm text-stone-700 hover:bg-stone-100 disabled:cursor-default disabled:opacity-60"
+            className="inline-flex w-full max-w-full min-w-0 items-center gap-1.5 rounded-lg px-1.5 py-1 text-left font-mono text-sm text-stone-700 transition-colors hover:bg-amber-50/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-default disabled:opacity-60"
             disabled={!provider.hasKey || modelList.length === 0}
             title={provider.hasKey ? '点击切换模型' : '需先配置密钥'}
           >
-            {provider.model}
+            <span className="truncate">{provider.model}</span>
             {provider.hasKey && modelList.length > 0 && (
               <ChevronDown className={`h-3.5 w-3.5 text-stone-400 transition-transform ${showModels ? 'rotate-180' : ''}`} />
             )}
@@ -246,13 +249,13 @@ function ProviderCard({
 
         {/* 模型下拉列表 */}
         {showModels && modelList.length > 0 && (
-          <div className="mt-1.5 max-h-52 overflow-y-auto rounded-lg border border-stone-200 bg-white py-1 shadow-sm">
+          <div className="mt-1.5 max-h-52 overflow-y-auto rounded-xl border border-stone-200 bg-white py-1.5 shadow-[0_14px_38px_rgba(48,43,31,0.10)]">
             {modelList.map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => { onUpdateModel(provider, m); setShowModels(false); }}
-                className={`flex w-full items-center justify-between px-3 py-1.5 text-left font-mono text-xs hover:bg-stone-50 ${
+                className={`flex w-full items-center justify-between px-3 py-2 text-left font-mono text-xs transition-colors hover:bg-amber-50/70 ${
                   m === provider.model ? 'text-amber-700' : 'text-stone-600'
                 }`}
               >
@@ -270,7 +273,7 @@ function ProviderCard({
       </div>
 
       {/* 卡片底部：密钥状态 + 操作 */}
-      <div className="flex items-center justify-between border-t border-stone-100/90 px-4 py-2.5">
+      <div className="flex items-center justify-between border-t border-experience-line/70 px-4 py-2.5">
         <div className="flex items-center gap-1 text-xs">
           {provider.hasKey ? (
             <span className="inline-flex items-center gap-1 text-emerald-600">
@@ -284,7 +287,7 @@ function ProviderCard({
         </div>
         <div className="flex items-center gap-0.5">
           {provider.hasKey && (
-            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => onRefreshModels(provider)} disabled={refreshingModels} title="拉取上游模型列表">
+          <Button variant="quiet" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => onRefreshModels(provider)} disabled={refreshingModels} title="拉取上游模型列表">
               {refreshingModels ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               刷新模型
             </Button>
@@ -293,7 +296,7 @@ function ProviderCard({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs"
+              className="h-7 gap-1 px-2 text-xs text-experience-accent hover:bg-experience-accent-soft"
               onClick={() => onSetDefault(provider)}
               title={`设为${provider.name}所在能力的默认服务`}
             >
@@ -301,7 +304,7 @@ function ProviderCard({
               设默认
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onTest(provider)} disabled={testing} title="测试连通">
+          <Button variant="quiet" size="icon" className="h-7 w-7" onClick={() => onTest(provider)} disabled={testing} title="测试连通">
             {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlugZap className="h-3.5 w-3.5" />}
           </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7 text-stone-300 hover:text-red-500" onClick={() => onDelete(provider)} title="删除">
@@ -325,7 +328,7 @@ function ModelPicker({
 }) {
   if (probe.loading) {
     return (
-      <div className="flex items-center gap-2 rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-400">
+      <div className="flex items-center gap-2 rounded-xl border border-experience-line bg-white px-3.5 py-2.5 text-sm text-stone-400">
         <Loader2 className="h-4 w-4 animate-spin" /> 正在拉取模型列表…
       </div>
     );
@@ -344,7 +347,7 @@ function ModelPicker({
   return (
     <div className="space-y-2">
       {probe.error && (
-        <div className="flex items-center gap-2 rounded-md border border-dashed border-amber-300/60 bg-amber-50/30 px-3 py-2 text-xs text-stone-500">
+        <div className="flex items-center gap-2 rounded-xl border border-dashed border-amber-300/60 bg-amber-50/40 px-3.5 py-2.5 text-xs text-stone-500">
           <span className="truncate">拉取失败：{probe.error}</span>
           <button type="button" className="ml-auto shrink-0 text-stone-500 underline" onClick={onRetry}>重试</button>
         </div>
@@ -602,42 +605,43 @@ export default function ConfigPage() {
     <div className="config-shell min-h-dvh">
       {/* 顶栏 */}
       <header className="sticky top-0 z-10 border-b border-stone-300/70 bg-[#f7f6f1]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3 sm:px-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex size-10 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-white hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600" title="返回首页">
+            <Link href="/" className="flex size-10 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-white hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600" title="返回首页" aria-label="返回首页">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <p className="text-[10px] font-semibold text-amber-800/70">个人体验引擎</p>
+              <p className="experience-kicker">个人体验引擎</p>
               <h1 className="text-base font-semibold text-stone-900">模型服务</h1>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={loading}>
-            {loading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1 h-4 w-4" />}
+          <Button variant="paper" size="sm" className="h-9 gap-1.5 px-4 text-xs" onClick={() => void refresh()} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             刷新
           </Button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-5 py-7 sm:px-8 sm:py-10">
+      <main className="mx-auto max-w-6xl px-5 pb-14 pt-8 sm:px-8 sm:pt-10">
         {/* 用户向说明（开发者视图关闭时）——模型层零打扰 */}
         {!devMode ? (
-          <div className="mb-5 rounded-2xl border border-stone-300/70 bg-white/70 px-5 py-4 text-sm leading-6 text-stone-600">
+          <div className="experience-panel experience-panel--quiet mb-5 px-5 py-4 text-sm leading-6 text-stone-600">
             这里管理背后提供 AI 能力的大模型服务。日常使用时不用关心——
             需要调整时打开「开发者视图」再操作。
           </div>
         ) : null}
 
         {/* 默认摘要 */}
-        <div className="mb-6 rounded-2xl border border-stone-300/70 bg-white/80 px-5 py-4 shadow-[0_8px_28px_rgba(48,43,31,0.035)]">
-          <div className="text-[11px] font-medium tracking-wide text-stone-400">当前可用能力</div>
+        <div className="experience-panel mb-6 px-5 py-5">
+          <div className="experience-kicker">当前可用能力</div>
           <div className="mt-1 text-sm font-medium text-stone-700">
             {devMode ? (defaultSummary || '未配置') : (userSummary || '未配置')}
           </div>
         </div>
 
         {/* 开发者视图开关 */}
-        <div className="mb-7 flex items-center justify-end gap-2.5 border-t border-stone-300/70 pt-4">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border-t border-stone-300/70 pt-5">
+          <p className="text-xs text-stone-400">日常使用无需调整；开发者视图仅用于接入和维护服务。</p>
           <label htmlFor="gw-dev" className="flex cursor-pointer items-center gap-2 text-sm text-stone-600">
             <Switch id="gw-dev" checked={devMode} onCheckedChange={setDevMode} />
             开发者视图（显示模型与接口详情）
@@ -648,23 +652,29 @@ export default function ConfigPage() {
         <div className="space-y-10">
           {MODALITIES.map((mod) => {
             const list = grouped[mod];
+            const ModalityIcon = MODALITY_ICON[mod];
             return (
               <section key={mod}>
                 <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-stone-300/60 pb-3">
-                  <span className="text-xl">{MODALITY_ICON[mod]}</span>
-                  <h2 className="text-base font-semibold text-stone-800">{MODALITY_LABEL[mod]}</h2>
-                  <span className="text-xs text-stone-400">{MODALITY_DESC[mod]}</span>
+                  <span className="grid size-10 place-items-center rounded-[14px] border border-experience-accent/20 bg-experience-accent-soft text-experience-accent">
+                    <ModalityIcon className="size-[18px]" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0">
+                    <h2 className="text-base font-semibold leading-6 text-stone-800">{MODALITY_LABEL[mod]}</h2>
+                    <p className="mt-0.5 text-xs text-stone-400">{MODALITY_DESC[mod]}</p>
+                  </span>
                   <div className="ml-auto flex items-center gap-2">
                   <span className="rounded-full border border-stone-200 bg-white/80 px-2.5 py-1 text-[11px] tabular-nums text-stone-500">{list.length}</span>
-                    <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => openAddForm(mod)}>
+                    <Button variant="paper" size="sm" className="h-8 gap-1 px-3 text-xs" onClick={() => openAddForm(mod)}>
                       <Plus className="h-3.5 w-3.5" /> 添加
                     </Button>
                   </div>
                 </div>
 
                 {list.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-stone-300/80 bg-white/40 px-4 py-9 text-center text-sm text-stone-500">
-                    还没有服务，使用右侧「添加」接入
+                  <div className="rounded-2xl border border-dashed border-stone-300/80 bg-white/45 px-5 py-9 text-center">
+                    <p className="text-sm text-stone-500">这里还没有服务</p>
+                    <p className="mt-1 text-xs text-stone-400">选择右上角的「添加」接入一种服务</p>
                   </div>
                 ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -693,14 +703,17 @@ export default function ConfigPage() {
         {/* 添加提供方 */}
         <div className="mt-8">
           {!showAddForm ? (
-            <Button variant="outline" className="w-full border-dashed py-6" onClick={() => openAddForm()}>
-              <Plus className="mr-2 h-5 w-5" />
+            <Button variant="paper" className="w-full border-dashed py-6 text-stone-600" onClick={() => openAddForm()}>
+              <Plus className="h-5 w-5" />
               添加提供方
             </Button>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-5 rounded-[24px] border border-stone-300/80 bg-white/85 p-5 shadow-[0_12px_36px_rgba(48,43,31,0.05)] sm:p-7">
-              <div className="text-sm font-medium text-stone-700">
-                接入新提供方 · {MODALITY_LABEL[form.modality as Modality] ?? form.modality}
+            <form onSubmit={handleSubmit} className="experience-panel space-y-6 p-5 sm:p-7">
+              <div>
+                <p className="experience-kicker">接入新服务</p>
+                <h2 className="mt-1 text-lg font-semibold text-stone-900">
+                  {MODALITY_LABEL[form.modality as Modality] ?? form.modality}
+                </h2>
               </div>
               {profiles.length > 0 && (
                 <div className="space-y-1.5">
@@ -711,13 +724,16 @@ export default function ConfigPage() {
                         key={profile.name}
                         type="button"
                         onClick={() => applyProfile(profile)}
-                        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors ${
+                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
                           form.name === profile.name
-                            ? 'border-amber-300 bg-amber-50 text-amber-800'
-                            : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'
+                            ? 'border-experience-accent/50 bg-experience-accent-soft text-amber-900'
+                            : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-amber-50/60'
                         }`}
                       >
-                        <span>{MODALITY_ICON[profile.modality as Modality] ?? '⚙️'}</span>
+                        {(() => {
+                          const ProfileIcon = MODALITY_ICON[profile.modality as Modality];
+                          return ProfileIcon ? <ProfileIcon className="h-3.5 w-3.5" aria-hidden="true" /> : null;
+                        })()}
                         {profile.label}
                       </button>
                     ))}
@@ -739,7 +755,7 @@ export default function ConfigPage() {
                     <SelectTrigger id="gw-modality"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {MODALITIES.map((mod) => (
-                        <SelectItem key={mod} value={mod}>{MODALITY_ICON[mod]} {MODALITY_LABEL[mod]}</SelectItem>
+                        <SelectItem key={mod} value={mod}>{MODALITY_LABEL[mod]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -772,9 +788,10 @@ export default function ConfigPage() {
                   设为{MODALITY_LABEL[form.modality as Modality] ?? form.modality}默认
                 </label>
                 <div className="flex gap-2">
-                  <Button type="button" variant="ghost" size="sm" onClick={closeAddForm}>取消</Button>
-                  <Button type="submit" size="sm" disabled={saving || probe.loading}>
-                    {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} 保存
+                  <Button type="button" variant="quiet" size="sm" className="h-10 px-4" onClick={closeAddForm}>取消</Button>
+                  <Button type="submit" variant="ink" size="sm" className="h-10 px-6" disabled={saving || probe.loading}>
+                    {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                    保存
                   </Button>
                 </div>
               </div>

@@ -26,8 +26,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import type { ExperienceStage } from '@/lib/experience/types';
 import type { ExperienceSessionState } from './use-experience-session';
 import { BranchPanel } from './branch-panel';
@@ -145,7 +146,7 @@ export function ExperienceScreen({
   const showStageBadge = hasSettledContent || session.generating;
 
   return (
-    <main className="experience-shell relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-5 sm:px-8">
+    <main className="experience-shell relative mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-5 sm:px-8">
       {/* 头部：主题 + 阶段 + 轮次 */}
       <header className="flex items-start justify-between gap-3 border-b border-stone-300/70 pb-5 pt-6 sm:pt-8">
         <div className="min-w-0">
@@ -276,7 +277,10 @@ export function ExperienceScreen({
                 type="button"
                 disabled={inputLocked}
                 onClick={() => onSend(action)}
-                className="min-h-11 rounded-full border border-stone-200 bg-white/80 px-4 text-sm text-stone-600 transition-colors hover:border-amber-300/90 hover:bg-amber-50/60 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-40"
+                className={cn(
+                  buttonVariants({ variant: 'paper' }),
+                  'min-h-11 h-auto px-4 py-2 text-sm font-normal text-stone-600 transition-colors hover:border-amber-300/90 hover:bg-amber-50/60 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-40',
+                )}
               >
                 {action}
               </button>
@@ -288,7 +292,10 @@ export function ExperienceScreen({
                     type="button"
                     disabled={inputLocked}
                     onClick={() => onSend(action.sends)}
-                    className="min-h-11 rounded-full border border-amber-200/80 bg-amber-50/50 px-4 text-sm text-amber-800/90 transition-colors hover:border-amber-400 hover:bg-amber-100/70 hover:text-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-40"
+                    className={cn(
+                      buttonVariants({ variant: 'accent' }),
+                      'min-h-11 h-auto px-4 py-2 text-sm font-normal text-amber-900/90 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-40',
+                    )}
                   >
                     {action.label}
                   </button>
@@ -298,7 +305,10 @@ export function ExperienceScreen({
               type="button"
               disabled={inputLocked}
               onClick={() => onSend('好了')}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-stone-300 bg-stone-100/80 px-4 text-sm text-stone-600 transition-colors hover:border-stone-400 hover:bg-stone-200/70 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-500 disabled:opacity-40"
+              className={cn(
+                buttonVariants({ variant: 'paper' }),
+                'inline-flex min-h-11 h-auto items-center gap-1.5 border-stone-300 bg-stone-100/80 px-4 py-2 text-sm font-normal text-stone-600 transition-colors hover:border-stone-400 hover:bg-stone-200/70 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-500 disabled:opacity-40',
+              )}
             >
               <CheckCircle2 className="size-4" aria-hidden="true" />
               结束探索
@@ -312,7 +322,7 @@ export function ExperienceScreen({
           <form
             aria-label="继续问"
             onSubmit={handleSubmit}
-            className="flex items-center gap-1.5 rounded-2xl border border-stone-300/90 bg-white py-1.5 pl-5 pr-1.5 shadow-[0_8px_30px_rgba(48,43,31,0.06)] transition-colors focus-within:border-amber-500/70 focus-within:ring-4 focus-within:ring-amber-500/10 sm:rounded-full"
+            className="experience-composer"
           >
             <Input
               value={text}
@@ -332,7 +342,8 @@ export function ExperienceScreen({
               size="icon"
               aria-label="发送"
               disabled={inputLocked || !text.trim()}
-              className="size-11 shrink-0 rounded-xl bg-stone-900 text-stone-50 hover:bg-amber-800 disabled:opacity-40 sm:rounded-full"
+              variant="ink"
+              className="size-11 shrink-0 disabled:opacity-40"
             >
               <SendHorizontal className="size-4.5" aria-hidden="true" />
             </Button>

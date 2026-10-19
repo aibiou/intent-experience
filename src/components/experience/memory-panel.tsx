@@ -89,11 +89,11 @@ export function MemoryPanel() {
       <DialogTrigger asChild>
         <Button
           type="button"
-          variant="ghost"
+          variant="quiet"
           size="icon"
           aria-label="我记住的"
           title="我记住的"
-          className="absolute right-14 top-4 rounded-full text-stone-400 hover:text-stone-600"
+          className="absolute right-14 top-4 text-stone-400 hover:text-stone-600"
         >
           <Brain className="h-5 w-5" />
         </Button>
