@@ -276,7 +276,12 @@ export function ExperienceScreen({
                   type="button"
                   variant={hasTurns && isCreationCompleted ? 'outline' : 'ink'}
                   onClick={onBackHome}
-                  className="h-11 rounded-full border-stone-300 px-6 text-sm text-stone-700 transition-colors hover:border-amber-400 hover:bg-amber-50/60 hover:text-stone-900"
+                  className={cn(
+                    'h-11 rounded-full px-6 text-sm transition-colors',
+                    hasTurns && isCreationCompleted
+                      ? 'border-stone-300 text-stone-700 hover:border-amber-400 hover:bg-amber-50/60 hover:text-stone-900'
+                      : 'hover:bg-amber-800',
+                  )}
                 >
                   回到首页
                 </Button>

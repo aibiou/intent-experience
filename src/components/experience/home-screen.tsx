@@ -308,7 +308,7 @@ function WorkCard({
         onClick={() => onOpen(work.sessionId, work)}
         className={cn(
           buttonVariants({ variant: 'paper' }),
-          'block w-full overflow-hidden rounded-2xl text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_8px_rgba(87,83,78,0.08)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500',
+          'block h-auto w-full overflow-hidden rounded-2xl p-0 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_8px_rgba(87,83,78,0.08)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500',
         )}
       >
         <img
