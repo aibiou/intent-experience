@@ -72,6 +72,9 @@ export class MediaProviderError extends Error {
     public readonly retryable = false,
     public readonly status?: number,
     public readonly failoverBlocked = false,
+    /** 提供方队列满：同提供方不再排队重试（防反复提交，2026-10-19 真实
+     *  E2E——Agnes 视频队列满时旧逻辑最多重投 5 轮）；仍允许故障转移到其它候选。 */
+    public readonly queueFull = false,
   ) {
     super(message);
     this.name = 'MediaProviderError';
@@ -120,7 +123,9 @@ async function mediaFetch(
     }
     if (response.ok) return response;
     const detail = await readProviderError(response);
-    if (!isLast && detail.retryable) {
+    // 队列满不重试同提供方（再投只会排进同一个满队列；
+    // 用户约束：满了就不要反复试视频生成——2026-10-19）。
+    if (!isLast && detail.retryable && !detail.queueFull) {
       // 退避按状态选择：限速（429）按官方指引
       // 等待 1 分钟，其余瞬态 2 秒。
       await sleep(transientDelayMs(response.status));
@@ -128,9 +133,13 @@ async function mediaFetch(
     }
     const reason = detail.message.length > 0 ? `：${detail.message}` : '';
     throw new MediaProviderError(
-      `提供方「${providerName}」返回错误（${modality}，HTTP ${response.status}）${reason}`,
+      detail.queueFull
+        ? `提供方「${providerName}」队列已满（${modality}，HTTP ${response.status}），未继续排队重试${reason}`
+        : `提供方「${providerName}」返回错误（${modality}，HTTP ${response.status}）${reason}`,
       detail.retryable,
       response.status,
+      false,
+      detail.queueFull,
     );
   }
   throw new MediaProviderError(`提供方「${providerName}」调用失败（${modality}）`);
@@ -146,39 +155,56 @@ const RETRYABLE_CODES = new Set([
   'try_again',
 ]);
 
-/** 提供方错误体解析（message / error / code 三形态）。 */
-async function readProviderError(response: Response): Promise<{
-  message: string;
-  retryable: boolean;
-}> {
+const QUEUE_FULL_CODES = new Set(['video_queue_full', 'queue_full']);
+const QUEUE_FULL_PATTERN = /queue[ _-]?is[ _-]?full|队列已满/i;
+
+/** 提供方错误体解析（message / error / code 三形态）+ 队列满识别。
+ * 纯函数：状态码 + 已解析 JSON → 归一化错误详情（供测试锁定）。 */
+export function classifyProviderError(
+  status: number,
+  payload: unknown,
+): { message: string; code?: string; retryable: boolean; queueFull: boolean } {
   let message = '';
   let code: string | undefined;
-  try {
-    const payload = (await response.json()) as {
-      message?: unknown;
-      error?: unknown;
-      code?: unknown;
-    };
-    if (typeof payload.message === 'string' && payload.message.length > 0) {
-      message = payload.message;
-    } else if (typeof payload.error === 'string' && payload.error.length > 0) {
-      message = payload.error;
-    } else if (payload.error !== null && typeof payload.error === 'object') {
-      const nested = (payload.error as { message?: unknown }).message;
+  if (payload !== null && typeof payload === 'object') {
+    const record = payload as { message?: unknown; error?: unknown; code?: unknown };
+    if (typeof record.message === 'string' && record.message.length > 0) {
+      message = record.message;
+    } else if (typeof record.error === 'string' && record.error.length > 0) {
+      message = record.error;
+    } else if (record.error !== null && typeof record.error === 'object') {
+      const nested = (record.error as { message?: unknown }).message;
       if (typeof nested === 'string' && nested.length > 0) message = nested;
     }
-    if (typeof payload.code === 'string' && payload.code.length > 0) {
-      code = payload.code;
+    if (typeof record.code === 'string' && record.code.length > 0) {
+      code = record.code;
     }
-  } catch {
-    // 非 JSON 错误体——仅用状态码
   }
   return {
     message,
+    ...(code !== undefined ? { code } : {}),
     retryable:
-      RETRYABLE_STATUS.has(response.status) ||
+      RETRYABLE_STATUS.has(status) ||
       (code !== undefined && RETRYABLE_CODES.has(code)),
+    queueFull:
+      (code !== undefined && QUEUE_FULL_CODES.has(code)) ||
+      QUEUE_FULL_PATTERN.test(message),
   };
+}
+
+/** 提供方错误体读取（响应体 + 状态码 → 归一化详情）。 */
+async function readProviderError(response: Response): Promise<{
+  message: string;
+  retryable: boolean;
+  queueFull: boolean;
+}> {
+  let payload: unknown = null;
+  try {
+    payload = await response.json();
+  } catch {
+    // 非 JSON 错误体——仅用状态码
+  }
+  return classifyProviderError(response.status, payload);
 }
 
 function firstDataEntry(parsed: unknown): Record<string, unknown> | null {
@@ -618,9 +644,11 @@ export async function generateVoice(
 
 // ───────────────────────── 视频 ─────────────────────────
 
-/** 异步任务轮询间隔与总超时（免费档常态：排队可达数分钟）。 */
+/** 异步任务轮询间隔与总超时（免费档常态：排队可达数分钟；真实
+ * E2E 2026-10-19 观察到 Agnes 任务被受理但 7 分钟仍未出片——
+ * 窗口对齐产品侧 16 分钟等待，给慢队列出片的余量）。 */
 const VIDEO_POLL_INTERVAL_MS = 1_500;
-const VIDEO_POLL_TIMEOUT_MS = 420_000;
+const VIDEO_POLL_TIMEOUT_MS = 840_000;
 /** 任务创建瞬态失败退避（队列满可持续 10 分钟以上——ride out 短时波动）。 */
 const VIDEO_CREATE_RETRY_DELAYS_MS = [30_000, 60_000, 90_000, 120_000];
 const POLL_RETRY_WAIT_MS = 5_000;
@@ -662,13 +690,21 @@ function extractTaskId(parsed: unknown): string | undefined {
   return undefined;
 }
 
-/** 任务轮询瞬态等待（任务仍在队列里，不应因此判失败）。 */
+/** 任务轮询瞬态等待（任务仍在队列里，不应因此判失败）；
+ * deadline 与轮询总预算一致——上游持续 5xx 也不会无限重试。 */
 async function pollWithRetry(
   pollUrl: string,
   headers: Record<string, string>,
   providerName: string,
+  deadline: number,
 ): Promise<Response> {
   for (;;) {
+    if (Date.now() >= deadline) {
+      throw new MediaProviderError(
+        `提供方「${providerName}」任务超时（${VIDEO_POLL_TIMEOUT_MS / 1000}s 未完成）`,
+        true,
+      );
+    }
     let response: Response;
     try {
       response = await fetch(pollUrl, {
@@ -707,7 +743,7 @@ async function pollUntilDone(
   const deadline = Date.now() + VIDEO_POLL_TIMEOUT_MS;
   for (;;) {
     await sleep(VIDEO_POLL_INTERVAL_MS);
-    const response = await pollWithRetry(pollUrl, headers, providerName);
+    const response = await pollWithRetry(pollUrl, headers, providerName, deadline);
     let state: unknown;
     try {
       state = await response.json();
@@ -879,7 +915,8 @@ export async function generateVideo(
       '视频',
     );
 
-  // 创建瞬态失败退避（队列满 ride out）；参数拒绝（400 非瞬态）立即报。
+  // 创建瞬态失败退避（ride out 瞬态抖动）；队列满不重试——
+  // 满足队列只会让任务排得更靠后，且可能产生重复付费提交（2026-10-19）。
   let response: Response;
   let attemptIndex = 0;
   for (;;) {
@@ -888,7 +925,7 @@ export async function generateVideo(
       break;
     } catch (error) {
       const transient =
-        error instanceof MediaProviderError && error.retryable;
+        error instanceof MediaProviderError && error.retryable && !error.queueFull;
       if (transient && attemptIndex < VIDEO_CREATE_RETRY_DELAYS_MS.length) {
         await sleep(VIDEO_CREATE_RETRY_DELAYS_MS[attemptIndex]);
         attemptIndex += 1;

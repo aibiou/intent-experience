@@ -29,7 +29,7 @@ export function buildVideoContinuationPrompt(
   imagePrompt: string,
   userRequest: string,
 ): string {
-  const base = stripNegatedClauses(imagePrompt)
+  const base = stripNegatedClauses(withoutVisualContract(imagePrompt))
     .replace(/[。．.!！?？\s]+$/u, '')
     .trim();
   // 约束内保留空白（「持续 5 秒」不能被拆成「持续，5，秒」——
@@ -54,12 +54,26 @@ export function buildVideoContinuationPrompt(
   return `${base}，${constraint}`;
 }
 
+const CONTRACT_CLAUSE = [
+  '严格遵循上述画面中的主体、数量、时间、天气、季节、光线、场景、材质、动作、位置和保留对象；',
+  '不得替换成相反的时间、天气或场景，不得增删关键限定物，不得加入水印或文字签名。',
+].join('');
+
+/**
+ * 已履约的提示词在接续（图像→视频、二次蒸馏）时会作为来源再次经过
+ * 本层——先剥掉旧契约，避免「契约＋约束＋契约」的重复堆叠。
+ */
+function withoutVisualContract(prompt: string): string {
+  return prompt
+    .split(CONTRACT_CLAUSE)
+    .join('')
+    .replace(/[。．.!！?？]\s*(?=[，,])/gu, '')
+    .replace(/^[，,。．\s]+/u, '')
+    .trim();
+}
+
 export function applyVisualPromptContract(prompt: string): string {
-  const clean = stripNegatedClauses(prompt).replace(/[。．.!！?？\s]+$/u, '');
+  const clean = stripNegatedClauses(withoutVisualContract(prompt)).replace(/[。．.!！?？\s]+$/u, '');
   if (clean.length === 0) return prompt.trim();
-  return [
-    `${clean}。`,
-    '严格遵循上述画面中的主体、数量、时间、天气、季节、光线、场景、材质、动作、位置和保留对象；',
-    '不得替换成相反的时间、天气或场景，不得增删关键限定物，不得加入水印或文字签名。',
-  ].join('');
+  return [`${clean}。`, CONTRACT_CLAUSE].join('');
 }

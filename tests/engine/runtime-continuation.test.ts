@@ -303,6 +303,13 @@ describe('G2-7 完成后续作：续作启动', () => {
     );
     expect(completed?.referenceRequested).toBe(true);
     expect(completed?.referenceApplied).toBe(false);
+
+    // 等待态也要能如实显示来源（「将基于已选图像接续生成」）。
+    const started = events.find(
+      (event): event is Extract<TurnEvent, { type: 'generation'; status: 'started' }> =>
+        event.type === 'generation' && event.status === 'started'
+    );
+    expect(started?.referenceSource).toBe('月光下的猫蜷缩在窗台，宁静夜色，画面温馨自然');
   });
 
   it('负面对照：种子会话无图像产物 → 文生图（诚实降级，不阻断生成）', async () => {

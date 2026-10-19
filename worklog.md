@@ -731,3 +731,26 @@ Work Log:
 Stage Summary:
 - G1.1 目标 2 代码链路完成：图像→视频保留主体与画面意图，来源可追溯；提供方不支持本地图时降级路径如实可见
 - 真实付费视频 E2E 与「云端消费 http 参考图」的真实验证待用户确认后执行；本地图为 dataURI，当前预期以画面描述降级
+
+---
+
+Task ID: 30
+Agent: Codex
+Task: 真实视频 E2E 诊断——Agnes 队列满如实报错、undici 超时缺陷修复、恢复链路缺陷修复与宽屏双栏 UI
+
+Work Log:
+- 网关层真实 E2E（用户确认后执行）：直连 POST /v1/videos → 502，823s 后「任务超时（420s 未完成）」——Agnes 受理任务但不产出的第一种形态
+- 产品层真实 E2E 第一轮 → 5m02s 时「模型网关不可达：fetch failed」：根因是 Next 所在 Node（undici）全局 fetch 默认 headersTimeout 300s，>5 分钟的视频任务被运行时截断；修复：`media-gateway.ts` 新增 `requestGatewayJson`（node:http 实现，settled 状态机 + `res.complete` 守卫，记录 Bun 下 destroy/close 的坑），`callMediaEndpoint` 改为使用它并保持 5xx/429 可重试语义；新测试文件 `tests/engine/media-gateway-http.test.ts` 5 用例（延迟响应/非 2xx JSON/超时窗口/非 JSON/连接拒绝）
+- 网关 `VIDEO_POLL_TIMEOUT_MS` 420s → 840s（与产品 960s 预算对齐），网关重启生效
+- 产品层真实 E2E 第二轮（修复后）：任务运行 6m48s，穿越完整创建重试阶梯后由上游如实拒绝——HTTP 503「video queue is full, please retry later (request id: …)」；结论：Agnes 视频当前不可用（两种独立形态：420s 不产出超时；队列满 503），产品链路如实报错且不再有运行时截断
+- 队列满策略（用户约束：满了就不要反复试视频生成）：新增纯函数 `classifyProviderError`（code video_queue_full/queue_full 或文案匹配识别），`MediaProviderError` 增加 `queueFull` 标记；`mediaFetch` 队列满时不再重试同提供方（原先最多 5 轮重投 ×2 次尝试）；Agnes 创建退避阶梯对队列满直接跳过；仍保留故障转移到其它候选的资格（未来多视频候选时切提供方而非等待）；失败文案改为「提供方队列已满（视频，HTTP 503），未继续排队重试：…」；`pollWithRetry` 补上轮询总预算约束（上游持续 5xx 不再无限轮询）；网关测试 87 → 94 pass（新增 7 用例，含 mock fetch 验证「仅提交一次」）
+- 错误文案去重：多候选汇总后缀「（尝试：…）」在单候选时与主消息全等（真实 E2E 样张显示同一段话两遍），`mapMediaError` 增加去重守卫
+- 会话恢复链路缺陷修复（真实 E2E 暴露）：GET /api/experience/session 把 media/mediaJobs 放在 session 同级，三处调用点（最近探索打开/VERSION_CONFLICT 同步/恢复任务轮询）都从 data.session 上读这两个字段 → 恢复出的会话静默丢掉失败/进行中任务卡与后台轮询；新增 `session-payload.ts::toLoadedSession` 统一拼装 + 2 用例；浏览器实测：重载后失败视频卡与作品栏均正确恢复
+- 接续提示词幂等修复：`applyVisualPromptContract` 幂等化（`CONTRACT_CLAUSE`/`withoutVisualContract`），真实 E2E 暴露的「契约＋约束＋契约」重复已在待定卡实测消除
+- UI：宽屏（xl+）新增右栏「本次作品」（缩略图/模态/轮次/生成中/跳转本轮）；视频确认框加「通常约 5–10 分钟」「免费额度用尽后可能消耗付费额度」提示；视频完成卡深色底、悬浮徽标、页脚三态（参考生效/降级/默认）与「打开视频」；待定卡展示「将基于已选图像接续生成」；390px 窄屏验证右栏收起无横向溢出
+- 回归：`test:engine` 355 pass / 15 files；`test:unit` 169 pass；`test:gateway` 94 pass；`lint` 0；`bunx tsc --noEmit` 0
+
+Stage Summary:
+- 「Agnes 视频还能不能用」有确定性答案：当前不可用（队列满/不产出），且失败路径全程如实、可诊断、不再反复重投
+- 视频完成任务卡与「参考图被云端真正消费」的视觉验证仍挂起——待 Agnes 队列恢复后做一次单发真实 E2E 收尾（不反复探测）
+- 服务保持运行：Next.js :3000、model gateway :3031（新策略已生效）

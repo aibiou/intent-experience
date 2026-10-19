@@ -1,6 +1,8 @@
 /// <reference types="bun-types" />
 import { describe, expect, it } from 'bun:test';
 import {
+  classifyProviderError,
+  generateVideo,
   isLocalBridgeRouteUnavailable,
   isLocalBridgeVideoContract,
   MediaProviderError,
@@ -134,5 +136,76 @@ describe('resolveVideoReferencePlan（G1.1 图像→视频参考图消费判定�
     );
     expect(plan.requested).toBe(false);
     expect(plan.applied).toBe(false);
+  });
+});
+
+describe('classifyProviderError（队列满识别——「满了不再反复试」的前提）', () => {
+  const queueFullBody = {
+    error: { message: 'video queue is full, please retry later (request id: 20261019072121748022681xM66I3Zn)' },
+  };
+
+  it('503 + 队列满文案（Agnes 真实形态）→ queueFull true', () => {
+    const detail = classifyProviderError(503, queueFullBody);
+    expect(detail.queueFull).toBe(true);
+    expect(detail.retryable).toBe(true);
+    expect(detail.message).toContain('video queue is full');
+  });
+
+  it('503 + code video_queue_full → queueFull true（无文案也识别）', () => {
+    const detail = classifyProviderError(503, { code: 'video_queue_full' });
+    expect(detail.queueFull).toBe(true);
+  });
+
+  it('顶层 message 形态的队列满文案 → queueFull true', () => {
+    const detail = classifyProviderError(503, {
+      message: 'video queue is full, please retry later',
+    });
+    expect(detail.queueFull).toBe(true);
+  });
+
+  it('普通 503（无队列满信号）→ queueFull false，retryable 保持 true', () => {
+    const detail = classifyProviderError(503, { message: 'upstream temporarily unavailable' });
+    expect(detail.queueFull).toBe(false);
+    expect(detail.retryable).toBe(true);
+  });
+
+  it('400 参数拒绝 → 两者皆 false（立即报错不重试）', () => {
+    const detail = classifyProviderError(400, { message: 'invalid prompt' });
+    expect(detail.queueFull).toBe(false);
+    expect(detail.retryable).toBe(false);
+  });
+
+  it('MediaProviderError 携带 queueFull 标记（同提供方不再排队的判据）', () => {
+    const error = new MediaProviderError('提供方「Agnes-com」队列已满', true, 503, false, true);
+    expect(error.queueFull).toBe(true);
+    const plain = new MediaProviderError('其他错误');
+    expect(plain.queueFull).toBe(false);
+  });
+});
+
+describe('generateVideo 队列满行为（mock fetch：满了不重投）', () => {
+  it('Agnes 创建 503 队列满 → 仅提交一次（含创建退避轮与内部重试全跳过）', async () => {
+    const calls: string[] = [];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+      return new Response(
+        JSON.stringify({
+          error: { message: 'video queue is full, please retry later (request id: test-queue)' },
+        }),
+        { status: 503 },
+      );
+    }) as typeof fetch;
+    try {
+      const record = makeRecord({
+        model: 'agnes-video-2.5-flash',
+        baseUrl: 'https://apihub.agnes-ai.com/v1',
+        apiKey: 'test-key',
+      });
+      await expect(generateVideo(record, '镜头缓缓推进')).rejects.toThrow(/队列已满/);
+      expect(calls.length).toBe(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

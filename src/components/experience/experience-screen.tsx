@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { AlertCircle, CheckCircle2, House, SendHorizontal } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock3, Coins, House, SendHorizontal } from 'lucide-react';
 import { recognizeGenerationIntent } from '@/lib/experience/generation-intent';
 import {
   AlertDialog,
@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import type { ExperienceStage } from '@/lib/experience/types';
 import type { ExperienceSessionState } from './use-experience-session';
 import { BranchPanel } from './branch-panel';
+import { SessionWorksRail } from './session-works-rail';
 import { TurnItem } from './turn-item';
 
 const STAGE_LABELS: Record<ExperienceStage, string> = {
@@ -147,7 +148,7 @@ export function ExperienceScreen({
   const hasTurns = session.turns.length > 0;
 
   return (
-    <main className="experience-shell relative mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col px-5 sm:px-8">
+    <main className="experience-shell relative mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col px-5 sm:px-8 xl:max-w-6xl">
       {/* 头部：归档态弱化状态胶囊，让主题和元信息形成一组 */}
       <header className="flex items-start justify-between gap-4 border-b border-stone-200/80 pb-5 pt-6 sm:pt-8">
         <div className="min-w-0">
@@ -204,6 +205,10 @@ export function ExperienceScreen({
         </div>
       ) : null}
 
+      {/* 宽屏双栏（xl+）：左侧对话与输入保持可读列宽，右侧作品侧栏
+          收拢本次会话的媒体；窄屏退回单栏，内容区随页面滚动。 */}
+      <div className="flex min-h-0 flex-1 gap-8">
+        <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
       {/* 内容区：正文固定到可读列宽；归档收束跟随内容流，避免被固定操作裁切 */}
       <div
         ref={scrollRef}
@@ -369,6 +374,10 @@ export function ExperienceScreen({
           </form>
         </div>
       )}
+        </div>
+
+        {hasTurns ? <SessionWorksRail turns={session.turns} /> : null}
+      </div>
 
       {/* 干净的结束层——这次探索到这里；零推荐；
           作品完成时「以此续作」为用户主动入口（G2-7） */}
@@ -390,8 +399,18 @@ export function ExperienceScreen({
                   </AlertDialogTitle>
                 </div>
                 <AlertDialogDescription className="text-sm leading-6 text-stone-600">
-                  视频通常约 5–10 分钟。如果免费额度已用完，上游可能消耗付费额度。
+                  生成会进入上游队列，期间可以继续对话或稍后回到本会话查看。
                 </AlertDialogDescription>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-200/90 bg-white px-2.5 py-1 text-xs text-stone-500">
+                    <Clock3 className="size-3.5 text-stone-400" aria-hidden="true" />
+                    通常约 5–10 分钟
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/70 bg-amber-50/70 px-2.5 py-1 text-xs text-amber-800">
+                    <Coins className="size-3.5 text-amber-600/80" aria-hidden="true" />
+                    免费额度用尽后可能消耗付费额度
+                  </span>
+                </div>
               </AlertDialogHeader>
               <AlertDialogFooter className="mt-2 sm:flex-row">
                 <AlertDialogCancel className="h-11 rounded-full border-stone-300 px-5 text-stone-600">

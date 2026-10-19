@@ -19,7 +19,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { AlertCircle, AudioLines, ImageIcon } from 'lucide-react';
+import { AlertCircle, AudioLines, Clapperboard, ImageIcon, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { DisplayTurn, TurnMedia } from './use-experience-session';
 import { ThinkingIndicator } from './thinking-indicator';
@@ -407,8 +407,9 @@ function MediaPending({
         ) : null}
       </div>
       {detail ? (
-        <p className="mt-2 border-t border-stone-100 pt-2 text-xs leading-relaxed text-stone-400">
-          {detail}
+        <p className="mt-2 flex items-start gap-1.5 border-t border-stone-100 pt-2 text-xs leading-relaxed text-stone-400">
+          <ImageIcon className="mt-0.5 size-3 shrink-0 text-amber-500/70" aria-hidden="true" />
+          <span className="min-w-0">{detail}</span>
         </p>
       ) : null}
       {label.startsWith('正在生成视频') ? (
@@ -632,27 +633,55 @@ function MediaBlock({
   }
   if (media.modality === 'video' && media.url) {
     return (
-      <figure className="overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_1px_2px_rgba(87,83,78,0.05)]">
-        <video controls preload="metadata" src={media.url} className="w-full">
-          你的浏览器不支持视频播放。
-        </video>
-        {media.referenceRequested ? (
-          <figcaption className="flex items-start gap-2 border-t border-stone-100 px-4 py-2.5">
-            <ImageIcon
+      <figure className="mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_6px_24px_rgba(87,83,78,0.10)]">
+        <div className="relative bg-stone-950/95">
+          <video controls preload="metadata" src={media.url} className="aspect-video w-full">
+            你的浏览器不支持视频播放。
+          </video>
+          <span className="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-xs font-medium text-white/90 backdrop-blur-sm">
+            <Clapperboard className="size-3.5" aria-hidden="true" />
+            生成的视频
+          </span>
+        </div>
+        <figcaption className="flex items-start gap-2.5 border-t border-stone-100 px-4 py-3">
+          {media.referenceRequested ? (
+            media.referenceApplied ? (
+              <ImageIcon
+                className="mt-0.5 size-3.5 shrink-0 text-emerald-600/80"
+                aria-hidden="true"
+              />
+            ) : (
+              <Info
+                className="mt-0.5 size-3.5 shrink-0 text-amber-600/80"
+                aria-hidden="true"
+              />
+            )
+          ) : (
+            <Clapperboard
               className="mt-0.5 size-3.5 shrink-0 text-amber-500/80"
               aria-hidden="true"
             />
-            <span className="min-w-0 flex-1 text-sm leading-relaxed text-stone-500">
-              {media.referenceApplied
+          )}
+          <span className="line-clamp-2 min-w-0 flex-1 text-sm leading-relaxed text-stone-500">
+            {!media.referenceRequested
+              ? media.promptUsed
+              : media.referenceApplied
                 ? media.referenceSource
                   ? `基于接续的画面生成：「${media.referenceSource}」`
                   : '基于你选中的图片生成'
                 : `视频提供方暂不支持直接使用本地图片，已按画面描述降级生成${
                     media.referenceSource ? `（「${media.referenceSource}」）` : ''
-                  }——未使用参考图`}
-            </span>
-          </figcaption>
-        ) : null}
+                  }`}
+          </span>
+          <a
+            href={media.url}
+            target="_blank"
+            rel="noreferrer"
+            className="shrink-0 rounded-full border border-stone-200/90 px-2.5 py-0.5 text-xs text-stone-400 underline-offset-2 transition-colors hover:border-amber-300/70 hover:text-amber-700"
+          >
+            打开视频
+          </a>
+        </figcaption>
       </figure>
     );
   }
@@ -716,6 +745,7 @@ export function TurnItem({
     return (
       <motion.div
         {...itemMotion}
+        data-turn-key={item.key}
         className="space-y-2.5"
       >
         {bubble}
@@ -760,6 +790,7 @@ export function TurnItem({
   return (
     <motion.div
       {...itemMotion}
+      data-turn-key={item.key}
       className="space-y-2.5"
     >
       {anchoredBubble}

@@ -826,7 +826,16 @@ export class ExperienceRuntime {
         };
         return;
       }
-      yield { type: 'generation', status: 'started', turn, modality: intent.modality, prompt: promptUsed };
+      yield {
+        type: 'generation',
+        status: 'started',
+        turn,
+        modality: intent.modality,
+        prompt: promptUsed,
+        ...(intent.modality === 'video' && imageContext !== null
+          ? { referenceSource: imageContext.promptUsed }
+          : {}),
+      };
       // G2-5/G2-7/G1.1：情境再生成 / 呈现 / 续作 / 图像→视频
       // 都以接续图像作为参考图；无既有产物时自然退化为文生。
       const imageReference = imageContext?.reference ?? null;

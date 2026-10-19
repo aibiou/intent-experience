@@ -25,6 +25,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { streamExperienceEvents } from './sse';
+import { toLoadedSession, type SessionPayload } from './session-payload';
 import type {
   ExperienceStage,
   ExperienceState,
@@ -394,8 +395,8 @@ export function useExperienceSession(options?: {
     try {
       const res = await fetch(`/api/experience/session?id=${encodeURIComponent(current.sessionId)}`);
       if (!res.ok) throw new Error('sync failed');
-      const data = (await res.json()) as { session: LoadedSession };
-      const loaded = data.session;
+      const data = (await res.json()) as SessionPayload;
+      const loaded = toLoadedSession(data);
       const { branches, currentBranchId } = deriveBranches(loaded.state);
       apply((prev) => ({
         ...prev,
@@ -461,6 +462,9 @@ export function useExperienceSession(options?: {
                   // 呈现层显示「正在生成什么」，慢速上游
                   // （图像约一两分钟）下用户有明确预期。
                   promptUsed: event.prompt,
+                  ...(event.referenceSource !== undefined
+                    ? { referenceSource: event.referenceSource }
+                    : {}),
                   startedAt: Date.now(),
                 },
               };
@@ -740,9 +744,9 @@ export function useExperienceSession(options?: {
       try {
         const res = await fetch(`/api/experience/session?id=${encodeURIComponent(sessionId)}`);
         if (!res.ok) throw new Error('media job sync failed');
-        const data = (await res.json()) as { session: LoadedSession };
+        const data = (await res.json()) as SessionPayload;
         if (cancelled) return;
-        const loaded = data.session;
+        const loaded = toLoadedSession(data);
         apply((prev) => {
           if (prev.sessionId !== sessionId || prev.generating) return prev;
           const turns = enrichTurns(
@@ -752,7 +756,7 @@ export function useExperienceSession(options?: {
           );
           return { ...prev, turns, expectedStateVersion: loaded.stateVersion };
         });
-        const stillPending = data.session.mediaJobs?.some((job) => job.status === 'running') === true;
+        const stillPending = data.mediaJobs?.some((job) => job.status === 'running') === true;
         if (stillPending && !cancelled) {
           timer = setTimeout(() => void poll(), 3000);
         }

@@ -300,7 +300,9 @@ function mediaOk(artifact: MediaArtifact | MediaArtifact[]): Response {
  * detail 为多提供方容错的全链尝试摘要（G2-6）。 */
 function mapMediaError(error: unknown, detail?: string): Response {
   if (error instanceof MediaProviderError) {
-    const suffix = detail ? `（尝试：${detail}）` : '';
+    // 单候选链时循环里直接推入了 error.message 本身——与主消息全等，
+    // 去重避免用户把同一段失败原因看两遍（真实 E2E 2026-10-19）。
+    const suffix = detail && detail !== error.message ? `（尝试：${detail}）` : '';
     if (error.retryable || error.status === undefined) {
       return json(
         buildApiErrorBody(`${error.message}${suffix}`, 'api_error', 'MEDIA_UPSTREAM_ERROR'),

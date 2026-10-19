@@ -22,10 +22,8 @@ import { ExperienceScreen } from '@/components/experience/experience-screen';
 import { HomeScreen } from '@/components/experience/home-screen';
 import { MottoFooter } from '@/components/experience/motto-footer';
 import { WorkViewer } from '@/components/experience/work-viewer';
-import {
-  useExperienceSession,
-  type LoadedSession,
-} from '@/components/experience/use-experience-session';
+import { useExperienceSession } from '@/components/experience/use-experience-session';
+import { toLoadedSession, type SessionPayload } from '@/components/experience/session-payload';
 import type {
   CatalogResponse,
   CatalogSeed,
@@ -222,8 +220,8 @@ export default function Page() {
       try {
         const res = await fetch(`/api/experience/session?id=${encodeURIComponent(id)}`);
         if (!res.ok) throw new Error('session failed');
-        const data = (await res.json()) as { session: LoadedSession; media?: LoadedSession['media'] };
-        sessionApi.restore({ ...data.session, media: data.media });
+        const data = (await res.json()) as SessionPayload;
+        sessionApi.restore(toLoadedSession(data));
         setPhase('experience');
       } catch {
         if (fallbackWork) {

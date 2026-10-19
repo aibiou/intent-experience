@@ -48,6 +48,15 @@ describe('图像→视频接续提示词（G1.1）', () => {
     expect(prompt).toBe('海边灯塔，雾气弥漫');
   });
 
+  it('来源提示词已含履约契约时不重复叠加（真实 E2E 暴露的幂等性）', () => {
+    const source = applyVisualPromptContract('月光下的猫蜷缩在窗台，宁静夜色');
+    const built = buildVideoContinuationPrompt(source, '把它做成视频，镜头缓缓推进');
+    const final = applyVisualPromptContract(built);
+    expect(final.split('不得加入水印或文字签名').length - 1).toBe(1);
+    expect(final).toContain('镜头缓缓推进');
+    expect(final).toContain('月光下的猫蜷缩在窗台');
+  });
+
   it('冒号/逗号后的约束完整保留（镜头、时长、动作）', () => {
     const prompt = buildVideoContinuationPrompt(
       '旧书摊，雨天，暖黄灯',

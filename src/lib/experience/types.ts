@@ -119,7 +119,6 @@ export type TurnEvent =
   // S2b 媒体生成切片：对话回应照常进行，媒体产物随流追加——
   // 事件出现在 content/state 之后、done 之前（生成不改变会话状态；
   // 失败不回滚轮次，媒体是体验产物而非产品状态）。
-  | { type: 'generation'; status: 'started'; turn: number; modality: GenerationModality; prompt: string }
   | {
       type: 'generation';
       status: 'completed';
@@ -133,6 +132,15 @@ export type TurnEvent =
        * （false 表示按画面描述降级——UI 如实说明，不假装参考生效）。 */
       referenceRequested?: boolean;
       referenceApplied?: boolean;
+      referenceSource?: string;
+    }
+  | {
+      type: 'generation';
+      status: 'started';
+      turn: number;
+      modality: GenerationModality;
+      prompt: string;
+      /** G1.1：视频接续既有图像时，等待态可如实显示来源画面。 */
       referenceSource?: string;
     }
   | {
