@@ -63,7 +63,7 @@ import {
   nextCreationPhase,
 } from './creation';
 import type { LlmGateway } from './llm-gateway';
-import { getMediaGateway, MediaGatewayError, type MediaArtifactRecord, type MediaGateway } from './media-gateway';
+import { getMediaGateway, MediaGatewayError, type MediaArtifactRecord, type MediaGateway, type SessionImageContext } from './media-gateway';
 import { getMediaJobStore, MediaJobStore, type MediaJob } from './media-job-store';
 import {
   recognizeGenerationIntent,
@@ -94,7 +94,7 @@ import * as store from './store';
 import type { SessionRow } from './store';
 import type { ExperienceState, TurnEvent, TurnKind } from './types';
 import { validateProposal } from './validator';
-import { applyVisualPromptContract } from './visual-prompt';
+import { applyVisualPromptContract, buildVideoContinuationPrompt } from './visual-prompt';
 
 export interface StartInput {
   seedId?: string;
@@ -164,11 +164,21 @@ export class ExperienceRuntime {
    * 续作会话尚无产物时回落到种子会话（完成后续作的
    * 一致性来源），再无则文生图。 */
   private async loadTurnImageReference(sessionId: string): Promise<string | null> {
-    const own = await this.media.loadSessionImageReference(sessionId);
+    const context = await this.loadTurnImageContext(sessionId);
+    return context?.reference ?? null;
+  }
+
+  /** G1.1：可接续的图像上下文（参考图 + 画面描述）——
+   * 图生图 / 图像→视频共用同一条选择链（用户选中优先，
+   * 兜底末条；续作回落种子会话）。 */
+  private async loadTurnImageContext(
+    sessionId: string,
+  ): Promise<SessionImageContext | null> {
+    const own = await this.media.loadSessionImageContext(sessionId);
     if (own !== null) return own;
     const seedSessionId = this.continuationSeeds.get(sessionId);
     return seedSessionId !== undefined
-      ? this.media.loadSessionImageReference(seedSessionId)
+      ? this.media.loadSessionImageContext(seedSessionId)
       : null;
   }
 
@@ -765,10 +775,37 @@ export class ExperienceRuntime {
   ): AsyncGenerator<TurnEvent> {
     if (signal.aborted) return;
     try {
+      // G1.1：图像→视频上下文接续——视频也解析可接续的图像上下文
+      // （用户选中优先，兜底末条；续作回落种子会话）。regen 的视频
+      // （「换一个视频」）指上一段视频而非图像，不参与图像接续。
+      const wantsImageReference =
+        (intent.modality === 'image' &&
+          (intent.useContext || intent.referential || intent.regen)) ||
+        (intent.modality === 'video' &&
+          (intent.useContext || intent.referential));
+      const imageContext = wantsImageReference
+        ? await this.loadTurnImageContext(sessionId)
+        : null;
+      // 明确指向既有图像（这张图 / 刚才选中的那张）但没有可用产物：
+      // 如实说明，不把「把这张图做成视频」这类指令本身当画面主题。
+      if (wantsImageReference && intent.referential && imageContext === null) {
+        yield {
+          type: 'generation',
+          status: 'failed',
+          turn,
+          modality: intent.modality,
+          message: '这个会话里还没有可参考的图片，先生成一张图再试',
+        };
+        return;
+      }
       let promptUsed: string;
       if (intent.modality === 'voice') {
         // 朗读类：材料是重放/回答内容；直接语音类（「用语音说…」）用用户原话。
         promptUsed = (intent.useContext || intent.referential ? material : intent.prompt).slice(0, 1000);
+      } else if (intent.modality === 'video' && imageContext !== null) {
+        // 视频接续：画面描述取自接续图像（而不是上一轮文字），
+        // 用户新约束（镜头 / 动作 / 时长）追加在后。
+        promptUsed = buildVideoContinuationPrompt(imageContext.promptUsed, userRequest);
       } else if (intent.useContext || intent.referential) {
         promptUsed = await this.distillVisualPrompt(material, signal, userRequest);
       } else {
@@ -790,13 +827,9 @@ export class ExperienceRuntime {
         return;
       }
       yield { type: 'generation', status: 'started', turn, modality: intent.modality, prompt: promptUsed };
-      // G2-5/G2-7：情境再生成 / 呈现 / 续作用最新图像产物作为参考图；
-      // 无既有产物时自然退化为文生图。
-      const imageReference =
-        intent.modality === 'image' &&
-        (intent.useContext || intent.referential || intent.regen)
-          ? await this.loadTurnImageReference(sessionId)
-          : null;
+      // G2-5/G2-7/G1.1：情境再生成 / 呈现 / 续作 / 图像→视频
+      // 都以接续图像作为参考图；无既有产物时自然退化为文生。
+      const imageReference = imageContext?.reference ?? null;
       const job = await this.mediaJobs.create({
         sessionId,
         turn,
@@ -805,6 +838,12 @@ export class ExperienceRuntime {
         idempotencyKey: createHash('sha256')
           .update([sessionId, turn, intent.modality, promptUsed].join('\n'))
           .digest('hex'),
+        ...(intent.modality === 'video' && imageContext !== null
+          ? {
+              referenceRequested: true,
+              referenceSource: imageContext.promptUsed,
+            }
+          : {}),
       });
 
       if (job.status === 'completed') {
@@ -864,6 +903,9 @@ export class ExperienceRuntime {
                   turn: job.turn,
                   signal,
                   ...(imageReference ? { referenceImages: [imageReference] } : {}),
+                  ...(job.referenceSource !== undefined
+                    ? { referenceSource: job.referenceSource }
+                    : {}),
                 }),
               ]
             : [
@@ -875,7 +917,10 @@ export class ExperienceRuntime {
               ];
       const completed = await this.mediaJobs.complete(
         job.id,
-        records.map((record) => record.file)
+        records.map((record) => record.file),
+        job.referenceRequested === true
+          ? { applied: records[0]?.referenceApplied === true }
+          : undefined
       );
       if (!completed) throw new MediaGatewayError('媒体任务账本丢失', false);
       return { ok: true, job: completed, records };
@@ -907,6 +952,15 @@ export class ExperienceRuntime {
       url: urls[0] ?? '',
       promptUsed,
       mime: records?.[0]?.mime ?? mimeFromFile(urls[0] ?? ''),
+      ...(job.referenceRequested === true
+        ? {
+            referenceRequested: true,
+            referenceApplied: job.referenceApplied === true,
+            ...(job.referenceSource !== undefined
+              ? { referenceSource: job.referenceSource }
+              : {}),
+          }
+        : {}),
     };
   }
 

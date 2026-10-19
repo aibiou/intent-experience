@@ -191,13 +191,21 @@ export function recognizeGenerationIntent(rawInput: string): GenerationIntent | 
   // 裸短语直达 t2i 会因无主体回落提供方默认人像）。
   const selectedImageRegen =
     /(?:根据|基于|参考|以|用).{0,24}(?:选中|刚才选|上一张|那张).{0,16}(?:图|图片|图像|插画).{0,24}(?:重新|再次)?(?:生成|画|做|制作|创作)/.test(input);
+  // 把现有内容 / 画面转换成其他模态（G1.1 图像→视频上下文接续）：
+  // 「把它做成视频 / 做成视频」不含新主题，提示词材料来自上文；
+  // 「把这张图做成视频」明确指向已有图像（referential）。
+  // 指令本身不是画面主题，不能直接丢给提供方。
+  const contextualTransform =
+    /(?:把|将)(?:它|这个|这段|这些|刚才(?:的)?[^，,。]{0,10}|上面(?:的)?[^，,。]{0,10}|这张|那张).{0,20}(?:做成|变成|转成|改成|制作成|生成)(?:一段|一个|一张|一幅|个)?(?:视频|动画|短片|图片|图像|照片|插画|语音|音频)/.test(input) ||
+    /^(?:做成|变成|转成)(?:一段|一个|一张|一幅|个)?(?:视频|动画|短片|图片|图像|照片|插画|语音|音频)/.test(input);
   const referentialPresentation =
     (regen === null || !selectedImageRegen) &&
-    (/(?:选中|刚才选|上一张|那张).{0,12}(?:图片|图像|插画|图)/.test(input) ||
+    (/(?:选中|刚才选|上一张|那张|这张|这幅|那幅).{0,12}(?:图片|图像|插画|图)/.test(input) ||
       /(?:对应的?|相应|调用).{0,24}(?:图|图片|图像|插画|头像|壁纸|封面|视频|动画|短片)/.test(input));
   const presentation =
     regen === null &&
-    (referentialPresentation ||
+    (contextualTransform ||
+      referentialPresentation ||
       /(?:视频|动画|短片|图片|图像|照片|写真|画像|插画|插图|语音).{0,6}(?:方式|形式)/.test(input) ||
       /(?:视频|动画|短片|图片|图像|照片|写真|画像|插画|插图|语音).{0,4}(?:展现|呈现|展示)/.test(input) ||
       /(?:图片|图像).{0,4}(?:看看|看一下)/.test(input) ||

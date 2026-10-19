@@ -41,6 +41,29 @@ export interface MediaArtifact {
   url?: string;
   dataUri?: string;
   mime: string;
+  /** 请求携带参考图时，提供方是否真正消费（图像→视频诚实边界）。 */
+  referenceApplied?: boolean;
+}
+
+/**
+ * 视频参考图消费判定（G1.1 图像→视频）——本地产品产物是
+ * dataURI，云端视频契约通常只消费 http(s) 参考。只有
+ * Agnes / 本机桥接契约在有 http 参考时才会挂载 images；
+ * Seedance 契约当前未实现图像输入。判定结果随产物回传，
+ * 产品据此决定是否如实说明「按画面描述降级生成」。
+ */
+export function resolveVideoReferencePlan(
+  record: ProviderConfigRecord,
+  refs: readonly string[] | undefined,
+): { requested: boolean; applied: boolean; images: string[] } {
+  const requested = (refs?.length ?? 0) > 0;
+  if (isSeedanceContract(record)) {
+    return { requested, applied: false, images: [] };
+  }
+  const images = (refs ?? [])
+    .filter((ref) => ref.startsWith('http'))
+    .slice(0, 5);
+  return { requested, applied: images.length > 0, images };
 }
 
 export class MediaProviderError extends Error {
@@ -721,6 +744,10 @@ export async function generateVideo(
   onProgress?: (progress: number) => void,
   options?: { referenceImages?: string[] },
 ): Promise<MediaArtifact> {
+  const referencePlan = resolveVideoReferencePlan(record, options?.referenceImages);
+  const referenceFlag = referencePlan.requested
+    ? { referenceApplied: referencePlan.applied }
+    : {};
   if (isSeedanceContract(record)) {
     // Seedance（火山方舟）异步任务契约：创建 + 轮询，产物 content.video_url。
     const response = await mediaFetch(
@@ -751,7 +778,7 @@ export async function generateVideo(
       (entry !== null ? extractUrl(entry) : undefined) ??
       extractUrl(parsed as Record<string, unknown>);
     if (syncUrl !== undefined) {
-      return { url: syncUrl, mime: 'video/mp4' };
+      return { url: syncUrl, mime: 'video/mp4', ...referenceFlag };
     }
     const taskId = extractTaskId(parsed);
     if (taskId === undefined) {
@@ -785,7 +812,7 @@ export async function generateVideo(
       'succeeded',
       onProgress,
     );
-    return { url, mime: 'video/mp4' };
+    return { url, mime: 'video/mp4', ...referenceFlag };
   }
 
   // 本机桥接契约（豆包 App 桥接）：同步 /videos/generations——
@@ -800,8 +827,8 @@ export async function generateVideo(
         body: JSON.stringify({
           model: record.model,
           prompt,
-          ...(options?.referenceImages?.length
-            ? { referenceImages: options.referenceImages.filter((r) => r.startsWith('http')) }
+          ...(referencePlan.images.length > 0
+            ? { referenceImages: referencePlan.images }
             : {}),
         }),
         signal: AbortSignal.timeout(900_000),
@@ -826,7 +853,7 @@ export async function generateVideo(
         `提供方「${record.name}」视频响应无产物地址（本机桥接）`,
       );
     }
-    return { url, mime: 'video/mp4' };
+    return { url, mime: 'video/mp4', ...referenceFlag };
   }
   // 模式路由：keyframe > reference > text（本切片仅 text 模式——
   // 首尾帧/参考音频由后续切片开放）。
@@ -839,8 +866,8 @@ export async function generateVideo(
         body: JSON.stringify({
           model: record.model,
           prompt,
-          ...(options?.referenceImages?.some((r) => r.startsWith('http'))
-            ? { mode: 'reference', images: options.referenceImages.filter((r) => r.startsWith('http')).slice(0, 5) }
+          ...(referencePlan.applied
+            ? { mode: 'reference', images: referencePlan.images }
             : { mode: 'text' }),
           seconds: '4',
           size: '720P',
@@ -884,7 +911,7 @@ export async function generateVideo(
     (entry !== null ? extractUrl(entry) : undefined) ??
     extractUrl(parsed as Record<string, unknown>);
   if (syncUrl !== undefined) {
-    return { url: syncUrl, mime: 'video/mp4' };
+    return { url: syncUrl, mime: 'video/mp4', ...referenceFlag };
   }
   const videoId = extractTaskId(parsed);
   if (videoId === undefined) {
@@ -909,7 +936,7 @@ export async function generateVideo(
     'completed',
     onProgress,
   );
-  return { url, mime: 'video/mp4' };
+  return { url, mime: 'video/mp4', ...referenceFlag };
 }
 
 /** 复用 chat 侧的重试状态判定（导出供端点层映射错误码）。 */

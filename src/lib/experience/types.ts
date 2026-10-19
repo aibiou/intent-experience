@@ -129,6 +129,11 @@ export type TurnEvent =
       url: string;
       promptUsed: string;
       mime: string;
+      /** G1.1 图像→视频：是否要求以既有图像为参考 / 提供方是否真正消费
+       * （false 表示按画面描述降级——UI 如实说明，不假装参考生效）。 */
+      referenceRequested?: boolean;
+      referenceApplied?: boolean;
+      referenceSource?: string;
     }
   | {
       type: 'generation';

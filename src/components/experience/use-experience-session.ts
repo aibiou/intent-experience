@@ -50,6 +50,11 @@ export interface TurnMedia {
   promptUsed?: string;
   mime?: string;
   message?: string;
+  /** G1.1 图像→视频：请求了既有图像参考 / 提供方是否真正消费
+   *  （false = 按画面描述降级——呈现层如实说明）。 */
+  referenceRequested?: boolean;
+  referenceApplied?: boolean;
+  referenceSource?: string;
 }
 
 /** 会话恢复时 GET /api/experience/session 附带的媒体产物。 */
@@ -62,6 +67,9 @@ interface SessionMediaRecord {
   mime: string;
   at: string;
   selected?: boolean;
+  referenceRequested?: boolean;
+  referenceApplied?: boolean;
+  referenceSource?: string;
 }
 
 /** 会话恢复时 GET /api/experience/session 附带的媒体任务。 */
@@ -75,6 +83,9 @@ interface SessionMediaJob {
   updatedAt: string;
   error: string | null;
   artifactFiles: string[];
+  referenceRequested?: boolean;
+  referenceApplied?: boolean;
+  referenceSource?: string;
 }
 
 /** 分支域的呈现视图（序号从 1 起——与后端分支记录顺序一致）。 */
@@ -211,6 +222,15 @@ function historyToTurns(
             ...(record.selected ? { selectedFile: record.file } : {}),
             promptUsed: record.promptUsed,
             mime: record.mime,
+            ...(record.referenceRequested === true
+              ? {
+                  referenceRequested: true,
+                  referenceApplied: record.referenceApplied === true,
+                  ...(record.referenceSource !== undefined
+                    ? { referenceSource: record.referenceSource }
+                    : {}),
+                }
+              : {}),
           } satisfies TurnMedia)
         : job && (job.status === 'running' || job.status === 'failed')
           ? ({
@@ -219,6 +239,9 @@ function historyToTurns(
               startedAt: new Date(job.startedAt).getTime(),
               promptUsed: job.prompt,
               message: job.error ?? undefined,
+              ...(job.referenceSource !== undefined
+                ? { referenceSource: job.referenceSource }
+                : {}),
             } satisfies TurnMedia)
           : job && job.status === 'completed' && job.artifactFiles.length > 0
             ? ({
@@ -228,6 +251,15 @@ function historyToTurns(
                 url: `/api/experience/media/${job.artifactFiles[0]}`,
                 promptUsed: job.prompt,
                 mime: mimeFromUrl(job.artifactFiles[0]!),
+                ...(job.referenceRequested === true
+                  ? {
+                      referenceRequested: true,
+                      referenceApplied: job.referenceApplied === true,
+                      ...(job.referenceSource !== undefined
+                        ? { referenceSource: job.referenceSource }
+                        : {}),
+                    }
+                  : {}),
               } satisfies TurnMedia)
           : undefined;
     return {
@@ -443,6 +475,15 @@ export function useExperienceSession(options?: {
                   url: event.url,
                   promptUsed: event.promptUsed,
                   mime: event.mime,
+                  ...(event.referenceRequested === true
+                    ? {
+                        referenceRequested: true,
+                        referenceApplied: event.referenceApplied === true,
+                        ...(event.referenceSource !== undefined
+                          ? { referenceSource: event.referenceSource }
+                          : {}),
+                      }
+                    : {}),
                 },
               };
             }

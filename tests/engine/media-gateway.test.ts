@@ -7,6 +7,7 @@ import {
   selectedImageRecord,
   toReferenceDataUri,
   validateReferenceImages,
+  validateVideoReferenceImages,
 } from '../../src/lib/experience/media-gateway';
 import type { MediaArtifactRecord } from '../../src/lib/experience/media-gateway';
 
@@ -73,6 +74,34 @@ describe('参考图校验（官方 extra_body.image 契约）', () => {
 
   it('空输入返回空数组', () => {
     expect(validateReferenceImages([])).toEqual([]);
+  });
+});
+
+describe('视频参考图校验（G1.1 图像→视频——http 参考不再被提前丢弃）', () => {
+  it('http(s) URL 放行（云端视频提供方只接受 URL 的契约）', () => {
+    const refs = ['https://example.com/cat.png', 'http://example.com/dog.jpg'];
+    expect(validateVideoReferenceImages(refs)).toEqual(refs);
+  });
+
+  it('合法 dataURI 保留（本地元宝 / 豆包产物形态）', () => {
+    const refs = ['data:image/png;base64,aGVsbG8='];
+    expect(validateVideoReferenceImages(refs)).toEqual(refs);
+  });
+
+  it('非图片 / 非法 dataURI 丢弃，至多 3 张', () => {
+    const refs = [
+      'https://example.com/1.png',
+      '一只猫',
+      'data:application/pdf;base64,aGk=',
+      'https://example.com/2.png',
+      'https://example.com/3.png',
+      'https://example.com/4.png',
+    ];
+    expect(validateVideoReferenceImages(refs)).toEqual([
+      'https://example.com/1.png',
+      'https://example.com/2.png',
+      'https://example.com/3.png',
+    ]);
   });
 });
 

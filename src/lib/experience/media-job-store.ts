@@ -27,6 +27,12 @@ export interface MediaJob {
   completedAt: string | null;
   error: string | null;
   artifactFiles: string[];
+  /** G1.1 图像→视频：请求时要求以既有图像为参考。 */
+  referenceRequested?: boolean;
+  /** 提供方是否真正消费了参考图（false = 按画面描述降级）。 */
+  referenceApplied?: boolean;
+  /** 参考来源的画面描述（降级提示与恢复展示）。 */
+  referenceSource?: string;
 }
 
 export interface CreateMediaJobInput {
@@ -35,6 +41,8 @@ export interface CreateMediaJobInput {
   modality: GenerationModality;
   prompt: string;
   idempotencyKey: string;
+  referenceRequested?: boolean;
+  referenceSource?: string;
 }
 
 export class MediaJobStore {
@@ -72,7 +80,11 @@ export class MediaJobStore {
     });
   }
 
-  async complete(id: string, artifactFiles: readonly string[]): Promise<MediaJob | null> {
+  async complete(
+    id: string,
+    artifactFiles: readonly string[],
+    reference?: { applied: boolean },
+  ): Promise<MediaJob | null> {
     return this.update(id, (job) => ({
       ...job,
       status: 'completed',
@@ -80,6 +92,9 @@ export class MediaJobStore {
       completedAt: new Date().toISOString(),
       error: null,
       artifactFiles: [...artifactFiles],
+      ...(reference !== undefined
+        ? { referenceApplied: reference.applied }
+        : {}),
     }));
   }
 

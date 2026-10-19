@@ -122,4 +122,24 @@ describe('媒体任务账本', () => {
     expect(failed?.status).toBe('failed');
     expect(failed?.error).toContain('服务已重启');
   });
+
+  it('参考图语义持久化：请求标记与提供方是否消费跨重启保留（G1.1 图像→视频）', async () => {
+    const store = createStore();
+    const job = await store.create({
+      sessionId: 'session-1',
+      turn: 6,
+      modality: 'video',
+      prompt: '月光下的猫蜷缩在窗台，镜头缓缓推进',
+      idempotencyKey: 'video-ref-key',
+      referenceRequested: true,
+      referenceSource: '月光下的猫蜷缩在窗台，宁静夜色',
+    });
+    await store.complete(job.id, ['video.mp4'], { applied: false });
+
+    const reopened = await createStore().listBySession('session-1');
+    expect(reopened[0]?.referenceRequested).toBe(true);
+    expect(reopened[0]?.referenceApplied).toBe(false);
+    expect(reopened[0]?.referenceSource).toBe('月光下的猫蜷缩在窗台，宁静夜色');
+  });
+
 });

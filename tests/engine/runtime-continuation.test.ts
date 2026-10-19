@@ -40,11 +40,29 @@ interface ImageCall {
   referenceImages: string[] | undefined;
 }
 
-/** 假媒体网关：参考图按会话映射，图像调用全记录。 */
-function makeFakeMedia(refs: Map<string, string>, calls: ImageCall[]) {
+/** 记录视频生成调用（G1.1 图像→视频上下文接续的证据）。 */
+interface VideoCall {
+  prompt: string;
+  referenceImages: string[] | undefined;
+}
+
+/** 假媒体网关：参考图按会话映射，图像 / 视频调用全记录。 */
+function makeFakeMedia(
+  refs: Map<string, string>,
+  calls: ImageCall[],
+  videoCalls: VideoCall[] = [],
+  imagePrompts: Map<string, string> = new Map()
+) {
   return {
     async loadSessionImageReference(sessionId: string): Promise<string | null> {
       return refs.get(sessionId) ?? null;
+    },
+    async loadSessionImageContext(
+      sessionId: string
+    ): Promise<{ reference: string; promptUsed: string; file: string } | null> {
+      const reference = refs.get(sessionId);
+      if (!reference) return null;
+      return { reference, promptUsed: imagePrompts.get(sessionId) ?? '上一张图的画面描述', file: 'fake.png' };
     },
     async generateImages(
       prompt: string,
@@ -67,8 +85,23 @@ function makeFakeMedia(refs: Map<string, string>, calls: ImageCall[]) {
     async generateVoice(): Promise<never> {
       throw new Error('语音生成不在本测试预期内');
     },
-    async generateVideo(): Promise<never> {
-      throw new Error('视频生成不在本测试预期内');
+    async generateVideo(
+      prompt: string,
+      options: { sessionId: string; turn: number; referenceImages?: string[] }
+    ) {
+      videoCalls.push({ prompt, referenceImages: options.referenceImages });
+      return {
+        id: `fake-video-${videoCalls.length}`,
+        sessionId: options.sessionId,
+        turn: options.turn,
+        modality: 'video' as const,
+        file: 'fake.mp4',
+        mime: 'video/mp4',
+        promptUsed: prompt,
+        at: new Date().toISOString(),
+        referenceRequested: (options.referenceImages?.length ?? 0) > 0,
+        referenceApplied: false,
+      };
     },
   };
 }
@@ -94,6 +127,8 @@ async function collect(startInput: StartInput): Promise<TurnEvent[]> {
 let runtime: InstanceType<typeof ExperienceRuntime>;
 let refs: Map<string, string>;
 let imageCalls: ImageCall[];
+let videoCalls: VideoCall[];
+let imagePrompts: Map<string, string>;
 let priorSessionId: string;
 
 beforeAll(async () => {
@@ -141,7 +176,9 @@ beforeAll(async () => {
   )`);
   refs = new Map();
   imageCalls = [];
-  const fakeMedia = makeFakeMedia(refs, imageCalls);
+  videoCalls = [];
+  imagePrompts = new Map();
+  const fakeMedia = makeFakeMedia(refs, imageCalls, videoCalls, imagePrompts);
   // 媒体网关为类（名义类型）——结构等价对象经断言转型。
   runtime = new ExperienceRuntime(
     fakeLlm,
@@ -156,6 +193,7 @@ beforeAll(async () => {
   });
   priorSessionId = prior.id;
   refs.set(prior.id, 'data:image/png;base64,QUJDREVG');
+  imagePrompts.set(prior.id, '月光下的猫蜷缩在窗台，宁静夜色，画面温馨自然');
 });
 
 afterAll(async () => {
@@ -241,6 +279,30 @@ describe('G2-7 完成后续作：续作启动', () => {
     expect(imageCalls[before]?.referenceImages).toEqual([
       'data:image/png;base64,QUJDREVG',
     ]);
+  });
+
+  it('G1.1：把已有图像做成视频时，参考图与画面描述都进入视频生成', async () => {
+    const before = videoCalls.length;
+    const events = await collect({
+      continueSessionId: priorSessionId,
+      freeText: '把它做成视频，镜头缓缓推进',
+    });
+
+    expect(videoCalls.length).toBe(before + 1);
+    const call = videoCalls[before];
+    expect(call?.referenceImages).toEqual(['data:image/png;base64,QUJDREVG']);
+    // 视频提示词来自所选图像的画面描述 + 用户新约束，
+    // 而不是把「把它做成视频」当成画面主体。
+    expect(call?.prompt).toContain('月光下的猫蜷缩在窗台');
+    expect(call?.prompt).toContain('镜头缓缓推进');
+    expect(call?.prompt).not.toContain('把它做成视频');
+
+    const completed = events.find(
+      (event): event is Extract<TurnEvent, { type: 'generation'; status: 'completed' }> =>
+        event.type === 'generation' && event.status === 'completed'
+    );
+    expect(completed?.referenceRequested).toBe(true);
+    expect(completed?.referenceApplied).toBe(false);
   });
 
   it('负面对照：种子会话无图像产物 → 文生图（诚实降级，不阻断生成）', async () => {

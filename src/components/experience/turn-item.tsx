@@ -357,10 +357,12 @@ function TextParagraphs({ content, kind }: { content: string; kind: SettledKind 
 function MediaPending({
   label,
   prompt,
+  detail,
   startedAt,
 }: {
   label: string;
   prompt?: string;
+  detail?: string;
   startedAt?: number;
 }) {
   const [now, setNow] = useState(() => Date.now());
@@ -404,6 +406,11 @@ function MediaPending({
           </span>
         ) : null}
       </div>
+      {detail ? (
+        <p className="mt-2 border-t border-stone-100 pt-2 text-xs leading-relaxed text-stone-400">
+          {detail}
+        </p>
+      ) : null}
       {label.startsWith('正在生成视频') ? (
         <p className="mt-2 border-t border-stone-100 pt-2 text-xs leading-relaxed text-stone-400">
           视频通常约 5–10 分钟完成；可以先继续对话或稍后回到本会话，生成完成会自动显示。
@@ -581,6 +588,11 @@ function MediaBlock({
               : '正在生成图片，可能需要数分钟…'
         }
         prompt={media.promptUsed}
+        detail={
+          media.referenceSource
+            ? `将基于已选图像接续生成：「${media.referenceSource}」`
+            : undefined
+        }
         startedAt={media.startedAt}
       />
     );
@@ -624,6 +636,23 @@ function MediaBlock({
         <video controls preload="metadata" src={media.url} className="w-full">
           你的浏览器不支持视频播放。
         </video>
+        {media.referenceRequested ? (
+          <figcaption className="flex items-start gap-2 border-t border-stone-100 px-4 py-2.5">
+            <ImageIcon
+              className="mt-0.5 size-3.5 shrink-0 text-amber-500/80"
+              aria-hidden="true"
+            />
+            <span className="min-w-0 flex-1 text-sm leading-relaxed text-stone-500">
+              {media.referenceApplied
+                ? media.referenceSource
+                  ? `基于接续的画面生成：「${media.referenceSource}」`
+                  : '基于你选中的图片生成'
+                : `视频提供方暂不支持直接使用本地图片，已按画面描述降级生成${
+                    media.referenceSource ? `（「${media.referenceSource}」）` : ''
+                  }——未使用参考图`}
+            </span>
+          </figcaption>
+        ) : null}
       </figure>
     );
   }

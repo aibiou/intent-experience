@@ -32,6 +32,15 @@ export async function GET(req: NextRequest) {
       mime: record.mime,
       at: record.at,
       selected: record.selected === true,
+      ...(record.referenceRequested === true
+        ? {
+            referenceRequested: true,
+            referenceApplied: record.referenceApplied === true,
+            ...(record.referenceSource !== undefined
+              ? { referenceSource: record.referenceSource }
+              : {}),
+          }
+        : {}),
     }));
   const jobStore = getMediaJobStore();
   await jobStore.markForeignRunning(getMediaJobProcessOwnerId());
@@ -47,6 +56,15 @@ export async function GET(req: NextRequest) {
       updatedAt: job.updatedAt,
       error: job.error,
       artifactFiles: job.artifactFiles,
+      ...(job.referenceRequested === true
+        ? {
+            referenceRequested: true,
+            referenceApplied: job.referenceApplied === true,
+            ...(job.referenceSource !== undefined
+              ? { referenceSource: job.referenceSource }
+              : {}),
+          }
+        : {}),
     }));
   return NextResponse.json({
     session: {

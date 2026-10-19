@@ -4,6 +4,7 @@ import {
   isLocalBridgeRouteUnavailable,
   isLocalBridgeVideoContract,
   MediaProviderError,
+  resolveVideoReferencePlan,
 } from '../src/providers/media';
 import type { ProviderConfigRecord } from '../src/config-store';
 
@@ -84,5 +85,54 @@ describe('isLocalBridgeRouteUnavailable', () => {
         new MediaProviderError('提供方错误：无水印 IndexedDB 原图不足（至少需要 4，得到 0）', true, 502),
       ),
     ).toBe(true);
+  });
+});
+
+describe('resolveVideoReferencePlan（G1.1 图像→视频参考图消费判定）', () => {
+  it('Agnes 契约 + http 参考 → 消费（applied true，images 挂载）', () => {
+    const plan = resolveVideoReferencePlan(
+      makeRecord({ model: 'agnes-video-2.5-flash', baseUrl: 'https://apihub.agnes-ai.com/v1' }),
+      ['https://example.com/cat.png'],
+    );
+    expect(plan.requested).toBe(true);
+    expect(plan.applied).toBe(true);
+    expect(plan.images).toEqual(['https://example.com/cat.png']);
+  });
+
+  it('Agnes 契约 + 仅 dataURI 参考 → 不消费（applied false——本地图不假装生效）', () => {
+    const plan = resolveVideoReferencePlan(
+      makeRecord({ model: 'agnes-video-2.5-flash', baseUrl: 'https://apihub.agnes-ai.com/v1' }),
+      ['data:image/png;base64,aGVsbG8='],
+    );
+    expect(plan.requested).toBe(true);
+    expect(plan.applied).toBe(false);
+    expect(plan.images).toEqual([]);
+  });
+
+  it('本机桥接契约 + http 参考 → 消费', () => {
+    const plan = resolveVideoReferencePlan(
+      makeRecord({ model: 'doubao-app-local-video', baseUrl: 'http://127.0.0.1:3220/v1' }),
+      ['https://example.com/cat.png'],
+    );
+    expect(plan.applied).toBe(true);
+  });
+
+  it('Seedance 契约 → 不消费参考（契约未实现图像输入）', () => {
+    const plan = resolveVideoReferencePlan(
+      makeRecord({ model: 'doubao-seedance-1-0', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3' }),
+      ['https://example.com/cat.png'],
+    );
+    expect(plan.requested).toBe(true);
+    expect(plan.applied).toBe(false);
+    expect(plan.images).toEqual([]);
+  });
+
+  it('无参考 → requested false（不产生误导标记）', () => {
+    const plan = resolveVideoReferencePlan(
+      makeRecord({ model: 'agnes-video-2.5-flash' }),
+      undefined,
+    );
+    expect(plan.requested).toBe(false);
+    expect(plan.applied).toBe(false);
   });
 });

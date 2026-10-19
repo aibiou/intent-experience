@@ -403,6 +403,48 @@ describe('generation-intent：多轮意图链（创作闭环——直接创作 �
   });
 });
 
+describe('generation-intent：把现有画面转换成其他模态（G1.1 图像→视频上下文接续）', () => {
+  it('「把它做成视频 / 做成视频」携带上文标记（不把指令本身当画面提示词）', () => {
+    expectIntent('把它做成视频', {
+      modality: 'video',
+      prompt: '把它做成视频',
+      useContext: true,
+    });
+    expectIntent('做成视频', {
+      modality: 'video',
+      prompt: '做成视频',
+      useContext: true,
+    });
+    expectIntent('把它做成图片', {
+      modality: 'image',
+      prompt: '把它做成图片',
+      useContext: true,
+    });
+  });
+
+  it('「把这张图做成视频」明确指向既有图像 → useContext + referential', () => {
+    expectIntent('把这张图做成视频', {
+      modality: 'video',
+      prompt: '把这张图做成视频',
+      useContext: true,
+      referential: true,
+    });
+    expectIntent('把这张图片做成一段视频，镜头缓缓推进', {
+      modality: 'video',
+      prompt: '把这张图片做成一段视频，镜头缓缓推进',
+      useContext: true,
+      referential: true,
+    });
+  });
+
+  it('非指代转换仍保持直接创作（不误伤「做一段星空视频」）', () => {
+    expectIntent('做一段星空视频', {
+      modality: 'video',
+      prompt: '做一段星空视频',
+    });
+  });
+});
+
 describe('generation-intent：shouldCompactReplay（CR-56——REPEAT 呈现层收敛为简短引导）', () => {
   it('呈现形式类视觉生成触发 → true（用户要「画出来」而非「再读一遍」）', () => {
     expect(shouldCompactReplay('用图片展现刚才的内容')).toBe(true);

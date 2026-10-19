@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { applyVisualPromptContract } from '../../src/lib/experience/visual-prompt';
+import {
+  applyVisualPromptContract,
+  buildVideoContinuationPrompt,
+} from '../../src/lib/experience/visual-prompt';
 
 describe('视觉提示词履约层', () => {
   it('保留用户原有限定，并把它们声明为不可替换的硬约束', () => {
@@ -23,5 +26,35 @@ describe('视觉提示词履约层', () => {
     expect(prompt).not.toContain('雪夜');
     expect(prompt).toContain('暖秋渔港');
     expect(prompt).toContain('保留干渔网');
+  });
+});
+
+describe('图像→视频接续提示词（G1.1）', () => {
+  it('保留来源画面描述，并把用户新约束追加为运动/镜头要求', () => {
+    const prompt = buildVideoContinuationPrompt(
+      '月光下的猫蜷缩在窗台，宁静夜色',
+      '把它做成视频，镜头缓缓推进'
+    );
+    expect(prompt).toContain('月光下的猫蜷缩在窗台');
+    expect(prompt).toContain('镜头缓缓推进');
+    expect(prompt).not.toContain('把它做成视频');
+  });
+
+  it('「把这张图做成视频」无新增约束时只保留来源画面描述', () => {
+    const prompt = buildVideoContinuationPrompt(
+      '海边灯塔，雾气弥漫',
+      '把这张图做成视频'
+    );
+    expect(prompt).toBe('海边灯塔，雾气弥漫');
+  });
+
+  it('冒号/逗号后的约束完整保留（镜头、时长、动作）', () => {
+    const prompt = buildVideoContinuationPrompt(
+      '旧书摊，雨天，暖黄灯',
+      '把这张图做成一段视频：镜头从书摊缓慢推向雨棚，持续 5 秒'
+    );
+    expect(prompt).toContain('旧书摊');
+    expect(prompt).toContain('镜头从书摊缓慢推向雨棚，持续 5 秒');
+    expect(prompt).not.toContain('做成一段视频');
   });
 });

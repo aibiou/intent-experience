@@ -95,6 +95,9 @@ interface GatewayMediaArtifact {
   url?: string;
   dataUri?: string;
   mime?: string;
+  /** 提供方是否真正消费了 referenceImages（视频侧诚实边界——
+   * 本地图片是 dataURI，只有接受 http 参考的提供方会用上）。 */
+  referenceApplied?: boolean;
   artifacts?: GatewayMediaArtifactEntry[];
   error?: { message?: string; code?: string };
 }
@@ -209,6 +212,12 @@ export interface MediaArtifactRecord {
   at: string;
   /** 用户选中为创作素材（G1.1 目标 4——后续引用此产物而非隐式末条）。 */
   selected?: boolean;
+  /** 请求时是否要求以既有图像为参考（G1.1 图像→视频接续）。 */
+  referenceRequested?: boolean;
+  /** 参考图是否真正被提供方消费（false = 按画面描述降级生成）。 */
+  referenceApplied?: boolean;
+  /** 降级时用于提示的来源画面描述。 */
+  referenceSource?: string;
 }
 
 /** 本网关支持的模态（全模态——各自由网关按模态路由提供方）。 */
@@ -218,9 +227,18 @@ export interface MediaPersistOptions {
   sessionId: string;
   turn: number;
   signal?: AbortSignal;
-  /** 参考图 dataURI 数组——图像→视频 / 图生图上下文接续。
+  /** 参考图 dataURI / http(s) 数组——图像→视频 / 图生图上下文接续。
    * 图像用 extra_body.image 契约；视频提供方各自适配。 */
   referenceImages?: string[];
+  /** 参考来源的画面描述（视频降级提示用）。 */
+  referenceSource?: string;
+}
+
+/** 会话内可接续的图像上下文（参考图 + 画面描述 + 产物文件）。 */
+export interface SessionImageContext {
+  reference: string;
+  promptUsed: string;
+  file: string;
 }
 
 /** 图像生成选项（G2-5 创作闭环——参考图生图）。 */
@@ -242,6 +260,27 @@ export function validateReferenceImages(refs: readonly string[]): string[] {
     if (typeof item !== 'string' || !item.startsWith('data:image/')) {
       return false;
     }
+    const metaEnd = item.indexOf(',');
+    if (metaEnd < 0) return false;
+    const payloadLength = item.length - metaEnd - 1;
+    if (payloadLength <= 0) return false;
+    return (payloadLength * 3) / 4 <= REFERENCE_MAX_BYTES;
+  });
+  return valid.slice(0, 3);
+}
+
+/**
+ * 视频参考图校验（G1.1 图像→视频）：本地产物是 dataURI，
+ * 云端视频提供方通常只接受 http(s) URL。两者都放行交给
+ * 提供方契约判定；是否真正消费由网关回传 referenceApplied。
+ * 旧实现只放行 dataURI，http 参考在到达网关前就被丢弃，
+ * 导致“支持 http 参考的提供方”永远收不到参考。
+ */
+export function validateVideoReferenceImages(refs: readonly string[]): string[] {
+  const valid = refs.filter((item) => {
+    if (typeof item !== 'string' || item.length === 0) return false;
+    if (/^https?:\/\//.test(item)) return true;
+    if (!item.startsWith('data:image/')) return false;
     const metaEnd = item.indexOf(',');
     if (metaEnd < 0) return false;
     const payloadLength = item.length - metaEnd - 1;
@@ -382,12 +421,24 @@ export class MediaGateway {
    * 诚实边界）。
    */
   async loadSessionImageReference(sessionId: string): Promise<string | null> {
+    const context = await this.loadSessionImageContext(sessionId);
+    return context?.reference ?? null;
+  }
+
+  /**
+   * 可接续的图像上下文（G1.1 图像→视频）：参考图 dataURI +
+   * 该产物的画面描述。描述让视频提供方不支持直接参考本地图时
+   * 仍能保留主体与画面意图，并向用户如实说明降级来源。
+   */
+  async loadSessionImageContext(sessionId: string): Promise<SessionImageContext | null> {
     const index = await this.readIndex();
     const chosen = selectedImageRecord(index, sessionId);
     if (!chosen) return null;
     try {
       const buffer = await readFile(path.join(MEDIA_DIR, chosen.file));
-      return await toReferenceDataUri(buffer, chosen.mime);
+      const reference = await toReferenceDataUri(buffer, chosen.mime);
+      if (reference === null) return null;
+      return { reference, promptUsed: chosen.promptUsed, file: chosen.file };
     } catch {
       return null;
     }
@@ -435,14 +486,20 @@ export class MediaGateway {
     prompt: string,
     options: MediaPersistOptions,
   ): Promise<MediaArtifactRecord> {
-    const referenceImages = validateReferenceImages(options.referenceImages ?? []);
+    const referenceImages = validateVideoReferenceImages(options.referenceImages ?? []);
+    const referenceRequested = referenceImages.length > 0;
     const artifact = await callMediaEndpoint(
       '/v1/videos',
-      referenceImages.length > 0 ? { prompt, referenceImages } : { prompt },
+      referenceRequested ? { prompt, referenceImages } : { prompt },
       VIDEO_TIMEOUT_MS,
     );
     const { buffer, mime } = await artifactToBuffer(artifact);
-    return this.persist(buffer, mime, 'video', prompt, options);
+    return this.persist(buffer, mime, 'video', prompt, options, {
+      // 老网关不回传该字段时按未消费处理（诚实降级，不假装参考生效）。
+      referenceRequested,
+      referenceApplied: referenceRequested && artifact.referenceApplied === true,
+      referenceSource: referenceRequested ? options.referenceSource : undefined,
+    });
   }
 
   /** 产物落盘 + 索引登记（写前检查中止——被取消的生成不落盘）。 */
@@ -452,6 +509,10 @@ export class MediaGateway {
     modality: SupportedMediaModality,
     promptUsed: string,
     options: MediaPersistOptions,
+    reference?: Pick<
+      MediaArtifactRecord,
+      'referenceRequested' | 'referenceApplied' | 'referenceSource'
+    >,
   ): Promise<MediaArtifactRecord> {
     if (options.signal?.aborted) {
       throw new MediaGatewayError('生成已被取消', false);
@@ -470,6 +531,15 @@ export class MediaGateway {
       mime,
       promptUsed,
       at: new Date().toISOString(),
+      ...(reference?.referenceRequested
+        ? {
+            referenceRequested: true,
+            referenceApplied: reference.referenceApplied === true,
+            ...(reference.referenceSource
+              ? { referenceSource: reference.referenceSource }
+              : {}),
+          }
+        : {}),
     };
     const index = await this.readIndex();
     index.push(record);

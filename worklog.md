@@ -711,3 +711,23 @@ Work Log:
 Stage Summary:
 - 借鉴 FigCraft 的组件状态、栅格密度与可访问性组织方式，完成查看器、过渡动效、弱动效偏好和首页作品墙的第三轮全流程 UI/UX 优化
 - 服务保持运行：Next.js `:3000`、model gateway `:3031`、YuanbaoBridge `:3210`
+
+---
+
+Task ID: 29
+Agent: Codex
+Task: G1.1 图像→视频上下文接续——参考图不再丢失，降级如实说明
+
+Work Log:
+- 意图识别：「把它做成视频 / 把这张图做成一段视频」等转换式指令现在携带上下文与引用标记（contextualTransform），不再只把指令本身当提示词；新增「这张/这幅/那幅」引用词
+- 接续提示词：新增 `buildVideoContinuationPrompt`——来源取自接续图像的 promptUsed（用户选中优先、兜底末条、续作回落种子会话），用户新约束（镜头/动作/时长，如「持续 5 秒」）按标点切分保留、追加在后；无新增约束时只保留画面描述
+- 诚实边界：明确指向既有图像但会话无可参考产物时如实失败（「还没有可参考的图片」），不静默退化成文生视频
+- 参考图不再被提前丢弃：新增 `validateVideoReferenceImages`（http(s) 或 data:image，≤3 张）替代只放行 dataURI 的旧校验；网关新增 `resolveVideoReferencePlan`——Agnes / 本机桥接在有 http 参考时挂参考图，Seedance 契约未实现图像输入，判定为未消费
+- 提供方回传 `referenceApplied` 随产物透传（产品 `generateVideo`、任务账本 `MediaJobStore`、恢复接口、SSE completed 事件、TurnMedia 全链）
+- UI 呈现：视频完成卡按 `referenceRequested` 显示「基于接续的画面生成」或「视频提供方暂不支持直接使用本地图片，已按画面描述降级生成（…）——未使用参考图」；等待态显示「将基于已选图像接续生成」
+- 测试先行：generation-intent 45 pass；runtime-continuation 新用例（参考图 + 画面描述进入视频生成）；visual-prompt 3 新用例；media-gateway 视频参考图校验 3 新用例；media-job-store 参考语义持久化；网关注入 `resolveVideoReferencePlan` 5 新用例
+- 回归：`test:engine` 349 pass / 0 fail；`test:unit` 167 pass / 0 fail；`test:gateway` 87 pass / 0 fail；`lint` 0；`bunx tsc --noEmit` 0
+
+Stage Summary:
+- G1.1 目标 2 代码链路完成：图像→视频保留主体与画面意图，来源可追溯；提供方不支持本地图时降级路径如实可见
+- 真实付费视频 E2E 与「云端消费 http 参考图」的真实验证待用户确认后执行；本地图为 dataURI，当前预期以画面描述降级
