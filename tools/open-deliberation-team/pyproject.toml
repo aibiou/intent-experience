@@ -1,0 +1,11 @@
+[project]
+name = "open-deliberation-team"
+version = "0.1.0"
+description = "An open-source, auditable multi-model decision deliberation board"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-ra"
