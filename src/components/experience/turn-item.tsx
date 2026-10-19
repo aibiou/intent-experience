@@ -312,18 +312,12 @@ function contentCardClass(kind: SettledKind): string {
     return 'rounded-2xl border border-dashed border-stone-300 bg-transparent px-5 py-4';
   }
   const base =
-    'rounded-2xl border border-stone-200/90 bg-white px-5 py-5 shadow-[0_1px_2px_rgba(87,83,78,0.05)] md:px-6';
+    'rounded-2xl border border-stone-200/85 bg-white px-5 py-6 shadow-[0_1px_2px_rgba(87,83,78,0.04)] md:px-7';
   if (kind === 'CREATION_ASK') {
     return `${base} border-l-2 border-l-amber-400/90`;
   }
   if (kind === 'CREATION_COMPLETED') {
     return `${base} border-amber-200/90 bg-amber-50/70`;
-  }
-  if (kind === 'ANSWER') {
-    return `${base} border-l-2 border-l-amber-500/80`;
-  }
-  if (kind === 'EXPLANATION') {
-    return `${base} border-l-2 border-l-sky-400/80`;
   }
   return base;
 }
@@ -345,8 +339,8 @@ function TextParagraphs({ content, kind }: { content: string; kind: SettledKind 
             isNotice
               ? 'text-sm text-stone-500'
               : isFirstLayer
-                ? 'text-[1.05rem] text-stone-700'
-                : 'text-base text-stone-700',
+                ? 'text-[1.05rem] leading-[1.85] text-stone-700'
+                : 'text-base leading-[1.8] text-stone-700',
           ].join(' ')}
         >
           {para}

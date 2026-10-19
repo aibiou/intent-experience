@@ -25,7 +25,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -144,29 +143,35 @@ export function ExperienceScreen({
   // 阶段徽章只在有真实内容（或正在生成）时可信——restore 失败会话
   // 零内容仍挂「阶段·好奇/刚开始」是虚假标签（2026-10-16 模拟用户⑧）。
   const showStageBadge = hasSettledContent || session.generating;
+  const isReadOnly = session.readOnly;
+  const hasTurns = session.turns.length > 0;
 
   return (
-    <main className="experience-shell relative mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-5 sm:px-8">
-      {/* 头部：主题 + 阶段 + 轮次 */}
-      <header className="flex items-start justify-between gap-3 border-b border-stone-300/70 pb-5 pt-6 sm:pt-8">
+    <main className="experience-shell relative mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col px-5 sm:px-8">
+      {/* 头部：归档态弱化状态胶囊，让主题和元信息形成一组 */}
+      <header className="flex items-start justify-between gap-4 border-b border-stone-200/80 pb-5 pt-6 sm:pt-8">
         <div className="min-w-0">
-          <p className="mb-2 text-[10px] font-semibold text-amber-800/70">
-            {session.readOnly ? '回顾' : '正在探索'}
+          <p className="experience-kicker mb-2.5">
+            {isReadOnly ? '回看' : '探索中'}
           </p>
           <h1 className="home-title line-clamp-2 text-xl font-medium leading-snug text-stone-900 md:text-2xl">
             {session.topic}
           </h1>
           {showStageBadge ? (
-            <div className="mt-1.5 flex items-center gap-2.5">
-              <Badge
-                variant="outline"
-              className="rounded-full border-amber-300/70 bg-amber-50/70 px-2.5 font-normal text-amber-800"
-              >
-                阶段 · {STAGE_LABELS[session.stage] ?? session.stage}
-              </Badge>
-              <span className="text-xs text-stone-400">
+            <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] leading-5">
+              <span className={cn('font-medium', isReadOnly ? 'text-stone-500' : 'text-amber-800/90')}>
+                {STAGE_LABELS[session.stage] ?? session.stage}
+              </span>
+              <span aria-hidden="true" className="size-1 rounded-full bg-stone-300" />
+              <span className="text-stone-400">
                 {session.turn > 0 ? `已 ${session.turn} 轮` : '刚开始'}
               </span>
+              {isReadOnly ? (
+                <>
+                  <span aria-hidden="true" className="size-1 rounded-full bg-stone-300" />
+                  <span className="text-stone-400">已结束</span>
+                </>
+              ) : null}
             </div>
           ) : (
             <div className="mt-1.5 text-xs text-stone-400">
@@ -175,11 +180,6 @@ export function ExperienceScreen({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {session.readOnly ? (
-            <span className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs text-stone-400">
-              已结束
-            </span>
-          ) : null}
           <button
             type="button"
             onClick={onBackHome}
@@ -204,70 +204,89 @@ export function ExperienceScreen({
         </div>
       ) : null}
 
-      {/* 内容区——分层内容 + 安静等待 */}
+      {/* 内容区：正文固定到可读列宽；归档收束跟随内容流，避免被固定操作裁切 */}
       <div
         ref={scrollRef}
-        className="exp-scrollbar my-4 min-h-0 flex-1 space-y-8 overflow-y-auto pr-1"
+        className="exp-scrollbar my-4 min-h-0 flex-1 space-y-6 overflow-y-auto pr-1 sm:space-y-7"
         aria-live="polite"
       >
-        {session.turns.map((item) => (
-          <TurnItem
-            key={item.key}
-            item={item}
-            totalBranches={session.branches.length}
-            sessionId={session.sessionId}
-            onRetryMedia={onSend}
-          />
-        ))}
+        <div className="mx-auto max-w-3xl">
+          {session.turns.map((item) => (
+            <TurnItem
+              key={item.key}
+              item={item}
+              totalBranches={session.branches.length}
+              sessionId={session.sessionId}
+              onRetryMedia={onSend}
+            />
+          ))}
 
-        {showRetry ? (
-          <div className="rounded-2xl border border-dashed border-stone-300 px-6 py-8 text-center">
-            <p className="text-sm text-stone-500">这个体验刚才没生成好。</p>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onRetry}
-              className="mt-4 h-11 rounded-full border-stone-300 px-6 text-stone-600 hover:border-amber-400 hover:bg-amber-50/50 hover:text-stone-800"
-            >
-              再试一次
-            </Button>
-          </div>
-        ) : null}
-      </div>
-
-      {/* 底部输入区 */}
-      {session.readOnly ? (
-        <div className="mt-auto flex flex-col items-center gap-3 pb-8 pt-2">
-          <p className="text-sm text-stone-400">
-            {session.exitReason === 'creation_completed'
-              ? '作品已完成'
-              : '这次探索已经结束'}
-          </p>
-          <div className="flex items-center gap-2.5">
-            {session.exitReason === 'creation_completed' && onContinueCreation ? (
+          {showRetry ? (
+            <div className="rounded-2xl border border-dashed border-stone-300 bg-white/60 px-6 py-8 text-center">
+              <p className="text-sm text-stone-500">这个体验刚才没生成好。</p>
               <Button
                 type="button"
                 variant="outline"
-                onClick={onContinueCreation}
-                className="h-11 rounded-full border-stone-300 px-6 text-stone-600 hover:border-amber-400 hover:bg-amber-50/50 hover:text-stone-800"
+                onClick={onRetry}
+                className="mt-4 h-11 rounded-full border-stone-300 px-6 text-stone-600 hover:border-amber-400 hover:bg-amber-50/50 hover:text-stone-800"
               >
-                以此续作
+                再试一次
               </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onBackHome}
-              className="h-11 rounded-full border-stone-300 px-6 text-stone-600 hover:border-amber-400 hover:bg-amber-50/50 hover:text-stone-900"
+            </div>
+          ) : null}
+
+          {isReadOnly ? (
+            <section
+              aria-label="会话收束"
+              className="mt-8 rounded-2xl border border-stone-200/85 bg-white/75 px-6 py-7 text-center shadow-[0_8px_30px_rgb(48_43_31/6%)] backdrop-blur-sm sm:px-8"
             >
-              回到首页
-            </Button>
-          </div>
+              <p className="experience-kicker">
+                {isCreationCompleted ? '作品完成' : '会话已归档'}
+              </p>
+              <h2 className="mt-3 text-lg font-medium leading-snug text-stone-800">
+                {hasTurns
+                  ? isCreationCompleted
+                    ? '完整作品已经收在这里'
+                    : '这段探索可以随时回看'
+                  : '这段会话没有可回看的内容'}
+              </h2>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-stone-500">
+                {hasTurns
+                  ? isCreationCompleted
+                    ? '图片、文字和修改记录都保留在本次会话中。'
+                    : '完整对话和生成结果已按轮次整理完成。'
+                  : '回到首页可以开始一次新的探索。'}
+              </p>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                {hasTurns && isCreationCompleted && onContinueCreation ? (
+                  <Button
+                    type="button"
+                    onClick={onContinueCreation}
+                    className="h-11 rounded-full bg-stone-900 px-6 text-sm text-white transition-colors hover:bg-amber-800"
+                  >
+                    以此续作
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  variant={hasTurns && isCreationCompleted ? 'outline' : 'ink'}
+                  onClick={onBackHome}
+                  className="h-11 rounded-full border-stone-300 px-6 text-sm text-stone-700 transition-colors hover:border-amber-400 hover:bg-amber-50/60 hover:text-stone-900"
+                >
+                  回到首页
+                </Button>
+              </div>
+            </section>
+          ) : null}
         </div>
-      ) : (
+        <div aria-hidden="true" className="h-2" />
+      </div>
+
+      {/* 底部输入区：归档态不占据视口底部，完整让位给阅读 */}
+      {isReadOnly ? null : (
         <div className="mt-auto pb-8 pt-2">
           <div
-            className="mb-3 flex flex-wrap gap-2"
+            className="mx-auto mb-3 flex max-w-3xl flex-wrap gap-2"
             role="toolbar"
             aria-label="快捷回应"
           >
@@ -315,7 +334,7 @@ export function ExperienceScreen({
             </button>
           </div>
           {session.generating ? (
-            <p className="mb-2 px-2 text-xs leading-5 text-stone-500" role="status" aria-live="polite">
+            <p className="mx-auto mb-2 max-w-3xl px-2 text-xs leading-5 text-stone-500" role="status" aria-live="polite">
               正在处理这一轮。你也可以继续输入；新输入会结束当前这一轮。
             </p>
           ) : null}

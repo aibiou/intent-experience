@@ -308,7 +308,7 @@ export default function Page() {
           </motion.div>
         ) : null}
       </AnimatePresence>
-      <MottoFooter />
+      {phase === 'experience' ? null : <MottoFooter />}
       <AnimatePresence>
         {viewingWork ? (
           <WorkViewer work={viewingWork} onClose={() => setViewingWork(null)} />
