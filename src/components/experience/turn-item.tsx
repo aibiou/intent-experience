@@ -740,8 +740,10 @@ export function TurnItem({
     </div>
   );
 
-  // 生成中：气泡 + 安静等待
+  // 生成中：气泡 + 安静等待；一旦有流式增量，直接把正在成形的字显示出来。
+  // 这是「陪伴感」最直接的一处：首字从十几秒的空白变成几百毫秒就有反应。
   if (item.kind === undefined || item.content === undefined) {
+    const streaming = item.streamingText;
     return (
       <motion.div
         {...itemMotion}
@@ -749,7 +751,23 @@ export function TurnItem({
         className="space-y-2.5"
       >
         {bubble}
-        <ThinkingIndicator />
+        {streaming ? (
+          <div className="rounded-2xl border border-stone-200/70 bg-white/70 px-4 py-3">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-stone-700">
+              {streaming}
+              <span
+                aria-hidden
+                className={
+                  reduceMotion
+                    ? 'ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 bg-stone-300'
+                    : 'ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 animate-pulse bg-stone-400'
+                }
+              />
+            </p>
+          </div>
+        ) : (
+          <ThinkingIndicator />
+        )}
       </motion.div>
     );
   }

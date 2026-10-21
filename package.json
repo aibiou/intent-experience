@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "test:engine": "bun test tests/engine",
     "test:unit": "vitest run tools/unit",
-    "test:gateway": "bun test mini-services/model-gateway/tests",
+    "test:gateway": "NO_PROXY=127.0.0.1,localhost bun test mini-services/model-gateway/tests",
     "db:push": "prisma db push --accept-data-loss",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

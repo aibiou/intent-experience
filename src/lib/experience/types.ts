@@ -96,6 +96,13 @@ export interface ExperienceState {
   completion: { done: boolean; exitReason: string | null };
   // S2a 轴外域（阶段轴不变，D-02）
   creation: CreationDomain | null; // 创作域（无创作时 null）
+  /**
+   * 已被取代的创作域（DEFECT-CREATION-001：取代 ≠ 丢弃）。
+   * 按取代顺序追加、最多保留最近 20 个；每个含自己的 contentHistory，
+   * 因此用户此前的作品与版本在会话回看中仍可追溯。
+   * 旧会话快照无此字段——读取侧一律 `?? []` 兜底。
+   */
+  creationHistory?: CreationDomain[];
   simulation: SimulationDomainState; // 分支域（结构恒在，空态起步）
 }
 
@@ -110,6 +117,16 @@ export type TurnEvent =
       fromVersion: number;
     }
   | { type: 'content'; turn: number; kind: TurnKind | 'ESCALATION_NOTICE' | 'BOUNDARY_NOTICE'; text: string; stateVersion: number }
+  /**
+   * 流式增量（只用于呈现，不进入状态）。
+   *
+   * 与 content 的关系：content_delta 先到（可能很多条），定稿的 content
+   * 后到并用完整文本替换它。验证器只作用于完整文本——若校验失败，
+   * 服务端发 content_discard，前端把已显示的字撤掉。
+   */
+  | { type: 'content_delta'; turn: number; text: string }
+  /** 撤回某一轮的流式增量（校验失败 / 生成中断）。 */
+  | { type: 'content_discard'; turn: number }
   | {
       type: 'state';
       stateVersion: number;

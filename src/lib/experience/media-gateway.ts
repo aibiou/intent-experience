@@ -16,10 +16,10 @@
  */
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { request as httpRequest } from 'node:http';
 import path from 'node:path';
 import sharp from 'sharp';
 import type { GenerationModality } from './generation-intent';
+import { LocalHttpError, localHttpRequest, localNoProxyEnv } from './loopback-http';
 
 const MEDIA_DIR = path.join(process.cwd(), 'data', 'media');
 const INDEX_FILE = path.join(MEDIA_DIR, 'index.json');
@@ -54,10 +54,14 @@ let lastReviveAt = 0;
 
 async function ensureGateway(): Promise<void> {
   try {
-    const res = await fetch(`${MODEL_GATEWAY_URL}/healthz`, {
-      signal: AbortSignal.timeout(3_000),
+    // 健康探测同样必须直连：Bun 下 fetch 会被 HTTP_PROXY 劫持，代理对
+    // 127.0.0.1 的失败会伪装成「网关不可达」，从而每次生成都误判为
+    // 需要拉起（实测会造成网关重复 spawn 与端口竞争）。
+    const probe = await localHttpRequest({
+      url: `${MODEL_GATEWAY_URL}/healthz`,
+      timeoutMs: 3_000,
     });
-    if (res.ok) return;
+    if (probe.status >= 200 && probe.status < 300) return;
   } catch {
     // 不可达——走拉起路径
   }
@@ -75,7 +79,8 @@ async function ensureGateway(): Promise<void> {
       cwd: process.cwd(),
       detached: true,
       stdio: 'ignore',
-      env: { ...process.env },
+      // 同上：网关内部调本机桥的 fetch 需要回环豁免（进程启动时生效）。
+      env: localNoProxyEnv(),
     });
     child.unref();
     await new Promise((resolve) => setTimeout(resolve, REVIVE_WAIT_MS));
@@ -166,91 +171,36 @@ async function artifactBatchToBuffers(
 }
 
 /**
- * POST JSON 到本机网关并取回 JSON（node:http）。
+ * POST JSON 到本机网关并取回 JSON。
  *
- * 不用全局 fetch：Node（undici）的默认 headersTimeout 是 300s——
- * 视频这类「几分钟后才写出响应头」的调用会在 5 分钟处被系统级
- * 中断（fetch failed，真实 E2E 2026-10-19 复现），与 VIDEO_TIMEOUT_MS
- * 的 16 分钟契约不一致。这里整体等待窗口只由调用方 timeoutMs 决定。
+ * 传输层用 loopback-http（node:net 直连），原因有两条，都是真实 E2E 逼出来的：
+ * 1. 全局 fetch 的默认 headersTimeout 是 300s——视频这类「几分钟后才写出
+ *    响应头」的调用会在 5 分钟处被系统级中断（fetch failed，2026-10-19 复现），
+ *    与 VIDEO_TIMEOUT_MS 的 16 分钟契约不一致；
+ * 2. Bun 运行时会把 HTTP_PROXY 应用到 fetch / node:http，且不豁免 127.0.0.1
+ *    ——带代理的机器上本机网关调用会拿到代理的 502，伪装成「网关不可达」
+ *    （DEFECT-LOCAL-PROXY-001，2026-10-20）。
+ * 这里整体等待窗口只由调用方 timeoutMs 决定。
  */
 export async function requestGatewayJson(
   url: string,
   body: unknown,
   timeoutMs: number,
 ): Promise<{ status: number; parsed: GatewayMediaArtifact }> {
-  const payload = JSON.stringify(body);
-  return new Promise((resolve, reject) => {
-    // Bun 的 node:http 兼容层在 req.destroy(err) 时只发 close 不发 error，
-    // 因此用 settled 状态机统一收口：超时 / 连接中断 / 错误各走各的
-    // 明确报错，且只结算一次（成功响应 end 之后的 close 是 no-op）。
-    let settled = false;
-    const req = httpRequest(
-      url,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-        },
-      },
-      (res) => {
-        const chunks: Buffer[] = [];
-        res.on('data', (chunk: Buffer) => chunks.push(chunk));
-        res.on('close', () => {
-          // 只处理「响应未完整就关闭」的连接中断；正常完成后的
-          // close（Bun 下可能先于 end 监听器收到）是 no-op。
-          if (settled || res.complete) return;
-          settled = true;
-          clearTimeout(timer);
-          reject(
-            new MediaGatewayError('模型网关不可达（127.0.0.1:3031）：连接被中断', true),
-          );
-        });
-        res.on('end', () => {
-          if (settled) return;
-          const text = Buffer.concat(chunks).toString('utf8');
-          try {
-            const parsed = JSON.parse(text) as GatewayMediaArtifact;
-            settled = true;
-            clearTimeout(timer);
-            resolve({ status: res.statusCode ?? 0, parsed });
-          } catch {
-            settled = true;
-            clearTimeout(timer);
-            reject(
-              new MediaGatewayError(
-                `模型网关响应无法解析（HTTP ${res.statusCode ?? 0}）`,
-                true,
-              ),
-            );
-          }
-        });
-      },
-    );
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      req.destroy();
-      reject(
-        new MediaGatewayError(
-          `模型网关不可达（127.0.0.1:3031）：等待网关响应超过 ${Math.round(timeoutMs / 1000)}s`,
-          true,
-        ),
-      );
-    }, timeoutMs);
-    req.on('error', (error) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      reject(
-        new MediaGatewayError(
-          `模型网关不可达（127.0.0.1:3031）：${error.message}`,
-          true,
-        ),
-      );
-    });
-    req.end(payload);
-  });
+  let response: { status: number; body: string };
+  try {
+    response = await localHttpRequest({ url, method: 'POST', body, timeoutMs });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    // 取消不是网关故障：调用方（AbortSignal）需要能区分。
+    const aborted = error instanceof LocalHttpError && error.code === 'aborted';
+    throw new MediaGatewayError(message, !aborted);
+  }
+  try {
+    return { status: response.status, parsed: JSON.parse(response.body) as GatewayMediaArtifact };
+  } catch {
+    throw new MediaGatewayError(`模型网关响应无法解析（HTTP ${response.status}）`, true);
+  }
 }
 
 /** 调用网关媒体端点（请求驱动保活 + 错误归一）。 */

@@ -20,6 +20,8 @@ const PROBE_INTERVAL_MS = 20_000;
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
 
+  const { localHttpRequest, localNoProxyEnv } = await import('./lib/experience/loopback-http');
+
   // 以主应用根为 cwd 拉起：网关默认配置路径
   // （data/config/provider-configs.json）按 process.cwd() 解析——
   // cwd 若为 mini-services/model-gateway 会读不到统一配置源
@@ -28,8 +30,10 @@ export async function register() {
 
   const probeAndRevive = async (): Promise<void> => {
     try {
-      const res = await fetch(GATEWAY_URL, { signal: AbortSignal.timeout(3000) });
-      if (res.ok) return; // 健康——不动
+      // 直连探测：Bun 下 fetch 会被 HTTP_PROXY 劫持且不豁免 127.0.0.1，
+      // 代理失败会被误判成「网关挂了」，每次启动都多拉起一个实例。
+      const probe = await localHttpRequest({ url: GATEWAY_URL, timeoutMs: 3_000 });
+      if (probe.status >= 200 && probe.status < 300) return; // 健康——不动
     } catch {
       // 不可达——拉起
     }
@@ -38,7 +42,8 @@ export async function register() {
         cwd: '.',
         detached: true,
         stdio: 'ignore',
-        env: { ...process.env },
+        // 网关内部调本机桥的 fetch 需要回环豁免（Bun 只在进程启动时读）。
+        env: localNoProxyEnv(),
       });
       child.unref();
       console.log('[instrumentation] model-gateway revived (detached spawn)');

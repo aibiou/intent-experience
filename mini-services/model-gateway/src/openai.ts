@@ -18,13 +18,15 @@ export interface ChatMessage {
 export interface ParsedChatRequest {
   messages: ChatMessage[];
   provider?: string; // 'zai' 或某条配置记录的 id；缺省 = 默认解析链
+  /** 是否以 SSE 增量返回（OpenAI 兼容 stream 语义）。 */
+  stream: boolean;
 }
 
 /** 发往 openai-compatible 端点的请求体形态。 */
 export interface UpstreamChatRequestBody {
   model: string;
   messages: ChatMessage[];
-  stream: false;
+  stream: boolean;
 }
 
 export interface ChatCompletionChoice {
@@ -51,15 +53,16 @@ export interface ApiErrorBody {
   };
 }
 
-/** openai-compatible 上游请求构造：messages 原样透传 + model + stream:false。 */
+/** openai-compatible 上游请求构造：messages 原样透传 + model + stream。 */
 export function buildUpstreamRequestBody(
   model: string,
   messages: ChatMessage[],
+  stream = false,
 ): UpstreamChatRequestBody {
   return {
     model,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    stream: false,
+    stream,
   };
 }
 
@@ -111,7 +114,11 @@ export function parseChatRequest(body: unknown): ChatRequestParseResult {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
     return { ok: false, message: '请求体必须是 JSON 对象' };
   }
-  const { messages, provider } = body as { messages?: unknown; provider?: unknown };
+  const { messages, provider, stream } = body as {
+    messages?: unknown;
+    provider?: unknown;
+    stream?: unknown;
+  };
   if (!Array.isArray(messages) || messages.length === 0) {
     return { ok: false, message: 'messages 必须是非空数组' };
   }
@@ -133,7 +140,13 @@ export function parseChatRequest(body: unknown): ChatRequestParseResult {
   if (provider !== undefined && typeof provider !== 'string') {
     return { ok: false, message: 'provider 必须是字符串（"zai" 或配置记录 id）' };
   }
+  if (stream !== undefined && typeof stream !== 'boolean') {
+    return { ok: false, message: 'stream 必须是布尔值' };
+  }
   const normalizedProvider =
     typeof provider === 'string' && provider.trim().length > 0 ? provider.trim() : undefined;
-  return { ok: true, value: { messages: parsedMessages, provider: normalizedProvider } };
+  return {
+    ok: true,
+    value: { messages: parsedMessages, provider: normalizedProvider, stream: stream === true },
+  };
 }

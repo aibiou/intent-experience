@@ -84,3 +84,6 @@ product-home.png
 .runtime/
 /e2e-*.png
 tools/yuanbao-bridge/*.app.before-*/
+
+# WorkBuddy 会话私有状态（agent memory）
+.workbuddy-ai/

@@ -119,6 +119,12 @@ export interface DisplayTurn {
   branchOrdinal?: number;
   /** S2b：轮次内嵌媒体（音频 / 图片 / 未接入说明）。 */
   media?: TurnMedia;
+  /**
+   * 流式生成中的临时文本（content_delta 累积）。
+   * 定稿的 content 事件到达后清空并替换为 content——它只是「正在成形」的
+   * 预览，从不进入历史，也不参与任何状态推导。
+   */
+  streamingText?: string;
 }
 
 /** GET /api/experience/session 返回的会话形状。 */
@@ -443,8 +449,29 @@ export function useExperienceSession(options?: {
             ...prev,
             turns: prev.turns.map((t) =>
               t.kind === undefined
-                ? { ...t, kind: event.kind, content: event.text, turn: event.turn }
+                ? { ...t, kind: event.kind, content: event.text, turn: event.turn, streamingText: undefined }
                 : t
+            ),
+          }));
+          break;
+        case 'content_delta':
+          // 流式增量：只累积到当前待定气泡上（定稿 content 会整体替换）。
+          apply((prev) => ({
+            ...prev,
+            turns: prev.turns.map((t) =>
+              t.kind === undefined
+                ? { ...t, turn: event.turn, streamingText: (t.streamingText ?? '') + event.text }
+                : t
+            ),
+          }));
+          break;
+        case 'content_discard':
+          // 服务端撤回（校验失败 / 生成中断）：把已经显示的字清掉，
+          // 不留半句话给用户猜。
+          apply((prev) => ({
+            ...prev,
+            turns: prev.turns.map((t) =>
+              t.kind === undefined ? { ...t, streamingText: undefined } : t
             ),
           }));
           break;

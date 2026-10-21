@@ -48,6 +48,7 @@ import {
   type ChatMessage,
 } from './src/openai';
 import { callOpenAICompatible } from './src/providers/openai-compatible';
+import { streamOpenAICompatible } from './src/providers/stream';
 import {
   generateImageSet,
   generateVoice,
@@ -184,12 +185,146 @@ function failureReason(error: unknown): string {
   return reason.length > 60 ? `${reason.slice(0, 60)}…` : reason;
 }
 
+/** SSE 响应头（CORS + 不缓存 + 不断言长度）。 */
+function sseHeaders(): Record<string, string> {
+  return {
+    ...corsHeaders(),
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+  };
+}
+
+/**
+ * 流式 chat.completions（OpenAI 兼容 SSE）。
+ *
+ * 产品动机：非流式路径下，用户要等 8–20 秒才看到第一个字——「陪伴感」
+ * 在沉默里就消失了。流式让首字延迟降到百毫秒级。
+ *
+ * 容错纪律（与多提供方链一致，但多一条硬约束）：
+ * - 还没发出任何内容前失败 → 沿候选链切换（用户无感）；
+ * - 已经发出内容后失败 → **不切换**（切换会让用户看到两段拼接的内容），
+ *   发一条 error 事件后结束，由产品如实告知「生成中断」。
+ */
+function handleChatCompletionsStream(
+  messages: ChatMessage[],
+  chain: ProviderConfigRecord[],
+): Response {
+  const encoder = new TextEncoder();
+  const id = `chatcmpl-${crypto.randomUUID().replace(/-/g, '')}`;
+  const created = Math.floor(Date.now() / 1000);
+  const failures: string[] = [];
+  let lastError: unknown;
+
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      // 客户端断开（用户切走 / 刷新）后 enqueue 会抛 ERR_INVALID_STATE；
+      // 流是旁路，不能因为对端走了就在网关里制造未处理异常。
+      let closed = false;
+      const send = (payload: unknown) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        } catch {
+          closed = true;
+        }
+      };
+      const finish = () => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        } catch {
+          /* 已断开 */
+        }
+        closed = true;
+      };
+      const chunk = (model: string, delta: Record<string, unknown>, finishReason: string | null) => ({
+        id,
+        object: 'chat.completion.chunk',
+        created,
+        model,
+        choices: [{ index: 0, delta, finish_reason: finishReason }],
+      });
+
+      try {
+        for (const record of chain) {
+          if (typeof record.apiKey !== 'string' || record.apiKey.length === 0) {
+            failures.push(`「${record.name}」未配置密钥`);
+            continue;
+          }
+          let started = false;
+          try {
+            await streamOpenAICompatible(record, messages, (delta) => {
+              started = true;
+              send(chunk(record.model, { content: delta }, null));
+            });
+            send(chunk(record.model, {}, 'stop'));
+            finish();
+            return;
+          } catch (error) {
+            lastError = error;
+            failures.push(`「${record.name}」${failureReason(error)}`);
+            if (started) {
+              // 已输出内容：不切换提供方（否则两段内容拼接），如实中断
+              send(
+                buildApiErrorBody(
+                  `生成中断：${error instanceof Error ? error.message : String(error)}`,
+                  'api_error',
+                  'STREAM_INTERRUPTED',
+                ),
+              );
+              finish();
+              return;
+            }
+            if (!isFailoverEligible(error)) break;
+          }
+        }
+        if (lastError === undefined) {
+          send(
+            buildApiErrorBody(
+              '该模态提供方均未配置密钥——请在 /config 页面填入',
+              'invalid_request_error',
+              'PROVIDER_NO_KEY',
+            ),
+          );
+        } else {
+          send(
+            buildApiErrorBody(
+              `无法连接到提供方：${failureReason(lastError)}${failures.length > 0 ? `（尝试：${failures.join('；')}）` : ''}`,
+              'api_error',
+              'UPSTREAM_UNAVAILABLE',
+            ),
+          );
+        }
+        finish();
+      } catch (error) {
+        console.error('[model-gateway] stream error:', error);
+        try {
+          send(
+            buildApiErrorBody(
+              `网关内部错误：${error instanceof Error ? error.message : String(error)}`,
+              'api_error',
+              'INTERNAL_ERROR',
+            ),
+          );
+          finish();
+        } catch {
+          /* 客户端已断开 */
+        }
+      }
+    },
+  });
+
+  return new Response(body, { headers: sseHeaders() });
+}
+
 async function handleChatCompletions(req: Request): Promise<Response> {
   const parsed = parseChatRequest(await readJsonBody(req));
   if (!parsed.ok) {
     return json(buildApiErrorBody(parsed.message, 'invalid_request_error', 'INVALID_REQUEST'), 400);
   }
-  const { messages, provider } = parsed.value;
+  const { messages, provider, stream } = parsed.value;
 
   const records = await configStore.load();
   let chain: ProviderConfigRecord[];
@@ -200,6 +335,10 @@ async function handleChatCompletions(req: Request): Promise<Response> {
       return json(buildApiErrorBody(error.message, 'invalid_request_error', error.code), 400);
     }
     throw error;
+  }
+
+  if (stream) {
+    return handleChatCompletionsStream(messages, chain);
   }
 
   // 多提供方容错（G2-6）：沿候选链逐个尝试——当前候选
@@ -574,6 +713,12 @@ async function probeUpstreamModels(rawBaseUrl: string, apiKey: string): Promise<
 
 const server = Bun.serve({
   port: PORT,
+  // Bun 默认 idleTimeout 是 10s——流式响应在「上游首字还没来」或
+  // 「两个增量之间」会被判定为空闲并掐断（实测日志：
+  // `[Bun.serve]: request timed out after 10 seconds`）。取上限 255s：
+  // 既覆盖首字等待（30s 上限）与流内间隔（60s 上限），又不影响
+  // 非流式长任务（视频那类请求在完成前一直处于「处理中」而非空闲）。
+  idleTimeout: 255,
   async fetch(req): Promise<Response> {
     if (req.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders() });

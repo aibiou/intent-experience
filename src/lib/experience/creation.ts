@@ -473,3 +473,58 @@ export function interpretRestore(
     patch: buildRestorePatch(creation, fromVersion, rawInput),
   };
 }
+
+// ---------------------------------------------------------------------------
+// 同目标判定（DEFECT-CREATION-001 步骤 3：重复请求不重建创作）
+// ---------------------------------------------------------------------------
+
+/**
+ * 目标规范化：去空白与中英文标点、统一小写。
+ *
+ * 用户重复表达同一诉求时，标点与空格几乎必然不同（「生成动态的视频，俩人在观海」
+ * vs 「生成动态的视频 俩人在观海。」），直接字符串比较会漏判。
+ */
+export function normalizeCreationGoal(goal: string): string {
+  return goal
+    .replace(/[\s\u3000]/g, '')
+    .replace(/[，。、；：！？,.!?;:'"“”‘’（）()《》<>【】\[\]-]/g, '')
+    .toLowerCase();
+}
+
+/**
+ * 判定「本轮 CREATE 输入」与「当前创作目标」是否同一目标。
+ *
+ * 语义：同目标 = 对**同一个作品**再生成一次，创作对象应保持不变
+ * （version 不重置、contentHistory 不清空）；只有目标真的不同才允许
+ * supersede 新建。这是 41 个真实会话中「19/20 创作 version 恒为 1」的
+ * 直接成因之一（用户反复说同一句话，系统反复重建创作）。
+ *
+ * 保守策略：规范化后必须**完全相等**才判同目标。相近但不相同
+ * （换主体 / 换场景）一律视为新目标——宁可新建并保留历史，也不把
+ * 用户的换向意图悄悄合并掉。
+ */
+export function isSameCreationGoal(existingGoal: string, candidateGoal: string): boolean {
+  const existing = normalizeCreationGoal(existingGoal);
+  const candidate = normalizeCreationGoal(candidateGoal);
+  if (existing.length === 0 || candidate.length === 0) return false;
+  return existing === candidate;
+}
+
+/**
+ * 生成骨架词表（判定「这条生成请求有没有说出新目标」）。
+ *
+ * 背景：活跃创作域内的生成请求有两种，语义完全不同——
+ * - 裸请求：「生成视频」「继续生成视频」「换一张图片」——没说新目标，
+ *   是对**当前作品**再生成一次（不能新建创作，否则 version 永远重置）；
+ * - 带目标请求：「生成一张森林的图」——说了新目标，与当前作品不同就是
+ *   另起一个创作（允许取代，历史由 runtime 归档）。
+ *
+ * 词表只剥生成动作 / 数量 / 模态 / 语气，不碰内容名词——剩下的就是目标。
+ */
+const GENERATION_SKELETON_PATTERN =
+  /继续|再来|再|重新|帮我|给我|请|生成|画|做|制作|来一|一张|两张|三张|四张|一个|一段|图片|图像|插画|照片|视频|短片|动画|语音|音频|声音|朗读|动态|静态|的|吧|呢|啊|，|,|。|\.|！|!|？|\?|\s/gu;
+
+/** 生成请求是否带新目标（剥离骨架后仍有内容）。 */
+export function hasCreationSubject(rawInput: string): boolean {
+  return rawInput.replace(GENERATION_SKELETON_PATTERN, '').length >= 1;
+}

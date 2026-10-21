@@ -771,3 +771,57 @@ Work Log:
 Stage Summary:
 - 其他端到端流程的 UI/UX 缺陷清零（本轮 2 处修复）；布局居中经四档宽度实测确认
 - 后续如需继续：作品查看器兜底路径与 390 窄屏复核各留一次执行窗口；Agnes 恢复后视频完成卡单发 E2E 收尾不变
+
+---
+
+Task ID: 32
+Agent: WorkBuddy（独立分析 + 实施）
+Task: 产品体检后的四项改进——本机代理劫持修复、创作域历史保留、同目标合并、失败落库
+
+Work Log:
+- 分析基线（只取可复跑事实）：`bun test tests/engine` 355 用例中 2 个失败（media-gateway-http）；`db/custom.db` 41 会话 / 1 个 COMPLETED；`docs/product/pm-review/` 已有 2026-10-20 产品评审与 DEFECT-CREATION-001 根因分析（步骤 1/1b 已修，步骤 2/3 与失败落库未做）
+- 定位新缺陷 DEFECT-LOCAL-PROXY-001：产品 `start` 用 bun，Bun 把 HTTP_PROXY 应用到 fetch 与 node:http 且不豁免 127.0.0.1；`NO_PROXY` 只在进程启动时生效（运行时写入实测仍 502）。后果：带代理的机器上所有 LLM/媒体调用都报「模型网关不可达」，健康探测永远失败导致反复 spawn 网关
+  - 修复：新增 `src/lib/experience/loopback-http.ts`（node:net 裸连接 + 手写 HTTP/1.1；支持 Content-Length / chunked / 无长度；超时只由调用方决定；aborted 独立错误码）；`llm-gateway`、`media-gateway`、`instrumentation` 的本机调用与 healthz 探测全部改用它
+  - 网关子进程：`localNoProxyEnv()` 在 spawn 时注入回环豁免（网关内部 fetch 调本机桥同样会被劫持；外部 provider 仍走用户代理）
+  - 证据：原先失败的 2 个 media-gateway-http 用例恢复通过；新增 `tests/engine/loopback-http.test.ts` 8 用例（含「代理环境变量在场仍直连本机」前置断言）
+- 步骤 2（取代 ≠ 丢弃）：新增 `src/lib/experience/creation-domain.ts::archiveActiveCreation`——旧创作域连同 contentHistory 归档进 `state.creationHistory`（上限 20），`CREATION_PREVIEWED` 事件带 `archived` 摘要；`ExperienceState.creationHistory?` 可选以兼容旧快照。单测 6 用例
+- 步骤 3（同目标合并）：落地时发现必须区分裸请求与带目标请求，否则会误伤「开新作品」的能力
+  - `isSameCreationGoal`（规范化后完全相等，保守策略）+ `hasCreationSubject`（剥离生成骨架后仍有内容 = 说了新目标）
+  - `turn-routing.ts`：UNKNOWN 入口改为「同目标或裸请求 → CONTINUE，否则 CREATE」；CREATE 入口同目标 → CONTINUE
+  - 单测 `tests/engine/turn-routing.test.ts` 12 用例
+- 失败落库：`runtime.ts::recordGenerationFailure`——四条媒体失败出口写 `TURN_FAILED{stage:'generation'}`，审计异常吞掉不影响用户流；`runGeneration` 增加 stateVersion 参数
+- 真实链路验证（非 mock）：
+  - `node tools/diagnose/e2e-creation-archive.mjs`：换作品后 creationHistory=1、归档域保留 contentHistory、endedReason=superseded_by_create → PASS
+  - 媒体路径（真实生图）：同目标第二次 → CONTINUE / creation.v=1 / 归档不增长；换目标 → CREATE / 归档 1→2
+- 回归：`bun test tests/engine` 381 pass / 0 fail；`vitest tools/unit` 169 pass；`tsc --noEmit` 0；`eslint .` 0；`session-replay` PASS
+
+Stage Summary:
+- 产品从「带代理就完全不可用」恢复为可用；创作域不再自我重置，用户此前的作品与版本可追溯；生成失败可从事件表复盘
+- 文档：`docs/product/pm-review/creation-domain-defect-analysis.md` 补齐 §9（本轮修复与证据）；新增 `docs/product/pm-review/local-proxy-defect-analysis.md`
+- 下一步建议（未实施，需产品负责人决策）：文本流式（当前网关 `stream:false`，首字 8–20s，是用户感知最强的剩余短板）；`loopback-http` 不支持流式响应体，做流式需扩展或改回 fetch + 显式直连方案
+
+---
+
+Task ID: 33
+Agent: WorkBuddy
+Task: 文本流式改造（首字延迟）——网关 SSE + 主应用直连流式 + 运行时增量 + 前端渲染
+
+Work Log:
+- 动机：非流式路径首字 8–20s，与「陪伴」的产品语义直接冲突（pm-review §4.2 与缺陷分析 §7 都把它列为优先级 1）
+- 网关侧：新增 `src/providers/stream.ts`（SSE 解析 + 首字 30s / 空闲 60s 双超时）；`POST /v1/chat/completions` 接受 `stream:true` 返回 text/event-stream；容错纪律——未输出前可切候选，已输出后不切（避免两段内容拼接）
+- 踩坑①：`Bun.serve` 默认 `idleTimeout` 10s，SSE 在首字等待期被掐断（日志实证）→ 取上限 255s
+- 踩坑②：客户端断开后 `controller.enqueue` 抛 ERR_INVALID_STATE → send/finish 加已关闭守卫
+- 主应用传输：`loopback-http.ts` 新增 `localHttpStream`（socket 直连的增量读取；chunked / content-length；空闲超时而非总时长；UTF-8 流式解码）
+- 客户端：`LlmGateway.stream?()` 可选方法（队列 + promise 桥接 SSE → 异步增量）；不重试（流式重试会让用户看到重复内容）
+- 运行时：内容轮改流式，逐块 yield `content_delta`；完整文本仍经 `validateProposal`，失败发 `content_discard` 撤回已显示的字（GS-06 不因流式削弱）
+- 前端：DisplayTurn 加 `streamingText`；content_delta 累积、content 定稿替换、content_discard 清空；待定气泡有增量时渲染文本 + 光标（reduced-motion 下静态）
+- 测试：`tests/engine/loopback-http-stream.test.ts` 7 用例（chunked 即时性 / content-length / 中文跨块 / 空闲超时 / 取消 / 直连 / 响应头）；`mini-services/model-gateway/tests/stream.test.ts` 6 用例（逐块 / 半行切断 / 非 2xx / 空内容 / 首字超时 / 中途断开）
+- 真实测量（非 mock）：产品端 TTFT 冷启动 19.1s → 热态 5.7 / 7.4 / 7.7s，deltaCount 89–221；网关直连同一上游 1.7 / 2.5 / 5.5 / 13.3s
+- 诚实结论：流式已生效（文字逐块出现），但**首字延迟主要来自上游模型**（Agnes TTFT 1.7–13s 波动），「首字 < 2s」未达成；配置中的 deepseek 记录当前密钥 HTTP 400 不可用
+- 回归：`bun test tests/engine` 388 pass；`test:gateway` 100 pass；`tsc --noEmit` 0
+- 备注：`package.json` 的 `test:gateway` 增加 `NO_PROXY=127.0.0.1,localhost`（Bun fetch 会把回环地址交给 HTTP_PROXY，mock server 否则不可达）
+
+Stage Summary:
+- 四层流式链路打通并各有回归锁
+- 前端渲染用真实无头 Chrome（CDP）验证：正文 innerText 分 6 个阶段增长（97→113→119→173→239→451），改造前只有一次跳变；截图 `e2e-stream-text-desktop.png`
+- 下一步（需产品负责人决策）：① 换更快的文本模型（真正的首字改善只能来自上游）；② 慢模型下的阶段性等待反馈；③ 把创作/补丁轮也接入流式（当前只覆盖内容轮）
